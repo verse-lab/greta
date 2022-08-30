@@ -1,6 +1,6 @@
 # cfg-ta
 
-This project demonstrates how tree automata are used to disambiguate context-free grammar for a toy language (only containing + and * operations) using Menhir grammar.
+This project demonstrates how tree automata are used to disambiguate context-free grammar for a toy language (only containing + and * operations) using Menhir grammar. The idea is explained in the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>.
 
 ## Project structure
 
@@ -65,4 +65,7 @@ To run the project, do the following:
 dune exec ./main.exe
 ```
 
+### References
 
+<a id="1">[1]</a>:
+Adams, M. D., & Might, M. (2017). Restricting grammars with tree automata. Proceedings of the ACM on Programming Languages, 1(OOPSLA), 1-25. https://doi.org/10.1145/3133906.
