@@ -21,3 +21,4 @@ expr:
   | expr MUL expr { Ast.Mul ($1, $3) }
   | LPAREN expr RPAREN { Ast.Paren $2 }
   ;
+
