@@ -30,23 +30,39 @@ This project demonstrates how tree automata are used to disambiguate context-fre
 - *main.ml* - main repl
 
 
+### Prerequisites
+
+Install `ocaml-dune` by running:
+
+```
+apt install ocaml-dune
+```
+
+The following packages need to be installed by running `opam install <package>`:
+
+- sedlex
+- menhir
+- ppx_deriving
+
+In order to access the opam installation, run the following:
+
+```
+eval $(opam env)
+```
+
+If needed, change the `dune-project` to the right version. The current project runs with the following versions:
+
+```
+(lang dune 2.1)
+(using menhir 2.0)
+```
+
 ### Running 
 
 To run the project, do the following:
 
 ```
 dune exec ./main.exe
-```
-
-You will need the following packages installed (`opam install <package>` to install):
-
-- sedlex
-- menhir
-
-In order to access the opam installation, run the following:
-
-```
-eval $(opam env)
 ```
 
 
