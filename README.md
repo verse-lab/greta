@@ -1,6 +1,12 @@
 # cfg-ta
 
-This project demonstrates how tree automata are used to disambiguate context-free grammar for a toy language (only containing + and * operations) using Menhir grammar. The idea is explained in the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>.
+This project demonstrates how tree automata (TA) are used to disambiguate context-free grammar (CFG) using Menhir grammar. 
+
+The idea is explained in the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>.
+
+Details of the demo scenario is explained in the [examples document](examples.md).
+
+<!-- We are interested in applying ideas from the paper and taking it further by combining it with programming-by-examples synthesis technique. -->
 
 ## Project structure
 
