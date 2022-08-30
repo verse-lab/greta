@@ -1,6 +1,6 @@
 # cfg-ta
 
-This project demonstrates how tree automata are used to disambiguate context-free grammar using Menhir grammar.
+This project demonstrates how tree automata are used to disambiguate context-free grammar for a toy language (only containing + and * operations) using Menhir grammar.
 
 ## Project structure
 
@@ -9,6 +9,8 @@ This project demonstrates how tree automata are used to disambiguate context-fre
 ├── dune
 ├── dune-project
 ├── parser.mly
+├── converter.ml
+├── cfg.ml
 ├── ast.ml
 ├── lexer.ml
 ├── main.ml
@@ -22,6 +24,8 @@ This project demonstrates how tree automata are used to disambiguate context-fre
 - *lexer.ml* - definition of a lexer
 
 - *utils.ml* - some glue code to hook things together
+
+- *converter.ml* - converters from mly to cfg and vice versa
 
 - *main.ml* - main repl
 

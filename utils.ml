@@ -14,15 +14,6 @@ let parse lexbuf =
 let parse_string str =
   parse (Sedlexing.Utf8.from_string str)
 
-let read_line i = try Some (input_line i) with End_of_file -> None
-
-let lines_from_file (filename : string): string list =
-  let rec loop inp acc =
-    match (read_line inp) with
-    | None -> List.rev acc
-    | Some s -> loop inp (s :: acc) in 
-    loop (open_in filename) []
-
 
 
 
