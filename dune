@@ -1,0 +1,9 @@
+(executable (name main)
+ (libraries sedlex menhirLib)
+ (preprocess (pps ppx_deriving.std sedlex.ppx)))
+
+(menhir
+ (modules parser)
+ (flags --table --inspection --dump --explain))
+
+
