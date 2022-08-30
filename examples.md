@@ -92,11 +92,49 @@ TA $A''$ resulted from taking intersection of $A$ and $A'$ (_i.e._, $A \cap A'$ 
 - $S''$ is a cross product of $S$ and $S'$, _i.e._, $S X S'$, and
 - $\Delta''$ is a cross product of $\Delta$ and $\Delta'$, _i.e._, $\Delta X \Delta'$.
 
-_(TODO: Need to double-check whether I can simply define $\Delta''$ as a cross product or not.)_
+Based on the above definition of intersection, we can define $A''$ as follows:
+
+```
+A'':= (Q'', F, S'', Δ'')
+
+Q'' = { EX, EY, ϵ }
+F   = { <+, 2>, <*, 2>, <(), 1>, <N, 1>, <ϵ, 1> }
+S'' = { EX }
+Δ'' = { EX ->_N ϵ       ;
+        EX ->_+ EX EX   ;
+        EX ->_* EY EY   ;
+        EX ->_() EX     ;
+        EY ->_N ϵ       ;
+        EY ->_* EY EY   ;
+        EY ->_() EX     }
+```
+
+By introducing epsilon introductions, the productions $\Delta''$ can be simplified further, as shown below:
+
+```
+Δ'' = { EX ->_+ EX EX   ;
+        EX ->_ϵ EY      ;
+        EY ->_* EY EY   ;
+        EY ->_N ϵ       ;
+        EY ->_() EX     }
+```
 
 ### Step 5. Convert TA $A''$ to CFG $G'$
 
-The resulted $A''$ is converted back to CFG $G'$ by unlabeling the productions.
+The resulted $A''$ is converted back to CFG $G'$ by unlabeling the productions:
+
+```
+G' := (V', Σ', S', P')
+
+V'  = { X, Y, +, *, () }
+Σ'  = { N }
+S'  = { X }
+P'  = { X -> X + X  ;
+        X -> Y      ;
+        Y -> Y * Y  ;
+        Y -> N
+        Y -> ( X )  }
+```
 
 
 
