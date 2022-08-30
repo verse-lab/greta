@@ -43,5 +43,10 @@ You will need the following packages installed (`opam install <package>` to inst
 - sedlex
 - menhir
 
+In order to access the opam installation, run the following:
+
+```
+eval $(opam env)
+```
 
 
