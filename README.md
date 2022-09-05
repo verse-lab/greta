@@ -56,12 +56,14 @@ apt install ocaml-dune
 eval $(opam env)
 ```
 
-4. (Optional) If needed, change the `dune-project` to the right version. The current project runs with the following versions:
+4. (Optional) Ensure that you are using the right `dune` and `menhir` versions in `dune-project`. The current project runs with the following versions:
 
 ```
 (lang dune 2.1)
 (using menhir 2.0)
 ```
+
+5. (Optional) When you encounter a message "... seems to be compiled with a version of OCaml that is not supported by Merlin", then check the ocaml version via `opam switch list` and select `ocaml.4.14.0` compiler for this project. Make sure you run `eval $(opam env)` after switching to version `4.14.0`.
 
 ### Running 
 
