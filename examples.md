@@ -1,10 +1,12 @@
 ## Examples
 
-In this demo project, TAs are used to remove precedence ambiguities from CFG of a small toy language (only containing `+` and `*` operations).
+In this document, we explain how TAs are used to remove precedence ambiguities from CFG of a small toy language (only containing `+` and `*` operations).
+
+<!-- TODO: mention how .mly file is convereted to CFG -->
 
 ### Step 1. CFG $G$ for a toy language
 
-We construct a CFG $G$ for a toy language. $G$ is defined as a tuple $(V, \Sigma, S, P)$ where
+Given that a language has ambiguities in the form of shift/reduce conflicts, the first step involves constructing a CFG $G$ for the language. $G$ is defined as a tuple $(V, \Sigma, S, P)$ where
 - $V$ is a set of non-terminals (_aka_ variables),
 - $\Sigma$ is a set of terminals,
 - $S$ is a set of start symbols, and
@@ -56,11 +58,45 @@ TRE :
     ( +([],[]) | *([],[]) | ()([]) )* . N()
 ```
 
-_(TODO: We need to specify intermediate steps here that generate examples based on the shift-reduce conflicts.)_
+### Step 3. Generate examples based on conflict(s) in the language
 
-### Step 3. TA $A'$ encoding restrictions
+We make the [Menhir parser generator](http://gallium.inria.fr/~fpottier/menhir/manual.html) provide explanations on conflicts via `-- inspection --dump --explain` flags. This generates `parser.conflicts` file in `_build/default/` directory.
+
+For the above language, following line in `parser.conflicts` indicate that there are two types of examples that cause shift-reduce conflicts:
+```
+...
+expr MUL expr
+         expr . PLUS expr
+...
+expr PLUS expr
+          expr . PLUS expr
+...
+```
+
+Based on the above lines, we can create following options for the user:
+```
+     (Option 1)         |      (Option 2)       
+                        |                       
+        MUL             |         PLUS          
+       /   \            |         /  \          
+     expr PLUS          |       MUL  expr       
+          /  \          |      /  \             
+       expr  expr       |    expr expr          
+```
+
+### Step 4. The user selects an example
+
+In this step, we let the user --- _aka_ the language designer --- select one example based on their preference. Note that there are two different formats to present examples to the user: _trees_ and _code snippets_. This format will be finalized based on the user study in the future. For simplicity, we assume that we're using the tree-structured examples as shown above.
+
+### Step 5. TA $A'$ encoding restrictions
+
+This example is subsequently fed to the following algorithm to automatically generate a TA $TA'$ encodinig restrictions.
 
 _(TODO: Here, we need to further clarify an algorithm involved in generating $A'$ based on the example selected by the user.)_
+
+
+
+
 
 Now we specify a TA $A'$ encoding restrictions as follows:
 
@@ -85,7 +121,7 @@ TRE :
     ( ( +([],[]) )* . ( *([],[]) )* . ( N() | ()([]) ) )*
 ```
 
-### Step 4. TA $A''$ resulted from intersection of $A$ and $A'$
+### Step 6. TA $A''$ resulted from intersection of $A$ and $A'$
 
 TA $A''$ resulted from taking intersection of $A$ and $A'$ (_i.e._, $A \cap A'$ where $A = (Q, F, S, \Delta)$ and $A' = (Q', F, S', \Delta')$) is defined as a tuple $(Q'', F, S'', \Delta'')$ where:
 - $Q''$ is a cross product of $Q$ and $Q'$, _i.e._, $Q X Q'$,
@@ -109,6 +145,8 @@ S'' = { EX }
         EY ->_() EX     }
 ```
 
+<!-- (me) how do you algorithmically encode the epsilon introductions or removal of duplicate rules? -->
+
 By introducing epsilon introductions, the productions $\Delta''$ can be simplified further, as shown below:
 
 ```
@@ -119,7 +157,7 @@ By introducing epsilon introductions, the productions $\Delta''$ can be simplifi
         EY ->_() EX     }
 ```
 
-### Step 5. Convert TA $A''$ to CFG $G'$
+### Step 7. Convert TA $A''$ to CFG $G'$
 
 The resulted $A''$ is converted back to CFG $G'$ by unlabeling the productions:
 
@@ -137,4 +175,9 @@ P'  = { X -> X + X  ;
 ```
 
 
+_(TODO: mention how this CFG gets converted to a new .mly file)_
+
+
+
+_(TODO: include further example to illustrate a situation where there are multiple conflicts - e.g., dangling else, etc.)_
 
