@@ -16,8 +16,8 @@ For our small toy language, initial CFG $G$ is defined with the following tuple:
 ```
 G  := (V, Σ, S, P)
 
-V   = { E, +, *, () }
-Σ   = { N }
+V   = { E }
+Σ   = { N, +, *, (, ) }
 S   = { E }
 P   = { E -> N      ;
         E -> E + E  ;
@@ -60,7 +60,7 @@ TRE :
 
 ### Step 3. Generate examples based on conflict(s) in the language
 
-We make the [Menhir parser generator](http://gallium.inria.fr/~fpottier/menhir/manual.html) provide explanations on conflicts via `-- inspection --dump --explain` flags. This generates `parser.conflicts` file in `_build/default/` directory.
+We make the [Menhir parser generator](http://gallium.inria.fr/~fpottier/menhir/manual.html) provide explanations on conflicts via `-- inspection --dump --explain` flags. This generates `parser.conflicts` file in the `_build/default/` directory. Note that if there are no conflicts in the grammar, no `parser.conflicts` file will be generated upon compilation.
 
 For the above language, following line in `parser.conflicts` indicate that there are two types of examples that cause shift-reduce conflicts:
 ```
@@ -73,7 +73,8 @@ expr PLUS expr
 ...
 ```
 
-Based on the above lines, we can create following options for the user:
+Based on the first example, we can create following options for the user:
+
 ```
      (Option 1)         |      (Option 2)       
                         |                       
@@ -84,17 +85,31 @@ Based on the above lines, we can create following options for the user:
        expr  expr       |    expr expr          
 ```
 
+Similarly, the following options are generated for the second example:
+
+```
+     (Option 1)         |      (Option 2)       
+                        |                       
+        PLUS            |         PLUS          
+        /  \            |         /  \          
+     expr PLUS          |       PLUS expr       
+          /  \          |       /  \             
+       expr  expr       |     expr expr          
+```
+
 ### Step 4. The user selects an example
 
-In this step, we let the user --- _aka_ the language designer --- select one example based on their preference. Note that there are two different formats to present examples to the user: _trees_ and _code snippets_. This format will be finalized based on the user study in the future. For simplicity, we assume that we're using the tree-structured examples as shown above.
+In this step, we let the user --- _aka_ the language designer --- select one example based on their preference. Note that there are two different formats to present examples to the user: _trees_ and _code snippets_. The format will be finalized based on the user study in the future. In this document, we're using the tree format as shown in the Step 3 above.
+
+For simplicity, suppose that we are only dealing with the first example and the Option 2 was selected by the user to eliminate the conflicts.
 
 ### Step 5. TA $A'$ encoding restrictions
 
-This example is subsequently fed to the following algorithm to automatically generate a TA $TA'$ encodinig restrictions.
+This example (Option 2) is subsequently fed to the following algorithm to automatically generate a TA $A'$ encodinig restrictions.
 
 _(TODO: Here, we need to further clarify an algorithm involved in generating $A'$ based on the example selected by the user.)_
 
-
+_(TODO: Take note of Angluin's Algorithm and apply it in Tree languages context. Explain how the algorithm I came up with is principled.)_
 
 
 
@@ -124,9 +139,9 @@ TRE :
 ### Step 6. TA $A''$ resulted from intersection of $A$ and $A'$
 
 TA $A''$ resulted from taking intersection of $A$ and $A'$ (_i.e._, $A \cap A'$ where $A = (Q, F, S, \Delta)$ and $A' = (Q', F, S', \Delta')$) is defined as a tuple $(Q'', F, S'', \Delta'')$ where:
-- $Q''$ is a cross product of $Q$ and $Q'$, _i.e._, $Q X Q'$,
-- $S''$ is a cross product of $S$ and $S'$, _i.e._, $S X S'$, and
-- $\Delta''$ is a cross product of $\Delta$ and $\Delta'$, _i.e._, $\Delta X \Delta'$.
+- $Q''$ is a cross product of $Q$ and $Q'$, _i.e._, $Q \times Q'$,
+- $S''$ is a cross product of $S$ and $S'$, _i.e._, $S \times S'$, and
+- $\Delta''$ is a cross product of $\Delta$ and $\Delta'$, _i.e._, $\Delta \times \Delta'$.
 
 Based on the above definition of intersection, we can define $A''$ as follows:
 
@@ -164,8 +179,8 @@ The resulted $A''$ is converted back to CFG $G'$ by unlabeling the productions:
 ```
 G' := (V', Σ', S', P')
 
-V'  = { X, Y, +, *, () }
-Σ'  = { N }
+V'  = { X, Y }
+Σ'  = { N, +, *, (, ) }
 S'  = { X }
 P'  = { X -> X + X  ;
         X -> Y      ;
