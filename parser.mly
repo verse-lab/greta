@@ -19,6 +19,5 @@ expr:
   | INT  { Ast.Int $1 }
   | expr PLUS expr { Ast.Plus ($1, $3) }
   | expr MUL expr { Ast.Mul ($1, $3) }
-  | LPAREN expr RPAREN { Ast.Paren $2 }
-  ;
+  | LPAREN expr RPAREN { Ast.Paren $2 };
 

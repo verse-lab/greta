@@ -4,7 +4,8 @@ module L = Lexer
 open Stdlib
 
 let () =
-  Converter.mly_to_cfg ();
+  (* Converter.mly_to_cfg (); *)
+  (* Converter.cfg_to_ta (); *)
   while true do
     let inp = read_line () in
     match Utils.parse_string inp with

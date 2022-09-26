@@ -25,11 +25,29 @@ P   = { E -> N      ;
         E -> ( E )  }
 ```
 
-The $G$ contains an ambiguity regarding shift/reduce conflicts caused by precedence involving `+` and `*`. That is, when there is $n_1 * n_2 + n_3$, it is not sure whether to do perform $n_1 * n_2$ first or $n_2 + n_3$ first. Without specifying precedence, Menhir _arbitrarily_ resolves this conflict, resulting in an incorrect computation of $n_1 * (n_2 + n_3)$.
+The grammar $G$ is specified in the `parser.mly`, where the following lines refer to the productions $P$:
+
+```ml
+(* parser.mly *)
+program : expr EOF { $1 };
+expr: 
+  | INT  { Ast.Int $1 }
+  | expr PLUS expr { Ast.Plus ($1, $3) }
+  | expr MUL expr { Ast.Mul ($1, $3) }
+  | LPAREN expr RPAREN { Ast.Paren $2 };
+```
+
+In our implementation, `Converter.mly_to_cfg` extracts relevant lines -- such as the lines above -- from the `parser.mly` and coverts to its corresponding CFG. Running the project with the above grammar results in the shift/reduce conflicts:
+
+```console
+$ dune exec ./main.exe
+Warning: 2 states have shift/reduce conflicts.
+Warning: 4 shift/reduce conflicts were arbitrarily resolved.
+```
 
 ### Step 2. Mapping CFG $G$ to TA $A$
 
-Once we have a CFG $G$, we convert it to a TA $A$ by labeling productions. $A$ is defined as a tuple $(Q, F, S, \Delta)$ where
+Before we deal with the conflicts in Step 3, we first convert the CFG $G$ to its corresponding TA $A$ by labeling productions. $A$ is defined as a tuple $(Q, F, S, \Delta)$ where
 - $Q$ is a set of states,
 - $F$ is a set of (ranked) constructor labels (_aka_ alphabet),
 - $S$ is a set of root states, and
@@ -59,6 +77,14 @@ TRE :
 ```
 
 ### Step 3. Generate examples based on conflict(s) in the language
+
+Upon close inspection of `parser.conflicts` that Menhir generates, the 4 shift/reduce conflicts refer to conflicts from the following expressions:
+- `expr MUL expr PLUS expr`
+- `expr PLUS expr MUL expr`
+- `expr PLUS expr PLUS expr`
+- `expr MUL expr MUL expr`
+
+That is, the $G$ contains ambiguities caused by precedence involving `+` and `*`. When there is $n_1 * n_2 + n_3$, it is not sure whether to do perform $n_1 * n_2$ first or $n_2 + n_3$ first. Without specifying precedence, Menhir _arbitrarily_ resolves this conflict, presumably resulting in an incorrect computation of $n_1 * (n_2 + n_3)$. For example, `2*3+4` is evaluated as `Mul(2,Plus(3, 4))`.
 
 We make the [Menhir parser generator](http://gallium.inria.fr/~fpottier/menhir/manual.html) provide explanations on conflicts via `-- inspection --dump --explain` flags. This generates `parser.conflicts` file in the `_build/default/` directory. Note that if there are no conflicts in the grammar, no `parser.conflicts` file will be generated upon compilation.
 
@@ -106,6 +132,11 @@ For simplicity, suppose that we are only dealing with the first example and the 
 ### Step 5. TA $A'$ encoding restrictions
 
 This example (Option 2) is subsequently fed to the following algorithm to automatically generate a TA $A'$ encodinig restrictions.
+
+$$
+a + b
+$$
+
 
 _(TODO: Here, we need to further clarify an algorithm involved in generating $A'$ based on the example selected by the user.)_
 
