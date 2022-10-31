@@ -2,11 +2,10 @@
 
 This project demonstrates how tree automata (TA) are used to disambiguate context-free grammar (CFG) using Menhir grammar. 
 
-The idea is explained in the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>.
+Building upon the idea from the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>, we introduce Angluin's algorithm and programming-by-examples synthesis framework to formally and automatically generate tree automata -- encoding restrictions -- based on examples provided by language designer.
 
-Details of the demo scenario is explained in the [examples document](examples.md).
+Details of the demo scenario is explained in the [Wiki page](https://github.com/yunjeong-lee/cfg-ta/wiki).
 
-<!-- We are interested in applying ideas from the paper and taking it further by combining it with programming-by-examples synthesis technique. -->
 
 ## Project structure
 
