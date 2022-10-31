@@ -16,6 +16,11 @@ let rec token lexbuf =
   | "+" -> P.PLUS
   | "(" -> P.LPAREN
   | ")" -> P.RPAREN
+  | "true" -> P.BOOL(true)
+  | "false" -> P.BOOL(false)
+  | "if" -> P.IF
+  | "then" -> P.THEN
+  | "else" -> P.ELSE
   | eof -> P.EOF
   | _ -> P.EOF
 and comment depth lexbuf =
