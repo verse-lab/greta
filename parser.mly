@@ -32,7 +32,7 @@ expr:
   | expr PLUS expr { Plus ($1, $3) }
   | expr MUL expr { Mul ($1, $3) }
   | LPAREN expr RPAREN { Paren $2 }
-  | IF expr THEN expr { If ($2, Then ($4, Else Void)) }
+  | IF expr THEN expr { If ($2, Then ($4, Else Na)) }
   | IF expr THEN expr ELSE expr { If ($2, Then ($4, Else $6)) } 
   ;
 
