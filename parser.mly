@@ -1,15 +1,20 @@
-%token <int> INT
-%token <bool> BOOL
+%{
+  open Ast
+%}
 
-%token PLUS
+%token <int> INT
+
+%token TRUE
+%token FALSE
+%token IF 
+%token THEN 
+%token ELSE
+
+%token PLUS 
 %token MUL
 
-%token LPAREN
+%token LPAREN 
 %token RPAREN
-
-%token IF
-%token THEN
-%token ELSE
 
 %token EOF
 
@@ -20,14 +25,14 @@
 
 program : expr EOF { $1 };
 
-cond_expr: BOOL { Ast.Bool $1 }
-
 expr: 
-  | INT  { Ast.Int $1 }
-  | expr PLUS expr { Ast.Plus ($1, $3) }
-  | expr MUL expr { Ast.Mul ($1, $3) }
-  | LPAREN expr RPAREN { Ast.Paren $2 }
-  | BOOL { Ast.Bool $1 }
-  | IF cond_expr THEN expr { Ast.If1 ($2, $4) }
-  | IF cond_expr THEN expr ELSE expr { Ast.If2 ($2, $4, $6) };
+  | INT  { Int $1 }
+  | TRUE { Bool true }
+  | FALSE { Bool false }
+  | expr PLUS expr { Plus ($1, $3) }
+  | expr MUL expr { Mul ($1, $3) }
+  | LPAREN expr RPAREN { Paren $2 }
+  | IF expr THEN expr { If ($2, Then ($4, Else Void)) }
+  | IF expr THEN expr ELSE expr { If ($2, Then ($4, Else $6)) } 
+  ;
 
