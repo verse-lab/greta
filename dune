@@ -1,5 +1,5 @@
 (executable (name main)
- (libraries sedlex menhirLib)
+ (libraries sedlex menhirLib str)
  (preprocess (pps ppx_deriving.std sedlex.ppx)))
 
 (menhir
