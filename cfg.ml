@@ -13,18 +13,17 @@ let parser_to_cfg (filename : string): cfg =
   let open Str in
   let open String in
   let open Printf in
-  let cfg_res : cfg = { nonterms = []; terms = []; start = ""; prods = [] } in
-  let wsopen : regexp = regexp ({|[ \n\r\t]*|} ^ "open") in
-  let wsvertbar : regexp = regexp ({|[ \n\r\t]*|} ^ "|") in
-  let wssemicol : regexp = regexp ({|[ \n\r\t]*|} ^ ";") in
-  let argvar : regexp = regexp ("\\$" ^ {|[1-9]+|}) in
-  let argvar_alt : regexp = regexp ("(\\$" ^ {|[1-9]+|}) in
-  (* let wsregex : regexp = regexp ({|[ \n\r\t]+|}) in *)
+  let cfg_res: cfg = { nonterms = []; terms = []; start = ""; prods = [] } in
+  let wsopen: regexp = regexp ({|[ \n\r\t]*|} ^ "open") in
+  let wsvertbar: regexp = regexp ({|[ \n\r\t]*|} ^ "|") in
+  let wssemicol: regexp = regexp ({|[ \n\r\t]*|} ^ ";") in
+  let argvar: regexp = regexp ("\\$" ^ {|[1-9]+|}) in
+  let argvar_alt: regexp = regexp ("(\\$" ^ {|[1-9]+|}) in
   (** temp_storage *)
-  let nonterms_temp : nonterminal list ref = ref [] in
-  let terms_temp : terminal list ref = ref [] in
-  let prods_temp : production list ref = ref [] in
-  let prog_id : string ref = ref "nullID" in
+  let nonterms_temp: nonterminal list ref = ref [] in
+  let terms_temp: terminal list ref = ref [] in
+  let prods_temp: production list ref = ref [] in
+  let prog_id: string ref = ref "nullID" in
   let prods_started = ref false in
   let debug_print = ref true in
   (** helpers **)
@@ -132,16 +131,17 @@ let parser_to_cfg (filename : string): cfg =
     relev_lines |> List.iter (fun x -> printf "%s\n" x); traverse_nxt relev_lines "" [] 
   in cfg_res
 
-let mly_to_cfg () = 
+let mly_to_cfg (filename: string): cfg = 
   let open List in 
   let open Printf in
-  let cfg_original = parser_to_cfg "parser.mly" in
-  printf "\n%s" "Original CFG obtained from parser.mly : \n";
+  let cfg_original = parser_to_cfg filename in
+  printf "\nOriginal CFG obtained from parser.mly : \n";
   printf "\tTerminals : { "; cfg_original.terms |> iter (printf "%s "); printf "}\n";
   printf "\tStart symbol : { "; cfg_original.start |> (printf "%s "); printf "}\n";
   printf "\tNonterminals : { "; cfg_original.nonterms |> iter (printf "%s "); printf "}\n";
-  printf "\tSet of productions : { \n"; cfg_original.prods |> iter (fun x -> 
-    printf "\t\t\t\t%s ->_{%s}" (fst x) (fst (snd x)); (snd (snd x))|> iter (printf " %s"); printf "\n"); printf "\t\t\t     }\n"
+  printf "\tSet of productions : { \n"; cfg_original.prods |> iter (fun x -> printf "\t\t\t\t%s -> ( %s " 
+  (fst x) (fst (snd x)); (snd (snd x))|> iter (printf "%s "); printf ")\n"); printf "\t\t\t     }\n";
+  cfg_original
 
 (* let cfg_to_mly () =
   Printf.printf "%s\n" "in progress.." *)

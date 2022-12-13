@@ -1,11 +1,12 @@
 module P = Parser
 module L = Lexer
 module C = Cfg
+module T = Ta
 
 open Stdlib
 
 let () =
-  C.mly_to_cfg ();
+  let _ = C.mly_to_cfg ("parser.mly") |> T.cfg_to_ta in
   (* Cfg.cfg_to_ta (); *)
   while true do
     let inp = read_line () in

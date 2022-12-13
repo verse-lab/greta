@@ -37,4 +37,4 @@ expr:
   | LPAREN expr RPAREN { Paren $2 }
   | IF cond_expr THEN expr { If ($2, Then ($4, Else Na)) }
   | IF cond_expr THEN expr ELSE expr { If ($2, Then ($4, Else $6)) }
-  ; 
+  ;
