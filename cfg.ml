@@ -73,76 +73,86 @@ let parser_to_cfg (filename : string): cfg =
     let terms_ls = cfg_res.terms in match blk_ls with [] -> ()
     | blk_h :: blk_tl -> 
       let symbs_ls = blk_h |> split_on_char ' ' |> List.filter (fun x -> 
-        noteq "|" x && noteq "{" x && noteq "}" x && noteq "};" x && noteq "Bool" x)
+        noteq "" x && noteq "|" x && noteq "{" x && noteq "}" x && noteq "};" x && noteq "Bool" x)
       in let rec collect_prod ls (term_rhs: terminal list) (symbs_rhs: string list): unit = 
           match ls with [] -> 
-            (if List.length symbs_rhs = 0 then () 
-            else if List.length term_rhs = 0 
-            then (printf "Length of term_rhs is 0\n"; prods_temp := (nont_lhs, ("ε", List.rev symbs_rhs)) :: !prods_temp)
-            else if List.length term_rhs = 1 
-            then (printf "Length of term_rhs is 1\n";prods_temp := (nont_lhs, (List.hd term_rhs, List.rev symbs_rhs)) :: !prods_temp)
+            (if List.length symbs_rhs = 0 then ()
+            else if List.length term_rhs = 0
+            then (if (!debug_print) then (printf "Length of term_rhs is 0.\n\n");
+                  prods_temp := (nont_lhs, ("ε", List.rev symbs_rhs)) :: !prods_temp)
+            else if List.length term_rhs = 1
+            then (if (!debug_print) then (printf "Length of term_rhs %s is 1 and attaching symbs_rhs " (List.hd term_rhs);
+                 (List.rev symbs_rhs) |> List.iteri (fun i x -> if i = 0 then printf " %s" x else printf ", %s" x); printf "\n\n");
+                 prods_temp := (nont_lhs, (List.hd term_rhs, List.rev symbs_rhs)) :: !prods_temp)
             else if List.length term_rhs = 2
             then let term_rhs_final = List.fold_left (fun a b -> a ^ b) "" (List.rev term_rhs)
-              in (printf "Length of term_rhs is 2\n"; prods_temp := (nont_lhs, (term_rhs_final, List.rev symbs_rhs)) :: !prods_temp)
-            else raise (Invalid_argument "RHS Terminal can have at most two symbols!")); 
+              in (if (!debug_print) then (printf "Length of term_rhs %s is 2 and attaching symbs_rhs \n" (List.hd term_rhs);
+              (List.rev symbs_rhs) |> List.iteri (fun i x -> if i = 0 then printf "%s" x else printf ", %s" x); printf "\n\n");
+              prods_temp := (nont_lhs, (term_rhs_final, List.rev symbs_rhs)) :: !prods_temp)
+            else raise (Invalid_argument "RHS Terminal can have at most two symbols!"));
             extract_prods_from_block nont_lhs blk_tl
-          | h :: tl -> 
+          | h :: tl ->
+            if (!debug_print) then printf "Now processing %s\n" h;
             if (List.mem h terms_ls && not (List.mem (uppercase_ascii h) term_rhs)) && not (conds_to_exclude h)
             then (printf "Collecting %s as term_rhs\n" h; collect_prod tl (h::term_rhs) symbs_rhs)
             else if (string_match argvar h 0) || (string_match argvar_alt h 0) || conds_to_exclude h || (List.mem (uppercase_ascii h) term_rhs)
-            then collect_prod tl term_rhs symbs_rhs
+            then (printf "%s is argvar or cond to exclude, so skip..\n" h; collect_prod tl term_rhs symbs_rhs)
             (* Below temporary fix for Int and Bool cases *)
-            else if (h = "Int") then collect_prod tl term_rhs symbs_rhs else if (h = "INT") then collect_prod tl term_rhs ("N"::symbs_rhs)
-            else if (h = "true" || h = "TRUE") then collect_prod tl term_rhs [] (* To skip this entire case so we have only 1 BOOL *)
-            else if (h = "false") then collect_prod tl term_rhs symbs_rhs
-            else if (h = "FALSE") then collect_prod tl term_rhs ("B"::symbs_rhs) else collect_prod tl term_rhs (h::symbs_rhs)
-        in collect_prod symbs_ls [] []
+            else if (h = "Int") then (printf "%s is Int, so skip..\n" h; collect_prod tl term_rhs symbs_rhs) 
+            else if (h = "INT") then (printf "%s is INT, so add \"N\" to symbs_rhs.\n" h; collect_prod tl term_rhs ("N"::symbs_rhs))
+            else if (h = "true" || h = "TRUE") then (printf "%s is true || TRUE, so start collect_prod over with [] symbs_rhs..\n" h; collect_prod tl term_rhs []) (* To skip this entire case so we have only 1 BOOL *)
+            else if (h = "false") then (printf "%s is false so skip..\n" h; collect_prod tl term_rhs symbs_rhs)
+            else if (h = "FALSE") then (printf "%s is FALSE so add \"B\" to symbs_rhs\n" h; collect_prod tl term_rhs ("B"::symbs_rhs)) else 
+              (printf "All other situations don't suffice for %s, so add %s to symbs_rhs.\n" h h; collect_prod tl term_rhs (h::symbs_rhs))
+         in collect_prod symbs_ls [] []
   in
   let rec traverse inp acc : string list =
      match (read_line inp) with 
      | None -> cfg_res.terms <- (List.rev !terms_temp); List.rev acc
-     | Some s -> 
+     | Some s ->
       if not (starts "{%%" s) && not (starts "%}" s) && not (string_match wsopen s 0)
       then extract_terms s;
       (* only takes lines that are relevant for productions *)
       if (starts "%start" s) then prods_started := true;
-      if (!prods_started) then traverse inp (s::acc) else traverse inp acc 
+      if (!prods_started) then traverse inp (s::acc) else traverse inp acc
   in let relev_lines : string list = traverse (open_in filename) [] in 
   let _ = relev_lines |> List.iter (fun y -> extract_nonterms y); cfg_res.nonterms <- List.rev !nonterms_temp
   ;if (!debug_print) then (printf "Terminals: \n"; cfg_res.terms |> List.iter (printf " %s"); printf "\n";
                            printf "Non-terminals: \n" ;cfg_res.nonterms |> List.iter (printf " %s"); printf "\n\n")
   in let rec traverse_nxt (stls: string list) (acc_nont_lhs) (acc_block: string list): unit = 
-      if (!debug_print) then printf "Calling traverse nxt now!\n";
+      if (!debug_print) then printf "\nCalling traverse nxt now!\n";
       match stls with [] -> cfg_res.prods <- (List.rev !prods_temp)
-      | shd :: stl -> 
+      | shd :: stl ->
         (if (starts !prog_id shd)
         then (printf "Starting with prog_id, so skip\n"; traverse_nxt stl acc_nont_lhs acc_block)
-        else if (ends ";" shd || string_match wssemicol shd 0) 
-        then (printf "Ending with ; so extract prods for \"%s\"\n" acc_nont_lhs; 
+        else if (ends ";" shd || string_match wssemicol shd 0)
+        then (printf "Ending with ; so extract prods for \"%s\"\n" acc_nont_lhs;
           extract_prods_from_block (remove_colon acc_nont_lhs) (List.rev acc_block); traverse_nxt stl "" [])
         else if List.mem (remove_colon shd) cfg_res.nonterms (* [prev] start_of_block shd *)
-        then (printf "Start of the block, so loop with \"%s\" as nont_lhs\n" shd;traverse_nxt stl shd acc_block)
-        else if (starts "%start" shd || starts "%%" shd) 
+        then (printf "Start of the block, so loop with \"%s\" as nont_lhs\n" shd; traverse_nxt stl shd acc_block)
+        else if (starts "%start" shd || starts "%%" shd)
         then (printf "Either %%start or %%%%, so skip\n"; traverse_nxt stl acc_nont_lhs acc_block)
-        else if string_match wsvertbar shd 0 
+        else if string_match wsvertbar shd 0
         then (printf "Vertical bar line so accumulate %s\n" shd; traverse_nxt stl acc_nont_lhs (shd :: acc_block))
-        else (printf "Empty line so skip\n";traverse_nxt stl acc_nont_lhs acc_block))
-  in let _ = if (!debug_print) then printf "Rel lines before running traverse_nxt\n"; 
-    relev_lines |> List.iter (fun x -> printf "%s\n" x); traverse_nxt relev_lines "" [] 
+        else (printf "Empty line so skip\n"; traverse_nxt stl acc_nont_lhs acc_block))
+  in let _ = if (!debug_print) then printf "Rel lines before running traverse_nxt\n";
+    relev_lines |> List.iter (fun x -> printf "%s\n" x); traverse_nxt relev_lines "" []
   in cfg_res
 
 let mly_to_cfg (filename: string): cfg = 
-  let open List in 
+  let cfg_res = parser_to_cfg filename in
+  Printf.printf "\nCFG obtained from %s : \n" filename; 
+  (* Pp.pp_cfg (cfg_original); *)
+  let open List in
   let open Printf in
-  let cfg_original = parser_to_cfg filename in
-  printf "\nOriginal CFG obtained from parser.mly : \n";
-  printf "\tTerminals : { "; cfg_original.terms |> iter (printf "%s "); printf "}\n";
-  printf "\tStart symbol : { "; cfg_original.start |> (printf "%s "); printf "}\n";
-  printf "\tNonterminals : { "; cfg_original.nonterms |> iter (printf "%s "); printf "}\n";
-  printf "\tSet of productions : { \n"; cfg_original.prods |> iter (fun x -> printf "\t\t\t\t%s -> ( %s " 
+  printf "\tTerminals : { "; cfg_res.terms |> iter (printf "%s "); printf "}\n";
+  printf "\tStart symbol : { "; cfg_res.start |> (printf "%s "); printf "}\n";
+  printf "\tNonterminals : { "; cfg_res.nonterms |> iter (printf "%s "); printf "}\n";
+  printf "\tSet of productions : { \n"; cfg_res.prods |> iter (fun x -> printf "\t\t\t\t%s -> ( %s " 
   (fst x) (fst (snd x)); (snd (snd x))|> iter (printf "%s "); printf ")\n"); printf "\t\t\t     }\n";
-  cfg_original
+  cfg_res
 
+  
 (* let cfg_to_mly () =
   Printf.printf "%s\n" "in progress.." *)
 
