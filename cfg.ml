@@ -9,3 +9,6 @@ type cfg = (* CFG := (V, \Sigma, S, P) *)
     mutable prods : production list;      (* P - a set of productions, eg, E -> E + E       *)
   }
 
+let null_cfg = { nonterms = []; terms = []; start = ""; prods = [] }
+
+

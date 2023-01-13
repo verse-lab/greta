@@ -11,3 +11,5 @@ type ta = (* TA := (Q, F, Q_s, \Del) *)
     mutable transitions : transition list;
   }
 
+let null_ta = { states = []; alphabet = []; start_state = ""; transitions = [] }
+
