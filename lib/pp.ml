@@ -38,8 +38,9 @@ let pp_ta (a: T.ta): unit =
 
 let pp_symbol (s: T.symbol): unit = printf "<%s, %d> " (fst s) (snd s)
 
-let pp_example (e: E.tree): unit =
+let rec pp_tree (e: E.tree): unit =
   match e with
-  | Leaf s -> printf "Leaf of %s" s
-  | Node (op, _) -> printf "Node of "; (pp_symbol op)
+  | Leaf s -> printf "Leaf %s " s
+  | Node (op, ts) -> printf "Node ( "; (pp_symbol op); printf ", [ "; 
+    ts |> List.iter pp_tree; printf "] )"
 

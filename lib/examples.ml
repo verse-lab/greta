@@ -1,8 +1,18 @@
 open Ta
 
-type tree = Leaf of state | Node of symbol * (state list)
+type tree = Leaf of state | Node of ((string * state) * (tree list))
 
+(* TODO : rearrange test suite with examples below *)
+(* ex00 : expr *)
 let ex00 = Leaf "expr"
+
+(* ex01 : expr `+` expr *)
+let ex01 = Node (("+", "expr"), [Leaf "expr"; Leaf "expr"])
+
+(* ex02 : expr `+` (expr `*` expr) *)
+let ex02 = Node (("+", "expr"), 
+  [Node (("*", "expr"), [Leaf "expr"; Leaf "expr"]); 
+  Leaf "expr"])
 
 let gen_examples (filename: string): unit = 
   (** read lines from parser.conflicts *)
