@@ -19,7 +19,7 @@ Details of the demo scenario is explained in the [Wiki page](https://github.com/
 │   └── main.ml                 (* main repl                                     *)
 ├── lib
 │   ├── dune
-│   ├── parser.mly              (* definition of the grammar in menhir *)
+│   ├── parser.mly              (* definition of the grammar in menhir           *)
 │   ├── converter.ml            (* convertion from mly to cfg and vice versa     *)
 │   ├── examples.ml             (* example (trees) generated based on conflicts  *)
 │   ├── learner.ml              (* tree automata-learning algorithm              *)
