@@ -16,19 +16,19 @@ Details of the demo scenario is explained in the [Wiki page](https://github.com/
 ├── Makefile
 ├── lib
 │   ├── dune
-│   └── main.ml                 (* main repl *)
+│   └── main.ml                 (* main repl                                     *)
 ├── lib
 │   ├── dune
 │   ├── parser.mly              (* definition of the grammar in menhir *)
-│   ├── converter.ml            (* converts from mly to cfg and vice versa *)
-│   ├── examples.ml
-│   ├── learner.ml
-│   ├── lexer.ml                (* definition of a lexer *)
-│   ├── utils.ml                (* some glue code to hook things together *)
-│   ├── ast.ml                  (* definition of a simple ast *)
-│   ├── cfg.ml
-│   ├── ta.ml
-│   └── pp.ml
+│   ├── converter.ml            (* convertion from mly to cfg and vice versa     *)
+│   ├── examples.ml             (* example (trees) generated based on conflicts  *)
+│   ├── learner.ml              (* tree automata-learning algorithm              *)
+│   ├── lexer.ml                (* definition of a lexer                         *)
+│   ├── utils.ml                (* some glue code to hook things together        *)
+│   ├── ast.ml                  (* definition of an ast                          *)
+│   ├── cfg.ml                  (* definition of cfg, relevant methods           *)
+│   ├── ta.ml                   (* definition of tree automata, relevant methods *)
+│   └── pp.ml                   (* pretty printers                               *)
 ├── test
 │   ├── dune
 │   └── test_discota.ml
