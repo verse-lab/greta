@@ -1,17 +1,18 @@
 open Ta
 
-type tree = Leaf of state | Node of ((string * state) * (tree list))
+type load = string
+type tree = Leaf of load | Node of (symbol * load * (tree list))
 
 (* TODO : rearrange test suite with examples below *)
 (* ex00 : expr *)
 let ex00 = Leaf "expr"
 
 (* ex01 : expr `+` expr *)
-let ex01 = Node (("+", "expr"), [Leaf "expr"; Leaf "expr"])
+let ex01 = Node (("+", 2), "expr", [Leaf "expr"; Leaf "expr"])
 
 (* ex02 : expr `+` (expr `*` expr) *)
-let ex02 = Node (("+", "expr"), 
-  [Node (("*", "expr"), [Leaf "expr"; Leaf "expr"]); 
+let ex02 = Node (("+", 2), "expr", 
+  [Node (("*", 2), "expr", [Leaf "expr"; Leaf "expr"]); 
   Leaf "expr"])
 
 let gen_examples (filename: string): unit = 
