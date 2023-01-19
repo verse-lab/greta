@@ -79,7 +79,7 @@ eval $(opam env)
 To run the project, do the following:
 
 ```
-dune exec ./main.exe
+make
 ```
 
 ### References
