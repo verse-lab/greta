@@ -1,4 +1,8 @@
+open Ta
 
+type tree = Leaf of state | Node of symbol * (state list)
+
+let ex00 = Leaf "expr"
 
 let gen_examples (filename: string): unit = 
   (** read lines from parser.conflicts *)

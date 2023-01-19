@@ -1,5 +1,6 @@
 module C = Cfg
 module T = Ta
+module E = Examples
 
 open Printf
 open List
@@ -35,5 +36,10 @@ let pp_transitions (ts: T.transition list) =
 let pp_ta (a: T.ta): unit =
   pp_states (a.states); pp_alphabet (a.alphabet); pp_root (a.start_state); pp_transitions (a.transitions)
 
+let pp_symbol (s: T.symbol): unit = printf "<%s, %d> " (fst s) (snd s)
 
+let pp_example (e: E.tree): unit =
+  match e with
+  | Leaf s -> printf "Leaf of %s" s
+  | Node (op, _) -> printf "Node of "; (pp_symbol op)
 

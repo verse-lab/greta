@@ -1,0 +1,19 @@
+(library 
+ (name discota)
+ (public_name discota)
+ (libraries sedlex menhirLib str)
+ (preprocess (pps ppx_deriving.std sedlex.ppx)))
+
+(menhir
+ (modules parser)
+ (flags --table --inspection --dump --explain))
+
+
+; (executable 
+;  (name main)
+;  (public_name main.native)
+;  (libraries sedlex menhirLib str)
+;  (preprocess (pps ppx_deriving.std sedlex.ppx))
+;  (package discota)
+;  (flags -rectypes))
+

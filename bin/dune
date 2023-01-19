@@ -1,0 +1,8 @@
+(executable 
+ (name main)
+ (public_name main.native)
+ (libraries sedlex menhirLib str discota)
+ (preprocess (pps ppx_deriving.std sedlex.ppx))
+ (package discota)
+ (flags -rectypes))
+

@@ -13,13 +13,23 @@ Details of the demo scenario is explained in the [Wiki page](https://github.com/
 .
 ├── dune
 ├── dune-project
-├── parser.mly
-├── converter.ml
-├── cfg.ml
-├── ast.ml
-├── lexer.ml
-├── main.ml
-└── utils.ml
+├── src
+│   ├── main.ml
+│   ├── ast.ml
+│   ├── cfg.ml
+│   ├── converter.ml
+│   ├── discota.ml
+│   ├── examples.ml
+│   ├── lexer.ml
+│   ├── parser.mly
+│   ├── pp.ml
+│   ├── ta.ml
+│   ├── utils.ml
+│   └── dune
+├── test
+│   ├── dune
+│   └── project_name.ml
+└── project_name.opam
 ```
 
 - *parser.mly* - definition of the grammar in menhir
