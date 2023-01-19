@@ -9,40 +9,31 @@ Details of the demo scenario is explained in the [Wiki page](https://github.com/
 
 ## Project structure
 
-```
+```ml
 .
 ├── dune
 ├── dune-project
-├── src
-│   ├── main.ml
-│   ├── ast.ml
-│   ├── cfg.ml
-│   ├── converter.ml
-│   ├── discota.ml
+├── Makefile
+├── lib
+│   ├── dune
+│   └── main.ml                 (* main repl *)
+├── lib
+│   ├── dune
+│   ├── parser.mly              (* definition of the grammar in menhir *)
+│   ├── converter.ml            (* converts from mly to cfg and vice versa *)
 │   ├── examples.ml
-│   ├── lexer.ml
-│   ├── parser.mly
-│   ├── pp.ml
+│   ├── learner.ml
+│   ├── lexer.ml                (* definition of a lexer *)
+│   ├── utils.ml                (* some glue code to hook things together *)
+│   ├── ast.ml                  (* definition of a simple ast *)
+│   ├── cfg.ml
 │   ├── ta.ml
-│   ├── utils.ml
-│   └── dune
+│   └── pp.ml
 ├── test
 │   ├── dune
-│   └── project_name.ml
+│   └── test_discota.ml
 └── project_name.opam
 ```
-
-- *parser.mly* - definition of the grammar in menhir
-
-- *ast.ml* - definition of a simple ast
-
-- *lexer.ml* - definition of a lexer
-
-- *utils.ml* - some glue code to hook things together
-
-- *converter.ml* - converters from mly to cfg and vice versa
-
-- *main.ml* - main repl
 
 
 ### Prerequisites
