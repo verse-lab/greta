@@ -1,38 +1,37 @@
-# cfg-ta
+# Discota
 
-This project demonstrates how tree automata (TA) are used to disambiguate context-free grammar (CFG) using Menhir grammar. 
+This project demonstrates how CFG is disambiguated using tree automata synthesized based on user-provided examples. 
 
-Building upon the idea from the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>, we introduce Angluin's algorithm and programming-by-examples synthesis framework to formally and automatically generate tree automata -- encoding restrictions -- based on examples provided by language designer.
+Building upon the idea from the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>, we introduce tree automata-learning Discota algorithm and programming-by-examples synthesis framework to formally and automatically resolve CFG ambiguities based on examples provided by the user.
 
-Details of the demo scenario is explained in the [Wiki page](https://github.com/yunjeong-lee/cfg-ta/wiki).
 
 
 ## Project structure
 
-```ml
+```
 .
 ├── dune
 ├── dune-project
 ├── Makefile
+├── bin
+│   ├── dune
+│   └── main.ml                 // main repl
 ├── lib
 │   ├── dune
-│   └── main.ml                 (* main repl                                     *)
-├── lib
-│   ├── dune
-│   ├── parser.mly              (* definition of the grammar in menhir           *)
-│   ├── converter.ml            (* convertion from mly to cfg and vice versa     *)
-│   ├── examples.ml             (* example (trees) generated based on conflicts  *)
-│   ├── learner.ml              (* tree automata-learning algorithm              *)
-│   ├── lexer.ml                (* definition of a lexer                         *)
-│   ├── utils.ml                (* some glue code to hook things together        *)
-│   ├── ast.ml                  (* definition of an ast                          *)
-│   ├── cfg.ml                  (* definition of cfg, relevant methods           *)
-│   ├── ta.ml                   (* definition of tree automata, relevant methods *)
-│   └── pp.ml                   (* pretty printers                               *)
+│   ├── parser.mly              // definition of the grammar in menhir
+│   ├── converter.ml            // convertion between mly and cfg and between cfg and tree automata
+│   ├── examples.ml             // example (trees) generated based on conflicts
+│   ├── learner.ml              // discota tree automata-learning algorithm
+│   ├── lexer.ml                // definition of a lexer
+│   ├── utils.ml                // some glue code to hook things together
+│   ├── ast.ml                  // definition of an ast
+│   ├── cfg.ml                  // definition of cfg and relevant methods
+│   ├── ta.ml                   // definition of tree automata and relevant methods
+│   └── pp.ml                   // pretty printers
 ├── test
 │   ├── dune
 │   └── test_discota.ml
-└── project_name.opam
+└── discota.opam
 ```
 
 
@@ -72,6 +71,10 @@ To run the project, do the following:
 ```
 make
 ```
+
+### Documentation
+
+Demo scenario as well as overall framework is explained in the [Wiki page](https://github.com/yunjeong-lee/cfg-ta/wiki).
 
 ### References
 

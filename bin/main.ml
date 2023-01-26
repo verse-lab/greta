@@ -20,8 +20,8 @@ let () =
   (* let _ (* examples *) = E.gen_examples (conflicts_file) in *)
   let ranked_symbols = ta_origin.alphabet in
   let _ (* ta_example *) = 
-    printf "Now learn tree automaton from an example tree:\n";
-    Lr.learner E.ex01 ranked_symbols
+    printf "\nNow learn tree automaton from an example tree:\n";
+    Lr.learner E.ex02 ranked_symbols
   in
   (* Cfg.cfg_to_ta (); *)
   while true do

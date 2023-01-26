@@ -1,8 +1,9 @@
 (library 
  (name discota)
  (public_name discota)
- (libraries sedlex menhirLib str)
- (preprocess (pps ppx_deriving.std sedlex.ppx)))
+ (libraries sedlex menhirLib str core qcheck)
+ (preprocess (pps ppx_deriving.std sedlex.ppx))
+ (flags :standard -rectypes))
 
 (menhir
  (modules parser)
