@@ -140,6 +140,15 @@ let mly_to_cfg (filename: string): cfg =
 (* let cfg_to_mly () =
   Printf.printf "%s\n" "in progress.." *)
 
+  let enhance_appearance (a: ta): ta =
+    let change_symbol s = 
+      let s', s'' = fst s, snd s in if (s' = "MUL") then "*", s'' else 
+      if (s' = "PLUS") then "+", s'' else if (s' = "LPARENRPAREN") then "()", s'' else s in
+    let alph_updated: symbol list = a.alphabet |> List.map (fun sym -> change_symbol sym) in
+    let trans_updated: transition list = a.transitions |> List.map (fun (st,(sym,st_ls)) ->
+      let sym_new = change_symbol sym in (st, (sym_new, st_ls))) in
+    { states = a.states; alphabet = alph_updated 
+    ; start_state = a.start_state ; transitions = trans_updated }  
 
 let cfg_to_ta (c: cfg): ta =
   let open List in
@@ -158,11 +167,10 @@ let cfg_to_ta (c: cfg): ta =
   and trans: transition list = 
     c.prods |> fold_left (fun acc (n, (t, ls)) -> (n, ((t, rank_of_symb t), ls)) :: acc) []
     |> map (fun (s, (op, s_ls)) -> if (fst op = "ε" && length s_ls = 1) then (s, ((hd s_ls, 1), "ϵ"::[])) else (s, (op, s_ls))) in
-  let ta_res: ta = { states = "ϵ"::c.nonterms; alphabet = ranked_alphabet; start_state = c.start; transitions = List.rev trans } in
+  let ta_res: ta = { states = "ϵ"::c.nonterms; alphabet = ranked_alphabet; start_state = c.start; transitions = List.rev trans }
+    |> enhance_appearance in
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta (ta_res);
   ta_res
-
-
 
 (* let ta_to_cfg () =
   Printf.printf "%s\n" "in progress.." *)
