@@ -30,7 +30,7 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (dirchild_st: st
     match t with Leaf _ -> trans_acc, syms_acc
     | Node (sym, ts) ->
       let lhs_state: state = filter is_leaf ts |> hd |> return_state in
-      let rhs_states: state list = init (arity sym) (fun _ -> lhs_state) in
+      let rhs_states: state list = gen_state_list sym lhs_state in
       let tran_sym = lhs_state, (sym, rhs_states) in
       let trans_subts: transition list = ts |> map (fun subt -> 
         fst (traverse_example subt (dep+1) lhs_state trans_acc syms_acc)) |> flatten in

@@ -50,4 +50,5 @@ let pp_tree (e: T.tree): unit =
         if (i = len-1) then loop x else (loop x; printf "; ")); printf "])"
   in loop e
 
-
+let rec pp_repeat (n: int) (s: string): unit =
+  if n = 0 then printf "" else (printf "%s" s; pp_repeat (n-1) s)

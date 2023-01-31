@@ -21,7 +21,11 @@ let () =
   let ranked_symbols = ta_origin.alphabet in
   let _ (* ta_example *) = 
     printf "\nNow learn tree automaton from an example tree:\n";
-    Lr.learner E.ex02 ranked_symbols
+    Lr.learner E.ex02 ranked_symbols in
+  let _ = 
+    printf "\nRandomly generating tree given : \n\t"; 
+    Pp.pp_alphabet ranked_symbols;
+    E.rand_tree ranked_symbols true 0
   in
   (* Cfg.cfg_to_ta (); *)
   while true do
