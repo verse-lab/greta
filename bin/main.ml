@@ -7,6 +7,7 @@ module C = Converter
 module E = Examples
 module Lr = Learner
 module T = Ta
+module R = Run
 
 let () =
   let parser_file = "./lib/parser.mly" in
@@ -17,7 +18,7 @@ let () =
   let _ (* examples *):T.tree list = E.gen_examples conflicts_file in 
   let learned_ta:T.ta = Lr.learner example_tree ranked_symbols in
   let _:T.tree = E.rand_tree ranked_symbols true 0 in
-  let _:bool = T.accept learned_ta example_tree true in
+  let _:bool = R.accept learned_ta example_tree true in
   while true do
     let inp = read_line () in
     match Utils.parse_string inp with
