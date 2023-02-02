@@ -21,7 +21,7 @@ let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tr
   !states_res, !start_res, !dirchild_res, e'
 
 (** gen_transitions : traverse e and gen Σ_e-, ε-, ()- trans per parent-child *)
-let gen_transitions (t: tree) (a: symbol list) (root_st: state) (*(dirchild_st: state)*) (debug_print: bool): transition list =
+let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bool): transition list =
   let open List in
   let open Printf in
   if debug_print then (printf "\n\nGenerating transitions..\n");
@@ -48,11 +48,17 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (*(dirchild_st: 
   if debug_print then (printf "\tΣ\\{Σ_ex,ε,()}: { "; syms_non_example |> iter (fun s -> Pp.pp_fst s); printf "}\n");
   (* gen conservative trans -- eg E1 ->_{sym} E1 E1 .. -- for Σ\{Σ_ex,ε,()} *)
   let trans_non_example: transition list = syms_non_example |> map (fun s -> 
-    let rhs_states': state list = let arity_s = arity s in if (arity_s <> 0) 
-      then init (arity s) (fun _ -> root_st) else init 1 (fun _ -> "ϵ") 
+    let rhs_states': state list = 
+      if (arity s <> 0) 
+      then init (arity s) (fun _ -> root_st) 
+      else init 1 (fun _ -> "ϵ") in
     (* TODO: Differentiate IF's conditional based on info from original TA, incorporate to Algo *)
-    in if (sym_equals s "IF") then (let rhs_states'' = rhs_states' |> mapi (fun i x -> 
-      if (i=0) then "Cond_expr" else x) in root_st, (s, rhs_states'')) else root_st, (s, rhs_states'))
+      if (sym_equals s "IF")
+      then (let rhs_states'' = rhs_states' |> mapi (fun i x -> 
+        if (i=0) then "Cond_expr_1" else x) in root_st, (s, rhs_states''))
+      else if (sym_equals s "B")
+      then "Cond_expr_1", (s, rhs_states') 
+      else root_st, (s, rhs_states'))
   in let trans_res = trans_example @ trans_non_example
   in if debug_print then (Pp.pp_transitions trans_res);
   trans_res
