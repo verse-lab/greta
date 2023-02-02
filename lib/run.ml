@@ -47,7 +47,4 @@ open Ta
       if debug_print then printf "\n\nAcceptance result: %b\n\n" accepted; 
       accepted
     
-    (** Intersection of tree automata:  *)
-    let intersect (_: ta) (_: ta): ta =
-      null_ta
-    
+
