@@ -14,7 +14,7 @@ let () =
   let ta_origin = C.convertToTa parser_file in
   let ranked_symbols = ta_origin.alphabet in
   let _ (* examples *): T.tree list = E.gen_examples conflicts_file in 
-  let _ (* ta_example *): T.ta = Lr.learner E.ex02 ranked_symbols in
+  let _ (* ta_example *): T.ta = Lr.learner E.ex03 ranked_symbols in
   let _: T.tree = E.rand_tree ranked_symbols true 0 in
   while true do
     let inp = read_line () in

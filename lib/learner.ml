@@ -21,11 +21,12 @@ let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tr
   !states_res, !start_res, !dirchild_res, e'
 
 (** gen_transitions : traverse e and gen Σ_e-, ε-, ()- trans per parent-child *)
-let gen_transitions (t: tree) (a: symbol list) (root_st: state) (dirchild_st: state) (debug_print: bool): transition list =
+let gen_transitions (t: tree) (a: symbol list) (root_st: state) (*(dirchild_st: state)*) (debug_print: bool): transition list =
   let open List in
   let open Printf in
   if debug_print then (printf "\n\nGenerating transitions..\n");
   let h = height t in
+  (* traverse example tree to generate trans using Σ_ex,ε,() *)
   let rec traverse_example t dep parent trans_acc syms_acc: transition list * symbol list =
     match t with Leaf _ -> trans_acc, syms_acc
     | Node (sym, ts) ->
@@ -45,14 +46,16 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (dirchild_st: st
   if debug_print then (printf "\tΣ_ex : { "; syms_example |> iter (fun x -> Pp.pp_symbol x); printf "}\n");
   let syms_non_example: symbol list = a |> filter (fun x -> not (mem x syms_example) && not (fst x = "()")) in
   if debug_print then (printf "\tΣ\\{Σ_ex,ε,()}: { "; syms_non_example |> iter (fun s -> Pp.pp_fst s); printf "}\n");
+  (* gen conservative trans -- eg E1 ->_{sym} E1 E1 .. -- for Σ\{Σ_ex,ε,()} *)
   let trans_non_example: transition list = syms_non_example |> map (fun s -> 
-    let rhs_states': state list = let arity_s = arity s in 
-    if (arity_s <> 0) then init (arity s) (fun _ -> dirchild_st) else init 1 (fun _ -> "ϵ") in
+    let rhs_states': state list = let arity_s = arity s in if (arity_s <> 0) 
+      then init (arity s) (fun _ -> root_st) else init 1 (fun _ -> "ϵ") 
     (* TODO: Differentiate IF's conditional based on info from original TA, incorporate to Algo *)
-    if (sym_equals s "IF") then root_st, (s, rhs_states') else root_st, (s, rhs_states')) in
-let trans_res = trans_example @ trans_non_example
-in if debug_print then (Pp.pp_transitions trans_res);
-trans_res
+    in if (sym_equals s "IF") then (let rhs_states'' = rhs_states' |> mapi (fun i x -> 
+      if (i=0) then "Cond_expr" else x) in root_st, (s, rhs_states'')) else root_st, (s, rhs_states'))
+  in let trans_res = trans_example @ trans_non_example
+  in if debug_print then (Pp.pp_transitions trans_res);
+  trans_res
 
 let learner (e: tree) (a: symbol list): ta =
   let open Printf in
@@ -60,8 +63,8 @@ let learner (e: tree) (a: symbol list): ta =
   if debug_print then (printf "\nNow learn a tree automaton from an example tree\n";
   printf "\nInputs are... \n\tExample: "; Pp.pp_tree e; 
   printf "\n\tAlphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n");
-  let state_ls, strt, dir_child, e' = redefine_tree e debug_print in
-  let trans = gen_transitions e' a strt dir_child debug_print in
+  let state_ls, strt, _, e' = redefine_tree e debug_print in
+  let trans = gen_transitions e' a strt debug_print in
   let ta_res = { states = state_ls; alphabet = a; start_state = strt; transitions = trans } in
   if debug_print then (printf "\nLearned TA:\n"; Pp.pp_ta ta_res); ta_res
 
