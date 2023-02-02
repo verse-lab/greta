@@ -26,7 +26,8 @@ Building upon the idea from the paper *Restricting Grammars with Tree Automata* 
 │   ├── utils.ml                // some glue code to hook things together
 │   ├── ast.ml                  // definition of an ast
 │   ├── cfg.ml                  // definition of cfg and relevant methods
-│   ├── ta.ml                   // definition of tree automata and relevant methods
+│   ├── ta.ml                   // definition of tree automata and tree
+│   ├── run.ml                  // tree automata-related operations
 │   └── pp.ml                   // pretty printers
 ├── test
 │   ├── dune
