@@ -136,47 +136,63 @@ let mly_to_cfg (filename: string): cfg =
   Printf.printf "\nCFG defined in %s : \n" filename; Pp.pp_cfg (cfg_res);
   cfg_res
 
-  
-(* let cfg_to_mly () =
-  Printf.printf "%s\n" "in progress.." *)
+let enhance_appearance (a: ta): ta =
+  let change_symbol s = 
+    let s', s'' = fst s, snd s in if (s' = "MUL") then "*", s'' else 
+    if (s' = "PLUS") then "+", s'' else if (s' = "LPARENRPAREN") then "()", s'' else s in
+  let alph_updated: symbol list = a.alphabet |> List.map (fun sym -> change_symbol sym) in
+  let trans_updated: transition list = a.transitions |> List.map (fun (st,(sym,st_ls)) ->
+    let sym_new = change_symbol sym in (st, (sym_new, st_ls))) in
+  { states = a.states; alphabet = alph_updated 
+  ; start_state = a.start_state ; transitions = trans_updated }
+(* TODO: To undo this enhancement later *)
 
-  let enhance_appearance (a: ta): ta =
-    let change_symbol s = 
-      let s', s'' = fst s, snd s in if (s' = "MUL") then "*", s'' else 
-      if (s' = "PLUS") then "+", s'' else if (s' = "LPARENRPAREN") then "()", s'' else s in
-    let alph_updated: symbol list = a.alphabet |> List.map (fun sym -> change_symbol sym) in
-    let trans_updated: transition list = a.transitions |> List.map (fun (st,(sym,st_ls)) ->
-      let sym_new = change_symbol sym in (st, (sym_new, st_ls))) in
-    { states = a.states; alphabet = alph_updated 
-    ; start_state = a.start_state ; transitions = trans_updated }  
-
-let cfg_to_ta (c: cfg): ta =
+let cfg_to_ta (versatileTerminals: terminal list) (c: cfg): ta =
   let open List in
   let open Printf in
+  (* helper assuming at most 2 occurrences of versatileTerminals *)
+  let last_ind ls elem =
+    let rec loop i i_acc l = match l with [] -> i_acc
+    | h::tl -> loop (i+1) (if fst h = elem then i else i_acc) tl
+    in loop 0 (-1) ls in
+  let prods_rhs = c.prods |> map snd in 
   let rank_of_symb (s: string): int =
-    let prods_rhs = c.prods |> map snd in 
     if (s = "N" || s = "B") then (printf "Symbol N or S, so length 0.\n"; 0) else
-    match assoc_opt s prods_rhs with 
+    match assoc_opt s prods_rhs with
     | None -> raise (Failure "Infeasible: nonexisting symbol")
     | Some symb_ls -> (printf "Symbol %s has" s; symb_ls |> iter (printf " %s"); printf " so length is "; 
       printf "%d.\n" (length symb_ls); length symb_ls) in
   let ranked_alphabet: symbol list = 
     let rparen_exists = mem "RPAREN" c.terms in c.terms 
     |> filter (fun x -> not (x = "THEN") && not (x = "ELSE") && not (x = "RPAREN"))
-    |> map (fun x -> if (x = "LPAREN" && rparen_exists) then "LPARENRPAREN" else x) |> map (fun x -> (x, rank_of_symb x))
+    |> map (fun x -> if (x = "LPAREN" && rparen_exists) then "LPARENRPAREN" else x) 
+    |> map (fun x -> (x, rank_of_symb x))
   and trans: transition list = 
     c.prods |> fold_left (fun acc (n, (t, ls)) -> (n, ((t, rank_of_symb t), ls)) :: acc) []
     |> map (fun (s, (op, s_ls)) -> if (fst op = "ε" && length s_ls = 1) then (s, ((hd s_ls, 1), "ϵ"::[])) else (s, (op, s_ls))) in
-  let ta_res: ta = { states = "ϵ"::c.nonterms; alphabet = ranked_alphabet; start_state = c.start; transitions = List.rev trans }
-    |> enhance_appearance in
+  let toadd_versterms: symbol list = versatileTerminals |> map (fun term ->
+    let lasti = last_ind prods_rhs term in
+    let rank_of_lasti: int = match nth_opt prods_rhs lasti with
+      | None -> raise (Failure "Infeasible")
+      | Some (t, symb_ls) -> (printf "Symbol %s has" t; symb_ls |> iter (printf " %s"); 
+        printf " so length is "; printf "%d.\n" (length symb_ls); length symb_ls) 
+    in (term, rank_of_lasti)) in
+  let ta_res: ta = 
+    { states = "ϵ"::c.nonterms; alphabet = ranked_alphabet @ toadd_versterms
+    ; start_state = c.start; transitions = List.rev trans } |> enhance_appearance in
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta (ta_res);
   ta_res
 
-(* let ta_to_cfg () =
-  Printf.printf "%s\n" "in progress.." *)
-    
+let convertToTa (file: string): ta = 
+  (* Pass in terminals which can have multiple ranks, eg, "IF" *)
+  file |> mly_to_cfg |> cfg_to_ta ["IF"]
   
-  
+(* 
+let cfg_to_mly () =
+  Printf.printf "%s\n" "in progress.."
+let ta_to_cfg () =
+  Printf.printf "%s\n" "in progress.." 
+*)
 
 
 

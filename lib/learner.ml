@@ -57,7 +57,8 @@ trans_res
 let learner (e: tree) (a: symbol list): ta =
   let open Printf in
   let debug_print = true in
-  if debug_print then (printf "\nInputs are... \n\tExample: "; Pp.pp_tree e; 
+  if debug_print then (printf "\nNow learn a tree automaton from an example tree\n";
+  printf "\nInputs are... \n\tExample: "; Pp.pp_tree e; 
   printf "\n\tAlphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n");
   let state_ls, strt, dir_child, e' = redefine_tree e debug_print in
   let trans = gen_transitions e' a strt dir_child debug_print in

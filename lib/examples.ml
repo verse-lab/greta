@@ -20,9 +20,14 @@ let ex03 = Node (("+", 2),
   []) *)
 
 (** gen_examples : gen examples from conflicts in CFG *)
-let gen_examples (filename: string): unit = 
+let gen_examples (filename: string): tree list = 
+  if Sys.file_exists filename
+  then Printf.printf "Conflicts exist\n\n"
+  else Printf.printf "Conflicts do NOT exist\n\n"; []
+  (* TODO: Continue from here ...  *)
   (** read lines from parser.conflicts *)
-  let _ (* conflict_lines *) : string list =
+  (* 
+     let _ (* conflict_lines *) : string list =
     let ic = open_in filename in
     let try_read () = 
       try Some (input_line ic) with End_of_file -> None in
@@ -32,8 +37,7 @@ let gen_examples (filename: string): unit =
       | None -> close_in ic; List.rev acc
     in loop [] 
   in
-  (* To continue from here ...  *)
-  Format.print_string filename
+  Format.print_string filename *)
 
 (** randomly generated trees to stress test Learner.learner *)
 let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
@@ -42,9 +46,10 @@ let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
   let len = List.length a in
   let rind = Random.self_init (); Random.int len in
   let sym = List.nth a rind in 
-  if debug_print then (printf "\nRandomly selected symbol is "; pp_symbol sym);
+    if debug_print then (printf "\nRandomly generating tree given : \n\t"; pp_alphabet a;
+    printf "\nRandomly selected symbol is "; pp_symbol sym);
   let ar = arity sym in
-  let tree_res = match ar with 
+  let tree_res = match ar with
   | 0 -> Node (sym, [Leaf "ϵ"])
     (* if debug_print then (pp_repeat dep "\t" ; pp_tree t'; printf "\n");  *)
   | num -> begin match fst sym with "IF" -> 
