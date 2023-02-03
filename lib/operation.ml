@@ -20,9 +20,17 @@ let cartesian_product_trans (states1: state list) (states2: state list)
   let remove_epsilon ls = filter (fun x -> not (x = "ϵ")) ls in
   (** find_rhs_states : based on lhs_state and sym, find corresonding 'Some rhs_states'
      and return 'None' if it doesn't find corresponding list *)
-  let find_rhs_states _ _ _ (* lhs_state sym trans *): state list option = 
-    Some []
-  in
+  let find_rhs_states (lhs_state: state) (sym: symbol) (trans: transition list): state list option = 
+    let rec traverse_trans lhs_stat ls =
+      match ls with
+      | [] -> None (* reached end and found none *)
+      | (lhs, (s, rhs_states)) :: tl ->
+        if ((lhs = lhs_stat) && (s = sym)) then Some rhs_states else 
+        (* assuming ε-tran is happening before all others -> TODO: re-arrange before runnign *)
+        if ((lhs = lhs_stat) && (sym_equals s "ε") && (length rhs_states = 1)) 
+        then traverse_trans (hd rhs_states) tl
+        else traverse_trans lhs tl
+    in traverse_trans lhs_state trans in
   let stats1, stats2 = remove_epsilon states1, remove_epsilon states2 in
   (* TODO: simplify code below *)
   let states_pairs: (state * state) list = combine stats1 stats2 in
@@ -44,11 +52,11 @@ let intersect (a1: ta) (a2: ta) (debug_print: bool): ta =
   if debug_print then (printf "\nIntersect the following 2 TAs:\n  First TA:\n";
   Pp.pp_ta a1; printf "\n  Second TA:\n"; Pp.pp_ta a2; printf "\n");
   (* TODO: Add a sanity check on alphabet based on set equality *)
-  let statesls = cartesian_product_states a1.states a2.states in
+  let syms = a1.alphabet in
+  let stats = cartesian_product_states a1.states a2.states in
   let start = cartesian_product_states [a1.start_state] [a2.start_state] |> List.hd in
-  let trans = [] in
-  let res_ta = { states = statesls ; alphabet = a1.alphabet
-  ; start_state = start ; transitions = trans } in
+  let trans = cartesian_product_trans a1.states a2.states a1.transitions a2.transitions syms in
+  let res_ta = { states=stats ; alphabet=syms; start_state=start ; transitions=trans } in
   if debug_print then (printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta); 
   res_ta
 
