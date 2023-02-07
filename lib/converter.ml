@@ -155,7 +155,9 @@ let cfg_to_ta (versatileTerminals: terminal list) (c: cfg): ta =
     let rec loop i i_acc l = match l with [] -> i_acc
     | h::tl -> loop (i+1) (if fst h = elem then i else i_acc) tl
     in loop 0 (-1) ls in
+  let epsilon_symb: symbol = ("ε", 1) in
   let prods_rhs = c.prods |> map snd in 
+  (* helper to compute rank of given symbol *)
   let rank_of_symb (s: string): int =
     if (s = "N" || s = "B") then (printf "Symbol N or S, so length 0.\n"; 0) else
     match assoc_opt s prods_rhs with
@@ -166,10 +168,18 @@ let cfg_to_ta (versatileTerminals: terminal list) (c: cfg): ta =
     let rparen_exists = mem "RPAREN" c.terms in c.terms 
     |> filter (fun x -> not (x = "THEN") && not (x = "ELSE") && not (x = "RPAREN"))
     |> map (fun x -> if (x = "LPAREN" && rparen_exists) then "LPARENRPAREN" else x) 
-    |> map (fun x -> (x, rank_of_symb x))
-  and trans: transition list = 
+    |> map (fun x -> (x, rank_of_symb x)) 
+    (* add "ε" symbol to the alphabet *)
+    |> append [epsilon_symb] in
+  let trans: transition list =
+    let stat: state ref = ref "" in
     c.prods |> fold_left (fun acc (n, (t, ls)) -> (n, ((t, rank_of_symb t), ls)) :: acc) []
-    |> map (fun (s, (op, s_ls)) -> if (fst op = "ε" && length s_ls = 1) then (s, ((hd s_ls, 1), "ϵ"::[])) else (s, (op, s_ls))) in
+    |> map (fun (s, (op, s_ls)) -> if (fst op = "ε" && length s_ls = 1) then (s, ((hd s_ls, 1), "ϵ"::[])) 
+    (* TODO (below stat): make this less computationally expensive *)
+    else (stat := s; (s, (op, s_ls))))
+    (* add epsilon transition (needed when taking intersection with another TA) *)
+    |> append [(!stat, (epsilon_symb, [!stat]))] in
+  (* add versatile symbols -- with multiple ranks -- to alphabet *)
   let toadd_versterms: symbol list = versatileTerminals |> map (fun term ->
     let lasti = last_ind prods_rhs term in
     let rank_of_lasti: int = match nth_opt prods_rhs lasti with
@@ -184,7 +194,7 @@ let cfg_to_ta (versatileTerminals: terminal list) (c: cfg): ta =
   ta_res
 
 let convertToTa (file: string): ta = 
-  (* Pass in terminals which can have multiple ranks, eg, "IF" *)
+  (* Pass in terminals which can have multiple arities, eg, "IF" *)
   file |> mly_to_cfg |> cfg_to_ta ["IF"]
   
 (* 

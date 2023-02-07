@@ -1,6 +1,8 @@
 open Ta
 
-let cartesian_product_states (ls1: state list) (ls2: state list): state list =
+let cartesian_product_states (ls1: state list) (ls2: state list) (debug_print: bool): state list =
+  if debug_print then (Printf.printf "\n  Cross product of states:\n\tFirst set of states:\n";
+  Pp.pp_states ls1; Printf.printf "\n\tSecond set of states:\n"; Pp.pp_states ls2);
   let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
   let remove_dups ls = List.fold_right unique_cons ls [] in
   let rec loop l1 l2 acc =
@@ -12,7 +14,8 @@ let cartesian_product_states (ls1: state list) (ls2: state list): state list =
       let acc' = loop [h1] tl2 (prod :: acc) 
       in loop tl1 ls2 (acc' @ acc)
       (* remove duplicate ϵ states *)
-  in loop ls1 ls2 [] |> remove_dups |> List.rev
+  in let res = loop ls1 ls2 [] |> remove_dups in 
+  (Printf.printf "\n  Result of cross product:\n"; Pp.pp_states res); List.rev res
 
 let cartesian_product_trans (states1: state list) (states2: state list) 
 (trans1: transition list) (trans2: transition list) (syms: symbol list) (debug_print: bool): transition list =
@@ -37,12 +40,12 @@ let cartesian_product_trans (states1: state list) (states2: state list)
   let stats1, stats2 = remove_epsilon states1, remove_epsilon states2 in
   (* TODO: simplify code below *)
   let states_pairs: (state * state) list = combine stats1 stats2 in
-  let states_lhs = cartesian_product_states stats1 stats2 in
+  let states_lhs = cartesian_product_states stats1 stats2 debug_print in
   let states_tuples: (state * (state * state)) list = combine states_lhs states_pairs in 
   let res_trans: transition list = map2 (fun (lhs, (stat1, stat2)) sym ->
     match find_rhs_states stat1 sym trans1, find_rhs_states stat2 sym trans2 with 
     | Some rhs_states1, Some rhs_states2 -> 
-      let rhs_states = cartesian_product_states rhs_states1 rhs_states2 in 
+      let rhs_states = cartesian_product_states rhs_states1 rhs_states2 debug_print in 
       (lhs, (sym, rhs_states))
     | Some _(*v1*), None ->  (lhs, (sym, []))
     | None, Some _(*v2*) -> (lhs, (sym, []))
@@ -57,11 +60,11 @@ let intersect (a1: ta) (a2: ta) (debug_print: bool): ta =
   (* TODO: Add a sanity check on alphabet based on set equality *)
   let syms = a1.alphabet in
   let stats1, stats2 = a1.states, a2.states in
-  let stats = cartesian_product_states stats1 stats2 in
-  let start = cartesian_product_states [a1.start_state] [a2.start_state] |> List.hd in
+  let stats = cartesian_product_states stats1 stats2 debug_print in
+  let start = cartesian_product_states [a1.start_state] [a2.start_state] debug_print |> List.hd in
   let trans = 
-    [] in
-    (* cartesian_product_trans stats1 stats2 a1.transitions a2.transitions syms debug_print in *)
+    (* [] in *)
+    cartesian_product_trans stats1 stats2 a1.transitions a2.transitions syms debug_print in
   let res_ta = { states=stats ; alphabet=syms; start_state=start ; transitions=trans } in
   if debug_print then (printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta); 
   res_ta
