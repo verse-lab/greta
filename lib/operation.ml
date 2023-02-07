@@ -15,11 +15,14 @@ let cartesian_product_states (ls1: state list) (ls2: state list): state list =
   in loop ls1 ls2 [] |> remove_dups |> List.rev
 
 let cartesian_product_trans (states1: state list) (states2: state list) 
-(trans1: transition list) (trans2: transition list) (syms: symbol list): transition list =
+(trans1: transition list) (trans2: transition list) (syms: symbol list) (debug_print: bool): transition list =
   let open List in
+  let open Printf in
+  if debug_print then (printf "\n  Cross product of transitions:\n\tFirst transitions:\n"; 
+  Pp.pp_transitions trans1; printf "\n\tSecond transitions:\n"; Pp.pp_transitions trans2);
   let remove_epsilon ls = filter (fun x -> not (x = "ϵ")) ls in
   (** find_rhs_states : based on lhs_state and sym, find corresonding 'Some rhs_states'
-     and return 'None' if it doesn't find corresponding list *)
+      and return 'None' if it doesn't find corresponding list *)
   let find_rhs_states (lhs_state: state) (sym: symbol) (trans: transition list): state list option = 
     let rec traverse_trans lhs_stat ls =
       match ls with
@@ -53,9 +56,12 @@ let intersect (a1: ta) (a2: ta) (debug_print: bool): ta =
   Pp.pp_ta a1; printf "\n  Second TA:\n"; Pp.pp_ta a2; printf "\n");
   (* TODO: Add a sanity check on alphabet based on set equality *)
   let syms = a1.alphabet in
-  let stats = cartesian_product_states a1.states a2.states in
+  let stats1, stats2 = a1.states, a2.states in
+  let stats = cartesian_product_states stats1 stats2 in
   let start = cartesian_product_states [a1.start_state] [a2.start_state] |> List.hd in
-  let trans = cartesian_product_trans a1.states a2.states a1.transitions a2.transitions syms in
+  let trans = 
+    [] in
+    (* cartesian_product_trans stats1 stats2 a1.transitions a2.transitions syms debug_print in *)
   let res_ta = { states=stats ; alphabet=syms; start_state=start ; transitions=trans } in
   if debug_print then (printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta); 
   res_ta

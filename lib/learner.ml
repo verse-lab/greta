@@ -3,8 +3,12 @@ open Ta
 (** redefine_tree : generate states, start_state, redefine e as e' wrt these states *)
 let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tree =
   if debug_print then (Printf.printf "\nRedefining tree.. \n\tInput: "; Pp.pp_tree e); 
+  let in_the_syms (elems: symbol list) (ls: symbol list): bool = 
+    elems |> List.exists (fun x -> List.mem x ls) in
   let states_res, start_res, dirchild_res = ref ["ϵ"], ref "", ref "" in
-  let rec loop e dep =
+  (* TODO: to fix from here reg. syms_e so I can have Cond_expr when needed *)
+  let syms_e: symbol list ref = ref [] in
+  let rec traverse_loop e dep =
     match e with
     | Leaf s ->
       (* gen states so it can differentiate cond_expr from expr *)
@@ -14,10 +18,13 @@ let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tr
       if (dep = 0) then (start_res := s'; Printf.printf "Trivial tree with only 1 leaf");
       if not (List.mem s' !states_res) then states_res := s' :: !states_res; Leaf s'
     | Node (sym, ts) ->
-      let ts' = ts |> List.map (fun x-> loop x (dep + 1)) in
-      Node (sym, ts')
-  in let e' = loop e 0
-  in if debug_print then (Printf.printf "\n\tRedefined: "; Pp.pp_tree e');
+      let ts' = ts |> List.map (fun x-> traverse_loop x (dep + 1)) in
+      syms_e := sym :: !syms_e; Node (sym, ts')
+  in let e' = traverse_loop e 0 in
+  (* add a state associated with boolean *)
+  if not (in_the_syms [("B", 0); ("IF", 2); ("IF", 3)] !syms_e) 
+    then states_res := ("Cond_expr") :: !states_res;
+  if debug_print then (Printf.printf "\n\tRedefined: "; Pp.pp_tree e');
   !states_res, !start_res, !dirchild_res, e'
 
 (** gen_transitions : traverse e and gen Σ_e-, ε-, ()- trans per parent-child *)
