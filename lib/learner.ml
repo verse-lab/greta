@@ -33,10 +33,12 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bo
   let open Printf in
   if debug_print then (printf "\n\nGenerating transitions..\n");
   let h = height t in
+  let res_dep: int ref = ref 0 in
   (* traverse example tree to generate trans using Σ_ex,ε,() *)
   let rec traverse_example t dep parent trans_acc syms_acc: transition list * symbol list =
     match t with Leaf _ -> trans_acc, syms_acc
     | Node (sym, ts) ->
+      res_dep := !res_dep + 1;
       let lhs_state: state = filter is_leaf ts |> hd |> return_state in
       let rhs_states: state list = gen_state_list sym lhs_state in
       let tran_sym = lhs_state, (sym, rhs_states) in
@@ -51,7 +53,9 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bo
       else (tran_sym::[] @ trans_acc @ trans_subts), (sym::syms_acc @ syms_subts)
   in let (trans_example, syms_example) = traverse_example t 0 "" [] [] in
   if debug_print then (printf "\tΣ_ex : { "; syms_example |> iter (fun x -> Pp.pp_symbol x); printf "}\n");
-  let syms_non_example: symbol list = a |> filter (fun x -> not (mem x syms_example) && not (fst x = "()")) in
+  let syms_non_example: symbol list = a |> filter (fun x -> if (!res_dep > 1) 
+    then not (mem x syms_example) && not (fst x = "()") && not (fst x = "ε") 
+    else not (mem x syms_example) && not (fst x = "()")) in
   if debug_print then (printf "\tΣ\\{Σ_ex,ε,()}: { "; syms_non_example |> iter (fun s -> Pp.pp_fst s); printf "}\n");
   (* gen conservative trans -- eg E1 ->_{sym} E1 E1 .. -- for Σ\{Σ_ex,ε,()} *)
   let trans_non_example: transition list = syms_non_example |> map (fun s -> 
