@@ -16,7 +16,7 @@ let () =
   let conflicts_file = "../_build/default/lib/parser.conflicts" in
   let ta_initial:T.ta = C.convertToTa parser_file in
   let ranked_symbols:T.symbol list = ta_initial.alphabet in
-  (* TODO: replace example_tree with multiple examples based on conflics_file *)
+  (* TODO: replace example_tree with multiple examples based on conflicts_file *)
   let example_tree:T.tree = E.ex03 in
   let _ (* examples *):T.tree list = E.gen_examples conflicts_file in 
   (* TODO: run learner -> /\ -> normalize -> ta to cfg -> overwrite parser 
@@ -32,6 +32,11 @@ let () =
     | exception e -> print_endline @@ Printexc.to_string e
   done;
 
-
+(*** Assumptions made on the language designer (user of this tool):
+ *   * Non-terminals representing boolean are specified with "cond" ^ s*
+ *     - If this assumption changes, change data type to represent state to a tuple 
+ *     - so that when taking X of lists of states, you won't generate unnecesary many states
+ *     - but only the relevant ones, e.g., cond_exprCond_expr
+ ***)
 
 
