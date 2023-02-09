@@ -23,7 +23,7 @@ let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tr
   in let e' = traverse_loop e 0 in
   (* add a state associated with boolean *)
   if not (in_the_syms [("B", 0); ("IF", 2); ("IF", 3)] !syms_e) 
-    then states_res := ("Cond_expr") :: !states_res;
+    then states_res := ("Cond_expr_1") :: !states_res;
   if debug_print then (Printf.printf "\n\tRedefined: "; Pp.pp_tree e');
   !states_res, !start_res, !dirchild_res, e'
 
