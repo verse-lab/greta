@@ -1,5 +1,4 @@
 open Ta
-(* open QCheck *)
 
 (* TODO : rearrange test suite with examples below *)
 (* ex00 : expr *)

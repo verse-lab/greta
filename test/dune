@@ -1,2 +1,6 @@
-(test
- (name test_discota))
+(tests
+ (names 
+  learner_test)
+ (libraries greta)
+ (package greta)
+ (flags -rectypes))
