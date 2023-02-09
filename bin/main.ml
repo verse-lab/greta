@@ -16,8 +16,10 @@ let () =
    * run learner -> /\ -> normalize -> ta to cfg -> overwrite parser 
    * until all conflicts disappear (idea: connect with example generation) *)
   let ta_learned = Learner.learner example_tree ranked_symbols in
+  let _(* rand_tree_pat *): Ta.tree = Examples.rand_tree_wpat ranked_symbols debug_print 0 example_tree in
   let _: Ta.tree = Examples.rand_tree ranked_symbols debug_print 0 in
   let _: bool = Run.accept ta_learned example_tree debug_print in
+  (* let _: bool = Run.accept ta_learned rand_tree_pat debug_print in *)
   let _: Ta.ta = Operation.intersect ta_initial ta_learned versatile_syms debug_print in
   while true do
     let inp = read_line () in
