@@ -1,8 +1,8 @@
-# Discota
+# Greta
 
-This project demonstrates how CFG is disambiguated using tree automata synthesized based on user-provided examples. 
+This project demonstrates how context-free grammar is disambiguated using tree automata synthesized based on user-provided examples. 
 
-Building upon the idea from the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>, we introduce tree automata-learning Discota algorithm and programming-by-examples synthesis framework to formally and automatically resolve CFG ambiguities based on examples provided by the user.
+Building upon the idea from the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>, we introduce tree automata-learning GRETA (**G**rammar **RE**pair via **T**ree **A**utomata) algorithm and programming-by-examples synthesis framework to formally and automatically resolve CFG ambiguities based on examples provided by the user.
 
 
 
@@ -18,21 +18,21 @@ Building upon the idea from the paper *Restricting Grammars with Tree Automata* 
 │   └── main.ml                 // main repl
 ├── lib
 │   ├── dune
-│   ├── parser.mly              // definition of the grammar in menhir
 │   ├── converter.ml            // convertion between mly and cfg and between cfg and tree automata
-│   ├── examples.ml             // example (trees) generated based on conflicts
-│   ├── learner.ml              // discota tree automata-learning algorithm
-│   ├── lexer.ml                // definition of a lexer
+│   ├── operation.ml            // tree automata intersection operation
+│   ├── examples.ml             // conflicts-based example tree generator and random tree generator
+│   ├── learner.ml              // greta tree automata-learner
 │   ├── utils.ml                // some glue code to hook things together
+│   ├── parser.mly              // definition of the grammar in menhir
+│   ├── lexer.ml                // definition of a lexer
 │   ├── ast.ml                  // definition of an ast
-│   ├── cfg.ml                  // definition of cfg and relevant methods
+│   ├── cfg.ml                  // definition of cfg
 │   ├── ta.ml                   // definition of tree automata and tree
-│   ├── run.ml                  // tree automata-related operations
+│   ├── run.ml                  // runner of tree automata on tree
 │   └── pp.ml                   // pretty printers
-├── test
-│   ├── dune
-│   └── test_discota.ml
-└── discota.opam
+└── test
+    ├── dune
+    └── learner_test.ml
 ```
 
 
