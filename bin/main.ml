@@ -14,7 +14,8 @@ let () =
   let debug_print = true in
   let parser_file = "./lib/parser.mly" in
   let conflicts_file = "../_build/default/lib/parser.conflicts" in
-  let ta_initial:T.ta = C.convertToTa parser_file in
+  let versatile_syms = ["IF"] in
+  let ta_initial:T.ta = C.convertToTa parser_file versatile_syms in
   let ranked_symbols:T.symbol list = ta_initial.alphabet in
   (* TODO: replace example_tree with multiple examples based on conflicts_file *)
   let example_tree:T.tree = E.ex03 in
@@ -24,7 +25,7 @@ let () =
   let ta_learned:T.ta = Lr.learner example_tree ranked_symbols in
   let _:T.tree = E.rand_tree ranked_symbols debug_print 0 in
   let _:bool = R.accept ta_learned example_tree debug_print in
-  let _:T.ta = O.intersect ta_initial ta_learned debug_print in
+  let _:T.ta = O.intersect ta_initial ta_learned versatile_syms debug_print in
   while true do
     let inp = read_line () in
     match Utils.parse_string inp with

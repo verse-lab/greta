@@ -193,9 +193,9 @@ let cfg_to_ta (versatileTerminals: terminal list) (c: cfg): ta =
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta (ta_res);
   ta_res
 
-let convertToTa (file: string): ta = 
+let convertToTa (file: string) (versatiles: terminal list): ta = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
-  file |> mly_to_cfg |> cfg_to_ta ["IF"]
+  file |> mly_to_cfg |> cfg_to_ta versatiles
   
 (* 
 let cfg_to_mly () =

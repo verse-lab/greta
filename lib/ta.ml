@@ -15,6 +15,8 @@ type ta =
 
 let sym_equals sym str = (fst sym = str)
 
+let syms_equals s1 s2 = (fst s1) = (fst s2)
+
 let null_ta = { states = []; alphabet = []; start_state = ""; transitions = [] }
 
 let is_leaf (t: tree): bool =

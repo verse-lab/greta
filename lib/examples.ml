@@ -39,7 +39,8 @@ let gen_examples (filename: string): tree list =
   in
   Format.print_string filename *)
 
-(** randomly generated trees to stress test Learner.learner *)
+(** randomly generator of trees with a specific pattern 
+    - to stress test Learner.learner *)
 let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
   let open Pp in
   let open Printf in
