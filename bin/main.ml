@@ -1,4 +1,4 @@
-open Discota
+open Greta
 open Stdlib
 
 module P = Parser

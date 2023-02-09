@@ -1,9 +1,9 @@
 (lang dune 2.1)
-(name discota)
+(name greta)
 (using menhir 2.0)
 
 (package
- (name discota)
+ (name greta)
  (synopsis "Framework for disambiguating CFG using Tree Automata")
  (description "A longer description")
  (tags

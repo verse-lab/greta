@@ -1,6 +1,6 @@
 (library 
- (name discota)
- (public_name discota)
+ (name greta)
+ (public_name greta)
  (libraries sedlex menhirLib str core qcheck)
  (preprocess (pps ppx_deriving.std sedlex.ppx))
  (flags :standard -rectypes))

@@ -1,7 +1,7 @@
 (executable 
  (name main)
  (public_name main.native)
- (libraries discota)
- (package discota)
+ (libraries greta)
+ (package greta)
  (flags -rectypes))
 
