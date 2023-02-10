@@ -6,6 +6,8 @@ let () =
   let parser_file = "./lib/parser.mly" in
   let conflicts_file = "../_build/default/lib/parser.conflicts" in
   let versatile_syms = ["IF"] in
+  (* TODO: 
+   * pass in debug_print to have clean output in converting to TA *)
   let ta_initial = Converter.convertToTa parser_file versatile_syms in
   let ranked_symbols = ta_initial.alphabet in
   (* TODO: 

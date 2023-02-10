@@ -46,7 +46,7 @@ let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
   let rind = Random.self_init (); Random.int len in
   let sym = List.nth a rind in 
     if debug_print then (printf "\nGenerating a purely random tree given:\n\t"; pp_alphabet a;
-    printf "\nRandomly selected symbol is "; pp_symbol sym);
+    printf "\n\tRandomly selected symbol is "; pp_symbol sym);
   let ar = arity sym in
   let tree_res = match ar with
   | 0 -> Node (sym, [Leaf "ϵ"])
@@ -56,7 +56,7 @@ let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
       else Node (sym, [Leaf "cond_expr"; Leaf "expr"; Leaf "expr"])
     | _ -> let trees_ls: tree list = 
       List.init num (fun _ -> rand_tree a debug_print (dep+1)) in Node (sym, trees_ls) end 
-  in printf "\n\nTree Generated: \n";pp_repeat dep "  "; pp_tree tree_res; printf "\n"; tree_res
+  in printf "\n\n >> Tree Generated: \n";pp_repeat dep "  "; pp_tree tree_res; printf "\n"; tree_res
 
 (* let gen_rand_trees n a debug_print: tree list = 
   if debug_print then Printf.printf "\nRandom trees generated : { \n\t"; 
@@ -68,13 +68,17 @@ let rec rand_tree_wpat (a: symbol list) (debug_print: bool) (dep: int) (pat: tre
   let open Pp in
   let open Printf in 
   let open Random in
+  let pat_depth = height pat in
   if debug_print then (printf "\nGenerating a random tree with a pattern:\n\t"; pp_tree pat;
-  printf "\nGiven following alphabet:\n\t"; pp_alphabet a);
+  printf "\n\t.. whose height is %d\n" pat_depth;
+  printf "\n\tGiven following alphabet:\n\t"; pp_alphabet a);
+  (* TODO: To revise below to make generated random tree w/ pattern non-trivial *)
+  (* run loop until the randomly chosen sym is non-trivial *)
   (* randomly select a symbol from alphabet and append 'pat' to it *)
   let len = List.length a in
   let rind = self_init (); int len in
-  let sym = List.nth  a rind in 
-    if debug_print then (printf "\nRandomly selected symbol is "; pp_symbol sym);
+  let sym = List.nth a rind in
+  if debug_print then (printf "\n\tRandomly selected symbol is "; pp_symbol sym);
   let ar = arity sym in
   let tree_res = match ar with
   | 0 -> Node (sym, [pat])
@@ -83,6 +87,7 @@ let rec rand_tree_wpat (a: symbol list) (debug_print: bool) (dep: int) (pat: tre
       else Node (sym, [Leaf "cond_expr"; Leaf "expr"; pat])
     | _ -> let trees_ls: tree list =
       List.init num (fun _ -> rand_tree_wpat a debug_print (dep+1) pat) in Node (sym, trees_ls) end
-  in printf "\n\nTree generated: \n"; pp_repeat dep "  "; pp_tree tree_res; printf "\n"; tree_res
+  in printf "\n\n >> Tree generated: \n"; pp_repeat dep "  "; pp_tree tree_res; printf "\n"; tree_res
+
 
 
