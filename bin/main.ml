@@ -4,7 +4,8 @@ open Stdlib
 let () =
   let debug_print = true in
   let parser_file = "./lib/parser.mly" in
-  let conflicts_file = "../_build/default/lib/parser.conflicts" in
+  (* let conflicts_file = "./_build/default/lib/parser.conflicts" in *)
+  let conflicts_file = "./test/parser0.conflicts" in
   let versatile_syms = ["IF"] in
   (* TODO: 
    * pass in debug_print to have clean output in converting to TA *)
@@ -13,7 +14,8 @@ let () =
   (* TODO: 
    * Replace example_tree with multiple examples based on conflicts_file *)
   let example_tree: Ta.tree = Examples.ex03 in
-  let _ (* examples *): Ta.tree list = Examples.gen_examples conflicts_file in 
+  let _ (* examples *): (Ta.tree * Ta.tree) list = 
+    Examples.gen_examples conflicts_file ranked_symbols debug_print in 
   (* TODO: 
    * run learner -> /\ -> normalize -> ta to cfg -> overwrite parser 
    * until all conflicts disappear (idea: connect with example generation) *)

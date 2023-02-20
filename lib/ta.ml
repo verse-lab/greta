@@ -43,5 +43,10 @@ let height (e: tree): int =
       |> max_ls
   in loop e 0
 
+let node_symbol (e: tree): string =
+  match e with Leaf _ -> "dummy"
+  | Node (s, _) -> fst s
 
-
+let change_node_symbol_with (e: tree) (sym: string): tree =
+  match e with Leaf v -> Leaf v
+  | Node ((_, ar), subts) -> Node ((sym, ar), subts)

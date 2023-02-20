@@ -52,3 +52,19 @@ let pp_tree (e: T.tree): unit =
 
 let rec pp_repeat (n: int) (s: string): unit =
   if n = 0 then printf "" else (printf "%s" s; pp_repeat (n-1) s)
+
+let pp_collected_from_conflicts (inp_ls: (string list * string list) list): unit =
+  printf "Collected the following lines from conflicts: \n";
+  inp_ls |> iter (fun (lns_ls, terms_ls) -> printf "\n\t>> Relevant lines: \n"; lns_ls |> iter (printf "\t%s\n"); 
+  printf "\n\t>> Relevant terms: "; terms_ls |> iter (printf "%s "); printf "\n\n")
+
+let pp_tree_pairs_syms (inp_ls: (T.tree * T.tree * string list) list): unit =
+  printf "\nExtracted trees and corresponding symbols: \n";
+  inp_ls |> iter (fun (t1, t2, syms) -> 
+    printf "\t>> First tree : "; pp_tree t1; printf "\n\t>> Second tree : "; pp_tree t2; 
+    printf "\n\t>> Symbols : "; syms |> iter (printf "%s "); printf "\n\n")
+
+let pp_combined_trees (inp_ls: (T.tree * T.tree) list) =
+  printf "\nResulted example trees: \n"; 
+  inp_ls |> iter (fun (t1, t2) -> printf "\t>> First tree : "; pp_tree t1; 
+    printf "\n\t>> Second tree : "; pp_tree t2; printf "\n")

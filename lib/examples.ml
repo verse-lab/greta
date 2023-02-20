@@ -15,28 +15,106 @@ let ex03 = Node (("+", 2),
   [Node (("*", 2), [Leaf "expr"; Leaf "expr"]); 
   Leaf "expr"])
 
-(* let ex03 = Node (("IF", 2),
+(* ex04 : `IF` cond_expr `THEN` *)
+(* let ex04 = Node (("IF", 2),
   []) *)
 
-(** gen_examples : gen examples from conflicts in CFG *)
-let gen_examples (filename: string): tree list = 
-  if Sys.file_exists filename
-  then Printf.printf "Conflicts exist\n\n"
-  else Printf.printf "Conflicts do NOT exist\n\n"; []
-  (* TODO: Continue from here ...  *)
-  (** read lines from parser.conflicts *)
-  (* 
-     let _ (* conflict_lines *) : string list =
-    let ic = open_in filename in
-    let try_read () = 
-      try Some (input_line ic) with End_of_file -> None in
-    let rec loop acc = 
-      match try_read () with
-      | Some s -> loop (s :: acc)
-      | None -> close_in ic; List.rev acc
-    in loop [] 
+(** gen_examples : gen examples from parser.conflicts in CFG *)
+let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree * tree) list = 
+  let open List in
+  let open String in
+  let open Printf in
+  let a_new = a |> List.map (fun (sym, ar) -> 
+    match sym with "+" -> ("PLUS", ar) | "*" -> ("MUL", ar) | "()" -> ("LPARENRPAREN", ar)
+    | rest -> (rest, ar)) in
+  let syms_ls: string list = a_new |> List.map fst in
+  let arity_of_sym sym: int = match List.assoc_opt sym a_new with 
+    | None -> printf "Symbol %s not found in alphabet" sym; -1 | Some n -> n in
+  if debug_print then (printf "\nGenerate examples from conflicts in file "; 
+    printf "%s\n\tGiven alphabet: " filename; syms_ls |> List.iter (printf "%s "); 
+    printf "\nDoes conflict exist?"; 
+    if Sys.file_exists filename then printf "\n\t\tYES\n\n" else printf "\n\t\tNO\n\n");
+  (** helpers *)
+  let ic = open_in filename in
+  let try_read () = try Some (input_line ic) with End_of_file -> None in
+  let starts str lin = starts_with ~prefix:str lin in
+  let is_in_alphabet s: bool = List.mem s syms_ls 
   in
-  Format.print_string filename *)
+  (** traverse and acc symbols and relevant lines for generating trees *)
+  let rec traverse (lins_acc: string list) (terms_acc: string list) (cnt: int) (can_acclines: bool) 
+    (res_acc: (string list * string list) list): (string list * string list) list =
+    let is_line_for_syms lin = starts "** Tokens involved:" lin in
+    let accumulate_syms lin: string list = 
+      let lst = split_on_char ':' lin in List.nth lst 1 
+      |> split_on_char ' ' |> List.filter (fun x -> not (x = "")) in
+    let can_start_acclines lin = starts "** because of the following sub-derivation:" lin in
+    let continue_further num: bool = not (num mod 4 = 0) 
+    in match try_read () with 
+    | None -> close_in ic; List.rev res_acc
+    | Some s -> 
+      (* if 'can_acclines' count so it reads only 3 lines (where 1st line is blank) *)
+      if (can_acclines && (continue_further cnt)) 
+      then traverse (s::[] @ lins_acc) terms_acc (cnt + 1) can_acclines res_acc
+      else if (can_acclines && not (continue_further cnt))
+      then traverse [] [] 1 false ([List.rev lins_acc, List.rev terms_acc] @ res_acc)
+      (* if the line lists symbols, collect them *)
+      else if (is_line_for_syms s) 
+      then (let terms = accumulate_syms s 
+            in traverse lins_acc (terms @ terms_acc) cnt can_acclines res_acc)
+      (* if lines need to be read, turn on flag 'can_acclines' *)
+      else if (can_start_acclines s) then traverse lins_acc terms_acc cnt true res_acc
+      else traverse lins_acc terms_acc cnt can_acclines res_acc
+  in
+  (** convert_to_tree to convert a string list [sym; expr; ...] to (Node sym, [Leaf "expr"; ...]) *)
+  let convert_to_tree (str_ls: string list): tree = 
+    let rec conv_loop ls nodsym_acc subtrees_acc = 
+      match ls with [] -> Node (nodsym_acc, List.rev subtrees_acc)
+      | (sh: string) :: stl -> 
+        if (is_in_alphabet sh) then (conv_loop stl (sh, (arity_of_sym sh)) subtrees_acc)
+        else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc)
+    in conv_loop str_ls ("", -1) [] 
+  in
+  (** extract trees to combine and corresponding symbol list *)
+  let extract_trees (relev_lines: (string list * string list) list): (tree * tree * string list) list =
+    let rec extra_loop lsts  res_trees =
+      let refine_str (str: string): string list = str |> split_on_char ' ' 
+        |> List.filter (fun x -> not (x = "THEN") && not (x = "ELSE") && not (x = "") && not (x = ".")) in
+      match lsts with [] -> List.rev res_trees
+      | ((lns, syms): string list * string list) :: tl -> 
+        (* filter out the first line which is blank *)
+        let lns' = lns |> List.filter (fun x -> not (x = "")) in
+        let (fst_tree, snd_tree): (tree * tree) =
+          if not ((List.length lns') = 2) 
+          then (printf "Only 2 lines should be extracted!"; (Leaf "dum1", Leaf "dum2"))
+          else 
+            let (fst_strls, snd_strls) = (List.hd lns' |> refine_str), (List.nth lns' 1 |> refine_str) in
+            convert_to_tree fst_strls, convert_to_tree snd_strls 
+        in extra_loop tl ((fst_tree, snd_tree, List.rev syms) :: res_trees)
+    in extra_loop relev_lines []
+  in
+  (** combine trees t1 and t2 with alternating hierarchies *)
+  let combine_trees_aux (_: tree) (_: tree): tree = 
+    Leaf "" in
+  let combine_trees (t1: tree) (t2: tree) (syms: string list): (tree * tree) list =
+    let rec comb_loop sls trees_acc: (tree * tree) list = 
+      match sls with 
+      | [] -> trees_acc
+      | sh :: stl -> 
+        let t2' = if (sh = (node_symbol t2)) then t2 else change_node_symbol_with t2 sh in
+        let fst_combined = combine_trees_aux t1 t2' in 
+        let snd_combined = combine_trees_aux t2' t1 in
+        comb_loop stl [(fst_combined, snd_combined)] @ trees_acc
+    in comb_loop syms []
+  in
+  let relev_ls: (string list * string list) list = traverse [] [] 1 false [] in 
+  let extracted_trees_syms: (tree * tree * string list) list = relev_ls |> extract_trees in
+  let combined_trees: (tree * tree) list = List.fold_left (fun acc (t1, t2, syms) -> 
+    let trees = combine_trees t1 t2 syms in acc @ trees) [] extracted_trees_syms in
+  if debug_print then (Pp.pp_collected_from_conflicts relev_ls; 
+  Pp.pp_tree_pairs_syms extracted_trees_syms; Pp.pp_combined_trees combined_trees);
+  combined_trees
+
+
 
 (** generator of purely random trees *)
 let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
@@ -88,6 +166,25 @@ let rec rand_tree_wpat (a: symbol list) (debug_print: bool) (dep: int) (pat: tre
     | _ -> let trees_ls: tree list =
       List.init num (fun _ -> rand_tree_wpat a debug_print (dep+1) pat) in Node (sym, trees_ls) end
   in printf "\n\n >> Tree generated: \n"; pp_repeat dep "  "; pp_tree tree_res; printf "\n"; tree_res
+
+(** negate_pat : reverse the hierarchy of a given tree *)
+(* 
+let negate_pat (pat: tree): tree =
+  let rec traverse t acc =
+    match pat with Leaf v -> Leaf v
+    | Node ()
+  in traverse pat 
+*)
+
+(** generator of random trees without a pattern :
+  * given (1) a negated pattern (via 'negate_pat') and 
+  *       (2) a set of alphabet symbols excluding all symbols in this pattern
+  *           (above exclusion required just to make sure no such pattern occurs in gen tree)
+  *           generate a random tree with this negative pattern *)
+
+
+
+
 
 
 
