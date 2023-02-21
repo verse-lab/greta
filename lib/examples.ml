@@ -92,18 +92,29 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
         in extra_loop tl ((fst_tree, snd_tree, List.rev syms) :: res_trees)
     in extra_loop relev_lines []
   in
-  (** combine trees t1 and t2 with alternating hierarchies *)
-  let combine_trees_aux (_: tree) (_: tree): tree = 
-    Leaf "" in
+  (** combine_trees_aux : combine 'up_t' as upper and 'lo_t' as lower trees *)
+  let combine_trees_aux (up_t: tree) (lo_t: tree): tree = 
+    match up_t, lo_t with
+    | Leaf _, _ | _, Leaf _ -> printf "Cannot combine: either of the trees is Leaf!"; Leaf "dummy"
+    | Node (up_sym, up_subts), Node (lo_sym, lo_subts) ->
+      let last_ind = (List.length up_subts) - 1 in
+      let up_subts_new = List.mapi (fun i subt -> 
+        if (i = last_ind) then Node (lo_sym, lo_subts) else subt) up_subts in
+      Node (up_sym, up_subts_new)
+  in
+  (** combine_trees : combine t1 and t2 for all possible t2's
+   **                 where t2's sym is replaced with symbol from 'syms' *)
   let combine_trees (t1: tree) (t2: tree) (syms: string list): (tree * tree) list =
     let rec comb_loop sls trees_acc: (tree * tree) list = 
       match sls with 
       | [] -> trees_acc
       | sh :: stl -> 
+        (* cover all possible syms *)
         let t2' = if (sh = (node_symbol t2)) then t2 else change_node_symbol_with t2 sh in
-        let fst_combined = combine_trees_aux t1 t2' in 
-        let snd_combined = combine_trees_aux t2' t1 in
-        comb_loop stl [(fst_combined, snd_combined)] @ trees_acc
+        (* alternate hierarchies to create (tree * tree) *)
+        let combined_fst = combine_trees_aux t1 t2' in 
+        let combined_snd = combine_trees_aux t2' t1 in
+        comb_loop stl [(combined_fst, combined_snd)] @ trees_acc
     in comb_loop syms []
   in
   let relev_ls: (string list * string list) list = traverse [] [] 1 false [] in 
