@@ -1,6 +1,7 @@
 open Ta
 open Graphics
 open Utils
+open Treeutils
 
 let draw_two_branches () =
   set_color black

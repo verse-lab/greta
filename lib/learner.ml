@@ -1,4 +1,5 @@
 open Ta
+open Treeutils
 
 (** redefine_tree : generate states, start_state, redefine e as e' wrt these states *)
 let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tree =

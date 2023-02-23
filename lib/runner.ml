@@ -1,4 +1,5 @@
 open Ta
+open Treeutils
 
 (** accept : TA starts in start_state at the root and 
     moves downward along branches of the tree, 

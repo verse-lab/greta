@@ -1,23 +1,17 @@
 open Ta
+open Treeutils
 
-(* TODO : rearrange test suite with examples below *)
-(* ex00 : expr *)
-let ex00 = Leaf "expr"
+module D = Draw
 
-(* ex01 : N *)
-let ex01 = Node (("N", 0), [Leaf "ϵ"])
-
-(* ex02 : expr `+` expr *)
-let ex02 = Node (("+", 2), [Leaf "expr"; Leaf "expr"])
-
-(* ex03 : expr `+` (expr `*` expr) *)
-let ex03 = Node (("+", 2), 
-  [Node (("*", 2), [Leaf "expr"; Leaf "expr"]); 
-  Leaf "expr"])
-
-(* ex04 : `IF` cond_expr `THEN` *)
-(* let ex04 = Node (("IF", 2),
-  []) *)
+let ex00 = Leaf "expr"     (* expr *)
+let ex01 = Node (("N", 0), [Leaf "ϵ"])     (* 'N' *)
+let ex02 = Node (("+", 2), [Leaf "expr"; Leaf "expr"])     (* expr '+' expr *)
+let ex03 = Node (("+", 2),      (* expr '+' (expr '*' expr) *)
+  [Leaf "expr"; Node (("*", 2), [Leaf "expr"; Leaf "expr"])])
+let ex04 = Node (("IF", 2),     (* 'IF' cond_expr 'THEN' expr 'ELSE' (expr '+' expr) *)
+  [Leaf "expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
+let ex05 = Node (("IF", 2),     (* 'IF' cond_expr 'THEN' (expr '+' expr) *)
+  [Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
 
 (** gen_examples : gen examples from parser.conflicts in CFG *)
 let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree * tree) list = 
@@ -109,48 +103,50 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
       match sls with 
       | [] -> trees_acc
       | sh :: stl -> 
-        (* cover all possible syms *)
         let t2' = if (sh = (node_symbol t2)) then t2 else change_node_symbol_with t2 sh in
         (* alternate hierarchies to create (tree * tree) *)
         let combined_fst = combine_trees_aux t1 t2' in 
         let combined_snd = combine_trees_aux t2' t1 in
-        comb_loop stl [(combined_fst, combined_snd)] @ trees_acc
+        comb_loop stl trees_acc @ [(combined_fst, combined_snd)]
     in comb_loop syms []
   in
   let relev_ls: (string list * string list) list = traverse [] [] 1 false [] in 
   let extracted_trees_syms: (tree * tree * string list) list = relev_ls |> extract_trees in
   let combined_trees: (tree * tree) list = List.fold_left (fun acc (t1, t2, syms) -> 
-    let trees = combine_trees t1 t2 syms in acc @ trees) [] extracted_trees_syms in
+    let trees = combine_trees t1 t2 (List.rev syms) in acc @ trees) [] extracted_trees_syms in
   if debug_print then (Pp.pp_collected_from_conflicts relev_ls; 
   Pp.pp_tree_pairs_syms extracted_trees_syms; Pp.pp_combined_trees combined_trees);
   combined_trees
 
 
+(** negate the pattern (tree) by reversing the hierarchy of an input tree
+  * assume (1) at least 2 or more trees are nested in the input tree
+  *        (2) in each level, there is at most 1 subtree
+  *        (3) whether a subtree is a left or right child does not matter *)
+let negate_pat (pat: tree): tree =
+  (* traverse from top to bottom and store trees in reverse order *)
+  let rec traverse e acc =
+    match e with 
+    | Leaf _ -> acc
+    | Node (sym, subts) as t_curr ->
+      if (is_there_node subts) then (
+        let subts_new = replace_node_wleaf subts in
+        let t_new = Node (sym, subts_new) in
+        let ind = return_node_index subts in
+        let subt_trav = List.nth subts_new ind in
+        traverse subt_trav (t_new::acc)
+      ) else (
+        traverse (Leaf "") (t_curr::acc)
+      )
+  in let _ = traverse pat [] in Leaf ""
 
-(** generator of purely random trees *)
-let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
-  let open Pp in
-  let open Printf in
-  let len = List.length a in
-  let rind = Random.self_init (); Random.int len in
-  let sym = List.nth a rind in 
-    if debug_print then (printf "\nGenerating a purely random tree given:\n\t"; pp_alphabet a;
-    printf "\n\tRandomly selected symbol is "; pp_symbol sym);
-  let ar = arity sym in
-  let tree_res = match ar with
-  | 0 -> Node (sym, [Leaf "ϵ"])
-    (* if debug_print then (pp_repeat dep "\t" ; pp_tree t'; printf "\n");  *)
-  | num -> begin match fst sym with "IF" -> 
-      if (ar = 2) then Node (sym, [Leaf "cond_expr"; Leaf "expr"])
-      else Node (sym, [Leaf "cond_expr"; Leaf "expr"; Leaf "expr"])
-    | _ -> let trees_ls: tree list = 
-      List.init num (fun _ -> rand_tree a debug_print (dep+1)) in Node (sym, trees_ls) end 
-  in printf "\n\n >> Tree Generated: \n";pp_repeat dep "  "; pp_tree tree_res; printf "\n"; tree_res
 
-(* let gen_rand_trees n a debug_print: tree list = 
-  if debug_print then Printf.printf "\nRandom trees generated : { \n\t"; 
-  List.init n (fun _ ->
-  let t = rand_tree a debug_print in Pp.pp_tree t; t) *)
+
+(** generator of random trees without a pattern :
+  * given (1) a positive or negative pattern and 
+  *       (2) a set of alphabet symbols excluding all symbols in this pattern
+  *           (above exclusion required just to make sure no such pattern occurs in gen tree)
+  *           generate a random tree with this negative pattern *)
 
 (** generator of random trees with a specific pattern *)
 let rec rand_tree_wpat (a: symbol list) (debug_print: bool) (dep: int) (pat: tree): tree = 
@@ -178,24 +174,35 @@ let rec rand_tree_wpat (a: symbol list) (debug_print: bool) (dep: int) (pat: tre
       List.init num (fun _ -> rand_tree_wpat a debug_print (dep+1) pat) in Node (sym, trees_ls) end
   in printf "\n\n >> Tree generated: \n"; pp_repeat dep "  "; pp_tree tree_res; printf "\n"; tree_res
 
-(** negate_pat : reverse the hierarchy of a given tree *)
 (* 
-let negate_pat (pat: tree): tree =
-  let rec traverse t acc =
-    match pat with Leaf v -> Leaf v
-    | Node ()
-  in traverse pat 
+let gen_rand_trees n a debug_print: tree list = 
+  if debug_print then Printf.printf "\nRandom trees generated : { \n\t"; 
+  List.init n (fun _ ->
+  let t = rand_tree a debug_print in Pp.pp_tree t; t) 
 *)
 
-(** generator of random trees without a pattern :
-  * given (1) a negated pattern (via 'negate_pat') and 
-  *       (2) a set of alphabet symbols excluding all symbols in this pattern
-  *           (above exclusion required just to make sure no such pattern occurs in gen tree)
-  *           generate a random tree with this negative pattern *)
 
 
+(** [prev] generator of purely random trees *)
 
-
+let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
+  let open Pp in
+  let open Printf in
+  let len = List.length a in
+  let rind = Random.self_init (); Random.int len in
+  let sym = List.nth a rind in 
+    if debug_print then (printf "\nGenerating a purely random tree given:\n\t"; pp_alphabet a;
+    printf "\n\tRandomly selected symbol is "; pp_symbol sym);
+  let ar = arity sym in
+  let tree_res = match ar with
+  | 0 -> Node (sym, [Leaf "ϵ"])
+    (* if debug_print then (pp_repeat dep "\t" ; pp_tree t'; printf "\n");  *)
+  | num -> begin match fst sym with "IF" -> 
+      if (ar = 2) then Node (sym, [Leaf "cond_expr"; Leaf "expr"])
+      else Node (sym, [Leaf "cond_expr"; Leaf "expr"; Leaf "expr"])
+    | _ -> let trees_ls: tree list = 
+      List.init num (fun _ -> rand_tree a debug_print (dep+1)) in Node (sym, trees_ls) end 
+  in printf "\n\n >> Tree Generated: \n";pp_repeat dep "  "; pp_tree tree_res; printf "\n"; tree_res
 
 
 
