@@ -13,7 +13,9 @@ type ta =
     mutable transitions : transition list;
   }
 
-(** utilities for tree data structure *)
+let null_ta = 
+  { states = []; alphabet = []; start_state = ""; transitions = [] }
+
 let sym_equals sym str = (fst sym = str)
 
 let syms_equals s1 s2 = (fst s1) = (fst s2)

@@ -1,6 +1,6 @@
 open Ta
 
-let null_ta = { states = []; alphabet = []; start_state = ""; transitions = [] }
+exception Failure of string
 
 let is_leaf (t: tree): bool =
   match t with Leaf _ -> true
@@ -40,10 +40,39 @@ let is_there_node (ts: tree list): bool =
   ts |> List.exists (fun t -> match t with 
   | Leaf _ -> false | Node _ -> true)
 
+(* assume there is node in the 'ts', if not throw error *)
 let return_node_index (ts: tree list): int =
-  let i = ref 0 in ts |> List.iteri (fun i' t -> match t with 
-  | Leaf _ -> () | Node _ -> i := i'); !i
+  let rec loop ls ind =
+    match ls with [] -> raise (Failure "Not found")
+    | h :: tl -> 
+      if (is_leaf h) then loop tl (ind+1) else ind
+  in loop ts 0
+  
+let replace_node_wleaf (ts: tree list): tree list =
+  let open Str in
+  let is_cond_expr (s: string): bool =
+    string_match (regexp "cond") s 0 || string_match (regexp "Cond") s 0 in
+  let strip_treestruct (t: tree): string = 
+    match t with Leaf exp -> exp | Node _ -> "dummy" in
+  let rec loop ls prev cnt acc =
+    match ls with [] -> List.rev acc
+    | h :: tl -> 
+      let expr' = strip_treestruct h in
+      if (is_leaf h) then loop tl expr' cnt (h::acc)
+      else if (cnt > 1) then raise (Failure "Trees with >1 node")
+      (* if it's a first-occuring node replace with leaf *)
+      else if (is_cond_expr prev) 
+      then loop tl prev (cnt+1) ((Leaf "expr")::acc) 
+      else loop tl prev (cnt+1) ((Leaf prev)::acc)
+  in loop ts ("dummy") 0 []
 
-let replace_node_wleaf (_: tree list): tree list =
-  []
-
+(** combine_trees_aux : combine 'up_t' as upper and 'lo_t' as lower trees *)
+let combine_trees_aux (up_t: tree) (lo_t: tree): tree = 
+  match up_t, lo_t with
+  | Leaf _, _ | _, Leaf _ -> 
+    Printf.printf "Cannot combine: either of the trees is Leaf!"; Leaf "dummy"
+  | Node (up_sym, up_subts), Node (lo_sym, lo_subts) ->
+    let last_ind = (List.length up_subts) - 1 in
+    let up_subts_new = List.mapi (fun i subt -> 
+      if (i = last_ind) then Node (lo_sym, lo_subts) else subt) up_subts in
+    Node (up_sym, up_subts_new)

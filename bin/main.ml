@@ -22,6 +22,9 @@ let () =
   (* TODO: 
    * Replace example_tree with multiple examples based on conflicts_file *)
   let example_tree: T.tree = E.ex03 in
+  let _: T.tree = E.negate_pat example_tree debug_print in
+  let _: T.tree = E.negate_pat E.ex04 debug_print in
+  let _: T.tree = E.negate_pat E.ex05 debug_print in
   let tree_pairs: (T.tree * T.tree) list = 
     E.gen_examples conflicts_file ranked_symbols debug_print in 
   (* Currently testing drawing trees in-progress *)

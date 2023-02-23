@@ -9,9 +9,9 @@ let ex02 = Node (("+", 2), [Leaf "expr"; Leaf "expr"])     (* expr '+' expr *)
 let ex03 = Node (("+", 2),      (* expr '+' (expr '*' expr) *)
   [Leaf "expr"; Node (("*", 2), [Leaf "expr"; Leaf "expr"])])
 let ex04 = Node (("IF", 2),     (* 'IF' cond_expr 'THEN' expr 'ELSE' (expr '+' expr) *)
-  [Leaf "expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
+  [Leaf "cond_expr"; Leaf "expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
 let ex05 = Node (("IF", 2),     (* 'IF' cond_expr 'THEN' (expr '+' expr) *)
-  [Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
+  [Leaf "cond_expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
 
 (** gen_examples : gen examples from parser.conflicts in CFG *)
 let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree * tree) list = 
@@ -86,16 +86,6 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
         in extra_loop tl ((fst_tree, snd_tree, List.rev syms) :: res_trees)
     in extra_loop relev_lines []
   in
-  (** combine_trees_aux : combine 'up_t' as upper and 'lo_t' as lower trees *)
-  let combine_trees_aux (up_t: tree) (lo_t: tree): tree = 
-    match up_t, lo_t with
-    | Leaf _, _ | _, Leaf _ -> printf "Cannot combine: either of the trees is Leaf!"; Leaf "dummy"
-    | Node (up_sym, up_subts), Node (lo_sym, lo_subts) ->
-      let last_ind = (List.length up_subts) - 1 in
-      let up_subts_new = List.mapi (fun i subt -> 
-        if (i = last_ind) then Node (lo_sym, lo_subts) else subt) up_subts in
-      Node (up_sym, up_subts_new)
-  in
   (** combine_trees : combine t1 and t2 for all possible t2's
    **                 where t2's sym is replaced with symbol from 'syms' *)
   let combine_trees (t1: tree) (t2: tree) (syms: string list): (tree * tree) list =
@@ -123,22 +113,34 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
   * assume (1) at least 2 or more trees are nested in the input tree
   *        (2) in each level, there is at most 1 subtree
   *        (3) whether a subtree is a left or right child does not matter *)
-let negate_pat (pat: tree): tree =
+let negate_pat (pat: tree) (debug_print: bool): tree =
+  let open Printf in 
+  if debug_print then (printf "\nNegating the following pattern:\n\n\t";
+  Pp.pp_tree pat; printf "\n\n");
   (* traverse from top to bottom and store trees in reverse order *)
-  let rec traverse e acc =
+  let rec traverse_tree e acc =
     match e with 
     | Leaf _ -> acc
     | Node (sym, subts) as t_curr ->
-      if (is_there_node subts) then (
+      if (is_there_node subts) then 
+        (let ind = return_node_index subts in
+        let subt_nxt = List.nth subts ind in
         let subts_new = replace_node_wleaf subts in
         let t_new = Node (sym, subts_new) in
-        let ind = return_node_index subts in
-        let subt_trav = List.nth subts_new ind in
-        traverse subt_trav (t_new::acc)
-      ) else (
-        traverse (Leaf "") (t_curr::acc)
-      )
-  in let _ = traverse pat [] in Leaf ""
+        traverse_tree subt_nxt (t_new::acc)) 
+      else traverse_tree (Leaf "dum") (t_curr::acc)
+  in 
+  let rev_ls = traverse_tree pat [] in 
+  let rec traverse_lst (prevt: tree list) (ls: tree list) (res: tree) =
+    let is_empty lst = match lst with [] -> true | _ -> false in 
+    match ls with 
+    | [] -> res
+    | h :: tl -> if (is_empty prevt) then traverse_lst (h::prevt) tl res
+    else let rev_combined = combine_trees_aux (List.hd prevt) h in 
+    traverse_lst [rev_combined] tl rev_combined
+  in let res_t = traverse_lst [] rev_ls (Leaf "") in 
+  if debug_print then (printf "\nResult of reversing hierarchy of tree:\n\n\t";
+  Pp.pp_tree res_t; printf "\n\n"); res_t
 
 
 
