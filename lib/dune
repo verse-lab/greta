@@ -1,7 +1,7 @@
 (library 
  (name greta)
  (public_name greta)
- (libraries sedlex menhirLib str core qcheck)
+ (libraries sedlex menhirLib str core graphics qcheck)
  (preprocess (pps ppx_deriving.std sedlex.ppx))
  (flags :standard -rectypes))
 

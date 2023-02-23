@@ -1,6 +1,14 @@
 open Greta
 open Stdlib
 
+module C = Converter
+module O = Operation
+module E = Examples
+module L = Learner
+module R = Runner
+module D = Draw
+module T = Ta
+
 let () =
   let debug_print = true in
   let parser_file = "./lib/parser.mly" in
@@ -9,22 +17,25 @@ let () =
   let versatile_syms = ["IF"] in
   (* TODO: 
    * pass in debug_print to have clean output in converting to TA *)
-  let ta_initial = Converter.convertToTa parser_file versatile_syms in
+  let ta_initial = C.convertToTa parser_file versatile_syms in
   let ranked_symbols = ta_initial.alphabet in
   (* TODO: 
    * Replace example_tree with multiple examples based on conflicts_file *)
-  let example_tree: Ta.tree = Examples.ex03 in
-  let _ (* examples *): (Ta.tree * Ta.tree) list = 
-    Examples.gen_examples conflicts_file ranked_symbols debug_print in 
+  let example_tree: T.tree = E.ex03 in
+  let tree_pairs: (T.tree * T.tree) list = 
+    E.gen_examples conflicts_file ranked_symbols debug_print in 
+  (* Currently testing drawing trees in-progress *)
+  let tree_test = tree_pairs |> List.hd |> fst in 
+  let _ = D.draw_tree tree_test "testA" in
   (* TODO: 
    * run learner -> /\ -> normalize -> ta to cfg -> overwrite parser 
    * until all conflicts disappear (idea: connect with example generation) *)
-  let ta_learned = Learner.learner example_tree ranked_symbols in
-  let _(* rand_tree_pat *): Ta.tree = Examples.rand_tree_wpat ranked_symbols debug_print 0 example_tree in
-  let _: Ta.tree = Examples.rand_tree ranked_symbols debug_print 0 in
-  let _: bool = Run.accept ta_learned example_tree debug_print in
+  let ta_learned = L.learner example_tree ranked_symbols in
+  let _(* rand_tree_pat *): T.tree = E.rand_tree_wpat ranked_symbols debug_print 0 example_tree in
+  let _: T.tree = E.rand_tree ranked_symbols debug_print 0 in
+  let _: bool = R.accept ta_learned example_tree debug_print in
   (* let _: bool = Run.accept ta_learned rand_tree_pat debug_print in *)
-  let _: Ta.ta = Operation.intersect ta_initial ta_learned versatile_syms debug_print in
+  let _: T.ta = O.intersect ta_initial ta_learned versatile_syms debug_print in
   while true do
     let inp = read_line () in
     match Utils.parse_string inp with

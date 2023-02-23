@@ -64,7 +64,7 @@ let pp_tree_pairs_syms (inp_ls: (T.tree * T.tree * string list) list): unit =
     printf "\t>> First tree : "; pp_tree t1; printf "\n\t>> Second tree : "; pp_tree t2; 
     printf "\n\t>> Symbols : "; syms |> iter (printf "%s "); printf "\n\n")
 
-let pp_combined_trees (inp_ls: (T.tree * T.tree) list) =
+let pp_combined_trees (inp_ls: (T.tree * T.tree) list): unit =
   printf "\nResulted example trees: \n"; 
   inp_ls |> iter (fun (t1, t2) -> printf "\t>> First tree : "; pp_tree t1; 
     printf "\n\t>> Second tree : "; pp_tree t2; printf "\n\n")

@@ -50,3 +50,8 @@ let node_symbol (e: tree): string =
 let change_node_symbol_with (e: tree) (sym: string): tree =
   match e with Leaf v -> Leaf v
   | Node ((_, ar), subts) -> Node ((sym, ar), subts)
+
+let branches_of_tree (e:tree): int =
+  match e with Leaf _ -> 0
+  | Node (_, subts) -> List.length subts
+
