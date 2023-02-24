@@ -1,6 +1,6 @@
 (tests
  (names 
-  learner_test)
+  treegen_test learner_test)
  (libraries greta)
  (package greta)
  (flags -rectypes))

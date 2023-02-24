@@ -2,6 +2,23 @@ open Ta
 
 exception Failure of string
 
+let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
+  let booltostr x = if x then "true" else "false" in
+  let open Printf in 
+  if debug_print then (printf "\n>> Are the following trees equal?\n\t";
+  Pp.pp_tree e1; printf "\n\t"; Pp.pp_tree e2); 
+  let rec loop t1 t2 =
+    match t1, t2 with
+    | Leaf _, Node _ | Node _, Leaf _ -> false
+    | Leaf v1, Leaf v2 -> v1 = v2
+    | Node (sym1, subts1), Node (sym2, subts2) ->
+      syms_equals sym1 sym2 && 
+      List.fold_left2 (fun acc subt1 subt2 -> 
+        acc && loop subt1 subt2) true subts1 subts2
+  in let res = loop e1 e2 in 
+  if debug_print then (printf "\n>> Result of equality:\t%s\n" (booltostr res)); 
+  res
+
 let is_leaf (t: tree): bool =
   match t with Leaf _ -> true
   | Node (_, _) -> false
@@ -40,7 +57,7 @@ let is_there_node (ts: tree list): bool =
   ts |> List.exists (fun t -> match t with 
   | Leaf _ -> false | Node _ -> true)
 
-(* assume there is node in the 'ts', if not throw error *)
+(** return_node_index : assume there is node in the 'ts', if not throw error *)
 let return_node_index (ts: tree list): int =
   let rec loop ls ind =
     match ls with [] -> raise (Failure "Not found")
@@ -76,3 +93,4 @@ let combine_trees_aux (up_t: tree) (lo_t: tree): tree =
     let up_subts_new = List.mapi (fun i subt -> 
       if (i = last_ind) then Node (lo_sym, lo_subts) else subt) up_subts in
     Node (up_sym, up_subts_new)
+
