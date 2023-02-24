@@ -1,6 +1,6 @@
 open Ta
 open Graphics
-open Utils
+open Drawutils
 open Treeutils
 
 let draw_two_branches () =
