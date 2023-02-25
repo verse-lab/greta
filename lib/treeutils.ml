@@ -5,7 +5,7 @@ exception Failure of string
 let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
   let booltostr x = if x then "true" else "false" in
   let open Printf in 
-  if debug_print then (printf "\n>> Are the following trees equal?\n\t";
+  if debug_print then (printf "\n  >> Are the following trees equal?\n\t";
   Pp.pp_tree e1; printf "\n\t"; Pp.pp_tree e2); 
   let rec loop t1 t2 =
     match t1, t2 with
@@ -16,7 +16,7 @@ let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
       List.fold_left2 (fun acc subt1 subt2 -> 
         acc && loop subt1 subt2) true subts1 subts2
   in let res = loop e1 e2 in 
-  if debug_print then (printf "\n>> Result of equality:\t%s\n" (booltostr res)); 
+  if debug_print then (printf "\n  >> Result of equality:\t%s\n" (booltostr res)); 
   res
 
 let is_leaf (t: tree): bool =

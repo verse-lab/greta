@@ -119,8 +119,8 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
   *        (3) whether a subtree is a left or right child does not matter *)
 let negate_pat (debug_print: bool) (pat: tree): tree =
   let open Printf in 
-  if debug_print then (printf "\n  Negating the following pattern:\n\n\t";
-  Pp.pp_tree pat; printf "\n\n");
+  if debug_print then (printf "\n  >> Negating the following pattern:\n\t";
+  Pp.pp_tree pat; printf "\n");
   (* traverse from top to bottom and store trees in reverse order *)
   let rec traverse_tree e acc =
     (* if height <= 1 then no hierarchy to reverse *)
@@ -145,8 +145,8 @@ let negate_pat (debug_print: bool) (pat: tree): tree =
       else let rev_combined = combine_trees_aux (List.hd prevt) h in 
       traverse_lst [rev_combined] tl rev_combined
   in let res_t = if (List.length rev_ls <= 1) then List.hd rev_ls else traverse_lst [] rev_ls (Leaf "") in 
-  if debug_print then (printf "\n  >> Result of reversing hierarchy of tree:\n\n\t";
-  Pp.pp_tree res_t; printf "\n\n"); res_t
+  if debug_print then (printf "\n  >> Result of reversing hierarchy of tree:\n\t";
+  Pp.pp_tree res_t; printf "\n"); res_t
 
 
 
