@@ -75,12 +75,10 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bo
   in if debug_print then (Pp.pp_transitions trans_res);
   trans_res
 
-let learner (e: tree) (a: symbol list): ta =
+let learner (e: tree) (a: symbol list) (debug_print: bool): ta =
   let open Printf in
-  let debug_print = true in
-  if debug_print then (printf "\nNow learn a tree automaton from an example tree\n";
-  printf "\nInputs are... \n\tExample: "; Pp.pp_tree e; 
-  printf "\n\tAlphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n");
+  if debug_print then (printf "\n  >> Learn a tree automaton from an example where inputs are\n\tExample: ";
+  Pp.pp_tree e; printf "\n\tAlphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n");
   let state_ls, strt, _, e' = redefine_tree e debug_print in
   let trans = gen_transitions e' a strt debug_print in
   let ta_res = { states = state_ls; alphabet = a; start_state = strt; transitions = trans } in
