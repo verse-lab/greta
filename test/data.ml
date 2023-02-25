@@ -59,4 +59,19 @@ let es_neg =
     Node (("IF", 2), [Leaf "cond_expr"; Node (("*", 2), [Leaf "expr"; Leaf "expr"])])
   ]
 
+let syms_def0: symbol list = 
+[ 
+  ("ε", 1); ("N", 0); ("B", 0); 
+  ("+", 2); ("*", 2); ("()", 1); 
+  ("IF", 2); ("IF", 3)
+]
+
+let syms_def1: symbol list =
+[
+  ("ε", 1); ("N", 0); ("B", 0); 
+  ("+", 2); ("*", 2); ("()", 1); 
+  ("IF", 2); ("IF", 3)
+]
+
+
 
