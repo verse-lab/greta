@@ -99,9 +99,10 @@ let cartesian_product_trans (states1: state list) (states2: state list) (trans1:
 (** Intersection of tree automata *)
 let intersect (a1: ta) (a2: ta) (verSyms: string list) (debug_print: bool): ta =
   let open Printf in
-  if debug_print then (printf "\nIntersect the following 2 TAs:\n  (1) First TA:\n";
-  Pp.pp_ta a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; printf "\n"; 
-  printf "\nVersatile symbol list: \n\t[ "; verSyms |> List.iter (fun x -> printf "%s " x); printf "]\n");
+  printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
+  Pp.pp_ta a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; printf "\n";
+  if debug_print then (printf "\n  >> Versatile symbol list: [ "; 
+  verSyms |> List.iter (fun x -> printf "%s " x); printf "]\n");
   (* TODO: Add a sanity check on alphabet based on set equality *)
   let syms = a1.alphabet in
   let stats1, stats2 = a1.states, a2.states in
@@ -110,7 +111,7 @@ let intersect (a1: ta) (a2: ta) (verSyms: string list) (debug_print: bool): ta =
   let trans = 
     cartesian_product_trans stats1 stats2 a1.transitions a2.transitions syms verSyms debug_print in
   let res_ta = { states=stats ; alphabet=syms; start_state=start ; transitions=trans } in
-  if debug_print then (printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta); 
+  printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta; 
   res_ta
 
 

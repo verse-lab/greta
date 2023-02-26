@@ -3,19 +3,10 @@ open Treeutils
 
 module D = Draw
 
-let ex00 = Leaf "expr"     (* expr *)
-let ex01 = Node (("N", 0), [Leaf "ϵ"])     (* 'N' *)
-let ex02 = Node (("+", 2), [Leaf "expr"; Leaf "expr"])     (* expr '+' expr *)
-let ex03 = Node (("+", 2),      (* expr '+' (expr '*' expr) *)
-  [Leaf "expr"; Node (("*", 2), [Leaf "expr"; Leaf "expr"])])
-let ex04 = Node (("IF", 2),     (* 'IF' cond_expr 'THEN' expr 'ELSE' (expr '+' expr) *)
-  [Leaf "cond_expr"; Leaf "expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
-
-let ex04_neg = Node (("+", 2),  (* expr '+' ('IF' cond_expr 'THEN' expr 'ELSE' expr) *)
-  [Leaf "expr"; Node (("IF", 2), [Leaf "cond_expr"; Leaf "expr"; Leaf "expr"])])
-
-let ex05 = Node (("IF", 2),     (* 'IF' cond_expr 'THEN' (expr '+' expr) *)
-  [Leaf "cond_expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
+let ex03 = Node (("+", 2), [Leaf "expr"; Node (("*", 2), [Leaf "expr"; Leaf "expr"])])
+let ex04 = Node (("IF", 2), [Leaf "cond_expr"; Leaf "expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
+let ex04_neg = Node (("+", 2), [Leaf "expr"; Node (("IF", 2), [Leaf "cond_expr"; Leaf "expr"; Leaf "expr"])])
+let ex05 = Node (("IF", 2), [Leaf "cond_expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
 
 (** gen_examples : gen examples from parser.conflicts in CFG *)
 let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree * tree) list = 
@@ -28,10 +19,10 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
   let syms_ls: string list = a_new |> List.map fst in
   let arity_of_sym sym: int = match List.assoc_opt sym a_new with 
     | None -> printf "Symbol %s not found in alphabet" sym; -1 | Some n -> n in
-  if debug_print then (printf "\nGenerate examples from conflicts in file "; 
-    printf "%s\n\tGiven alphabet: " filename; syms_ls |> List.iter (printf "%s "); 
-    printf "\nDoes conflict exist?"; 
-    if Sys.file_exists filename then printf "\n\t\tYES\n\n" else printf "\n\t\tNO\n\n");
+  printf "\nGenerate examples from conflicts in file %s\n" filename; 
+  if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); 
+    printf "\n\n  >> Does conflict exist?"; 
+    if Sys.file_exists filename then printf "\n\t\t\tYES\n\n" else printf "\n\t\t\tNO\n\n");
   (** helpers *)
   let ic = open_in filename in
   let try_read () = try Some (input_line ic) with End_of_file -> None in
@@ -107,7 +98,8 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
   let relev_ls: (string list * string list) list = traverse [] [] 1 false [] in 
   let extracted_trees_syms: (tree * tree * string list) list = relev_ls |> extract_trees in
   let combined_trees: (tree * tree) list = List.fold_left (fun acc (t1, t2, syms) -> 
-    let trees = combine_trees t1 t2 (List.rev syms) in acc @ trees) [] extracted_trees_syms in
+    let trees = combine_trees t1 t2 (List.rev syms) in acc @ trees) [] extracted_trees_syms
+    |> rewrite_syms in
   if debug_print then (Pp.pp_collected_from_conflicts relev_ls; 
   Pp.pp_tree_pairs_syms extracted_trees_syms; Pp.pp_combined_trees combined_trees);
   combined_trees

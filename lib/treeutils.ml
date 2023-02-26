@@ -94,3 +94,15 @@ let combine_trees_aux (up_t: tree) (lo_t: tree): tree =
       if (i = last_ind) then Node (lo_sym, lo_subts) else subt) up_subts in
     Node (up_sym, up_subts_new)
 
+(** rewrite_syms : rewrite "PLUS" / "MUL" with "+" / "*" respectively *)
+let rewrite_syms (tts: (tree * tree) list): (tree * tree) list =
+  let rec rewrite_syms_aux (t: tree): tree = match t with 
+    | Leaf v -> Leaf v
+    | Node (sym, subts) -> 
+      let sym_new = 
+        if (sym_equals sym "PLUS") then ("+", 2) else 
+        if (sym_equals sym "MUL") then ("*", 2) else sym in
+      let subts_new = subts |> List.map (fun t' -> rewrite_syms_aux t') in
+      Node (sym_new, subts_new) in
+  tts |> List.map (fun (t1, t2) -> rewrite_syms_aux t1, rewrite_syms_aux t2)
+

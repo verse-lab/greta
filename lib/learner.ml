@@ -3,7 +3,7 @@ open Treeutils
 
 (** redefine_tree : generate states, start_state, redefine e as e' wrt these states *)
 let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tree =
-  if debug_print then (Printf.printf "\nRedefining tree.. \n\tInput: "; Pp.pp_tree e); 
+  if debug_print then (Printf.printf "\n  >> Redefining tree.. \n\tInput: "; Pp.pp_tree e); 
   let in_the_syms (elems: symbol list) (ls: symbol list): bool = 
     elems |> List.exists (fun x -> List.mem x ls) in
   let states_res, start_res, dirchild_res = ref ["ϵ"], ref "", ref "" in
@@ -32,7 +32,7 @@ let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tr
 let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bool): transition list =
   let open List in
   let open Printf in
-  if debug_print then (printf "\n\nGenerating transitions..\n");
+  if debug_print then (printf "\n\n  >> Generating transitions..\n");
   let h = height t in
   let res_dep: int ref = ref 0 in
   (* traverse example tree to generate trans using Σ_ex,ε,() *)
@@ -77,12 +77,12 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bo
 
 let learner (e: tree) (a: symbol list) (debug_print: bool): ta =
   let open Printf in
-  if debug_print then (printf "\n  >> Learn a tree automaton from an example where inputs are\n\tExample: ";
+  if debug_print then (printf "\n\nLearn a tree automaton from an example where inputs are\n\tExample: ";
   Pp.pp_tree e; printf "\n\tAlphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n");
   let state_ls, strt, _, e' = redefine_tree e debug_print in
   let trans = gen_transitions e' a strt debug_print in
   let ta_res = { states = state_ls; alphabet = a; start_state = strt; transitions = trans } in
-  if debug_print then (printf "\nLearned TA:\n"; Pp.pp_ta ta_res); ta_res
+  printf "\n\nLearned TA:\n"; Pp.pp_ta ta_res; ta_res
 
 
 
