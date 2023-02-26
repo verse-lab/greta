@@ -200,13 +200,14 @@ let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (c: cfg): 
 let convertToTa (file: string) (versatiles: terminal list) (debug_print: bool): ta = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   file |> mly_to_cfg debug_print |> cfg_to_ta versatiles debug_print
+
   
-(* 
-let cfg_to_mly () =
-  Printf.printf "%s\n" "in progress.."
-let ta_to_cfg () =
-  Printf.printf "%s\n" "in progress.." 
-*)
+let convertToCfg (ta_inp: ta) (versatileTerminals: terminal list) (debug_print: bool): cfg =
+  let open Printf in
+  printf "\nConvert TA back to CFG:\n\n  Input TA:\n"; Pp.pp_ta ta_inp; 
+  if debug_print then (printf "\n  >> Versatile sybol list: [ ";
+  versatileTerminals |> List.iter (fun x -> printf "%s " x); printf "]\n");
+  null_cfg
 
 
 

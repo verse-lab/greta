@@ -28,8 +28,9 @@ let () =
    * until all conflicts disappear (idea: connect with example generation) *)
   let ta_learned = L.learner example_tree ranked_symbols debug in
   let _: bool = R.accept ta_learned example_tree debug in
-  (* let _: bool = Run.accept ta_learned rand_tree_pat debug_print in *)
-  let _: T.ta = O.intersect ta_initial ta_learned versatile_syms debug in
+  let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in
+  (* TODO: convert back to CFG and write on 'parser_file' *)
+  let _(*cfg_res*) = C.convertToCfg ta_intersected versatile_syms debug in
   while true do
     let inp = read_line () in
     match Utils.parse_string inp with
