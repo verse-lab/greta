@@ -68,7 +68,7 @@ let cartesian_product_trans (states1: state list) (states2: state list) (trans1:
         (* if ((lhs = lhs_stat) && (sym_equals s "ε") && (length rhs_states = 1)) then traverse_trans (hd rhs_states) tl else *)
         traverse_trans lhs_stat tl
     in let res_trav = traverse_trans lhs_state trans in if debug_print then 
-    (match res_trav with None -> printf "\t\tNo matching RHS states" | Some l -> printf "\t"; Pp.pp_states l); res_trav 
+    (match res_trav with None -> printf "\t\tNo matching RHS states\n" | Some l -> printf "\t"; Pp.pp_states l); res_trav 
   in
   let states_tuples: ((state * state) * state) list = cartesian_tuples stats1 stats2 in
   (** cartesian_trans : take cartesian products of two sets of transitions *)

@@ -1,7 +1,5 @@
 open Ta
 
-exception Failure of string
-
 let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
   let booltostr x = if x then "true" else "false" in
   let open Printf in 
@@ -120,11 +118,11 @@ let rename_states (debug_print: bool) (inp_ta: ta): ta =
   let eind, cind = ref 2, ref 1 in
   let states_mapping: (state * state) list = inp_ta.states |> List.fold_left (fun acc st_curr ->
     if (st_curr = start_old) then acc else if (st_curr = "ϵ") then (st_curr, st_curr)::acc else 
-    if (is_cond_expr st_curr) then let st_new = "cond" ^ string_of_int !cind in cind := !cind+1; (st_curr, st_new)::acc 
+    if (is_cond_expr st_curr) then let st_new = "cond_expr" ^ string_of_int !cind in cind := !cind+1; (st_curr, st_new)::acc 
     else let st_new = "expr" ^ string_of_int !eind in eind := !eind + 2; (st_curr, st_new) :: acc) 
     states_mapping_init in
   let replace_with_new (stat_old: state): state = match List.assoc_opt stat_old states_mapping with
-    | Some v -> v | None -> raise (Failure "") in
+    | Some v -> v | None -> raise (Failure "Old state is not found") in
   let states_new = inp_ta.states |> List.map (fun st -> if (st = "ϵ") then st else replace_with_new st) in
   let trans_new = inp_ta.transitions |> List.map (fun (stlhs, (sym, stsrhs)) ->
     let stlhs_new = replace_with_new stlhs in 

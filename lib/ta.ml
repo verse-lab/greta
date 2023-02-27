@@ -5,6 +5,8 @@ type transition = state * (symbol * state list)
 type load = string
 type tree = Leaf of load | Node of (symbol * (tree list))
 
+exception Failure of string
+
 (* Top-down TA := (Q, F, Q_s, \Del) *)
 type ta =
   { mutable states : state list;

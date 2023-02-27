@@ -1,6 +1,8 @@
 open Cfg
 open Ta
 
+(* ******************** Part I. Conversion of parser.mly > CFG > TA ******************** *)
+
 let parser_to_cfg (debug_print: bool) (filename : string): cfg =
   let open Str in
   let open String in
@@ -136,16 +138,16 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
   in Printf.printf "\n\nCFG defined in %s : \n" filename; Pp.pp_cfg (cfg_res);
   cfg_res
 
+(** enhance_appearance : helper to enhance the symbol representation *)
 let enhance_appearance (a: ta): ta =
   let change_symbol s = 
     let s', s'' = fst s, snd s in if (s' = "MUL") then "*", s'' else 
     if (s' = "PLUS") then "+", s'' else if (s' = "LPARENRPAREN") then "()", s'' else s in
   let alph_updated: symbol list = a.alphabet |> List.map (fun sym -> change_symbol sym) in
-  let trans_updated: transition list = a.transitions |> List.map (fun (st,(sym,st_ls)) ->
+  let trans_updated: transition list = a.transitions |> List.map (fun (st, (sym, st_ls)) ->
     let sym_new = change_symbol sym in (st, (sym_new, st_ls))) in
   { states = a.states; alphabet = alph_updated 
   ; start_state = a.start_state ; transitions = trans_updated }
-(* TODO: To undo this enhancement later *)
 
 let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (g: cfg): ta =
   let open List in
@@ -162,8 +164,8 @@ let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (g: cfg): 
     if (s = "N" || s = "B") then (if debug then printf "\tSymbol N or S, so length 0.\n"; 0) else
     match assoc_opt s prods_rhs with
     | None -> raise (Failure "Infeasible: nonexisting symbol")
-    | Some symb_ls -> (if debug then (printf "\tSymbol %s has" s; symb_ls |> iter (printf " %s"); printf " so length is "; 
-      printf "%d.\n" (length symb_ls)); length symb_ls) in
+    | Some symb_ls -> (if debug then (printf "\tSymbol %s has" s; symb_ls |> iter (printf " %s"); 
+      printf " so length is "; printf "%d.\n" (length symb_ls)); length symb_ls) in
   let ranked_alphabet: symbol list = 
     let rparen_exists = mem "RPAREN" g.terms in g.terms 
     |> filter (fun x -> not (x = "THEN") && not (x = "ELSE") && not (x = "RPAREN"))
@@ -187,23 +189,54 @@ let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (g: cfg): 
       | Some (t, symb_ls) -> (if debug then (printf "\tSymbol %s has" t; symb_ls |> iter (printf " %s"); 
         printf " so length is "; printf "%d.\n" (length symb_ls)); length symb_ls) 
     in (term, rank_of_lasti)) in
-  let ta_res: ta = 
+  let ta_res = 
     { states = "ϵ"::g.nonterms; alphabet = ranked_alphabet @ (toadd_versterms debug_print)
     ; start_state = g.start; transitions = List.rev trans } |> enhance_appearance in
-  printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta (ta_res); 
+  printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res; 
   ta_res
 
 let convertToTa (file: string) (versatiles: terminal list) (debug_print: bool): ta = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   file |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print
 
+(* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)
+
+(** undo_enhancement : helper to undo enhancement done on symbols *)
+let undo_enhancement (a: ta): ta =
+  let undo_change_symbol s =
+    let s', s'' = fst s, snd s in if (s' = "*") then "MUL", s'' else
+    if (s' = "+") then "PLUS", s'' else if (s' = "()") then "LPARENRPAREN", s'' else s in
+  let alph_updated = a.alphabet |> List.map (fun sym -> undo_change_symbol sym) in
+  let trans_updated = a.transitions |> List.map (fun (st, (sym, st_ls)) ->
+    let sym_new = undo_change_symbol sym in (st, (sym_new, st_ls))) in 
+  { states = a.states ; alphabet = alph_updated
+  ; start_state = a.start_state ; transitions = trans_updated }
+
 let ta_to_cfg (versatileTerminals: terminal list) (debug_print: bool) (a: ta): cfg = 
   let open Printf in
-  printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta a;
+  let a' = undo_enhancement a in
+  printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta a';
   if debug_print then (printf "\n  >> Versatile sybol list: [ ";
   versatileTerminals |> List.iter (fun x -> printf "%s " x); printf "]\n");
-  { nonterms = []; terms = []; start = ""; productions = [] }
-
+  (** helpers *)
+  let remove_dups ls =
+    let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
+    List.fold_right unique_cons ls [] in
+  let nonterms_excl_eps: nonterminal list = a'.states |> List.filter (fun x -> not (x = "ϵ")) in
+  let unranked_terminals: terminal list = a'.alphabet |> List.filter (fun s -> not (sym_equals s "ε"))
+    |> List.fold_left (fun acc (name, rank) -> match name with
+    | "IF" -> if (rank = 3) then acc @ ["IF"; "THEN"; "ELSE"] else if (rank = 2) 
+      then acc @ ["IF"; "THEN"] else raise (Failure "Rank of IF is neither 2 nor 3")
+    | "LPARENRPAREN" -> acc @ ["LPAREN"; "RPAREN"]
+    | s -> acc @ [s] ) [] |> remove_dups in
+  let prods: production list = a'.transitions |> List.map (fun (st, (sym, st_ls)) ->
+    if (sym_equals sym "N" || sym_equals sym "B") then (st, ("ε", [fst sym])) 
+    else (st, (fst sym, st_ls))) in
+  let cfg_res = 
+    { nonterms = nonterms_excl_eps ; terms = unranked_terminals
+    ; start = a'.start_state; productions = prods } in
+  printf "\nCFG resulted from the TA : \n"; Pp.pp_cfg cfg_res;
+  cfg_res
 
 
 (** cfg_to_parser : once convert to grammar, write it on the parser.mly file *)
