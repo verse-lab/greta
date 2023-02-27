@@ -30,8 +30,8 @@ let pp_productions (ps: C.production list) =
     (snd (snd x))|> iter (printf "%s "); printf ")\n"); printf "\t\t\t     }\n"
 
 let pp_cfg (c: C.cfg) =
-  pp_upline (); pp_terminals (c.terms); pp_start (c.start); 
-  pp_nonterminals (c.nonterms); pp_productions (c.prods); pp_loline ()
+  pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms);
+  pp_start (c.start); pp_productions (c.productions); pp_loline ()
 
 let pp_states (ss: T.state list) =
   printf "\tStates : { "; ss |> iter (printf "%s "); printf "}\n"

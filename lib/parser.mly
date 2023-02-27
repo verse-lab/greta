@@ -27,8 +27,7 @@ program : expr EOF { $1 };
 
 cond_expr:
   | TRUE { Bool true }
-  | FALSE { Bool false } 
-;
+  | FALSE { Bool false } ;
 
 expr:
   | INT  { Int $1 }

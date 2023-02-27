@@ -5,7 +5,7 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
   let open Str in
   let open String in
   let open Printf in
-  let cfg_res: cfg = { nonterms = []; terms = []; start = ""; prods = [] } in
+  let cfg_res: cfg = { nonterms = []; terms = []; start = ""; productions = [] } in
   let wsopen: regexp = regexp ({|[ \n\r\t]*|} ^ "open") in
   let wsvertbar: regexp = regexp ({|[ \n\r\t]*|} ^ "|") in
   let wssemicol: regexp = regexp ({|[ \n\r\t]*|} ^ ";") in
@@ -117,7 +117,7 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
                            printf "\n\tNon-terminals: {" ;cfg_res.nonterms |> List.iter (printf " %s"); printf " }\n\n")
   in let rec traverse_nxt (stls: string list) (acc_nont_lhs) (acc_block: string list): unit = 
       if (debug_print) then printf "\n\tCalling traverse nxt now\n";
-      match stls with [] -> cfg_res.prods <- (List.rev !prods_temp)
+      match stls with [] -> cfg_res.productions <- (List.rev !prods_temp)
       | shd :: stl ->
         (if (starts !prog_id shd)
         then (if debug_print then printf "\tStarting with prog_id, so skip\n"; traverse_nxt stl acc_nont_lhs acc_block)
@@ -133,11 +133,7 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
         else (if debug_print then printf "\tEmpty line so skip\n"; traverse_nxt stl acc_nont_lhs acc_block))
   in let _ = if (debug_print) then (printf "Rel lines before running traverse_nxt\n";
     relev_lines |> List.iter (fun x -> printf "%s\n" x)); traverse_nxt relev_lines "" []
-  in cfg_res
-
-let mly_to_cfg (debug_print: bool) (filename: string): cfg = 
-  let cfg_res = parser_to_cfg debug_print filename in
-  Printf.printf "\n\nCFG defined in %s : \n" filename; Pp.pp_cfg (cfg_res);
+  in Printf.printf "\n\nCFG defined in %s : \n" filename; Pp.pp_cfg (cfg_res);
   cfg_res
 
 let enhance_appearance (a: ta): ta =
@@ -151,7 +147,7 @@ let enhance_appearance (a: ta): ta =
   ; start_state = a.start_state ; transitions = trans_updated }
 (* TODO: To undo this enhancement later *)
 
-let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (c: cfg): ta =
+let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (g: cfg): ta =
   let open List in
   let open Printf in
   (* helper assuming at most 2 occurrences of versatileTerminals *)
@@ -160,7 +156,7 @@ let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (c: cfg): 
     | h::tl -> loop (i+1) (if fst h = elem then i else i_acc) tl
     in loop 0 (-1) ls in
   let epsilon_symb: symbol = ("ε", 1) in
-  let prods_rhs = c.prods |> map snd in 
+  let prods_rhs = g.productions |> map snd in
   (* helper to compute rank of given symbol *)
   let rank_of_symb (debug: bool) (s: string): int =
     if (s = "N" || s = "B") then (if debug then printf "\tSymbol N or S, so length 0.\n"; 0) else
@@ -169,7 +165,7 @@ let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (c: cfg): 
     | Some symb_ls -> (if debug then (printf "\tSymbol %s has" s; symb_ls |> iter (printf " %s"); printf " so length is "; 
       printf "%d.\n" (length symb_ls)); length symb_ls) in
   let ranked_alphabet: symbol list = 
-    let rparen_exists = mem "RPAREN" c.terms in c.terms 
+    let rparen_exists = mem "RPAREN" g.terms in g.terms 
     |> filter (fun x -> not (x = "THEN") && not (x = "ELSE") && not (x = "RPAREN"))
     |> map (fun x -> if (x = "LPAREN" && rparen_exists) then "LPARENRPAREN" else x) 
     |> map (fun x -> (x, rank_of_symb debug_print x)) 
@@ -177,7 +173,7 @@ let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (c: cfg): 
     |> append [epsilon_symb] in
   let trans: transition list =
     let stat: state ref = ref "" in
-    c.prods |> fold_left (fun acc (n, (t, ls)) -> (n, ((t, rank_of_symb debug_print t), ls)) :: acc) []
+    g.productions |> fold_left (fun acc (n, (t, ls)) -> (n, ((t, rank_of_symb debug_print t), ls)) :: acc) []
     |> map (fun (s, (op, s_ls)) -> if (fst op = "ε" && length s_ls = 1) then (s, ((hd s_ls, 1), "ϵ"::[])) 
     (* TODO (below stat): make this less computationally expensive *)
     else (stat := s; (s, (op, s_ls))))
@@ -192,22 +188,33 @@ let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (c: cfg): 
         printf " so length is "; printf "%d.\n" (length symb_ls)); length symb_ls) 
     in (term, rank_of_lasti)) in
   let ta_res: ta = 
-    { states = "ϵ"::c.nonterms; alphabet = ranked_alphabet @ (toadd_versterms debug_print)
-    ; start_state = c.start; transitions = List.rev trans } |> enhance_appearance in
+    { states = "ϵ"::g.nonterms; alphabet = ranked_alphabet @ (toadd_versterms debug_print)
+    ; start_state = g.start; transitions = List.rev trans } |> enhance_appearance in
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta (ta_res); 
   ta_res
 
 let convertToTa (file: string) (versatiles: terminal list) (debug_print: bool): ta = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
-  file |> mly_to_cfg debug_print |> cfg_to_ta versatiles debug_print
+  file |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print
 
-  
-let convertToCfg (ta_inp: ta) (versatileTerminals: terminal list) (debug_print: bool): cfg =
+let ta_to_cfg (versatileTerminals: terminal list) (debug_print: bool) (a: ta): cfg = 
   let open Printf in
-  printf "\nConvert TA back to CFG:\n\n  Input TA:\n"; Pp.pp_ta ta_inp; 
+  printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta a;
   if debug_print then (printf "\n  >> Versatile sybol list: [ ";
   versatileTerminals |> List.iter (fun x -> printf "%s " x); printf "]\n");
-  null_cfg
+  { nonterms = []; terms = []; start = ""; productions = [] }
+
+
+
+(** cfg_to_parser : once convert to grammar, write it on the parser.mly file *)
+let cfg_to_parser (_(* parser_file *): string) (_(* debug_print *): bool) (_(* g *): cfg): unit =
+  ()
+  
+
+
+(** convertToGrammar : *)
+let convertToGrammar (ta_inp: ta) (versatiles: terminal list) (debug: bool) (file: string): unit =
+  ta_inp |> ta_to_cfg versatiles debug |> cfg_to_parser file debug
 
 
 

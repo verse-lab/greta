@@ -64,7 +64,12 @@ let return_node_index (ts: tree list): int =
     | h :: tl -> 
       if (is_leaf h) then loop tl (ind+1) else ind
   in loop ts 0
-  
+
+(** is_cond_expr : chec if state is representing boolean state *)
+let is_cond_expr (s: state): bool =
+  let open Str in
+  string_match (regexp "cond") s 0 || string_match (regexp "Cond") s 0
+
 let replace_node_wleaf (ts: tree list): tree list =
   let open Str in
   let is_cond_expr (s: string): bool =
@@ -105,4 +110,26 @@ let rewrite_syms (tts: (tree * tree) list): (tree * tree) list =
       let subts_new = subts |> List.map (fun t' -> rewrite_syms_aux t') in
       Node (sym_new, subts_new) in
   tts |> List.map (fun (t1, t2) -> rewrite_syms_aux t1, rewrite_syms_aux t2)
+
+(** rename_states : rename states in ta_res from /\ *)
+let rename_states (debug_print: bool) (inp_ta: ta): ta =
+  let open Printf in
+  if debug_print then (printf "\nRename the following tree automaton:\n"; Pp.pp_ta inp_ta);
+  let start_old, start_new = inp_ta.start_state, "expr1" in
+  let states_mapping_init: (state * state) list = (start_old, start_new) :: [] in
+  let eind, cind = ref 2, ref 1 in
+  let states_mapping: (state * state) list = inp_ta.states |> List.fold_left (fun acc st_curr ->
+    if (st_curr = start_old) then acc else if (st_curr = "ϵ") then (st_curr, st_curr)::acc else 
+    if (is_cond_expr st_curr) then let st_new = "cond" ^ string_of_int !cind in cind := !cind+1; (st_curr, st_new)::acc 
+    else let st_new = "expr" ^ string_of_int !eind in eind := !eind + 2; (st_curr, st_new) :: acc) 
+    states_mapping_init in
+  let replace_with_new (stat_old: state): state = match List.assoc_opt stat_old states_mapping with
+    | Some v -> v | None -> raise (Failure "") in
+  let states_new = inp_ta.states |> List.map (fun st -> if (st = "ϵ") then st else replace_with_new st) in
+  let trans_new = inp_ta.transitions |> List.map (fun (stlhs, (sym, stsrhs)) ->
+    let stlhs_new = replace_with_new stlhs in 
+    let stsrhs_new = stsrhs |> List.map replace_with_new in (stlhs_new, (sym, stsrhs_new))) in
+  let ta_res = {states=states_new; alphabet=inp_ta.alphabet; start_state=start_new; transitions=trans_new} in 
+  if debug_print then (printf "\nResult of renaming:\n"; Pp.pp_ta ta_res; printf "\n");
+  ta_res
 

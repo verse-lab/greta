@@ -1,7 +1,7 @@
 open Ta
+open Treeutils
 
 let cartesian_product_states (ls1: state list) (ls2: state list) (debug_print: bool): state list =
-  let open Str in
   if debug_print then (Printf.printf "\n  >> Cross product of states:\n\tFirst set of states:\n";
   Pp.pp_states ls1; Printf.printf "\n\tSecond set of states:\n"; Pp.pp_states ls2);
   (** helpers *)
@@ -16,8 +16,6 @@ let cartesian_product_states (ls1: state list) (ls2: state list) (debug_print: b
   let remove_dups ls =
     let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
     List.fold_right unique_cons ls [] in
-  (** is cond_expr : check if state is representing boolean state *)
-  let is_cond_expr s: bool = string_match (regexp "cond") s 0 || string_match (regexp "Cond") s 0 in
   (** remove_dummies : needed to remove _ states *)
   let remove_dummies ls = List.filter (fun elem -> not (elem = "_")) ls in
   let rec loop l1 l2 acc =
@@ -37,7 +35,6 @@ let cartesian_product_states (ls1: state list) (ls2: state list) (debug_print: b
 
 let cartesian_product_trans (states1: state list) (states2: state list) (trans1: transition list) (trans2: transition list) 
   (syms: symbol list) (verSyms: string list) (debug_print: bool): transition list =
-  let open Str in 
   let open List in
   let open Printf in
   if debug_print then (printf "\n  >> Cross product of transitions:\n\tFirst transitions:\n"; 
@@ -48,7 +45,6 @@ let cartesian_product_trans (states1: state list) (states2: state list) (trans1:
   if debug_print then (printf "\n\tGiven two lists of states:\n\t"; Pp.pp_states stats1; printf "\t"; Pp.pp_states stats2);
   (** cartesian_tuples : combine two lists of states and make ((state1 * state2) * state1state2) list *)
   let cartesian_tuples l l': ((state * state) * state) list = 
-    let is_cond_expr s: bool = string_match (regexp "cond") s 0 || string_match (regexp "Cond") s 0 in
     let is_there_one_cond s s': bool = (is_cond_expr s && not (is_cond_expr s')) || (not (is_cond_expr s) && is_cond_expr s') in
     concat (map (fun e -> (map (fun e' -> ((e, e'), e^e'))) l') l) |> filter (fun ((s, s'), _) -> not (is_there_one_cond s s')) in
   (** find_rhs_states : based on lhs_state and sym, find corresonding 'Some rhs_states'
@@ -112,7 +108,7 @@ let intersect (a1: ta) (a2: ta) (verSyms: string list) (debug_print: bool): ta =
     cartesian_product_trans stats1 stats2 a1.transitions a2.transitions syms verSyms debug_print in
   let res_ta = { states=stats ; alphabet=syms; start_state=start ; transitions=trans } in
   printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta; 
-  res_ta
+  res_ta |> rename_states debug_print
 
 
 (** TODO: Simplify the resulting tree automata via :
