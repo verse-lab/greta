@@ -50,20 +50,17 @@ let cartesian_product_trans (states1: state list) (states2: state list) (trans1:
   (** find_rhs_states : based on lhs_state and sym, find corresonding 'Some rhs_states'
       and return 'None' if it doesn't find corresponding list
       when it's one of the varsatile symbols, treat it differently so it generates correct rhs_states *)
-  let record_counter = ref 1 in
   let find_rhs_states (lhs_state: state) (sym: symbol) (trans: transition list) (debug_print: bool): state list option = 
     if debug_print then (printf "\n\tFor state '%s' and symbol \"%s\", we get the following RHS states:\n" lhs_state) (fst sym);
-    (* let traversed_all = ref false in
-    let rhs_epsilon = ref "" in *)
     let rec traverse_trans lhs_stat ls: state list option =
       match ls with
       | [] -> None (* reached end and found none *)
       | (lhs, (s, rhs_states)) :: tl ->
         if ((lhs = lhs_stat) && (syms_equals s sym) && not (mem (fst sym) verSyms)) then (Some rhs_states) else 
-        if ((lhs = lhs_stat) && (syms_equals s sym) && (mem (fst sym) verSyms) && (!record_counter mod 3 != 0)) 
-          then (record_counter := !record_counter + 1; Some rhs_states) else
-        if ((lhs = lhs_stat) && (syms_equals s sym) && (mem (fst sym) verSyms) && (!record_counter mod 3 = 0)) 
-          then (record_counter := 2; traverse_trans lhs tl) else
+        if ((lhs = lhs_stat) && (syms_equals s sym) && (mem (fst sym) verSyms) && (length rhs_states = (snd sym)))
+        then (Some rhs_states) else (* record_counter := !record_counter + 1; *)
+        if ((lhs = lhs_stat) && (syms_equals s sym) && (mem (fst sym) verSyms) && not (length rhs_states = (snd sym)))
+        then (traverse_trans lhs tl) else
         (* assuming ε-tran is happening before all others -> TODO: re-arrange before running *)
         (* if ((lhs = lhs_stat) && (sym_equals s "ε") && (length rhs_states = 1)) then traverse_trans (hd rhs_states) tl else *)
         traverse_trans lhs_stat tl
