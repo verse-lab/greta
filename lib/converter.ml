@@ -288,20 +288,22 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
   let corr_line (lhs: nonterminal) (op: terminal) (sls: string list): string list = 
     let beginning = "  | " in 
     if (is_cond_expr lhs && (List.hd sls = "B") && op = "ε") 
-    then (beginning ^ "TRUE { Bool true }") :: (beginning ^ "FALSE { Bool false }") :: [] 
+      then (beginning ^ "TRUE { Bool true }") :: (beginning ^ "FALSE { Bool false }") :: [] 
     else if ((List.hd sls = "N") && op = "ε") 
-    then (beginning ^ "INT { Int $1 }") :: []
-    else if ((List.length sls = 1) && op = "ε") then (beginning ^ List.hd sls) :: []
+      then (beginning ^ "INT { Int $1 }") :: []
+    else if ((List.length sls = 1) && op = "ε") 
+      then (beginning ^ List.hd sls ^ " { $1 }") :: []
     else if ((List.length sls = 1) && op = "LPARENRPAREN") 
-    then (beginning ^ "LPAREN " ^ (List.hd sls) ^ " RPAREN { Paren $2 }") :: []
+      then (beginning ^ "LPAREN " ^ (List.hd sls) ^ " RPAREN { Paren $2 }") :: []
     else if ((List.length sls = 2) && op = "IF")
-    then (beginning ^ "IF " ^ List.nth sls 0 ^ " THEN " ^ List.nth sls 1
+      then (beginning ^ "IF " ^ List.nth sls 0 ^ " THEN " ^ List.nth sls 1
       ^ "{ If ($2, Then ($4, Else Na)) }") :: []
     else if ((List.length sls = 3) && op = "IF")
-    then (beginning ^ "IF " ^ List.nth sls 0 ^ " THEN " ^ List.nth sls 1 
+      then (beginning ^ "IF " ^ List.nth sls 0 ^ " THEN " ^ List.nth sls 1 
       ^ " ELSE " ^ List.nth sls 2 ^ " { If ($2, Then ($4, Else Na)) }") :: []
     else (* if (op = "MUL" || op = "PLUS")  *)
-      let op_new = String.capitalize_ascii op in (* note: 'op_new' depends on how lexer is defined *)
+      (* note: 'op_new' depends on how lexer defines operations *)
+      let op_new = op |> String.lowercase_ascii |> String.capitalize_ascii in
       (beginning ^ List.nth sls 0 ^ " " ^ op ^ " " ^ List.nth sls 1 ^ " { " ^ op_new ^ " ($1, $3) }") :: []
   in
   let write_block (prods_blocks: production list): string list = 

@@ -29,8 +29,8 @@ let () =
   let ta_learned = L.learner example_tree ranked_symbols debug in
   let _: bool = R.accept ta_learned example_tree debug in
   let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in
-  (* TODO: change to parser_file *)
-  C.convertToGrammar ta_intersected versatile_syms debug "./test/test_parser.mly";
+  (* tested with "./test/test_parser.mly" *)
+  C.convertToGrammar ta_intersected versatile_syms debug parser_file;
   (* TODO: change to 'parser_file' *)
   while true do
     let inp = read_line () in
