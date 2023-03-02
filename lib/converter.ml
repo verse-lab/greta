@@ -1,5 +1,7 @@
 open Cfg
 open Ta
+open Utils
+open Treeutils
 
 (* ******************** Part I. Conversion of parser.mly > CFG > TA ******************** *)
 
@@ -7,6 +9,7 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
   let open Str in
   let open String in
   let open Printf in
+  printf "\n\nParse the file %s to its corresponding CFG\n" filename;
   let cfg_res: cfg = { nonterms = []; terms = []; start = ""; productions = [] } in
   let wsopen: regexp = regexp ({|[ \n\r\t]*|} ^ "open") in
   let wsvertbar: regexp = regexp ({|[ \n\r\t]*|} ^ "|") in
@@ -21,8 +24,6 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
   let prods_started = ref false in
   (** helpers **)
   let remove_colon (s: string): string = s |> split_on_char ':' |> List.hd in
-  let read_line i = try Some (input_line i) with End_of_file -> None in
-  let starts tk s = starts_with ~prefix:tk s in
   let ends tk s = ends_with ~suffix:tk s in
   let noteq a b = compare a b <> 0 in
   let true_exists, false_exists, b_inserted = ref false, ref false, ref false in
@@ -118,8 +119,8 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
   ;if (debug_print) then (printf "\n\tTerminals: {"; cfg_res.terms |> List.iter (printf " %s"); printf " }\n";
                            printf "\n\tNon-terminals: {" ;cfg_res.nonterms |> List.iter (printf " %s"); printf " }\n\n")
   in let rec traverse_nxt (stls: string list) (acc_nont_lhs) (acc_block: string list): unit = 
-      if (debug_print) then printf "\n\tCalling traverse nxt now\n";
-      match stls with [] -> cfg_res.productions <- (List.rev !prods_temp)
+      if (debug_print) then printf "\n\tCalling traverse_nxt now\n";
+      match stls with [] -> printf "\tEnd of traverse_nxt\n"; cfg_res.productions <- (List.rev !prods_temp)
       | shd :: stl ->
         (if (starts !prog_id shd)
         then (if debug_print then printf "\tStarting with prog_id, so skip\n"; traverse_nxt stl acc_nont_lhs acc_block)
@@ -133,7 +134,7 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
         else if string_match wsvertbar shd 0
         then (if debug_print then printf "\tVertical bar line so accumulate %s\n" shd; traverse_nxt stl acc_nont_lhs (shd :: acc_block))
         else (if debug_print then printf "\tEmpty line so skip\n"; traverse_nxt stl acc_nont_lhs acc_block))
-  in let _ = if (debug_print) then (printf "Rel lines before running traverse_nxt\n";
+  in let _ = if (debug_print) then (printf "  >> Rel lines before running traverse_nxt\n\n";
     relev_lines |> List.iter (fun x -> printf "%s\n" x)); traverse_nxt relev_lines "" []
   in Printf.printf "\n\nCFG defined in %s : \n" filename; Pp.pp_cfg (cfg_res);
   cfg_res
@@ -240,9 +241,93 @@ let ta_to_cfg (versatileTerminals: terminal list) (debug_print: bool) (a: ta): c
 
 
 (** cfg_to_parser : once convert to grammar, write it on the parser.mly file *)
-let cfg_to_parser (_(* parser_file *): string) (_(* debug_print *): bool) (_(* g *): cfg): unit =
-  ()
-  
+let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
+  let open Printf in
+  printf "\nWrite the grammar on parser file %s\n" parser_file;
+  if debug_print then (printf "\n  Input grammar:\n"; Pp.pp_cfg g);
+  (** helpers *)
+  let append_strs ls = ls |> List.fold_left (fun acc x -> 
+    if (acc = "") then x else acc ^ " " ^ x) "" in
+  let replace_wgstart (lst: string list): string = 
+    let rec loop (ls: string list) (after_colon: bool) (acc_ls: string list): string =
+      match ls with [] -> List.rev acc_ls |> append_strs
+      | h :: tl -> let start_new = g.start in
+        if (after_colon) then loop tl false (start_new :: acc_ls) 
+        else if (h = ":") then loop tl true (h :: acc_ls) 
+        else  loop tl after_colon (h :: acc_ls)
+    in loop lst false []
+  in
+  (** Store lines_to_keep until the beginning of productions *)
+  let ic = open_in parser_file in
+  let rec divide_lines inp before_prod acc_keep prog_id: string list =
+    match (read_line inp) with
+    | None -> List.rev ("" :: acc_keep)
+    | Some s ->
+      (* collect 'prog_id' and pass in to divide_lines *)
+      if (starts "%start" s) then (let name = List.nth (s |> String.split_on_char ' ') 1 
+      in divide_lines inp before_prod (s::acc_keep) name)
+      else if (starts prog_id s) 
+      (* if starts with 'prog_id', replace with 'start_new' and pass in 'str_new' *)
+      then let str_new = replace_wgstart (String.split_on_char ' ' s) 
+      in divide_lines inp false (str_new :: acc_keep) prog_id
+      else if (before_prod) then divide_lines inp before_prod (s :: acc_keep) prog_id
+      else List.rev ("" :: acc_keep)
+  in let lines_to_keep = divide_lines ic true [] "%dummy_id" in
+  (** collect production list in blocks *)
+  let collect_blocks (lst: production list): (production list) list =
+    let rec blocks_loop ls curr_nont acc_prods (acc_res: (production list) list) =
+      match ls with [] -> List.rev (acc_prods :: acc_res)
+      | (nont, _) as prod_h :: prods_tl -> 
+        if (curr_nont = "") then blocks_loop prods_tl nont (prod_h :: acc_prods) acc_res else
+        if (curr_nont = nont) then blocks_loop prods_tl curr_nont (prod_h :: acc_prods) acc_res else
+        (* if not (curr_not = nont), change 'curr_nont' to 'nont' and pass 'acc_prods' to 'acc_res' *)
+        let block = List.rev acc_prods in blocks_loop prods_tl nont (prod_h :: []) (block :: acc_res)
+    in blocks_loop lst "" [] []
+  in 
+  (** specify rules on writing a corresponding line per production on parser.mly *)
+  let corr_line (lhs: nonterminal) (op: terminal) (sls: string list): string list = 
+    let beginning = "  | " in 
+    if (is_cond_expr lhs && (List.hd sls = "B") && op = "ε") 
+    then (beginning ^ "TRUE { Bool true }") :: (beginning ^ "FALSE { Bool false }") :: [] 
+    else if ((List.hd sls = "N") && op = "ε") 
+    then (beginning ^ "INT { Int $1 }") :: []
+    else if ((List.length sls = 1) && op = "ε") then (beginning ^ List.hd sls) :: []
+    else if ((List.length sls = 1) && op = "LPARENRPAREN") 
+    then (beginning ^ "LPAREN " ^ (List.hd sls) ^ " RPAREN { Paren $2 }") :: []
+    else if ((List.length sls = 2) && op = "IF")
+    then (beginning ^ "IF " ^ List.nth sls 0 ^ " THEN " ^ List.nth sls 1
+      ^ "{ If ($2, Then ($4, Else Na)) }") :: []
+    else if ((List.length sls = 3) && op = "IF")
+    then (beginning ^ "IF " ^ List.nth sls 0 ^ " THEN " ^ List.nth sls 1 
+      ^ " ELSE " ^ List.nth sls 2 ^ " { If ($2, Then ($4, Else Na)) }") :: []
+    else (* if (op = "MUL" || op = "PLUS")  *)
+      let op_new = String.capitalize_ascii op in (* note: 'op_new' depends on how lexer is defined *)
+      (beginning ^ List.nth sls 0 ^ " " ^ op ^ " " ^ List.nth sls 1 ^ " { " ^ op_new ^ " ($1, $3) }") :: []
+  in
+  let write_block (prods_blocks: production list): string list = 
+    let rec write_loop ls curr_nont acc = 
+      match ls with [] -> acc @ ["  ;"; ""]
+      | (nont, (t, sls)) :: b_tl ->
+        if (curr_nont = "") then 
+          let str_fst = (nont ^ ":") :: [] in
+          let str_snd = corr_line nont t sls in 
+          write_loop b_tl nont (acc @ str_fst @ str_snd) 
+        else if (curr_nont = nont) then 
+          let str = corr_line nont t sls in
+          write_loop b_tl nont (acc @ str)
+        else raise (Failure "Block should have the same nonterminal on LHS.")
+    in write_loop prods_blocks "" []
+  in
+  let lines_added: string list = 
+    let prods_blocks = collect_blocks g.productions in 
+    if debug_print then (printf "\n  >> Collected blocks:\n\n"; prods_blocks |> List.iter (fun b -> 
+      Pp.pp_productions b; printf "\n\n")); 
+    List.fold_left (fun acc blks -> acc @ (write_block blks)) [] prods_blocks in
+  if debug_print then (printf "\n  >> Lines added:\n\n"; lines_added |> List.iter (fun l ->
+    printf "%s\n" l); printf "\n\n");
+  let oc = open_out parser_file in
+  lines_to_keep @ lines_added |> List.iter (fun ln -> fprintf oc "%s\n" ln);
+  close_out oc
 
 
 (** convertToGrammar : *)

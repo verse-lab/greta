@@ -13,4 +13,7 @@ let parse lexbuf =
 let parse_string str =
   parse (Sedlexing.Utf8.from_string str)
 
+(** utilities for reading lines from parser *)
+let read_line i = try Some (input_line i) with End_of_file -> None
 
+let starts tk s = String.starts_with ~prefix:tk s
