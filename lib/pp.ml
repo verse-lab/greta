@@ -5,13 +5,13 @@ open Printf
 open List
 
 let pp_upline () = 
-  let upleft, mid, upright = "╒═════════", "══════════", "═════════╕\n" in
+  let upleft, mid, upright = "╒══════════", "═══════════", "══════════╕\n" in
   let mids = mid ^ mid ^ mid ^ mid in
   let line = upleft ^ mids ^ mids ^ upright in 
   printf "%s\n" line
 
 let pp_loline () = 
-  let loleft, mid, loright = "\n╘═════════", "══════════", "═════════╛" in
+  let loleft, mid, loright = "\n╘══════════", "═══════════", "══════════╛" in
   let mids = mid ^ mid ^ mid ^ mid in
   let line = loleft ^ mids ^ mids ^ loright in 
   printf "%s\n" line

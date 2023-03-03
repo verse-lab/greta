@@ -326,7 +326,7 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
       Pp.pp_productions b; printf "\n\n")); 
     List.fold_left (fun acc blks -> acc @ (write_block blks)) [] prods_blocks in
   if debug_print then (printf "\n  >> Lines added:\n\n"; lines_added |> List.iter (fun l ->
-    printf "%s\n" l); printf "\n\n");
+    printf "\t%s\n" l); printf "\n\n");
   let oc = open_out parser_file in
   lines_to_keep @ lines_added |> List.iter (fun ln -> fprintf oc "%s\n" ln);
   close_out oc

@@ -13,25 +13,26 @@ let () =
   let debug = true in
   (* *** Inputs neede for this framework *** *)
   let parser_file, conflicts_file, versatile_syms = 
-    "./lib/parser.mly", "./test/parser0.conflicts", ["IF"] in
-  (* TODO: change conflicts_file to "./_build/default/lib/parser.conflicts" *)
+    "./lib/parser.mly", "./_build/default/lib/parser.conflicts", ["IF"] in
+  (* Tested with "./test/parser0.conflicts" as 'conflicts_file' *)
   let ta_initial = C.convertToTa parser_file versatile_syms debug in
   let ranked_symbols = ta_initial.alphabet in
+  if (Utils.check_conflicts conflicts_file debug) then 
   let tree_pairs: (T.tree * T.tree) list = 
     E.gen_examples conflicts_file ranked_symbols debug in
   let example_tree: T.tree = List.nth tree_pairs 2 |> snd in
   (* TODO: Currently testing drawing trees in-progress *)
-  let tree_test = tree_pairs |> List.hd |> fst in 
-  let _ = D.draw_tree tree_test "testA" in
-  (* TODO: 
-   * run learner -> /\ -> normalize -> ta to cfg -> overwrite parser 
+  (* let tree_test = tree_pairs |> List.hd |> fst in 
+  let _ = D.draw_tree tree_test "testA" in *)
+  (* TODO: run learner -> /\ -> normalize -> ta to cfg -> overwrite parser 
    * until all conflicts disappear (idea: connect with example generation) *)
   let ta_learned = L.learner example_tree ranked_symbols debug in
   let _: bool = R.accept ta_learned example_tree debug in
   let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in
-  (* tested with "./test/test_parser.mly" *)
+  (* let test_parser_file = "./test/test_parser.mly" in  *)
+  (* changed from 'test_parser_file' *)
   C.convertToGrammar ta_intersected versatile_syms debug parser_file;
-  (* TODO: change to 'parser_file' *)
+  if (Utils.check_conflicts conflicts_file debug) then ();
   while true do
     let inp = read_line () in
     match Utils.parse_string inp with

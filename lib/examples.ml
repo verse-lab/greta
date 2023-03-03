@@ -20,9 +20,9 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
   let arity_of_sym sym: int = match List.assoc_opt sym a_new with 
     | None -> printf "Symbol %s not found in alphabet" sym; -1 | Some n -> n in
   printf "\nGenerate examples from conflicts in file %s\n" filename; 
-  if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); 
-    printf "\n\n  >> Does conflict exist?"; 
-    if Sys.file_exists filename then printf "\n\t\t\tYES\n\n" else printf "\n\t\t\tNO\n\n");
+  if debug_print then printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); 
+    (* printf "\n\n  >> Does conflict exist?"; 
+    if Sys.file_exists filename then printf "\n\t\t\tYES\n\n" else printf "\n\t\t\tNO\n\n"; *)
   (** helpers *)
   let ic = open_in filename in
   let try_read () = try Some (input_line ic) with End_of_file -> None in
