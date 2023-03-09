@@ -80,7 +80,7 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
                  prods_temp := (nont_lhs, (List.hd term_rhs, List.rev symbs_rhs)) :: !prods_temp)
             else if List.length term_rhs = 2
             then let term_rhs_final = List.fold_left (fun a b -> a ^ b) "" (List.rev term_rhs)
-              in (if (debug_print) then (printf "\tLength of term_rhs %s is 2 and attaching symbs_rhs \n" (List.hd term_rhs);
+              in (if (debug_print) then (printf "\tLength of term_rhs %s is 2 and attaching symbs_rhs " (List.hd term_rhs);
               (List.rev symbs_rhs) |> List.iteri (fun i x -> if i = 0 then printf "%s" x else printf ", %s" x); printf "\n\n");
               prods_temp := (nont_lhs, (term_rhs_final, List.rev symbs_rhs)) :: !prods_temp)
             else raise (Invalid_argument "RHS Terminal can have at most two symbols!"));
