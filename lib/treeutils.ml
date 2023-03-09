@@ -159,3 +159,35 @@ let tree_to_expr (t: tree): string list =
       else raise (Failure "Node with a rank other than 1, 2 or 3!")
   in tree_loop t
 
+(** gen_dual_expr : needed only when operators are the same in combined trees
+ *                  e.g., (expr + expr) + expr vs. expr + (expr + expr) *)
+let gen_dual_expr (strs: string list): string list =
+  let is_operation (s: string): bool = (s = "+") || (s = "*") in
+  let rec str_loop ls passed_outer to_switch fst_op inner_closed acc =
+    match ls with [] -> acc
+    | h :: tl -> 
+      if (h = ")" && not passed_outer) 
+      then str_loop tl true to_switch fst_op inner_closed (h::acc)
+      else if (h = ")" && passed_outer)
+      then str_loop tl passed_outer true fst_op inner_closed acc
+      else if (is_operation h && to_switch && fst_op)
+      then str_loop tl passed_outer to_switch false inner_closed (")"::h::acc)
+      else if (h = "(" && not inner_closed)
+      then str_loop tl passed_outer to_switch fst_op true acc
+      else if (h = "(" && inner_closed)
+      then str_loop tl passed_outer to_switch fst_op inner_closed ("("::h::acc)
+      else str_loop tl passed_outer to_switch fst_op inner_closed (h::acc)
+  in str_loop (List.rev strs) false false true false []
+
+let present_tree_pair (trees: tree * tree): unit =
+  let open Printf in
+  printf "\n\nChoose your preference! (Type either 0 or 1)\n\n";
+  let print_strs ls = printf "\t"; ls |> List.iter (printf "%s "); printf "\n" in
+  let expr1 = fst trees |> tree_to_expr in
+  let expr2 = gen_dual_expr expr1 in
+  printf "Option 0: \n"; print_strs expr1;
+  printf "Option 1: \n"; print_strs expr2; printf "\n"
+  
+let ask_again (filename: string): unit = 
+  Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
+
