@@ -100,8 +100,11 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
   let combined_trees: (tree * tree) list = List.fold_left (fun acc (t1, t2, syms) -> 
     let trees = combine_trees t1 t2 (List.rev syms) in acc @ trees) [] extracted_trees_syms
     |> rewrite_syms in
+  let tree_expressions: (string list * string list) list = List.map (fun (t1, t2) ->
+    tree_to_expr t1, tree_to_expr t2) combined_trees in
   if debug_print then (Pp.pp_collected_from_conflicts relev_ls; 
-  Pp.pp_tree_pairs_syms extracted_trees_syms; Pp.pp_combined_trees combined_trees);
+  Pp.pp_tree_pairs_syms extracted_trees_syms; Pp.pp_combined_trees combined_trees;
+  Pp.pp_exprs tree_expressions);
   combined_trees
 
 

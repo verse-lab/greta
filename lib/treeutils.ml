@@ -131,3 +131,31 @@ let rename_states (debug_print: bool) (inp_ta: ta): ta =
   if debug_print then (printf "\nResult of renaming:\n"; Pp.pp_ta ta_res; printf "\n");
   ta_res
 
+(** tree_to_expr : helper to make the dual tree expression easier
+ *                 works for the tree combining 2 trees each of which has height 1
+ *                 needed to differentiate two expressions when they both use the same operator
+ *                 e.g., (expr + expr) + expr   vs.   expr + (expr + expr) *)
+let tree_to_expr (t: tree): string list =
+  let open List in
+  let is_empty_leaf (ts: tree list) =
+    match (hd ts, length ts) with (Leaf "ϵ"), 1 -> true | _ -> false in
+  let rec tree_loop t: string list =
+    match t with Leaf s -> [s]
+    | Node (sym, subts) ->
+      let s', rnk = fst sym, (length subts) in
+      if (rnk = 0 && is_empty_leaf subts) then [s']
+      else if (rnk = 2 && s' = "IF") then
+        (["("; s'] @ tree_loop (nth subts 0) @ 
+        ["THEN"] @ tree_loop (nth subts 1) @ [")"])
+      else if (rnk = 2 && not (s' = "IF")) then
+        (["("] @ tree_loop (nth subts 0) @ 
+        [s'] @ tree_loop (nth subts 1) @ [")"])
+      else if (rnk = 1 && s' = "LPARENRPAREN") then 
+        (["("; "LPAREN"] @ tree_loop (nth subts 1) @ ["RPAREN"; ")"])
+      else if (rnk = 3 && s' = "IF") then 
+        (["("; s'] @ tree_loop (nth subts 0) @ 
+        ["THEN"] @ tree_loop (nth subts 1) @
+        ["ELSE"] @ tree_loop (nth subts 2) @ [")"])
+      else raise (Failure "Node with a rank other than 1, 2 or 3!")
+  in tree_loop t
+

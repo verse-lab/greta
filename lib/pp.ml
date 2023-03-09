@@ -99,14 +99,19 @@ let pp_tree_to_expr (e: T.tree) =
         (printf "( %s " s'; ptree_loop (nth subts 0);
         printf "THEN "; ptree_loop (nth subts 1);
         printf "ELSE "; ptree_loop (nth subts 2); printf ") ")
-      else printf "Node %s with a rnk other than 1, 2, or 3!" (fst sym)
+      else printf "Node %s with a rnk other than 1, 2 or 3!" (fst sym)
   in ptree_loop e  
 
 let pp_combined_trees (inp_ls: (T.tree * T.tree) list) =
   printf "\n  >> Resulted example trees: \n"; 
-  inp_ls |> iter (fun (t1, t2) -> printf "\t>> First tree : "; pp_tree t1;
-    printf "\n\t\t expression : "; pp_tree_to_expr t1; printf "\n"; 
-    printf "\n\t>> Second tree : "; pp_tree t2; 
-    printf "\n\t\t expression : "; pp_tree_to_expr t2; printf "\n\n")
+  inp_ls |> iter (fun (t1, t2) -> printf "\n\t>> First tree : "; pp_tree t1;
+    (* printf "\n\t\t expression : "; pp_tree_to_expr t1; printf "\n";  *)
+    printf "\n\t>> Second tree : "; pp_tree t2; printf "\n\n")
+    (* printf "\n\t\t expression : "; pp_tree_to_expr t2) *)
 
-
+let pp_exprs (exprs_ls: (string list * string list) list) =
+  printf "\n  >> Resulted expressions: \n";
+  exprs_ls |> iter (fun (ls1, ls2) -> 
+    printf "\n\t>> First expression : "; ls1 |> iter (printf "%s ");
+    printf "\n\t>> Second expression : "; ls2 |> iter (printf "%s ")); 
+    printf "\n\n"
