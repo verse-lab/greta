@@ -76,8 +76,37 @@ let pp_tree_pairs_syms (inp_ls: (T.tree * T.tree * string list) list) =
     printf "\t>> First tree : "; pp_tree t1; printf "\n\t>> Second tree : "; pp_tree t2; 
     printf "\n\t>> Symbols : "; syms |> iter (printf "%s "); printf "\n\n")
 
+let pp_tree_to_expr (e: T.tree) = 
+  let is_empty_leaf (ts: T.tree list) = 
+    match (hd ts, length ts) with (Leaf "ϵ"), 1 -> true | _ -> false in
+  let rec ptree_loop (e: T.tree) =
+    match e with Leaf s -> printf "%s " s
+    | Node (sym, subts) -> 
+      (* TO FIX: example trees gen with versatiles sometimes have arities not equal to (length subts) 
+       *         so instead of using (length subts) should be able to use (snd sym) *)
+      let s', rnk = fst sym, (length subts) in
+      if (rnk = 0 && is_empty_leaf subts) then 
+        (printf "%s " s')
+      else if (rnk = 2 && s' = "IF") then 
+        (printf "( %s " s'; ptree_loop (nth subts 0); 
+        printf "THEN "; ptree_loop (nth subts 1); printf ") ")
+      else if (rnk = 2 && not (s' = "IF")) then 
+        (printf "( "; ptree_loop (nth subts 0); 
+        printf "%s " s'; ptree_loop (nth subts 1); printf ") ")
+      else if (rnk = 1 && s' = "LPARENRPAREN") then 
+        (printf "( LPAREN "; ptree_loop (nth subts 0); printf "RPAREN ) ") 
+      else if (rnk = 3 && s' = "IF") then 
+        (printf "( %s " s'; ptree_loop (nth subts 0);
+        printf "THEN "; ptree_loop (nth subts 1);
+        printf "ELSE "; ptree_loop (nth subts 2); printf ") ")
+      else printf "Node %s with a rnk other than 1, 2, or 3!" (fst sym)
+  in ptree_loop e  
+
 let pp_combined_trees (inp_ls: (T.tree * T.tree) list) =
   printf "\n  >> Resulted example trees: \n"; 
-  inp_ls |> iter (fun (t1, t2) -> printf "\t>> First tree : "; pp_tree t1; 
-    printf "\n\t>> Second tree : "; pp_tree t2; printf "\n\n")
+  inp_ls |> iter (fun (t1, t2) -> printf "\t>> First tree : "; pp_tree t1;
+    printf "\n\t\t expression : "; pp_tree_to_expr t1; printf "\n"; 
+    printf "\n\t>> Second tree : "; pp_tree t2; 
+    printf "\n\t\t expression : "; pp_tree_to_expr t2; printf "\n\n")
+
 
