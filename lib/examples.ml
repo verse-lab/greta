@@ -32,7 +32,7 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
   (** traverse and acc symbols and relevant lines for generating trees *)
   let rec traverse (lins_acc: string list) (terms_acc: string list) (cnt: int) (can_acclines: bool) 
     (res_acc: (string list * string list) list): (string list * string list) list =
-    let is_line_for_syms lin = starts "** Tokens involved:" lin in
+    let is_line_for_syms lin = (starts "** Tokens involved:" lin) || (starts "** Token involved:" lin) in
     let accumulate_syms lin: string list = 
       let lst = split_on_char ':' lin in List.nth lst 1 
       |> split_on_char ' ' |> List.filter (fun x -> not (x = "")) in

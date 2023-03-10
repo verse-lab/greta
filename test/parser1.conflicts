@@ -1,0 +1,106 @@
+
+** Conflict (shift/reduce) in state 15.
+** Token involved: PLUS
+** This state is reached from program after reading:
+
+IF cond_expr1 THEN expr1 ELSE expr1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+expr1 EOF 
+(?)
+
+** In state 15, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+IF cond_expr1 THEN expr1 ELSE expr1 
+                              expr1 . PLUS expr1 
+
+** In state 15, looking ahead at PLUS, reducing production
+** expr1 -> IF cond_expr1 THEN expr1 ELSE expr1
+** is permitted because of the following sub-derivation:
+
+expr1 PLUS expr1 // lookahead token appears
+IF cond_expr1 THEN expr1 ELSE expr1 . 
+
+** Conflict (shift/reduce) in state 13.
+** Token involved: PLUS
+** This state is reached from program after reading:
+
+expr1 PLUS expr1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+expr1 EOF 
+(?)
+
+** In state 13, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+expr1 PLUS expr1 
+           expr1 . PLUS expr1 
+
+** In state 13, looking ahead at PLUS, reducing production
+** expr1 -> expr1 PLUS expr1
+** is permitted because of the following sub-derivation:
+
+expr1 PLUS expr1 // lookahead token appears
+expr1 PLUS expr1 . 
+
+** Conflict (shift/reduce) in state 11.
+** Tokens involved: PLUS ELSE
+** The following explanations concentrate on token PLUS.
+** This state is reached from program after reading:
+
+IF cond_expr1 THEN expr1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+expr1 EOF 
+(?)
+
+** In state 11, looking ahead at PLUS, reducing production
+** expr1 -> IF cond_expr1 THEN expr1
+** is permitted because of the following sub-derivation:
+
+expr1 PLUS expr1 // lookahead token appears
+IF cond_expr1 THEN expr1 . 
+
+** In state 11, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+IF cond_expr1 THEN expr1 
+                   expr1 . PLUS expr1 
+
+** Conflict (shift/reduce) in state 10.
+** Token involved: MUL
+** This state is reached from program after reading:
+
+expr2 MUL expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+expr1 EOF 
+expr2 
+(?)
+
+** In state 10, looking ahead at MUL, shifting is permitted
+** because of the following sub-derivation:
+
+expr2 MUL expr2 
+          expr2 . MUL expr2 
+
+** In state 10, looking ahead at MUL, reducing production
+** expr2 -> expr2 MUL expr2
+** is permitted because of the following sub-derivation:
+
+expr2 MUL expr2 // lookahead token appears
+expr2 MUL expr2 . 

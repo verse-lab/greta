@@ -13,13 +13,17 @@ module T = Ta
 let () =
   let debug = true in
   (* *** Inputs neede for this framework *** *)
-  let parser_file, conflicts_file, versatile_syms = 
-    "./lib/parser.mly", "./_build/default/lib/parser.conflicts", ["IF"] in
+  let versatile_syms = ["IF"] in
+  let parser_file, conflicts_file = 
+    "./lib/parser.mly", "./_build/default/lib/parser.conflicts" in
+  (* let test_parser_file = "./test/test_parser.mly" in  *)
+  let test_conflicts_file = "./test/parser1.conflicts" in
   let ta_initial = C.convertToTa parser_file versatile_syms debug in
   let ranked_symbols = ta_initial.alphabet in
-  if (Utils.check_conflicts conflicts_file debug) then 
+  (* if (Utils.check_conflicts conflicts_file debug) then  *)
   let tree_pairs: (T.tree * T.tree) list = 
-    E.gen_examples conflicts_file ranked_symbols debug in
+  (* Testing gen_examples with 'test_conflicts_file' below *)
+    E.gen_examples test_conflicts_file ranked_symbols debug in
   let fst_pair = match List.nth_opt tree_pairs 2 with 
     | None -> raise (Failure "No examples generated!")
     | Some (t1, t2) -> t1, t2 in
@@ -51,7 +55,7 @@ let () =
  *      - To add a loop until user selects the right index
  *      - To draw trees using Graphics (starting from let _ = D.draw_tree tree_test "testA") 
  *      - Tested with "./test/parser0.conflicts" as 'conflicts_file'
- *      - Tested with test_parser_file (let test_parser_file = "./test/test_parser.mly" in)
+ *      - Tested with test_parser_file (test_parser_file = "./test/test_parser.mly")
  *      - ... 
  *)
   
