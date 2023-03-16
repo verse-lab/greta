@@ -10,32 +10,44 @@ module U = Treeutils
 module D = Draw
 module T = Ta
 
+(* *************** Grammar REpair with Tree Automata *************** *)
+(* Inputs needed :                                                   *)
+(* - 'versatile_syms' symbols that can have multiple arities         *)
+(* - 'parser_file' grammar of the input language                     *)
+(* - 'conflicts_file' {path}/{parser-file-name}.conflicts            *)
+
+(* TODO: run learner -> /\ -> normalize -> ta to cfg -> overwrite parser 
+ * until all conflicts disappear (idea: connect with example generation) *)
+
 let () =
   let debug = true in
-  (* *** Inputs neede for this framework *** *)
   let versatile_syms = ["IF"] in
   let parser_file, conflicts_file = 
     "./lib/parser.mly", "./_build/default/lib/parser.conflicts" in
-  (* let test_parser_file = "./test/test_parser.mly" in  *)
-  let test_conflicts_file = "./test/parser1.conflicts" in
+  let _test_conflicts_file = "./test/parser1.conflicts" in
   let ta_initial = C.convertToTa parser_file versatile_syms debug in
   let ranked_symbols = ta_initial.alphabet in
   (* if (Utils.check_conflicts conflicts_file debug) then  *)
-  let tree_pairs: (T.tree * T.tree) list = 
-  (* Testing gen_examples with 'test_conflicts_file' below *)
-    E.gen_examples test_conflicts_file ranked_symbols debug in
-  let fst_pair = match List.nth_opt tree_pairs 2 with 
+  let tree_pairs: (T.tree * T.tree) list =
+    E.gen_examples conflicts_file ranked_symbols debug in
+  let fst_pair = match List.nth_opt tree_pairs 4 with 
     | None -> raise (Failure "No examples generated!")
     | Some (t1, t2) -> t1, t2 in
-  U.present_tree_pair fst_pair;
-  let chosen_index = read_int () in
-  let example_tree: T.tree = if (chosen_index = 0) then fst fst_pair else snd fst_pair in
-  (* TODO: run learner -> /\ -> normalize -> ta to cfg -> overwrite parser 
-   * until all conflicts disappear (idea: connect with example generation) *)
-  let ta_learned = L.learner example_tree ranked_symbols debug in
-  let _: bool = R.accept ta_learned example_tree debug in
-  let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in
-  C.convertToGrammar ta_intersected versatile_syms debug parser_file;
+  if (U.tree_with_single_operator (fst fst_pair)) 
+  then 
+    (Printf.printf "\nTree involving only one symbol..\n";
+    U.present_tree_pair_single_operator fst_pair;
+    let chosen_index = read_int () in 
+    C.specify_associativity parser_file chosen_index fst_pair debug)
+  else
+    (Printf.printf "\nTree involves more than one symbol..\n";
+    U.present_tree_pair fst_pair;
+    let chosen_index = read_int () in
+    let example_tree: T.tree = if (chosen_index = 0) then fst fst_pair else snd fst_pair in
+    let ta_learned = L.learner example_tree ranked_symbols debug in
+    let _: bool = R.accept ta_learned example_tree debug in
+    let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in
+    C.convertToGrammar ta_intersected versatile_syms debug parser_file);
   if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file;
   (* while true do
     let inp = read_line () in

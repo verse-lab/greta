@@ -73,8 +73,8 @@ let pp_collected_from_conflicts (inp_ls: (string list * string list) list) =
 let pp_tree_pairs_syms (inp_ls: (T.tree * T.tree * string list) list) =
   printf "\n  >> Extracted trees and corresponding symbols: \n";
   inp_ls |> iter (fun (t1, t2, syms) -> 
-    printf "\t>> First tree : "; pp_tree t1; printf "\n\t>> Second tree : "; pp_tree t2; 
-    printf "\n\t>> Symbols : "; syms |> iter (printf "%s "); printf "\n\n")
+    printf "\n\t>> First tree : "; pp_tree t1; printf "\n\t>> Second tree : "; pp_tree t2; 
+    printf "\n\t>> Symbols : "; syms |> iter (printf "%s "); printf "\n")
 
 let pp_tree_to_expr (e: T.tree) = 
   let is_empty_leaf (ts: T.tree list) = 
@@ -103,8 +103,8 @@ let pp_tree_to_expr (e: T.tree) =
   in ptree_loop e  
 
 let pp_combined_trees (inp_ls: (T.tree * T.tree) list) =
-  printf "\n  >> Resulted example trees: \n"; 
-  inp_ls |> iter (fun (t1, t2) -> printf "\n\t>> First tree : "; pp_tree t1;
+  printf "\n  >> Resulted example trees: \n\n"; 
+  inp_ls |> iter (fun (t1, t2) -> printf "\t>> First tree : "; pp_tree t1;
     (* printf "\n\t\t expression : "; pp_tree_to_expr t1; printf "\n";  *)
     printf "\n\t>> Second tree : "; pp_tree t2; printf "\n\n")
     (* printf "\n\t\t expression : "; pp_tree_to_expr t2) *)
@@ -113,5 +113,5 @@ let pp_exprs (exprs_ls: (string list * string list) list) =
   printf "\n  >> Resulted expressions: \n";
   exprs_ls |> iter (fun (ls1, ls2) -> 
     printf "\n\t>> First expression : "; ls1 |> iter (printf "%s ");
-    printf "\n\t>> Second expression : "; ls2 |> iter (printf "%s ")); 
-    printf "\n\n"
+    printf "\n\t>> Second expression : "; ls2 |> iter (printf "%s "); printf "\n"); 
+    printf "\n"

@@ -331,10 +331,35 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
   lines_to_keep @ lines_added |> List.iter (fun ln -> fprintf oc "%s\n" ln);
   close_out oc
 
-
 (** convertToGrammar : *)
-let convertToGrammar (ta_inp: ta) (versatiles: terminal list) (debug: bool) (file: string): unit =
+let convertToGrammar (ta_inp: ta) (versatiles: terminal list) (debug: bool) (file: string) =
   ta_inp |> ta_to_cfg versatiles debug |> cfg_to_parser file debug
 
+(* ******************** Part III. Specify associativity > parser.mly ******************** *)
 
+(** specify_associativity : specify associativity on parser file per user input (0, 1, 2) *)
+let specify_associativity (parser_file: string) (ind: int) (trees: tree * tree) (debug_print: bool): unit =
+  let assoc = match ind with 0 -> "%right" | 1 -> "%left" | 2 -> "%nonassoc" 
+    | _ -> raise (Failure "Incorrect input number for associativity") in
+  let op: string = match node_symbol (fst trees) with 
+    | "*" -> "MUL" | "+" -> "PLUS" | s -> s in
+  let line_to_add: string = assoc ^ " " ^ op in
+  let open Printf in if debug_print then
+    printf "\nWrite associativity %s of %s on parser file %s\n" assoc op parser_file;
+  (** Divide lines to add associativity in between them *)
+  let ic = open_in parser_file in
+  let rec divide_lines inp after_eof acc_prior acc_latter: string list * string list =
+    match (read_line inp) with
+    | None -> (List.rev acc_prior), (List.rev acc_latter)
+    | Some s ->
+      (* assume definitions of all tokens end with the line '%token EOF' *)
+      if (after_eof) 
+      then divide_lines inp after_eof acc_prior (s::acc_latter) 
+      else if (starts "%token EOF" s) 
+      then divide_lines inp true (s::acc_prior) acc_latter
+      else divide_lines inp after_eof (s::acc_prior) acc_latter
+  in let lines_prior, lines_latter = divide_lines ic false [] [] in 
+  let oc = open_out parser_file in 
+  lines_prior @ [""; line_to_add] @ lines_latter |> List.iter (fun l -> fprintf oc "%s\n" l);
+  close_out oc
 

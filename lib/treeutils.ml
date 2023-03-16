@@ -43,6 +43,10 @@ let node_symbol (e: tree): string =
   match e with Leaf _ -> "dummy"
   | Node (s, _) -> fst s
 
+let node_symbol_full (e: tree): symbol =
+  match e with Leaf _ -> ("no_symbol", 0)
+  | Node (s, _) -> s
+
 let change_node_symbol_with (e: tree) (sym: string): tree =
   match e with Leaf v -> Leaf v
   | Node ((_, ar), subts) -> Node ((sym, ar), subts)
@@ -181,13 +185,34 @@ let gen_dual_expr (strs: string list): string list =
 
 let present_tree_pair (trees: tree * tree): unit =
   let open Printf in
-  printf "\n\nChoose your preference! (Type either 0 or 1)\n\n";
+  printf "\n\nChoose your preference!\n Type either 0 or 1.\n\n";
   let print_strs ls = printf "\t"; ls |> List.iter (printf "%s "); printf "\n" in
   let expr1 = fst trees |> tree_to_expr in
   let expr2 = gen_dual_expr expr1 in
   printf "Option 0: \n"; print_strs expr1;
   printf "Option 1: \n"; print_strs expr2; printf "\n"
-  
+
+let present_tree_pair_single_operator (trees: tree * tree): unit =
+  let open Printf in
+  printf "\n\nChoose your preference! \nType either 0, 1 or 2 where 2 means no preference.\n\n";
+  let print_strs ls = printf "\t"; ls |> List.iter (printf "%s "); printf "\n" in 
+  let expr1 = fst trees |> tree_to_expr in 
+  let expr2 = gen_dual_expr expr1 in 
+  printf "Option 0: \n"; print_strs expr1;
+  printf "Option 1: \n"; print_strs expr2;
+  printf "Option 2: \n\tNo preference"; printf "\n\n"
+
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
+
+let tree_with_single_operator (e: tree): bool =
+  let fst_sym = node_symbol_full e in
+  let bool_ls ls = List.fold_left (fun x acc -> x && acc) true ls in
+  let rec traverse t prev_sym res = 
+    match t with Leaf _ -> res
+    | Node (sym, subts) -> subts 
+      |> List.map (fun t -> traverse t sym ((syms_equals sym prev_sym) && res))
+      |> bool_ls
+  in traverse e fst_sym true
+
 
