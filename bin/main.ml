@@ -11,26 +11,34 @@ module D = Draw
 module T = Ta
 
 (* *************** Grammar REpair with Tree Automata *************** *)
-(* Inputs needed :                                                   *)
+(*                                                                   *)
+(* Step 1: User feeds in inputs                                      *)
 (* - 'versatile_syms' symbols that can have multiple arities         *)
 (* - 'parser_file' grammar of the input language                     *)
 (* - 'conflicts_file' {path}/{parser-file-name}.conflicts            *)
+(*                                                                   *)
+(* Step 2: User specifies preference                                 *)
+(* - 0 or 1 if an expression contains >1 operators                   *)
+(* - 0, 1 or 2 if an expression contains only 1 operator             *)
+(*                                                                   *)
+(* Step 3: New grammar is written on 'parser_file'                   *)
+(* - If ambiguities still exist, ask user to run GRETA again         *)
+(* - Repeat these steps until all the ambiguities are resolved       *)
+(*                                                                   *)
+(* ***************************************************************** *)
 
-(* TODO: run learner -> /\ -> normalize -> ta to cfg -> overwrite parser 
- * until all conflicts disappear (idea: connect with example generation) *)
 
 let () =
   let debug = true in
   let versatile_syms = ["IF"] in
-  let parser_file, conflicts_file = 
-    "./lib/parser.mly", "./_build/default/lib/parser.conflicts" in
+  let parser_file, conflicts_file = "./lib/parser.mly", "./_build/default/lib/parser.conflicts" in
   let _test_conflicts_file = "./test/parser1.conflicts" in
   let ta_initial = C.convertToTa parser_file versatile_syms debug in
   let ranked_symbols = ta_initial.alphabet in
   (* if (Utils.check_conflicts conflicts_file debug) then  *)
   let tree_pairs: (T.tree * T.tree) list =
     E.gen_examples conflicts_file ranked_symbols debug in
-  let fst_pair = match List.nth_opt tree_pairs 4 with 
+  let fst_pair = match List.nth_opt tree_pairs 0 with 
     | None -> raise (Failure "No examples generated!")
     | Some (t1, t2) -> t1, t2 in
   if (U.tree_with_single_operator (fst fst_pair)) 

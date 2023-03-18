@@ -40,7 +40,7 @@ let accept (a: ta) (e: tree) (debug_print: bool): bool =
         else
           (let trans_subts = subts |> map (fun subt -> transform subt trans_acc (dep+1))
           |> flatten in
-          let state_ls = gen_state_list s state_curr in
+          let state_ls = gen_state_list (arity s) state_curr in
           (state_curr, (s, state_ls)) :: trans_subts @ trans_acc )
         end
   in let accepted = transform e [] 1 |> fold_left 

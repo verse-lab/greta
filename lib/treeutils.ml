@@ -1,5 +1,10 @@
 open Ta
 
+(** is_cond_expr : check if state is representing boolean state *)
+let is_cond_expr (s: state): bool =
+  let open Str in
+  string_match (regexp "cond") s 0 || string_match (regexp "Cond") s 0  
+
 let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
   let booltostr x = if x then "true" else "false" in
   let open Printf in 
@@ -21,13 +26,25 @@ let is_leaf (t: tree): bool =
   match t with Leaf _ -> true
   | Node (_, _) -> false
 
+let is_conditional_leaf (t: tree): bool =
+  match t with Leaf v -> (is_cond_expr v)
+  | Node (_, _) -> false
+
 (** return_state : return state (load of Leaf) *)
 let return_state (t: tree): state =
   match t with Leaf v -> v
   | Node (_, _) -> "Error: Not a leaf"
 
-let gen_state_list (sym: symbol) (st: state): state list = 
-  List.init (arity sym) (fun _ -> st)
+let gen_state_list (sym_arity: int) (st: state): state list = 
+  List.init sym_arity (fun _ -> st)
+
+let subts_state_list (ts: tree list) (default_state: state): state list =
+  let rec loop ts acc =
+    match ts with [] -> List.rev acc
+    | h :: tl -> 
+      if (is_leaf h) then loop tl ((return_state h) :: acc) 
+      else loop tl (default_state :: acc)
+  in loop ts []
 
 (** height : find the height (maximum depth) of tree *)
 let height (e: tree): int =
@@ -66,11 +83,6 @@ let return_node_index (ts: tree list): int =
     | h :: tl -> 
       if (is_leaf h) then loop tl (ind+1) else ind
   in loop ts 0
-
-(** is_cond_expr : chec if state is representing boolean state *)
-let is_cond_expr (s: state): bool =
-  let open Str in
-  string_match (regexp "cond") s 0 || string_match (regexp "Cond") s 0
 
 let replace_node_wleaf (ts: tree list): tree list =
   let open Str in
@@ -185,7 +197,7 @@ let gen_dual_expr (strs: string list): string list =
 
 let present_tree_pair (trees: tree * tree): unit =
   let open Printf in
-  printf "\n\nChoose your preference!\n Type either 0 or 1.\n\n";
+  printf "\n\nChoose your preference! \n(Type either 0 or 1.)\n\n";
   let print_strs ls = printf "\t"; ls |> List.iter (printf "%s "); printf "\n" in
   let expr1 = fst trees |> tree_to_expr in
   let expr2 = gen_dual_expr expr1 in
@@ -194,7 +206,7 @@ let present_tree_pair (trees: tree * tree): unit =
 
 let present_tree_pair_single_operator (trees: tree * tree): unit =
   let open Printf in
-  printf "\n\nChoose your preference! \nType either 0, 1 or 2 where 2 means no preference.\n\n";
+  printf "\n\nChoose your preference! \n(Type either 0, 1 or 2.)\n\n";
   let print_strs ls = printf "\t"; ls |> List.iter (printf "%s "); printf "\n" in 
   let expr1 = fst trees |> tree_to_expr in 
   let expr2 = gen_dual_expr expr1 in 

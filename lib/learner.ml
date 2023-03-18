@@ -40,8 +40,9 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bo
     match t with Leaf _ -> trans_acc, syms_acc
     | Node (sym, ts) ->
       res_dep := !res_dep + 1;
-      let lhs_state: state = filter is_leaf ts |> hd |> return_state in
-      let rhs_states: state list = gen_state_list sym lhs_state in
+      let lhs_state: state = ts |> filter (fun x -> 
+        is_leaf x && not (is_conditional_leaf x)) |> hd |> return_state in
+      let rhs_states: state list = subts_state_list ts lhs_state in
       let tran_sym = lhs_state, (sym, rhs_states) in
       let trans_subts: transition list = ts |> map (fun subt -> 
         fst (traverse_example subt (dep+1) lhs_state trans_acc syms_acc)) |> flatten in
@@ -58,6 +59,7 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bo
     then not (mem x syms_example) && not (fst x = "()") && not (fst x = "ε") 
     else not (mem x syms_example) && not (fst x = "()")) in
   if debug_print then (printf "\tΣ\\{Σ_ex,ε,()}: { "; syms_non_example |> iter (fun s -> Pp.pp_fst s); printf "}\n");
+  (* TODO: Debugging starts from here w.r.t. versatile symbols *)
   (* gen conservative trans -- eg E1 ->_{sym} E1 E1 .. -- for Σ\{Σ_ex,ε,()} *)
   let trans_non_example: transition list = syms_non_example |> map (fun s -> 
     let rhs_states': state list = 
