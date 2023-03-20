@@ -2,18 +2,18 @@ open Ta
 open Treeutils
 
 (** redefine_tree : generate states, start_state, redefine e as e' wrt these states *)
-let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tree =
+let redefine_tree (e: tree) (debug_print: bool): state list * state * state * state * tree =
   if debug_print then (Printf.printf "\n  >> Redefining tree.. \n\tInput: "; Pp.pp_tree e); 
   let in_the_syms (elems: symbol list) (ls: symbol list): bool = 
     elems |> List.exists (fun x -> List.mem x ls) in
-  let states_res, start_res, dirchild_res = ref ["ϵ"], ref "", ref "" in
-  (* TODO: to fix from here reg. syms_e so I can have Cond_expr when needed *)
+  let states_res, start_res, cond_state, dirchild_res = ref ["ϵ"], ref "", ref "", ref "" in
   let syms_e: symbol list ref = ref [] in
   let rec traverse_loop e dep =
     match e with
     | Leaf s ->
       (* gen states so it can differentiate cond_expr from expr *)
-      let s' = (String.capitalize_ascii s) ^ "_" ^ string_of_int dep in
+      let s' = if (is_cond_expr s) then (let new_s = (String.capitalize_ascii s) ^ "_1" in cond_state := new_s; new_s) 
+      else (String.capitalize_ascii s) ^ "_" ^ string_of_int dep in
       (* update the start state accordingly *)
       if (dep = 1) then start_res := s' else if (dep = 2) then dirchild_res := s' else
       if (dep = 0) then (start_res := s'; Printf.printf "Trivial tree with only 1 leaf");
@@ -26,23 +26,30 @@ let redefine_tree (e: tree) (debug_print: bool): state list * state * state * tr
   if not (in_the_syms [("B", 0); ("IF", 2); ("IF", 3)] !syms_e) 
     then states_res := ("Cond_expr_1") :: !states_res;
   if debug_print then (Printf.printf "\n\tRedefined: "; Pp.pp_tree e');
-  !states_res, !start_res, !dirchild_res, e'
+  !states_res, !start_res, !cond_state, !dirchild_res, e'
 
 (** gen_transitions : traverse e and gen Σ_e-, ε-, ()- trans per parent-child *)
-let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bool): transition list =
+let gen_transitions (t: tree) (a: symbol list) (root_st: state) (versatiles: (string * int list) list) 
+  (cond_state: state) (debug_print: bool): transition list =
   let open List in
   let open Printf in
   if debug_print then (printf "\n\n  >> Generating transitions..\n");
+  (** helpers *)
   let h = height t in
+  let vers_symNames = versatiles |> map fst in
   let res_dep: int ref = ref 0 in
+  let versatile_used_arity = ref ~-1 in
+  let find_next_unused_arity (vers: (string * int list) list) (symName: string) (used_arity: int): int =
+    assoc symName vers |> filter (fun x -> not (x = used_arity)) |> hd in
   (* traverse example tree to generate trans using Σ_ex,ε,() *)
   let rec traverse_example t dep parent trans_acc syms_acc: transition list * symbol list =
     match t with Leaf _ -> trans_acc, syms_acc
     | Node (sym, ts) ->
       res_dep := !res_dep + 1;
+      if (mem (fst sym) vers_symNames) then versatile_used_arity := (length ts);
       let lhs_state: state = ts |> filter (fun x -> 
         is_leaf x && not (is_conditional_leaf x)) |> hd |> return_state in
-      let rhs_states: state list = subts_state_list ts lhs_state in
+      let rhs_states: state list = subts_state_list sym ts lhs_state vers_symNames cond_state in
       let tran_sym = lhs_state, (sym, rhs_states) in
       let trans_subts: transition list = ts |> map (fun subt -> 
         fst (traverse_example subt (dep+1) lhs_state trans_acc syms_acc)) |> flatten in
@@ -63,11 +70,15 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bo
   (* gen conservative trans -- eg E1 ->_{sym} E1 E1 .. -- for Σ\{Σ_ex,ε,()} *)
   let trans_non_example: transition list = syms_non_example |> map (fun s -> 
     let rhs_states': state list = 
-      if (arity s <> 0) 
-      then init (arity s) (fun _ -> root_st) 
+      if (arity s <> 0 && (mem (fst s) vers_symNames) && not (!versatile_used_arity = ~-1))
+      then 
+        (let unused_arity = find_next_unused_arity versatiles (fst s) !versatile_used_arity in
+        init (unused_arity) (fun _ -> root_st))
+      else if (arity s <> 0 && not (mem (fst s) vers_symNames)) 
+      then init (arity s) (fun _ -> root_st)
       else init 1 (fun _ -> "ϵ") in
     (* TODO: Differentiate IF's conditional based on info from original TA, incorporate to Algo *)
-      if (sym_equals s "IF")
+      if (mem (fst s) vers_symNames) (* (sym_equals s "IF") *)
       then (let rhs_states'' = rhs_states' |> mapi (fun i x -> 
         if (i=0) then "Cond_expr_1" else x) in root_st, (s, rhs_states''))
       else if (sym_equals s "B")
@@ -77,12 +88,12 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (debug_print: bo
   in if debug_print then (Pp.pp_transitions trans_res);
   trans_res
 
-let learner (e: tree) (a: symbol list) (debug_print: bool): ta =
+let learner (e: tree) (a: symbol list) (versatiles: (string * int list) list) (debug_print: bool): ta =
   let open Printf in
   if debug_print then (printf "\n\nLearn a tree automaton from an example where inputs are\n\tExample: ";
   Pp.pp_tree e; printf "\n\tAlphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n");
-  let state_ls, strt, _, e' = redefine_tree e debug_print in
-  let trans = gen_transitions e' a strt debug_print in
+  let state_ls, strt, cond_state, _, e' = redefine_tree e debug_print in
+  let trans = gen_transitions e' a strt versatiles cond_state debug_print in
   let ta_res = { states = state_ls; alphabet = a; start_state = strt; transitions = trans } in
   printf "\n\nLearned TA:\n"; Pp.pp_ta ta_res; ta_res
 

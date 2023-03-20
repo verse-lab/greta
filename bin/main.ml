@@ -30,7 +30,7 @@ module T = Ta
 
 let () =
   let debug = true in
-  let versatile_syms = ["IF"] in
+  let versatile_syms = [("IF", [2; 3])] in
   let parser_file, conflicts_file = "./lib/parser.mly", "./_build/default/lib/parser.conflicts" in
   let _test_conflicts_file = "./test/parser1.conflicts" in
   let ta_initial = C.convertToTa parser_file versatile_syms debug in
@@ -52,7 +52,7 @@ let () =
     U.present_tree_pair fst_pair;
     let chosen_index = read_int () in
     let example_tree: T.tree = if (chosen_index = 0) then fst fst_pair else snd fst_pair in
-    let ta_learned = L.learner example_tree ranked_symbols debug in
+    let ta_learned = L.learner example_tree ranked_symbols versatile_syms debug in
     let _: bool = R.accept ta_learned example_tree debug in
     let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in
     C.convertToGrammar ta_intersected versatile_syms debug parser_file);

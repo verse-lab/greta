@@ -34,12 +34,13 @@ let cartesian_product_states (ls1: state list) (ls2: state list) (debug_print: b
     then (Printf.printf "\n  >> Result of states X states:\n"; Pp.pp_states res); List.rev res
 
 let cartesian_product_trans (states1: state list) (states2: state list) (trans1: transition list) (trans2: transition list) 
-  (syms: symbol list) (verSyms: string list) (debug_print: bool): transition list =
+  (syms: symbol list) (verSyms: (string * int list) list) (debug_print: bool): transition list =
   let open List in
   let open Printf in
   if debug_print then (printf "\n  >> Cross product of transitions:\n\tFirst transitions:\n"; 
   Pp.pp_transitions trans1; printf "\n\tSecond transitions:\n"; Pp.pp_transitions trans2);
   (** helpers *)
+  let vers_symNames = verSyms |> map fst in
   let remove_epsilon ls = filter (fun x -> not (x = "ϵ")) ls in
   let stats1, stats2 = remove_epsilon states1, remove_epsilon states2 in
   if debug_print then (printf "\n\tGiven two lists of states:\n\t"; Pp.pp_states stats1; printf "\t"; Pp.pp_states stats2);
@@ -56,10 +57,10 @@ let cartesian_product_trans (states1: state list) (states2: state list) (trans1:
       match ls with
       | [] -> None (* reached end and found none *)
       | (lhs, (s, rhs_states)) :: tl ->
-        if ((lhs = lhs_stat) && (syms_equals s sym) && not (mem (fst sym) verSyms)) then (Some rhs_states) else 
-        if ((lhs = lhs_stat) && (syms_equals s sym) && (mem (fst sym) verSyms) && (length rhs_states = (snd sym)))
+        if ((lhs = lhs_stat) && (syms_equals s sym) && not (mem (fst sym) vers_symNames)) then (Some rhs_states) else 
+        if ((lhs = lhs_stat) && (syms_equals s sym) && (mem (fst sym) vers_symNames) && (length rhs_states = (snd sym)))
         then (Some rhs_states) else (* record_counter := !record_counter + 1; *)
-        if ((lhs = lhs_stat) && (syms_equals s sym) && (mem (fst sym) verSyms) && not (length rhs_states = (snd sym)))
+        if ((lhs = lhs_stat) && (syms_equals s sym) && (mem (fst sym) vers_symNames) && not (length rhs_states = (snd sym)))
         then (traverse_trans lhs tl) else
         (* assuming ε-tran is happening before all others -> TODO: re-arrange before running *)
         (* if ((lhs = lhs_stat) && (sym_equals s "ε") && (length rhs_states = 1)) then traverse_trans (hd rhs_states) tl else *)
@@ -90,12 +91,12 @@ let cartesian_product_trans (states1: state list) (states2: state list) (trans1:
   Pp.pp_transitions res_trans); res_trans
 
 (** Intersection of tree automata *)
-let intersect (a1: ta) (a2: ta) (verSyms: string list) (debug_print: bool): ta =
+let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print: bool): ta =
   let open Printf in
   printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
   Pp.pp_ta a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; printf "\n";
   if debug_print then (printf "\n  >> Versatile symbol list: [ "; 
-  verSyms |> List.iter (fun x -> printf "%s " x); printf "]\n");
+  verSyms |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
   (* TODO: Add a sanity check on alphabet based on set equality *)
   let syms = a1.alphabet in
   let stats1, stats2 = a1.states, a2.states in

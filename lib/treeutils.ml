@@ -38,13 +38,17 @@ let return_state (t: tree): state =
 let gen_state_list (sym_arity: int) (st: state): state list = 
   List.init sym_arity (fun _ -> st)
 
-let subts_state_list (ts: tree list) (default_state: state): state list =
+let subts_state_list (sym: symbol) (ts: tree list) (default_state: state) 
+  (versatile_syms: string list) (cond_state: state): state list =
   let rec loop ts acc =
     match ts with [] -> List.rev acc
     | h :: tl -> 
       if (is_leaf h) then loop tl ((return_state h) :: acc) 
       else loop tl (default_state :: acc)
-  in loop ts []
+  in let stats = loop ts [] 
+  in if (List.mem (fst sym) versatile_syms) 
+    then stats |> List.mapi(fun i x -> if (i = 0) then cond_state else x)
+    else stats
 
 (** height : find the height (maximum depth) of tree *)
 let height (e: tree): int =

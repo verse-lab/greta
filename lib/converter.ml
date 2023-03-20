@@ -150,7 +150,7 @@ let enhance_appearance (a: ta): ta =
   { states = a.states; alphabet = alph_updated 
   ; start_state = a.start_state ; transitions = trans_updated }
 
-let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (g: cfg): ta =
+let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: bool) (g: cfg): ta =
   let open List in
   let open Printf in
   (* helper assuming at most 2 occurrences of versatileTerminals *)
@@ -183,7 +183,7 @@ let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (g: cfg): 
     (* add epsilon transition (needed when taking intersection with another TA) *)
     |> append [(!stat, (epsilon_symb, [!stat]))] in
   (* add versatile symbols -- with multiple ranks -- to alphabet *)
-  let toadd_versterms (debug: bool): symbol list = versatileTerminals |> map (fun term ->
+  let toadd_versterms (debug: bool): symbol list = versatileTerminals |> map fst |> map (fun term ->
     let lasti = last_ind prods_rhs term in
     let rank_of_lasti: int = match nth_opt prods_rhs lasti with
       | None -> raise (Failure "Infeasible")
@@ -196,7 +196,7 @@ let cfg_to_ta (versatileTerminals: terminal list) (debug_print: bool) (g: cfg): 
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res; 
   ta_res
 
-let convertToTa (file: string) (versatiles: terminal list) (debug_print: bool): ta = 
+let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_print: bool): ta = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   file |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print
 
@@ -213,12 +213,12 @@ let undo_enhancement (a: ta): ta =
   { states = a.states ; alphabet = alph_updated
   ; start_state = a.start_state ; transitions = trans_updated }
 
-let ta_to_cfg (versatileTerminals: terminal list) (debug_print: bool) (a: ta): cfg = 
+let ta_to_cfg (versatileTerminals: (terminal * int list) list) (debug_print: bool) (a: ta): cfg = 
   let open Printf in
   let a' = undo_enhancement a in
   printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta a';
   if debug_print then (printf "\n  >> Versatile sybol list: [ ";
-  versatileTerminals |> List.iter (fun x -> printf "%s " x); printf "]\n");
+  versatileTerminals |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
   (** helpers *)
   let remove_dups ls =
     let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
@@ -332,7 +332,7 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
   close_out oc
 
 (** convertToGrammar : *)
-let convertToGrammar (ta_inp: ta) (versatiles: terminal list) (debug: bool) (file: string) =
+let convertToGrammar (ta_inp: ta) (versatiles: (terminal * int list) list) (debug: bool) (file: string) =
   ta_inp |> ta_to_cfg versatiles debug |> cfg_to_parser file debug
 
 (* ******************** Part III. Specify associativity > parser.mly ******************** *)
