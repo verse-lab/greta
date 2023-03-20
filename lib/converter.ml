@@ -176,12 +176,18 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
     |> append [epsilon_symb] in
   let trans: transition list =
     let stat: state ref = ref "" in
-    g.productions |> fold_left (fun acc (n, (t, ls)) -> (n, ((t, rank_of_symb debug_print t), ls)) :: acc) []
-    |> map (fun (s, (op, s_ls)) -> if (fst op = "ε" && length s_ls = 1) then (s, ((hd s_ls, 1), "ϵ"::[])) 
-    (* TODO (below stat): make this less computationally expensive *)
-    else (stat := s; (s, (op, s_ls))))
-    (* add epsilon transition (needed when taking intersection with another TA) *)
-    |> append [(!stat, (epsilon_symb, [!stat]))] in
+    let eps_exists = ref false in
+    let trans_intermediate =
+      g.productions |> fold_left (fun acc (n, (t, ls)) -> (n, ((t, rank_of_symb debug_print t), ls)) :: acc) []
+      |> map (fun (s, (op, s_ls)) -> 
+        (* treat int (N) and bool (B) differently *)
+        if (fst op = "ε" && ((hd s_ls = "N") || (hd s_ls = "B"))) then (s, ((hd s_ls, 1), "ϵ"::[])) 
+        (* TODO (below stat): make this less computationally expensive *)
+        else if (fst op = "ε") then (eps_exists := true; stat := s; (s, (op, s_ls))) else (stat := s; (s, (op, s_ls)))) in
+        (* add epsilon transition (needed when taking intersection with another TA) *)
+        if (!eps_exists) then trans_intermediate
+        else trans_intermediate |> append [(!stat, (epsilon_symb, [!stat]))] 
+  in
   (* add versatile symbols -- with multiple ranks -- to alphabet *)
   let toadd_versterms (debug: bool): symbol list = versatileTerminals |> map fst |> map (fun term ->
     let lasti = last_ind prods_rhs term in
@@ -297,7 +303,7 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
       then (beginning ^ "LPAREN " ^ (List.hd sls) ^ " RPAREN { Paren $2 }") :: []
     else if ((List.length sls = 2) && op = "IF")
       then (beginning ^ "IF " ^ List.nth sls 0 ^ " THEN " ^ List.nth sls 1
-      ^ "{ If ($2, Then ($4, Else Na)) }") :: []
+      ^ " { If ($2, Then ($4, Else Na)) }") :: []
     else if ((List.length sls = 3) && op = "IF")
       then (beginning ^ "IF " ^ List.nth sls 0 ^ " THEN " ^ List.nth sls 1 
       ^ " ELSE " ^ List.nth sls 2 ^ " { If ($2, Then ($4, Else Na)) }") :: []

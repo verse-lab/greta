@@ -74,6 +74,8 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (versatiles: (st
       then 
         (let unused_arity = find_next_unused_arity versatiles (fst s) !versatile_used_arity in
         init (unused_arity) (fun _ -> root_st))
+      else if (arity s <> 0 && (mem (fst s) vers_symNames) && (!versatile_used_arity = ~-1))
+      then init (arity s) (fun _ -> root_st)
       else if (arity s <> 0 && not (mem (fst s) vers_symNames)) 
       then init (arity s) (fun _ -> root_st)
       else init 1 (fun _ -> "ϵ") in
