@@ -86,7 +86,8 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (versatiles: (st
       else if (sym_equals s "B")
       then "Cond_expr_1", (s, rhs_states') 
       else root_st, (s, rhs_states'))
-  in let trans_res = trans_example @ trans_non_example
+  in let eps_trans = [root_st, (("ε", 1), [root_st])] in
+  let trans_res = trans_example @ trans_non_example @ eps_trans
   in if debug_print then (Pp.pp_transitions trans_res);
   trans_res
 
@@ -102,3 +103,56 @@ let learner (e: tree) (a: symbol list) (versatiles: (string * int list) list) (d
 
 
 
+(* 
+program : expr1 EOF { $1 };
+
+expr2:
+  | LPAREN expr1 RPAREN { Paren $2 }
+  | IF cond_expr1 THEN expr2 ELSE expr2 { If ($2, Then ($4, Else Na)) }
+  ;
+
+expr1:
+  | expr2 { $1 }
+  | INT { Int $1 }
+  | IF cond_expr1 THEN expr1 { If ($2, Then ($4, Else Na)) }
+  | expr1 PLUS expr1 { Plus ($1, $3) }
+  | expr1 MUL expr1 { Mul ($1, $3) }
+  ;
+
+cond_expr1:
+  | TRUE { Bool true }
+  | FALSE { Bool false }
+  ;
+
+  |
+  v
+program : expr1 EOF { $1 };
+
+expr2:
+  | expr2 MUL expr2 { Mul ($1, $3) }
+  | LPAREN expr1 RPAREN { Paren $2 }
+  ;
+
+expr1:
+  | expr4 { $1 }
+  | expr2 { $1 }
+  | expr6 { $1 }
+  | INT { Int $1 }
+  | expr1 PLUS expr1 { Plus ($1, $3) }
+  | IF cond_expr1 THEN expr1 { If ($2, Then ($4, Else Na)) }
+  ;
+
+expr4:
+  | LPAREN expr1 RPAREN { Paren $2 }
+  ;
+
+expr6:
+  | IF cond_expr1 THEN expr6 ELSE expr6 { If ($2, Then ($4, Else Na)) }
+  | LPAREN expr1 RPAREN { Paren $2 }
+  ;
+
+cond_expr1:
+  | TRUE { Bool true }
+  | FALSE { Bool false }
+  ;   
+*)

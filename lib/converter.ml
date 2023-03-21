@@ -185,8 +185,8 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
         (* TODO (below stat): make this less computationally expensive *)
         else if (fst op = "ε") then (eps_exists := true; stat := s; (s, (op, s_ls))) else (stat := s; (s, (op, s_ls)))) in
         (* add epsilon transition (needed when taking intersection with another TA) *)
-        if (!eps_exists) then trans_intermediate
-        else trans_intermediate |> append [(!stat, (epsilon_symb, [!stat]))] 
+        (* [prev] if (!eps_exists) then trans_intermediate else trans_intermediate |> append [(!stat, (epsilon_symb, [!stat]))]  *)
+        trans_intermediate |> append [(g.start, (epsilon_symb, [g.start]))] 
   in
   (* add versatile symbols -- with multiple ranks -- to alphabet *)
   let toadd_versterms (debug: bool): symbol list = versatileTerminals |> map fst |> map (fun term ->
@@ -326,8 +326,33 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
         else raise (Failure "Block should have the same nonterminal on LHS.")
     in write_loop prods_blocks "" []
   in
+  (* regroup production list so that all the ones with the same lhs *)
+  let regroup_blocks (blks: production list list): production list list = 
+    (* helper to remove any duplicate productions in the production list *)
+    let rec remove_dup_prods (prods_acc: production list) (prods: production list): production list = 
+      let prods_equal p1 p2: bool = match p1, p2 with 
+      | (nont1, (t1, sls1)), (nont2, (t2, sls2)) -> 
+        if (List.length sls1 = List.length sls2) then (nont1 = nont2) && (t1 = t2) 
+          && (List.fold_left2 (fun ac s1 s2 -> (s1 = s2) && ac) true sls1 sls2) else false in
+      match prods with [] -> prods_acc
+      | prod_h :: prods_tl -> 
+        if (List.exists (fun x -> prods_equal x prod_h) prods_acc) 
+        then remove_dup_prods prods_acc prods_tl else remove_dup_prods (prod_h::prods_acc) prods_tl
+    in
+    (* helper to traverse all productions and collection productions with the same (lhs) nonterminal *)
+    let traverse_blks (nont_to_match: nonterminal): production list = 
+      (List.flatten blks) |> List.fold_left (fun acc ((nont, _) as prod) ->
+        if (nont = nont_to_match) then prod :: acc else acc) [] in
+    let rec loop blk_lst nonts_so_far (res_acc: production list list) =
+     match blk_lst with [] -> res_acc
+      | (nont, _) :: blk_tl -> 
+         if (List.mem nont nonts_so_far) then loop blk_tl nonts_so_far res_acc else 
+          (let res_blk = traverse_blks nont |> remove_dup_prods [] 
+           in loop blk_tl (nont::nonts_so_far) (res_blk::res_acc))
+    in loop (List.flatten blks) [] []
+  in
   let lines_added: string list = 
-    let prods_blocks = collect_blocks g.productions in 
+    let prods_blocks: production list list = collect_blocks g.productions |> regroup_blocks in 
     if debug_print then (printf "\n  >> Collected blocks:\n\n"; prods_blocks |> List.iter (fun b -> 
       Pp.pp_productions b; printf "\n\n")); 
     List.fold_left (fun acc blks -> acc @ (write_block blks)) [] prods_blocks in
