@@ -6,7 +6,8 @@ let redefine_tree (e: tree) (debug_print: bool): state list * state * state * st
   if debug_print then (Printf.printf "\n  >> Redefining tree.. \n\tInput: "; Pp.pp_tree e); 
   let in_the_syms (elems: symbol list) (ls: symbol list): bool = 
     elems |> List.exists (fun x -> List.mem x ls) in
-  let states_res, start_res, cond_state, dirchild_res = ref ["ϵ"], ref "", ref "", ref "" in
+  (* if there's any conditional state in example tree, pass the correct name for 'trans_non_example' *)
+  let states_res, start_res, cond_state, dirchild_res = ref ["ϵ"], ref "", ref "Cond_expr_1", ref "" in
   let syms_e: symbol list ref = ref [] in
   let rec traverse_loop e dep =
     match e with
@@ -82,9 +83,9 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (versatiles: (st
     (* TODO: Differentiate IF's conditional based on info from original TA, incorporate to Algo *)
       if (mem (fst s) vers_symNames) (* (sym_equals s "IF") *)
       then (let rhs_states'' = rhs_states' |> mapi (fun i x -> 
-        if (i=0) then "Cond_expr_1" else x) in root_st, (s, rhs_states''))
+        if (i=0) then cond_state else x) in root_st, (s, rhs_states''))
       else if (sym_equals s "B")
-      then "Cond_expr_1", (s, rhs_states') 
+      then cond_state, (s, rhs_states') 
       else root_st, (s, rhs_states'))
   in let eps_trans = [root_st, (("ε", 1), [root_st])] in
   let trans_res = trans_example @ trans_non_example @ eps_trans

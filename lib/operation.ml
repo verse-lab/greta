@@ -79,7 +79,7 @@ let cartesian_product_trans (states1: state list) (states2: state list) (trans1:
         else traverse_trans lhs_stat tl acc
     in let res_trav = traverse_trans lhs_state trans [] 
     in match res_trav with [] -> (if debug then printf "\t\tNo match RHS states\n"); None
-       | ls -> (if debug then printf "\t"; ls |> iter (fun l -> Pp.pp_states l; printf "\n")); Some ls
+       | ls -> (if debug then ls |> iter (fun l -> printf "\t"; Pp.pp_states l; printf "\n")); Some ls
   in
   let states_tuples: ((state * state) * state) list = cartesian_tuples stats1 stats2 in
   (** cartesian_trans : take cartesian products of two sets of transitions *)
