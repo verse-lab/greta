@@ -210,13 +210,13 @@ let present_tree_pair (trees: tree * tree): unit =
 
 let present_tree_pair_single_operator (trees: tree * tree): unit =
   let open Printf in
-  printf "\n\nChoose your preference! \n(Type either 0, 1 or 2.)\n\n";
+  printf "\n\nChoose your preference! \n(Type either 0 or 1.)\n\n";
   let print_strs ls = printf "\t"; ls |> List.iter (printf "%s "); printf "\n" in 
   let expr1 = fst trees |> tree_to_expr in 
   let expr2 = gen_dual_expr expr1 in 
   printf "Option 0: \n"; print_strs expr1;
-  printf "Option 1: \n"; print_strs expr2;
-  printf "Option 2: \n\tNo preference"; printf "\n\n"
+  printf "Option 1: \n"; print_strs expr2; printf "\n"
+  (* ;printf "Option 2: \n\tNo preference"; printf "\n\n" *)
 
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename

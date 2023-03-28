@@ -370,7 +370,7 @@ let convertToGrammar (ta_inp: ta) (versatiles: (terminal * int list) list) (debu
 
 (** specify_associativity : specify associativity on parser file per user input (0, 1, 2) *)
 let specify_associativity (parser_file: string) (ind: int) (trees: tree * tree) (debug_print: bool): unit =
-  let assoc = match ind with 0 -> "%right" | 1 -> "%left" | 2 -> "%nonassoc" 
+  let assoc = match ind with 0 -> "%right" | 1 -> "%left" (* | 2 -> "%nonassoc" *)
     | _ -> raise (Failure "Incorrect input number for associativity") in
   let op: string = match node_symbol (fst trees) with 
     | "*" -> "MUL" | "+" -> "PLUS" | s -> s in

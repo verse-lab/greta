@@ -67,7 +67,6 @@ let gen_transitions (t: tree) (a: symbol list) (root_st: state) (versatiles: (st
     then not (mem x syms_example) && not (fst x = "()") && not (fst x = "ε") 
     else not (mem x syms_example) && not (fst x = "()")) in
   if debug_print then (printf "\tΣ\\{Σ_ex,ε,()}: { "; syms_non_example |> iter (fun s -> Pp.pp_fst s); printf "}\n");
-  (* TODO: Debugging starts from here w.r.t. versatile symbols *)
   (* gen conservative trans -- eg E1 ->_{sym} E1 E1 .. -- for Σ\{Σ_ex,ε,()} *)
   let trans_non_example: transition list = syms_non_example |> map (fun s -> 
     let rhs_states': state list = 
