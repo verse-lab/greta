@@ -29,21 +29,20 @@
 
 program : expr1 EOF { $1 };
 
-expr2:
-  | LPAREN expr1 RPAREN { Paren $2 }
-  | IF cond_expr1 THEN expr2 ELSE expr2 { If ($2, Then ($4, Else Na)) }
-  ;
-
-expr1:
-  | expr2 { $1 }
-  | INT { Int $1 }
-  | IF cond_expr1 THEN expr1{ If ($2, Then ($4, Else Na)) }
-  | expr1 PLUS expr1 { Plus ($1, $3) }
-  | expr1 MUL expr1 { Mul ($1, $3) }
-  ;
-
 cond_expr1:
   | TRUE { Bool true }
   | FALSE { Bool false }
   ;
 
+expr1:
+  | expr1 MUL expr1 { Mul ($1, $3) }
+  | expr1 PLUS expr1 { Plus ($1, $3) }
+  | IF cond_expr1 THEN expr1 { If ($2, Then ($4, Else Na)) }
+  | INT { Int $1 }
+  | expr2 { $1 }
+  ;
+
+expr2:
+  | IF cond_expr1 THEN expr2 ELSE expr2 { If ($2, Then ($4, Else Na)) }
+  | LPAREN expr1 RPAREN { Paren $2 }
+  ;

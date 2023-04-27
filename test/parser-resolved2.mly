@@ -1,3 +1,4 @@
+// The grammar below is presumably what the user would have wanted.
 %{
   open Ast
 %}

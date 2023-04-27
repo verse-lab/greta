@@ -35,34 +35,36 @@ let () =
   let _test_conflicts_file = "./test/parser1.conflicts" in
   let ta_initial = C.convertToTa parser_file versatile_syms debug in
   let ranked_symbols = ta_initial.alphabet in
-  (* if (Utils.check_conflicts conflicts_file debug) then  *)
-  let tree_pairs: (T.tree * T.tree) list =
-    E.gen_examples conflicts_file ranked_symbols debug in
-  let fst_pair = match List.nth_opt tree_pairs 0 with 
-    | None -> raise (Failure "No examples generated!")
-    | Some (t1, t2) -> t1, t2 in
-  if (U.tree_with_single_operator (fst fst_pair)) 
-  then 
-    (Printf.printf "\nTree involving only one symbol..\n";
-    U.present_tree_pair_single_operator fst_pair;
-    let chosen_index = read_int () in 
-    C.specify_associativity parser_file chosen_index fst_pair debug)
-  else
-    (Printf.printf "\nTree involves more than one symbol..\n";
-    U.present_tree_pair fst_pair;
-    let chosen_index = read_int () in
-    let example_tree: T.tree = if (chosen_index = 0) then fst fst_pair else snd fst_pair in
-    let ta_learned = L.learner example_tree ranked_symbols versatile_syms debug in
-    let _: bool = R.accept ta_learned example_tree debug in
-    let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in
-    C.convertToGrammar ta_intersected versatile_syms debug parser_file);
+  if (Utils.check_conflicts conflicts_file debug) then 
+    begin
+    let tree_pairs: (T.tree * T.tree) list =
+      E.gen_examples conflicts_file ranked_symbols debug in
+    let fst_pair = match List.nth_opt tree_pairs 0 with 
+      | None -> raise (Failure "No examples generated!")
+      | Some (t1, t2) -> t1, t2 in
+    if (U.tree_with_single_operator (fst fst_pair)) 
+    then 
+      ((Printf.printf "\nTree involving only one symbol..\n";
+      U.present_tree_pair_single_operator fst_pair;
+      let chosen_index = read_int () in 
+      C.specify_associativity parser_file chosen_index fst_pair debug))
+    else
+      ((Printf.printf "\nTree involves more than one symbol..\n";
+      U.present_tree_pair fst_pair;
+      let chosen_index = read_int () in
+      let example_tree: T.tree = if (chosen_index = 0) then fst fst_pair else snd fst_pair in
+      let ta_learned = L.learner example_tree ranked_symbols versatile_syms debug in
+      let _: bool = R.accept ta_learned example_tree debug in
+      let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in
+      C.convertToGrammar ta_intersected versatile_syms debug parser_file)) 
+    end;
   if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file;
-  (* while true do
+  while true do
     let inp = read_line () in
     match Utils.parse_string inp with
     | ast -> print_endline @@ Ast.show ast
     | exception e -> print_endline @@ Printexc.to_string e
-  done; *)
+  done;
 
 (*** Assumptions made on the language designer (user of this tool):
  *   * Non-terminals representing boolean are specified with "cond" ^ s*

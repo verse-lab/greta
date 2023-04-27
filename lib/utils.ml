@@ -20,7 +20,15 @@ let starts tk s = String.starts_with ~prefix:tk s
 
 let check_conflicts (conflicts_file: string) (debug_print: bool): bool =
   let open Printf in 
-  let res = Sys.file_exists conflicts_file in
-  if debug_print then (printf "\n\n  >> Is there any ambiguity in grammar?\n";
+  let conflicts_file_exist = Sys.file_exists conflicts_file in
+  let conflicts_file_nonempty = 
+    let rec loop inp acc =
+      match (read_line inp) with 
+      | None -> (List.length acc) != 0
+      | Some s -> loop inp (s::acc)
+    in loop (open_in conflicts_file) []
+  in
+  let res = conflicts_file_exist && conflicts_file_nonempty in
+  if debug_print then (printf "\n\n  >> Is there any conflicts in grammar?\n";
   if res then printf "\t\t\tYES\n\n" else printf "\t\t\tNO\n\n");
   res

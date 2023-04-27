@@ -29,25 +29,31 @@
 
 program : expr1 EOF { $1 };
 
-expr2:
-  | expr2 MUL expr2 { Mul ($1, $3) }
+cond_expr1:
+  | TRUE { Bool true }
+  | FALSE { Bool false }
   ;
 
-expr1:
-  | INT { Int $1 }
-  | expr1 PLUS expr1 { Plus ($1, $3) }
+expr6:
+  | LPAREN expr1 RPAREN { Paren $2 }
+  | IF cond_expr1 THEN expr6 ELSE expr6 { If ($2, Then ($4, Else Na)) }
   ;
 
 expr4:
   | LPAREN expr1 RPAREN { Paren $2 }
   ;
 
-expr6:
+expr1:
+  | expr1 PLUS expr1 { Plus ($1, $3) }
+  | IF cond_expr1 THEN expr1 { If ($2, Then ($4, Else Na)) }
+  | INT { Int $1 }
   | expr4 { $1 }
+  | expr6 { $1 }
+  | expr2 { $1 }
   ;
 
-cond_expr1:
-  | TRUE { Bool true }
-  | FALSE { Bool false }
+expr2:
+  | expr2 MUL expr2 { Mul ($1, $3) }
+  | LPAREN expr1 RPAREN { Paren $2 }
   ;
 
