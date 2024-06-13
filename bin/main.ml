@@ -59,12 +59,12 @@ let () =
       C.convertToGrammar ta_intersected versatile_syms debug parser_file)) 
     end;
   if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file;
-  while true do
+  (* while true do
     let inp = read_line () in
     match Utils.parse_string inp with
     | ast -> print_endline @@ Ast.show ast
     | exception e -> print_endline @@ Printexc.to_string e
-  done;
+  done; *)
 
 (*** Assumptions made on the language designer (user of this tool):
  *   * Non-terminals representing boolean are specified with "cond" ^ s*

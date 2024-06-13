@@ -22,7 +22,7 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
   printf "\nGenerate examples from conflicts in file %s\n" filename; 
   if debug_print then printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); 
     (* printf "\n\n  >> Does conflict exist?"; 
-    if Sys.file_exists filename then printf "\n\t\t\tYES\n\n" else printf "\n\t\t\tNO\n\n"; *)
+    if Sys.file_exists filename then printf "\zn\t\t\tYES\n\n" else printf "\n\t\t\tNO\n\n"; *)
   (** helpers *)
   let ic = open_in filename in
   let try_read () = try Some (input_line ic) with End_of_file -> None in
