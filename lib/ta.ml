@@ -4,6 +4,7 @@ type transition = state * (symbol * state list)
 
 type load = string
 type tree = Leaf of load | Node of (symbol * (tree list))
+type restriction = Assoc of (symbol * string) | Prec of (symbol * int)
 
 exception Failure of string
 
@@ -20,7 +21,7 @@ let null_ta =
 
 let sym_equals sym str = (fst sym = str)
 
-let syms_equals s1 s2 = (fst s1) = (fst s2)
+let syms_equals s1 s2 = ((fst s1) = (fst s2)) && ((snd s1) = (snd s2))
 
 let arity (sym: symbol): int = snd sym
 

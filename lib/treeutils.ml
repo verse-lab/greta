@@ -221,6 +221,7 @@ let present_tree_pair_single_operator (trees: tree * tree): unit =
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
 
+(* (TODO) To remove redundancies wrt figuring out Oa-related trees *)
 let tree_with_single_operator (e: tree): bool =
   let fst_sym = node_symbol_full e in
   let bool_ls ls = List.fold_left (fun x acc -> x && acc) true ls in
@@ -230,5 +231,26 @@ let tree_with_single_operator (e: tree): bool =
       |> List.map (fun t -> traverse t sym ((syms_equals sym prev_sym) && res))
       |> bool_ls
   in traverse e fst_sym true
+
+let same_syms ls = 
+  let fst_sym = List.hd ls in 
+  let filtered = List.filter (fun s -> not (syms_equals s fst_sym)) ls in
+  if filtered = [] then true else false
+
+let subtrees_of (e:tree): tree list = 
+  match e with Leaf _ -> []
+  | Node (_, subts) -> subts
+
+let tree_symbol (e: tree): symbol = 
+  match e with Leaf _ -> ("nth", 0)
+  | Node (s, _) -> s
+
+let collect_syms t: symbol list =
+  let syms = List.fold_left (fun acc subt -> (tree_symbol subt)::acc) [] (subtrees_of t)
+  in (tree_symbol t):: syms
+  
+let check_oa_op (e: tree): bool * bool = 
+  let t_syms: symbol list = collect_syms e 
+  in if same_syms t_syms then (true, false) else (false, true)
 
 

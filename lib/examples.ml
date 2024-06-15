@@ -17,6 +17,9 @@ let ex05 = Node (("IF", 2), [Leaf "cond_expr"; Node (("+", 2), [Leaf "expr"; Lea
 
 exception Invalid_number_of_trees
 exception Leaf_is_not_valid
+exception Invalid_subtrees
+exception Tree_specifies_oa_or_op
+exception Neither_left_nor_right
 
 (** gen_examples : gen examples from parser.conflicts in CFG *)
 let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree * tree) list = 
@@ -98,7 +101,7 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
         extract_loop stl ((s_tree, s_ls) :: res_acc)
     in extract_loop relev_lines []
   in
-  (* auxiliary #1 'insert_tree_in_leaves' for combine_two_trees *)
+  (* auxiliary 'insert_tree_in_leaves' for combine_two_trees *)
   let insert_tree_in_leaves (lvs: tree list) (t: tree): tree list = 
     let rec replace_loop ls acc = 
       match ls with [] -> List.rev acc
@@ -109,57 +112,83 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
       | _ -> raise Leaf_is_not_valid
     in replace_loop lvs []
   in
-  (* auxiliary #2 'insert_expr_aux' for combine_two_trees *)
-  let insert_expr_aux (base_ls: string list) (to_insert: string list): string list = 
-    let rec insert_loop ls acc = 
-      match ls with [] -> List.rev acc
+  (* get_restriction_on_tree gets Oa := [(Assoc (sym, "l"))] or Op := [(sym1, 0); (sym2, 1)] *)
+  let get_restriction_on_tree (t: tree) (oa: bool) (op: bool): restriction list =
+    match t with Leaf _ -> raise Leaf_is_not_valid
+    | Node (sym, subts) -> 
+      match subts with [] -> raise Invalid_subtrees
       | hd :: tl -> 
-        if starts "@" hd 
-        then insert_loop tl (")"::(List.rev to_insert)) @ ("("::acc)
-        else insert_loop tl (hd::acc)
-    in insert_loop base_ls []
+        if oa 
+        then (let lft_sym = tree_symbol hd
+              in if syms_equals lft_sym sym 
+                 then [Assoc (sym, "l")]
+                 else let rht_sym = tree_symbol (List.hd tl)
+                      in if syms_equals rht_sym sym 
+                      then [Assoc (sym, "r")]
+                      else raise Neither_left_nor_right)
+        else if op
+        then (let subt_sym = subts |> List.filter (fun t -> not (is_leaf t)) |> List.hd |> tree_symbol
+              in [Prec (sym, 0); Prec (subt_sym, 1)])
+        else raise Tree_specifies_oa_or_op
   in
   (** combine_two_trees  *)
   let combine_two_trees (te1: tree * string list) (te2: tree * string list): 
-    (tree * string list) * (tree * string list) =
+    (tree * (bool * bool) * restriction list) list =
     match te1, te2 with 
     | (Leaf _, _), (_, _) | (_, _), (Leaf _, _) -> raise Leaf_is_not_valid
-    | (Node (sym1, lvs1), sls1), (Node (sym2, lvs2), sls2) -> 
+    | (Node (sym1, lvs1), _), (Node (sym2, lvs2), _) -> 
       let lvs1_inserted = insert_tree_in_leaves lvs1 (Node (sym2, lvs2)) in
-      let sls1_inserted = insert_expr_aux sls1 sls2 in
+      let oa1, op1 = check_oa_op (Node (sym1, lvs1_inserted)) in
+      let r_ls1: restriction list = get_restriction_on_tree (Node (sym1, lvs1_inserted)) oa1 op1 in 
       let lvs2_inserted = insert_tree_in_leaves lvs2 (Node (sym1, lvs1)) in
-      let sls2_inserted = insert_expr_aux sls2 sls1 in
-      (Node (sym1, lvs1_inserted), sls1_inserted), (Node (sym2, lvs2_inserted), sls2_inserted)
+      let oa2, op2 = check_oa_op (Node (sym2, lvs2_inserted)) in
+      let r_ls2: restriction list = get_restriction_on_tree (Node (sym2, lvs2_inserted)) oa2 op2 in 
+      [Node (sym1, lvs1_inserted), (oa1, op1), r_ls1; Node (sym2, lvs2_inserted), (oa2, op2), r_ls2]
   in 
   let combine_tree_exprs (e_trees_n_exprs: (tree * string list) list): 
-    ((tree * string list) * (tree * string list)) list = 
+    (tree * (bool * bool) * restriction list) list = 
     let rec combine_loop ls res_acc =
       match ls with 
       | [] -> List.rev res_acc 
       | texpr1 :: tl ->
         if tl = [] then raise Invalid_number_of_trees
         else (let texpr2 = List.hd tl in 
-              let two_trees_combined = combine_two_trees texpr1 texpr2 in 
-              combine_loop (List.tl tl) (two_trees_combined::res_acc))
+              let two_trees_combined: (tree * (bool * bool) * restriction list) list = 
+                  combine_two_trees texpr1 texpr2 in 
+              combine_loop (List.tl tl) (two_trees_combined @ res_acc))
     in combine_loop e_trees_n_exprs []
   in
   let relev_ls: string list = traverse 1 false [] in 
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in
-  let combined_trees = combine_tree_exprs extracted_trees_n_exprs in
+  let combined_trees: (tree * (bool * bool) * restriction list) list = 
+                                              combine_tree_exprs extracted_trees_n_exprs in
   (* Pp.pp_tree_pairs_syms extracted_trees_n_exprs; *)
   (* let combined_trees: (tree * tree) list = List.fold_left (fun acc (t, syms) -> 
     let trees = combine_trees t1 t2 (List.rev syms) in acc @ trees) [] extracted_trees_syms
     |> rewrite_syms in *)
-  Pp.pp_combined_trees combined_trees;
-  let tree_expressions: (string list * string list) list = List.map (fun ((t1, _), (t2, _)) ->
-    tree_to_expr t1, tree_to_expr t2) combined_trees in
+  (* generate tree expressions by splitting per every two combined ones *)
+  let tree_expressions: (string list * string list) list = 
+    let rec gen_texprs lst cnt tmp_acc res_acc = 
+      match lst with [] -> List.rev res_acc
+      | (t, (_, _), _) :: tl ->
+        if cnt = 0 
+        then (let texpr = tree_to_expr t in 
+              gen_texprs tl (cnt+1) (texpr::tmp_acc) res_acc)
+        else (let texpr = tree_to_expr t in
+              let to_acc = texpr, (List.hd tmp_acc) in
+              gen_texprs tl 0 [] (to_acc::res_acc))
+    in gen_texprs combined_trees 0 [] []
+    (* To start from here!! *)
+  in
   if debug_print then (Pp.pp_collected_from_conflicts relev_ls; 
   (* Pp.pp_tree_pairs_syms extracted_trees_syms;  *)
-  Pp.pp_combined_trees combined_trees;
+  (* Pp.pp_combined_trees combined_trees; *)
   Pp.pp_exprs tree_expressions);
   []
   (* combined_trees *)
 
+
+  
 (** negate the pattern (tree) by reversing the hierarchy of an input tree
   * assume (1) at least 2 or more trees are nested in the input tree
   *        (2) in each level, there is at most 1 subtree

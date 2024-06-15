@@ -4,6 +4,7 @@ open Stdlib
 module C = Converter
 module O = Operation
 module E = Examples
+module I = Interact
 module L = Learner
 module R = Runner
 module U = Treeutils
@@ -39,12 +40,16 @@ let () =
     begin
     let tree_pairs: (T.tree * T.tree) list =
       E.gen_examples conflicts_file ranked_symbols debug in
+      (* 
+        Interact with the user to learn O_a and O_p 
+      *)
     let fst_pair = match List.nth_opt tree_pairs 0 with 
       | None -> raise (Failure "No examples generated!")
       | Some (t1, t2) -> t1, t2 in
     if (U.tree_with_single_operator (fst fst_pair)) 
     then 
-      ((Printf.printf "\nTree involving only one symbol..\n";
+      (I.interact_print();
+        (Printf.printf "\nTree involving only one symbol..\n";
       U.present_tree_pair_single_operator fst_pair;
       let chosen_index = read_int () in 
       C.specify_associativity parser_file chosen_index fst_pair debug))
