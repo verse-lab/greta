@@ -23,18 +23,37 @@
 %start program
 %%
 
-program : expr EOF { $1 };
+program : expr1 EOF { $1 };
 
 cond_expr:
   | TRUE { Bool true }
   | FALSE { Bool false } 
   ;
 
-expr:
+expr1:
+  | expr1 PLUS expr2 { Plus ($1, $3) }
+  | expr2  { $1 }
+  ;
+
+expr2:
+  | expr2 MUL expr2 { Mul ($1, $3) }
+  | IF cond_expr THEN expr2 { If ($2, Then ($4, Else Na)) }
+  | IF cond_expr THEN expr2 ELSE expr2 { If ($2, Then ($4, Else $6)) }
   | INT  { Int $1 }
-  | expr PLUS expr { Plus ($1, $3) }
-  | expr MUL expr { Mul ($1, $3) }
-  | LPAREN expr RPAREN { Paren $2 }
-  | IF cond_expr THEN expr { If ($2, Then ($4, Else Na)) }
-  | IF cond_expr THEN expr ELSE expr { If ($2, Then ($4, Else $6)) }
+  | LPAREN expr1 RPAREN { Paren $2 }
+  ;
+
+
+
+
+expr2:
+  | expr2 MUL expr3 { Mul ($1, $3) }
+  | expr3  { $1 }
+  ;
+
+expr3:
+  | IF cond_expr THEN expr3 { If ($2, Then ($4, Else Na)) }
+  | IF cond_expr THEN expr3 ELSE expr3 { If ($2, Then ($4, Else $6)) }
+  | INT  { Int $1 }
+  | LPAREN expr1 RPAREN { Paren $2 }
   ;

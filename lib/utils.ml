@@ -18,6 +18,7 @@ let read_line i = try Some (input_line i) with End_of_file -> None
 
 let starts tk s = String.starts_with ~prefix:tk s
 
+(** utilities for checking the existence of conflicts file *)
 let check_conflicts (conflicts_file: string) (debug_print: bool): bool =
   let open Printf in 
   let conflicts_file_exist = Sys.file_exists conflicts_file in

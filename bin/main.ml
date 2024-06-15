@@ -31,8 +31,8 @@ module T = Ta
 let () =
   let debug = true in
   let versatile_syms = [("IF", [2; 3])] in
-  let parser_file, conflicts_file = "./lib/parser.mly", "./_build/default/lib/parser.conflicts" in
-  let _test_conflicts_file = "./test/parser1.conflicts" in
+  let parser_file, conflicts_file = "./lib/parser.mly", "./test/parser01.conflicts" in
+  let _test_conflicts_file = "./_build/default/lib/parser.conflicts" in
   let ta_initial = C.convertToTa parser_file versatile_syms debug in
   let ranked_symbols = ta_initial.alphabet in
   if (Utils.check_conflicts conflicts_file debug) then 
