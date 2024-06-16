@@ -1,5 +1,7 @@
 open Ta
 
+exception Leaf_has_no_symbol
+
 (** is_cond_expr : check if state is representing boolean state *)
 let is_cond_expr (s: state): bool =
   let open Str in
@@ -179,6 +181,7 @@ let tree_to_expr (t: tree): string list =
       else raise (Failure "Node with a rank other than 1, 2 or 3!")
   in tree_loop t
 
+(* (TODO) After fixing UI, remove 'gen_dual_expr' and 'present_tree_pair_single_operator' *)
 (** gen_dual_expr : needed only when operators are the same in combined trees
  *                  e.g., (expr + expr) + expr vs. expr + (expr + expr) *)
 let gen_dual_expr (strs: string list): string list =
@@ -199,15 +202,6 @@ let gen_dual_expr (strs: string list): string list =
       else str_loop tl passed_outer to_switch fst_op inner_closed (h::acc)
   in str_loop (List.rev strs) false false true false []
 
-let present_tree_pair (trees: tree * tree): unit =
-  let open Printf in
-  printf "\n\nChoose your preference! \n(Type either 0 or 1.)\n\n";
-  let print_strs ls = printf "\t"; ls |> List.iter (printf "%s "); printf "\n" in
-  let expr1 = fst trees |> tree_to_expr in
-  let expr2 = gen_dual_expr expr1 in
-  printf "Option 0: \n"; print_strs expr1;
-  printf "Option 1: \n"; print_strs expr2; printf "\n"
-
 let present_tree_pair_single_operator (trees: tree * tree): unit =
   let open Printf in
   printf "\n\nChoose your preference! \n(Type either 0 or 1.)\n\n";
@@ -217,6 +211,15 @@ let present_tree_pair_single_operator (trees: tree * tree): unit =
   printf "Option 0: \n"; print_strs expr1;
   printf "Option 1: \n"; print_strs expr2; printf "\n"
   (* ;printf "Option 2: \n\tNo preference"; printf "\n\n" *)
+
+let present_tree_pair (trees: tree * tree): unit =
+  let open Printf in
+  printf "\n\nChoose your preference! \n(Type either 0 or 1.)\n\n";
+  let print_strs ls = printf "\t"; ls |> List.iter (printf "%s "); printf "\n" in
+  let expr1 = fst trees |> tree_to_expr in
+  let expr2 = snd trees |> tree_to_expr in (* [fix] instead of 'gen_dual_expr' *)
+  printf "Option 0: \n"; print_strs expr1;
+  printf "Option 1: \n"; print_strs expr2; printf "\n"
 
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
@@ -242,12 +245,17 @@ let subtrees_of (e:tree): tree list =
   | Node (_, subts) -> subts
 
 let tree_symbol (e: tree): symbol = 
-  match e with Leaf _ -> ("nth", 0)
+  match e with Leaf _ -> ("dummy", -1) (*raise Leaf_has_no_symbol*)
   | Node (s, _) -> s
 
-let collect_syms t: symbol list =
-  let syms = List.fold_left (fun acc subt -> (tree_symbol subt)::acc) [] (subtrees_of t)
-  in (tree_symbol t):: syms
+let collect_syms (e: tree): symbol list =
+  let rec collect_loop t acc = 
+    match t with Leaf _ -> acc
+    | Node (s, subts) -> 
+      let syms = subts |> List.fold_left (fun acc' subt -> 
+        (collect_loop subt []) @ acc') []
+      in s::acc @ syms
+  in collect_loop e []
   
 let check_oa_op (e: tree): bool * bool = 
   let t_syms: symbol list = collect_syms e 

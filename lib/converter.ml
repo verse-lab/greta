@@ -150,7 +150,8 @@ let enhance_appearance (a: ta): ta =
   { states = a.states; alphabet = alph_updated 
   ; start_state = a.start_state ; transitions = trans_updated }
 
-let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: bool) (g: cfg): ta =
+let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: bool) (g: cfg): 
+  ta * restriction list =
   let open List in
   let open Printf in
   (* helper assuming at most 2 occurrences of versatileTerminals *)
@@ -200,9 +201,10 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
     { states = "ϵ"::g.nonterms; alphabet = ranked_alphabet @ (toadd_versterms debug_print)
     ; start_state = g.start; transitions = List.rev trans } |> enhance_appearance in
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res; 
-  ta_res
+  ta_res, []
 
-let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_print: bool): ta = 
+let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_print: bool): 
+  ta * restriction list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   file |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print
 

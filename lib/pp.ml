@@ -104,13 +104,18 @@ let pp_tree_to_expr (e: T.tree) =
 let pp_expr_lst (sls:string list) = 
   sls |> iter (fun s -> printf " %s " s); printf "\n" 
 
-let pp_combined_trees (inp_ls: ((T.tree * string list) * (T.tree * string list)) list) =
+let pp_restriction_lst (rls:T.restriction list) =
+  rls |> iter (fun r -> match r with 
+      | T.Assoc (s, a) -> (printf "("; pp_symbol s; printf ", %s) " a)
+      | T.Prec (s, i) -> printf "("; pp_symbol s; printf ", %i) " i); printf "\n\n"
+
+let pp_combined_trees (inp_ls: ((T.tree * (bool * bool) * T.restriction list)) list) =
   printf "\n  >> Resulted example trees: \n\n"; 
-  inp_ls |> iter (fun ((t1, sls1), (t2, sls2)) -> 
-    printf "\t>> First tree : "; pp_tree t1;
-    printf "\n\t\t expression : "; pp_expr_lst sls1; printf "\n"; 
-    printf "\n\t>> Second tree : "; pp_tree t2; printf "\n";
-    printf "\n\t\t expression : "; pp_expr_lst sls2; printf "\n\n") 
+  inp_ls |> iter (fun ((t, (oa, op), rls)) -> 
+    printf "\t>> Tree : "; pp_tree t;
+    printf "\n\t\t O_a : %b" oa; printf "\n\t\t O_p : %b" op; 
+    printf "\n\t\t Expression : "; pp_tree_to_expr t;
+    printf "\n\t\t Restrictions : "; pp_restriction_lst rls; printf "\n") 
 
 let pp_exprs (exprs_ls: (string list * string list) list) =
   printf "\n  >> Resulted expressions: \n";

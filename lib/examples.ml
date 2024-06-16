@@ -4,6 +4,7 @@ open Treeutils
 module D = Draw
 
 let ex03 = Node (("+", 2), [Leaf "expr"; Node (("*", 2), [Leaf "expr"; Leaf "expr"])])
+let t03: tree = Node (("+", 2), [ Node (("+", 2),  [Leaf "expr2" ;  Leaf "@expr2" ]);  Leaf "expr2" ])
 let ex04 = Node (("IF", 2), [Leaf "cond_expr"; Leaf "expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
 let ex04_neg = Node (("+", 2), [Leaf "expr"; Node (("IF", 2), [Leaf "cond_expr"; Leaf "expr"; Leaf "expr"])])
 let ex05 = Node (("IF", 2), [Leaf "cond_expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
@@ -22,7 +23,8 @@ exception Tree_specifies_oa_or_op
 exception Neither_left_nor_right
 
 (** gen_examples : gen examples from parser.conflicts in CFG *)
-let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree * tree) list = 
+let gen_examples (filename: string) (a: symbol list) (debug_print: bool): 
+  ((string list * tree * (bool * bool) * restriction list) * (string list * tree * (bool * bool) * restriction list)) list = 
   let open List in
   let open String in
   let open Printf in
@@ -31,16 +33,14 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
     | rest -> (rest, ar)) in
   let syms_ls: string list = a_new |> List.map fst in
   printf "\nGenerate examples from conflicts in file %s\n" filename; 
-  if debug_print then printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); 
-    (* printf "\n\n  >> Does conflict exist?"; 
-    if Sys.file_exists filename then printf "\zn\t\t\tYES\n\n" else printf "\n\t\t\tNO\n\n"; *)
+  if debug_print then printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s ");
   (** helpers *)
   let ic = open_in filename in
   let try_read () = try Some (input_line ic) with End_of_file -> None in
   let starts str lin = starts_with ~prefix:str lin in
-  let arity_of_sym sym: int = match List.assoc_opt sym a_new with 
-    | None -> printf "Symbol %s not found in alphabet" sym; -1 | Some n -> n in
-    let is_in_alphabet s: bool = List.mem s syms_ls in
+  (* let arity_of_sym sym: int = match List.assoc_opt sym a_new with 
+    | None -> printf "Symbol %s not found in alphabet" sym; -1 | Some n -> n in *)
+  let is_in_alphabet s: bool = List.mem s syms_ls in
   (** traverse and acc relevant lines for generating trees *)
   let rec traverse (cnt: int) (count_started: bool) (res_acc: string list): string list =
     (* let accumulate_syms lin: string list = 
@@ -72,9 +72,11 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
     let rec conv_loop ls nodsym_acc subtrees_acc = 
       match ls with [] -> Node (nodsym_acc, List.rev subtrees_acc)
       | (sh: string) :: stl -> 
-        if (is_in_alphabet sh) then (conv_loop stl (sh, (arity_of_sym sh)) subtrees_acc)
+        if (is_in_alphabet sh) 
+        then (let sym_rank = (List.length str_ls) - 1
+              in conv_loop stl (sh, sym_rank) subtrees_acc)
         else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc)
-    in conv_loop str_ls ("", -1) [] 
+    in conv_loop str_ls ("", -1) []
   in 
   (** extract trees to combine and corresponding symbol list *)
   let extract_tree_exprs (relev_lines: string list): (tree * string list) list =
@@ -161,12 +163,9 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
   let relev_ls: string list = traverse 1 false [] in 
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in
   let combined_trees: (tree * (bool * bool) * restriction list) list = 
-                                              combine_tree_exprs extracted_trees_n_exprs in
-  (* Pp.pp_tree_pairs_syms extracted_trees_n_exprs; *)
-  (* let combined_trees: (tree * tree) list = List.fold_left (fun acc (t, syms) -> 
-    let trees = combine_trees t1 t2 (List.rev syms) in acc @ trees) [] extracted_trees_syms
-    |> rewrite_syms in *)
+                                                combine_tree_exprs extracted_trees_n_exprs in
   (* generate tree expressions by splitting per every two combined ones *)
+  (* (TODO) To remove 'tree_expressions' when no longer necessary *)
   let tree_expressions: (string list * string list) list = 
     let rec gen_texprs lst cnt tmp_acc res_acc = 
       match lst with [] -> List.rev res_acc
@@ -178,13 +177,26 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool): (tree 
               let to_acc = texpr, (List.hd tmp_acc) in
               gen_texprs tl 0 [] (to_acc::res_acc))
     in gen_texprs combined_trees 0 [] []
-    (* To start from here!! *)
+  in
+  (* generate tree expressions by splitting per every two combined ones *)
+  let tree_example_pairs: ((string list * tree * (bool * bool) * restriction list) * 
+                           (string list * tree * (bool * bool) * restriction list)) list = 
+    let rec gen_texamples lst cnt tmp_acc res_acc = 
+      match lst with [] -> List.rev res_acc
+      | (t, (oa, op), sls) :: tl ->
+        if cnt = 0 
+        then (let texpr: string list = tree_to_expr t in 
+              gen_texamples tl (cnt+1) ((texpr, t, (oa, op), sls)::tmp_acc) res_acc)
+        else (let texpr: string list = tree_to_expr t in
+              let to_acc = (texpr, t, (oa, op), sls), (List.hd tmp_acc) in
+              gen_texamples tl 0 [] (to_acc::res_acc))
+    in gen_texamples combined_trees 0 [] []
   in
   if debug_print then (Pp.pp_collected_from_conflicts relev_ls; 
   (* Pp.pp_tree_pairs_syms extracted_trees_syms;  *)
-  (* Pp.pp_combined_trees combined_trees; *)
+  Pp.pp_combined_trees combined_trees;
   Pp.pp_exprs tree_expressions);
-  []
+  tree_example_pairs
   (* combined_trees *)
 
 
@@ -264,17 +276,10 @@ let rand_tree_wpat (a: symbol list) (debug_print: bool) (pat: tree): tree =
     (printf "\n\n >> Tree generated: \n"; pp_repeat !dep_fin "  "; pp_tree tree_res; printf "\n"); 
   tree_res
 
-(* 
-let gen_rand_trees n a debug_print: tree list = 
-  if debug_print then Printf.printf "\nRandom trees generated : { \n\t"; 
-  List.init n (fun _ ->
-  let t = rand_tree a debug_print in Pp.pp_tree t; t) 
-*)
 
 
 
 (** [prev] generator of purely random trees *)
-
 let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
   let open Pp in
   let open Printf in
