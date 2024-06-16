@@ -3,6 +3,8 @@ open Ta
 open Utils
 open Treeutils
 
+exception State_with_no_matching_order
+
 (* ******************** Part I. Conversion of parser.mly > CFG > TA ******************** *)
 
 let parser_to_cfg (debug_print: bool) (filename : string): cfg =
@@ -175,19 +177,43 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
     |> map (fun x -> (x, rank_of_symb debug_print x)) 
     (* add "ε" symbol to the alphabet *)
     |> append [epsilon_symb] in
-  let trans: transition list =
+  (* helper to get restrictions from transitions *)
+  let trans_to_restrictions (trans_ls: transition list) (init_st: state): restriction list = 
+    let rec get_order_loop (ls: transition list) (curr_st: state) (acc: state list): state list = 
+      match ls with [] -> List.rev acc (* reverse is necessary for higher # ~ deeper *)
+      | (lhs_st, (s, rhs_sts)) :: tl -> 
+        if (lhs_st = curr_st) && (syms_equals s epsilon_symb)
+        then (let rhs_st = List.hd rhs_sts 
+              in get_order_loop tl rhs_st (rhs_st::acc))
+        else get_order_loop tl curr_st acc
+    in let states_ordered = get_order_loop trans_ls init_st [init_st] 
+    in let states_orders = states_ordered |> List.mapi (fun i st -> (st, i+1)) 
+    in (if debug_print then (printf "\nOrder of states : \n\t"; 
+      states_orders |> List.iter (fun (st, lvl) -> printf "(%s, %i) " st lvl); printf "\n\n")); 
+    let rec get_o_base_precedence (tls: transition list) (acc_res: restriction list): restriction list =
+      match tls with [] -> List.rev acc_res
+      | (lhs_st, (sym, _)) :: tl -> 
+        if (lhs_st = "cond_expr") || (syms_equals sym epsilon_symb) 
+            || (syms_equals sym ("LPARENRPAREN", 1)) || (syms_equals sym ("N", 1))
+        then get_o_base_precedence tl acc_res
+        else (let ord = match (assoc_opt lhs_st states_orders) with 
+                        | None -> raise State_with_no_matching_order
+                        | Some o -> o 
+              in get_o_base_precedence tl (Prec (sym, ord)::acc_res))
+    in get_o_base_precedence trans_ls []
+  in 
+  let (trans, restrictions) : transition list * restriction list =
     let stat: state ref = ref "" in
-    let eps_exists = ref false in
-    let trans_intermediate =
-      g.productions |> fold_left (fun acc (n, (t, ls)) -> (n, ((t, rank_of_symb debug_print t), ls)) :: acc) []
+    let trans_ls = 
+      g.productions |> fold_left (fun acc (n, (t, ls)) ->  (n, ((t, (length ls)), ls)) :: acc) []
       |> map (fun (s, (op, s_ls)) -> 
         (* treat int (N) and bool (B) differently *)
         if (fst op = "ε" && ((hd s_ls = "N") || (hd s_ls = "B"))) then (s, ((hd s_ls, 1), "ϵ"::[])) 
         (* TODO (below stat): make this less computationally expensive *)
-        else if (fst op = "ε") then (eps_exists := true; stat := s; (s, (op, s_ls))) else (stat := s; (s, (op, s_ls)))) in
-        (* add epsilon transition (needed when taking intersection with another TA) *)
-        (* [prev] if (!eps_exists) then trans_intermediate else trans_intermediate |> append [(!stat, (epsilon_symb, [!stat]))]  *)
-        trans_intermediate |> append [(g.start, (epsilon_symb, [g.start]))] 
+        else if (fst op = "ε") then (stat := s; (s, (op, s_ls))) else (stat := s; (s, (op, s_ls))))
+        |> List.rev in 
+    let restrictions_ls = trans_to_restrictions trans_ls g.start in 
+    trans_ls, restrictions_ls
   in
   (* add versatile symbols -- with multiple ranks -- to alphabet *)
   let toadd_versterms (debug: bool): symbol list = versatileTerminals |> map fst |> map (fun term ->
@@ -199,14 +225,17 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
     in (term, rank_of_lasti)) in
   let ta_res = 
     { states = "ϵ"::g.nonterms; alphabet = ranked_alphabet @ (toadd_versterms debug_print)
-    ; start_state = g.start; transitions = List.rev trans } |> enhance_appearance in
+    ; start_state = g.start; transitions = trans } |> enhance_appearance in
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res; 
-  ta_res, []
+  printf "\nRestrictions O_bp obtained from the TA_g : "; Pp.pp_restriction_lst restrictions;
+  ta_res, restrictions
 
 let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_print: bool): 
   ta * restriction list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   file |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print
+
+
 
 (* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)
 
