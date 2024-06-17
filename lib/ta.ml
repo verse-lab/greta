@@ -7,6 +7,8 @@ type tree = Leaf of load | Node of (symbol * (tree list))
 type restriction = Assoc of (symbol * string) | Prec of (symbol * int)
 
 exception Failure of string
+exception Assoc_either_left_or_right
+exception No_other_trivial_symbols
 
 (* Top-down TA := (Q, F, Q_s, \Del) *)
 type ta =
@@ -18,6 +20,8 @@ type ta =
 
 let null_ta = 
   { states = []; alphabet = []; start_state = ""; transitions = [] }
+
+let epsilon_symb: symbol = ("ε", 1)
 
 let sym_equals sym str = (fst sym = str)
 

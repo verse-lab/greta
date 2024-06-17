@@ -2,6 +2,8 @@ open Ta
 
 exception Leaf_has_no_symbol
 exception No_assoc_possible
+exception No_prec_possible
+exception Op_has_nontrivial_symbol
 
 (** is_cond_expr : check if state is representing boolean state *)
 let is_cond_expr (s: state): bool =
@@ -40,6 +42,14 @@ let return_state (t: tree): state =
 
 let gen_state_list (sym_arity: int) (st: state): state list = 
   List.init sym_arity (fun _ -> st)
+
+let gen_rhs_states (sym: symbol) (st: state): state list =
+  let sym_arity = snd sym in 
+  if syms_equals sym ("IF", 2)
+  then ["C"; st]
+  else if syms_equals sym ("IF", 3)
+  then ["C"; st; st]
+  else List.init sym_arity (fun _ -> st)
 
 let subts_state_list (sym: symbol) (ts: tree list) (default_state: state) 
   (versatile_syms: string list) (cond_state: state): state list =
@@ -262,6 +272,12 @@ let check_oa_op (e: tree): bool * bool =
   let t_syms: symbol list = collect_syms e 
   in if same_syms t_syms then (true, false) else (false, true)
 
+let collect_oa_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
+(debug_print: bool): restriction list = 
+let res = example_trees 
+  |> List.fold_left (fun acc (_, _, (oa, _), rls) -> if oa then rls @ acc else acc) [] 
+in if debug_print then (Printf.printf "\nCollected O_a : "; Pp.pp_restriction_lst res); res
+
 let collect_op_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
   (debug_print: bool): restriction list = 
   let res = example_trees 
@@ -288,4 +304,47 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
       in traverse_o_bp tl (Prec (sym, op_order_combined)::acc)
   in let combined_op = traverse_o_bp o_bp [] in 
   (if debug_print then Printf.printf "\nCombined O_p : "; Pp.pp_restriction_lst combined_op); combined_op
+
+let sym_in_oa_lst (s: symbol) (oa_ls: restriction list): bool =
+  let rec traverse_oa ls =
+    match ls with [] -> false
+    | Assoc (sym, _) :: tl -> 
+      if (syms_equals s sym) then true 
+      else traverse_oa tl
+    | Prec (_, _) :: _ -> raise No_prec_possible
+  in traverse_oa oa_ls
+
+let is_left_assoc (s: symbol) (oa_ls: restriction list): bool = 
+  let rec traverse_oa ls: bool =
+    match ls with [] -> raise Assoc_either_left_or_right
+    | Assoc (sym, a) :: tl -> 
+      if (syms_equals s sym) then a = "l"
+      else traverse_oa tl
+    | Prec (_, _) :: _ -> raise No_prec_possible
+  in traverse_oa oa_ls
+
+let order_in_op_lst (s: symbol) (op_ls: restriction list): int =
+  let rec traverse_op ls =
+    match ls with [] -> raise Op_has_nontrivial_symbol
+    | Prec (sym, o) :: tl -> 
+      if (syms_equals s sym) then o
+      else traverse_op tl
+    | Assoc (_, _) :: _ -> raise No_assoc_possible
+  in traverse_op op_ls
+
+let rec chars_of_string ch = 
+  match ch with
+  | "" -> []
+  | ch -> String.get ch 0 :: chars_of_string (String.sub ch 1 (String.length ch - 1))
+
+(* Note! Below works under the assumption that you don't need more than 9 states *)
+let get_higher_state (st: state): state = 
+  let char_lst = chars_of_string st in 
+  let last_idx = List.length char_lst - 1 in 
+  let new_char_lst = char_lst |> List.mapi (fun i ch -> 
+    if (i = last_idx) 
+    then (let next_i: int = (int_of_string (Char.escaped ch)) + 1 
+          in String.get (string_of_int next_i) 0)
+    else ch) 
+  in (new_char_lst) |> List.to_seq |> String.of_seq
 
