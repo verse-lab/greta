@@ -43,9 +43,6 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
   let is_in_alphabet s: bool = List.mem s syms_ls in
   (** traverse and acc relevant lines for generating trees *)
   let rec traverse (cnt: int) (count_started: bool) (res_acc: string list): string list =
-    (* let accumulate_syms lin: string list = 
-      let lst = split_on_char ':' lin in List.nth lst 1 
-      |> split_on_char ' ' |> List.filter (fun x -> not (x = "")) in *)
     let relev_point1 lin = starts "** because of the following sub-derivation:" lin in
     let relev_point2 lin = starts "** is permitted because of the following sub-derivation:" lin in
     let collect_here num: bool = (num mod 3) = 0 
@@ -197,7 +194,6 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
   Pp.pp_combined_trees combined_trees;
   Pp.pp_exprs tree_expressions);
   tree_example_pairs
-  (* combined_trees *)
 
 
   

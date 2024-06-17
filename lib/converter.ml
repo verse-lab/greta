@@ -187,7 +187,7 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
               in get_order_loop tl rhs_st (rhs_st::acc))
         else get_order_loop tl curr_st acc
     in let states_ordered = get_order_loop trans_ls init_st [init_st] 
-    in let states_orders = states_ordered |> List.mapi (fun i st -> (st, i+1)) 
+    in let states_orders = states_ordered |> List.mapi (fun i st -> (st, i)) 
     in (if debug_print then (printf "\nOrder of states : \n\t"; 
       states_orders |> List.iter (fun (st, lvl) -> printf "(%s, %i) " st lvl); printf "\n\n")); 
     let rec get_o_base_precedence (tls: transition list) (acc_res: restriction list): restriction list =

@@ -36,7 +36,7 @@ let () =
   in
   (* parser_file to (tree automaton, o_bp) *)
   let debug = true in
-  let ta_initial, o_bp = C.convertToTa parser_file versatile_syms debug in
+  let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa parser_file versatile_syms debug in
   let ranked_symbols = ta_initial.alphabet in
   if (Utils.check_conflicts conflicts_file debug) then 
     (* if \E conflicts, learn user-selected trees and o_a, o_tmp *)
@@ -57,7 +57,13 @@ let () =
             (* if user selects 1 or any other number, 2nd tree gets selected *)
             else loop tl ((texpr_ls2, t2, (oa2, op2), rls2)::acc))
         in loop inp_lst []
-    in let _ = interact_with_user tree_pairs_lst in () (* learned_example_trees *)
+    in let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
+        interact_with_user tree_pairs_lst 
+    in let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug
+    in let _: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug (* o_p_total *)
+    in
+     (* check that there is no cyclicity *)
+    ()
     (*
       let ta_learned = L.learner learned_example_trees ranked_symbols versatile_syms debug in 
       let _: bool = R.accept ta_learned example_tree debug in

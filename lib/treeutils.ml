@@ -1,6 +1,7 @@
 open Ta
 
 exception Leaf_has_no_symbol
+exception No_assoc_possible
 
 (** is_cond_expr : check if state is representing boolean state *)
 let is_cond_expr (s: state): bool =
@@ -261,4 +262,30 @@ let check_oa_op (e: tree): bool * bool =
   let t_syms: symbol list = collect_syms e 
   in if same_syms t_syms then (true, false) else (false, true)
 
+let collect_op_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
+  (debug_print: bool): restriction list = 
+  let res = example_trees 
+    |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls @ acc else acc) [] 
+  in if debug_print then (Printf.printf "\nCollected O_p : "; Pp.pp_restriction_lst res); res
+
+(* helper for 'combine_op_restrictions'
+ - find all occurrences of (s, o) for sym 's' in o_tmp and combine all the matching o's *)
+let find_in_o_tmp (sym: symbol) (bo: int) (o_tmp: restriction list): int =
+  (* note: need to combine for all occurrences of sym's *)
+  let rec loop ls acc =
+    match ls with [] -> acc
+    | Assoc (_, _) :: _ -> raise No_assoc_possible
+    | Prec (s, o) :: tl -> 
+      if (syms_equals s sym) then loop tl (o+acc) else loop tl acc
+  in loop o_tmp bo
+
+let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list =
+  let rec traverse_o_bp ls acc = 
+    match ls with [] -> List.rev acc 
+    | Assoc (_, _) :: _ -> raise No_assoc_possible
+    | Prec (sym, bo) :: tl -> 
+      let op_order_combined = find_in_o_tmp sym bo o_tmp
+      in traverse_o_bp tl (Prec (sym, op_order_combined)::acc)
+  in let combined_op = traverse_o_bp o_bp [] in 
+  (if debug_print then Printf.printf "\nCombined O_p : "; Pp.pp_restriction_lst combined_op); combined_op
 
