@@ -9,6 +9,8 @@ type restriction = Assoc of (symbol * string) | Prec of (symbol * int)
 exception Failure of string
 exception Assoc_either_left_or_right
 exception No_other_trivial_symbols
+exception Invalid_transitions
+exception Invalid_state_lists
 
 (* Top-down TA := (Q, F, Q_s, \Del) *)
 type ta =

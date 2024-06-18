@@ -6,20 +6,13 @@ let cartesian_product_states (ls1: state list) (ls2: state list) (debug_print: b
   Pp.pp_states ls1; Printf.printf "\n\tSecond set of states:\n"; Pp.pp_states ls2);
   (** helpers *)
   (** remove_dups : needed to remove duplicate states *)
-  (* [prev ver]
-  let rec remove_eps_dups acc eps_not_occurred ls =
-    match ls with [] -> acc
-    | h :: tl -> if (not (h = "ϵ")) then remove_eps_dups (h::acc) eps_not_occurred tl 
-    else if (h = "ϵ" && not eps_not_occurred) then remove_eps_dups (h::acc) true tl 
-    else remove_eps_dups acc eps_not_occurred tl
-  in *)
   let remove_dups ls =
     let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
     List.fold_right unique_cons ls [] in
   (** remove_dummies : needed to remove _ states *)
   let remove_dummies ls = List.filter (fun elem -> not (elem = "_")) ls in
-  let rec loop l1 l2 acc =
-    match l1, l2 with
+  let rec cross_loop l1 l2 acc =
+    match l1, l2 with [], [] -> acc
     | [], _ | _, [] -> acc
     | h1 :: tl1, h2 :: tl2 ->
       (* cross product with ϵ results in ϵ *)
@@ -27,10 +20,10 @@ let cartesian_product_states (ls1: state list) (ls2: state list) (debug_print: b
         (* cross product of {"cond" ^ s* || "Cond" ^ s*} and non cond_expr results in dummy state "_"  *)
         else if (is_cond_expr h1 && not (is_cond_expr h2)) || (not (is_cond_expr h1) && is_cond_expr h2) 
         then "_" else (h1^h2) in
-      let acc' = loop [h1] tl2 (prod :: acc) 
-      in loop tl1 ls2 (acc' @ acc)
+      let acc' = cross_loop [h1] tl2 (prod :: acc) 
+      in cross_loop tl1 ls2 (acc' @ acc)
       (* remove duplicate ϵ states and remove dummy states *)
-  in let res = loop ls1 ls2 [] |> remove_dups |> remove_dummies in if debug_print 
+  in let res = cross_loop ls1 ls2 [] |> remove_dups |> remove_dummies in if debug_print 
     then (Printf.printf "\n  >> Result of states X states:\n"; Pp.pp_states res); List.rev res
 
 let cartesian_product_trans (states1: state list) (states2: state list) (trans1: transition list) (trans2: transition list) 
@@ -122,6 +115,19 @@ let cartesian_product_trans (states1: state list) (states2: state list) (trans1:
   if debug_print then (printf "\n  >> Result of trans X trans:\n"; 
   Pp.pp_transitions res_trans); res_trans
 
+let cartesian_product_trans_from (st1: state) (st2: state) (trans1: transition list) (trans2: transition list) (a: symbol list) (debug: bool) = 
+  let rec traverse_alphabet ls (acc: transition list): transition list = 
+    match ls with [] -> acc
+    | hd_sym :: tl -> 
+      let (lft_st1, (_, rht_sts1)) = find_trans_starting_from_with_sym st1 hd_sym trans1 debug in
+      let (lft_st2, (_, rht_sts2)) = find_trans_starting_from_with_sym st2 hd_sym trans2 debug in
+      let new_lft_st: state = lft_st1 ^ lft_st2 in 
+      let new_rht_sts: state list = cross_product_state_lists rht_sts1 rht_sts2 in
+      traverse_alphabet tl ((new_lft_st, (hd_sym, new_rht_sts))::acc)
+  in let res_trans = traverse_alphabet a [] in 
+  if debug then (Printf.printf "\nResult of %s-starting transitions X %s-starting transitions : \n" st1 st2; Pp.pp_transitions res_trans);
+  res_trans
+
 (** Intersection of tree automata *)
 let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print: bool): ta =
   let open Printf in
@@ -129,14 +135,23 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
   Pp.pp_ta a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; printf "\n";
   if debug_print then (printf "\n  >> Versatile symbol list: [ "; 
   verSyms |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
-  (* TODO: Add a sanity check on alphabet based on set equality *)
-  let syms = a1.alphabet in
+  let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
+  let syms_wo_epsilon = syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) in
+  (* Find I := I_1 x I_2 first *)
+  let start = cartesian_product_states [a1.start_state] [a2.start_state] debug_print |> List.hd in
+  (* Based on I, get transitions for I *)
+  let init_trans_ls = 
+    cartesian_product_trans_from a1.start_state a2.start_state a1.transitions a2.transitions syms_wo_epsilon debug_print in
+  (* Based on init state-starting transitions, find reachable states *)
+  (* Based on E in list of reachable states, find transitions starting from E *)
+  (* Then, given \Delta, find a list of duplicate states pairs *)
+  (* Based on the duplicate states, remove transitions and rename states *)
+  (* Introduce epsilon transitions to simplify \Delta *)
   let stats1, stats2 = a1.states, a2.states in
   let stats = cartesian_product_states stats1 stats2 debug_print in
-  let start = cartesian_product_states [a1.start_state] [a2.start_state] debug_print |> List.hd in
-  let trans = 
+  let _(* trans*) = 
     cartesian_product_trans stats1 stats2 a1.transitions a2.transitions syms verSyms debug_print in
-  let res_ta = { states=stats ; alphabet=syms; start_state=start ; transitions=trans } in
+  let res_ta = { states=stats ; alphabet=syms ; start_state=start ; transitions=init_trans_ls } in
   printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta; 
   res_ta |> rename_states debug_print
 

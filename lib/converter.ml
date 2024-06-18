@@ -144,8 +144,9 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
 (** enhance_appearance : helper to enhance the symbol representation *)
 let enhance_appearance (a: ta): ta =
   let change_symbol s = 
-    let s', s'' = fst s, snd s in if (s' = "MUL") then "*", s'' else 
-    if (s' = "PLUS") then "+", s'' else if (s' = "LPARENRPAREN") then "()", s'' else s in
+    let s', s'' = fst s, snd s in 
+    (* if (s' = "MUL") then "*", s'' else if (s' = "PLUS") then "+", s'' else  *)
+    if (s' = "LPARENRPAREN") then "()", s'' else s in
   let alph_updated: symbol list = a.alphabet |> List.map (fun sym -> change_symbol sym) in
   let trans_updated: transition list = a.transitions |> List.map (fun (st, (sym, st_ls)) ->
     let sym_new = change_symbol sym in (st, (sym_new, st_ls))) in
@@ -173,7 +174,7 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
   let ranked_alphabet: symbol list = 
     let rparen_exists = mem "RPAREN" g.terms in g.terms 
     |> filter (fun x -> not (x = "THEN") && not (x = "ELSE") && not (x = "RPAREN"))
-    |> map (fun x -> if (x = "LPAREN" && rparen_exists) then "LPARENRPAREN" else x) 
+    |> map (fun x -> if (x = "LPAREN" && rparen_exists) then "LPARENRPAREN" else x)
     |> map (fun x -> (x, rank_of_symb debug_print x)) 
     (* add "ε" symbol to the alphabet *)
     |> append [epsilon_symb] in
