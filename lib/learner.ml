@@ -7,7 +7,7 @@ exception Max_level_state
 let get_states (op_ls: restriction list): ((int * state) list) * state = 
   let default_states = [(0, "C"); (-1, "ϵ")] in
   let gen_states: (int * state) list = 
-    let num_levels = List.length op_ls in
+    let num_levels = levels_in_op_ls op_ls in
     let rec gen_loop lvl curr_idx acc =
       if (lvl = 0) then List.rev acc
       else (let new_state = "E" ^ (string_of_int curr_idx)
@@ -51,6 +51,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list) (a: symb
   let max_lvl = lvl_state_pairs |> List.map fst |> List.fold_left max 1 in
   let last_state: state = match (List.assoc_opt max_lvl lvl_state_pairs) with None -> raise Max_level_state
                    | Some st -> st in 
+  (* transitions for trivial symbols (eg, (), N, B) *)
   let rec gen_trans_trivials sym_ls acc: transition list = 
     match sym_ls with [] -> acc 
     | sym :: tl -> 
@@ -64,8 +65,16 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list) (a: symb
       then gen_trans_trivials tl acc (* epsilon transitions to gen separately below *)
       else raise No_other_trivial_symbols
   in let trans_trivials: transition list = gen_trans_trivials trivial_syms []
+  in let rec gen_epsilon_trans num_levels i acc = 
+    if num_levels = 1 then acc 
+    else begin 
+      let (left_st, right_st): state * state = "E" ^ (string_of_int i), "E" ^ (string_of_int (i+1)) in 
+      let new_eps_trans: transition = (left_st, (epsilon_symb, [right_st])) in 
+      gen_epsilon_trans (num_levels - 1) (i+1) (new_eps_trans::acc)
+    end
+  in let eps_trans: transition list = gen_epsilon_trans (levels_in_op_ls op_ls) 1 []
   (* (TODO) add epsilon transitions *)
-  in trans_nontrivals @ trans_trivials
+  in trans_nontrivals @ trans_trivials @ eps_trans
 
 let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (a: symbol list) 
   (versatile_syms: (string * int list) list) (debug_print: bool): ta = 
@@ -75,9 +84,9 @@ let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (a: symbol list
   printf "\n\tAlphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n");
   let (lvl_state_pairs, init_state): (int * state) list * state = get_states op_ls in
   let state_ls: state list = lvl_state_pairs |> List.map snd in
-  let trans_ls: transition list = get_transitions oa_ls op_ls a versatile_syms lvl_state_pairs init_state debug_print in
-  let ta_res = { states = state_ls; alphabet = a; start_state = init_state; transitions = trans_ls } in 
+  let raw_trans_ls: transition list = get_transitions oa_ls op_ls a versatile_syms lvl_state_pairs init_state debug_print in
+  let ordered_trans_ls = order_trans_ls state_ls raw_trans_ls in
+  let ta_res = { states = state_ls; alphabet = a; start_state = init_state; transitions = ordered_trans_ls } in 
   printf "\n\nLearned TA:\n"; Pp.pp_ta ta_res; ta_res
 
 
-  

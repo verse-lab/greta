@@ -295,6 +295,16 @@ let find_in_o_tmp (sym: symbol) (bo: int) (o_tmp: restriction list): int =
       if (syms_equals s sym) then loop tl (o+acc) else loop tl acc
   in loop o_tmp bo
 
+let reorder_op (o_p: restriction list): restriction list = 
+  let orders = o_p |> List.map (fun op -> match op with Assoc (_, _) -> raise No_assoc_possible 
+    | Prec (_, o) -> o) |> List.sort_uniq compare in
+  let new_order_pairs = orders |> List.mapi (fun i o -> (o, i)) 
+  in o_p |> List.map (fun op -> match op with Assoc (_, _) -> raise No_assoc_possible 
+                      | Prec (s, o) -> 
+                        let new_order = match (List.assoc_opt o new_order_pairs) with 
+                        | None -> raise Not_found
+                        | Some i -> i in Prec (s, new_order))
+
 let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list =
   let rec traverse_o_bp ls acc = 
     match ls with [] -> List.rev acc 
@@ -302,8 +312,10 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
     | Prec (sym, bo) :: tl -> 
       let op_order_combined = find_in_o_tmp sym bo o_tmp
       in traverse_o_bp tl (Prec (sym, op_order_combined)::acc)
-  in let combined_op = traverse_o_bp o_bp [] in 
-  (if debug_print then Printf.printf "\nCombined O_p : "; Pp.pp_restriction_lst combined_op); combined_op
+  in let combined_op = traverse_o_bp o_bp [] 
+  in let reordered_combined_op = reorder_op combined_op in
+  (if debug_print then Printf.printf "\nCombined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
+  reordered_combined_op
 
 let sym_in_oa_lst (s: symbol) (oa_ls: restriction list): bool =
   let rec traverse_oa ls =
@@ -348,3 +360,17 @@ let get_higher_state (st: state): state =
     else ch) 
   in (new_char_lst) |> List.to_seq |> String.of_seq
 
+let levels_in_op_ls (op_ls: restriction list): int = 
+  op_ls |> List.map (fun op -> match op with Assoc (_, _) -> raise No_assoc_possible 
+  | Prec (_, o) -> o) |> List.sort_uniq compare |> List.length
+
+let find_trans_starting_from (st: state) (trans_ls: transition list) = 
+  let rec loop ls acc = 
+    match ls with [] -> List.rev acc
+    | (lft_st, (_, _)) as tran :: tl -> 
+      if (lft_st = st) then loop tl (tran::acc)
+      else loop tl acc
+  in loop trans_ls []
+
+let order_trans_ls (st_ls: state list) (trans_ls: transition list): transition list = 
+  st_ls |> List.fold_left (fun acc st ->  acc @ (find_trans_starting_from st trans_ls)) []
