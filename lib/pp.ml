@@ -59,6 +59,10 @@ let pp_raw_transitions (ts: ((T.state * T.state) * (T.symbol * (T.state * T.stat
     st_pairs_ls |> iter (fun (rst1, rst2) -> printf "(%s, %s) " rst1 rst2); printf "]\n");
     printf " \t\t      }\n"
 
+let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) * (T.symbol * (T.state * T.state) list)) list) list) =
+  ts_blocks |> List.iter (fun ((st1, st2), raw_trans) -> Printf.printf "\n\tFor states (%s, %s), blocks of transitions : \n" st1 st2;
+  pp_raw_transitions raw_trans)
+
 let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
   pp_root (a.start_state); pp_transitions (a.transitions); pp_loline ()

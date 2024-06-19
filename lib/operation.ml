@@ -1,31 +1,6 @@
 open Ta
 open Treeutils
 
-let cartesian_product_states (ls1: state list) (ls2: state list) (debug_print: bool): state list =
-  if debug_print then (Printf.printf "\n  >> Cross product of states:\n\tFirst set of states:\n";
-  Pp.pp_states ls1; Printf.printf "\n\tSecond set of states:\n"; Pp.pp_states ls2);
-  (** helpers *)
-  (** remove_dups : needed to remove duplicate states *)
-  let remove_dups ls =
-    let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
-    List.fold_right unique_cons ls [] in
-  (** remove_dummies : needed to remove _ states *)
-  let remove_dummies ls = List.filter (fun elem -> not (elem = "_")) ls in
-  let rec cross_loop l1 l2 acc =
-    match l1, l2 with [], [] -> acc
-    | [], _ | _, [] -> acc
-    | h1 :: tl1, h2 :: tl2 ->
-      (* cross product with ϵ results in ϵ *)
-      let prod = if (h1 = "ϵ" || h2 = "ϵ") then "ϵ" 
-        (* cross product of {"cond" ^ s* || "Cond" ^ s*} and non cond_expr results in dummy state "_"  *)
-        else if (is_cond_expr h1 && not (is_cond_expr h2)) || (not (is_cond_expr h1) && is_cond_expr h2) 
-        then "_" else (h1^h2) in
-      let acc' = cross_loop [h1] tl2 (prod :: acc) 
-      in cross_loop tl1 ls2 (acc' @ acc)
-      (* remove duplicate ϵ states and remove dummy states *)
-  in let res = cross_loop ls1 ls2 [] |> remove_dups |> remove_dummies in if debug_print 
-    then (Printf.printf "\n  >> Result of states X states:\n"; Pp.pp_states res); List.rev res
-
 let cartesian_product_trans (states1: state list) (states2: state list) (trans1: transition list) (trans2: transition list) 
   (syms: symbol list) (verSyms: (string * int list) list) (debug_print: bool): transition list =
   let open List in
@@ -170,17 +145,17 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
   in
   (* Get transitions that start from I *)
   let raw_init_trans_ls: ((state * state) * (symbol * (state * state) list)) list = 
-    (if debug_print then printf "*** Find initial states-starting transitions : \n");
+    (if debug_print then printf "\n*** Find initial states-starting transitions : \n");
     cartesian_product_trans_from start_states a1.transitions a2.transitions syms_wo_epsilon_or_bool debug_print 
   in
   (* Find reachable states based on I-starting transitions *)
   let reachable_states: (state * state) list = 
-    (if debug_print then printf "*** Find reachable states based on initial states-starting transitions : \n");
+    (if debug_print then printf "\n*** Find reachable states based on initial states-starting transitions : \n");
     find_reachable_states start_states raw_init_trans_ls debug_print 
   in
   (* Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) *)
   let raw_trans_from_reachables: ((state * state) * (symbol * (state * state) list)) list = 
-    (if debug_print then printf "*** Find transitions starting from the state in reachable states : \n");
+    (if debug_print then printf "\n*** Find transitions starting from the state in reachable states : \n");
     reachable_states |> List.fold_left (fun acc (st1, st2) -> 
       let cross_product_trans_from_states_pair = 
         find_transitions_from_state_pairs (st1, st2) a1.transitions a2.transitions debug_print in 
@@ -189,20 +164,27 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
     raw_init_trans_ls @ raw_trans_from_reachables 
   in 
   (* Write the 'raw_trans_from_reachables' in blocks for better comparison *)
-  let raw_trans_in_blocks: ((state * state) * (((state * state) * (symbol * (state * state) list))) list) list = 
-    (if debug_print then printf "*** Putting raw transitions in blocks of transitions : \n");
+  let raw_trans_in_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+    (if debug_print then printf "\n*** Putting raw transitions in blocks of transitions : \n");
     (start_states :: reachable_states) |> List.fold_left (fun acc (s1, s2) -> 
       let block = collect_raw_trans_for_states_pair (s1, s2) init_trans_reachable_trans in acc @ [(s1, s2), block]) []
   in 
-  (if debug_print then raw_trans_in_blocks |> List.iter (fun ((st1, st2), raw_trans) -> 
-    Printf.printf "\n\t For states (%s, %s), blocks of transitions : \n" st1 st2; Pp.pp_raw_transitions raw_trans));
+  if debug_print then raw_trans_in_blocks |> Pp.pp_raw_trans_blocks;
   (* Find a list of duplicate states pairs *)
-  let _(* dup_states_pair_ls *): ((state * state) * (state * state)) list = 
-    (if debug_print then printf "*** Finding duplicate raw_states pairs : \n");
+  let dup_states_pair_ls: ((state * state) * (state * state)) list = 
+    (if debug_print then printf "\n*** Finding duplicate raw_states pairs : \n");
     find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks debug_print
   in
   (* Remove transitions based on 'dup_states_pair_ls' *)
+  let trans_in_blocks_cleaned: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+    (if debug_print then printf "\n*** Removing transition blocks baesd on duplicate states : \n");
+    remove_transitions_of_duplicate_states dup_states_pair_ls raw_trans_in_blocks debug_print
+  in
   (* Replace state names based on 'dup_states_pair_ls'  *)
+  let _ (* trans_in_blocks_replaced *): ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+    (if debug_print then printf "\n*** Replacing duplicate state names in transition blocks : \n");
+    replace_dup_state_names dup_states_pair_ls trans_in_blocks_cleaned debug_print
+  in
   (* Rename states and populate Q, \Delta *)
   (* Introduce epsilon transitions to simplify \Delta *)
   (* 
