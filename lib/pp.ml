@@ -36,6 +36,9 @@ let pp_cfg (c: C.cfg) =
 let pp_states (ss: T.state list) =
   printf "\tStates : { "; ss |> iter (printf "%s "); printf "}\n"
 
+let pp_raw_states (ss: (T.state * T.state) list) = 
+  printf "\tRaw states : { "; ss |> iter (fun ss -> printf "(%s, %s) " (fst ss) (snd ss)); printf "}\n"
+
 let pp_alphabet (a: T.symbol list) =
   printf "\tAlphabet : { "; a |> iter (fun x -> 
     printf " <%s, %d> " (fst x) (snd x) ); printf "}\n"
@@ -46,6 +49,12 @@ let pp_transitions (ts: T.transition list) =
   printf "\tTransitions : { \n"; ts |> iter (fun x -> 
     printf "\t\t\t%s ->_{%s} " (fst x) (fst (fst (snd x))); 
     (snd (snd x)) |> iter (printf "%s "); printf "\n"); printf " \t\t      }\n"
+
+let pp_raw_transitions (ts: ((T.state * T.state) * (T.symbol * (T.state * T.state) list)) list) = 
+  printf "\tRaw Transitions : { \n"; ts |> iter (fun ((st1, st2), (sym, st_pairs_ls)) -> 
+    printf "\t\t\t(%s, %s) ->_{<%s, %i>} [ " st1 st2 (fst sym) (snd sym); 
+    st_pairs_ls |> iter (fun (rst1, rst2) -> printf "(%s, %s) " rst1 rst2); printf "]\n");
+    printf " \t\t      }\n"
 
 let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 

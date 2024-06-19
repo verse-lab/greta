@@ -381,7 +381,7 @@ let find_rhs_states_from_state_with_sym (st: state) (sym: symbol) (trans_ls: tra
     match ls' with 
     | [] -> rhs_sts_ls, []
     | interm_hd :: interm_tl -> 
-      Printf.printf "\nNow looking for RHS states starting from %s for symbol (%s, %i)\n" interm_hd (fst sym) (snd sym);
+      Printf.printf "\n\tNow looking for RHS states starting from %s for symbol (%s, %i)\n" interm_hd (fst sym) (snd sym);
       let i_rhs, next_interm_ls = find_rhs_states trans_ls interm_hd []
       in if (i_rhs = []) then interm_sts_loop interm_tl [] else i_rhs, next_interm_ls
   and 
@@ -390,7 +390,7 @@ let find_rhs_states_from_state_with_sym (st: state) (sym: symbol) (trans_ls: tra
     | [] ->
       if interm_sts = []
       then [], []
-      else (Printf.printf "\nInterm states not empty: "; Pp.pp_states interm_sts; 
+      else (Printf.printf "\n\tInterm states not empty: "; Pp.pp_states interm_sts; 
            interm_sts_loop interm_sts [])
     | (lft_st, (s, rhs_sts)) :: tl -> 
       if (lft_st = from_st) && (syms_equals s sym)
@@ -400,7 +400,7 @@ let find_rhs_states_from_state_with_sym (st: state) (sym: symbol) (trans_ls: tra
             in find_rhs_states tl from_st (next_st::interm_sts))
       else find_rhs_states tl from_st interm_sts
   in let res_rhs_sts, _ (* res_interm_sts*) = find_rhs_states trans_ls st [] in
-  (if debug then Printf.printf "\n\t .. Found RHS states: "; Pp.pp_states res_rhs_sts);
+  (if debug then Printf.printf "\n\t\t >> .. Found RHS states: "; Pp.pp_states res_rhs_sts);
   res_rhs_sts
 
 let cross_product_state_lists (st_ls1: state list) (st_ls2: state list): state list =
@@ -412,3 +412,26 @@ let cross_product_state_lists (st_ls1: state list) (st_ls2: state list): state l
         then epsilon_state else h1 ^ h2 in cross_loop tl1 tl2 (combined::acc)
     | _, [] | [], _ -> raise Invalid_state_lists
   in cross_loop st_ls1 st_ls2 []
+
+let cross_product_raw_state_lists (st_ls1: state list) (st_ls2: state list): (state * state) list =
+  let rec cross_loop ls1 ls2 acc = 
+    match ls1, ls2 with 
+    | [], [] -> List.rev acc
+    | h1 :: tl1, h2 :: tl2 -> 
+      let combined = (h1, h2) in cross_loop tl1 tl2 (combined::acc)
+    | _, [] | [], _ -> raise Invalid_state_lists
+  in cross_loop st_ls1 st_ls2 []
+
+let state_pair_append (st_pair: state * state): state = 
+  (fst st_pair) ^ (snd st_pair)
+
+let state_pairs_equal (st_pair1: state * state) (st_pair2: state * state): bool = 
+  (fst st_pair1) = (fst st_pair2) && (snd st_pair1) = (snd st_pair2)
+
+let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) list): bool =
+  let comp_st1, comp_st2 = (fst st_pair), (snd st_pair) in
+  let rec traverse_pairs ls =
+    match ls with [] -> false
+    | (st1, st2) :: tl ->
+      if (st1 = comp_st1) && (st2 = comp_st2) then true else traverse_pairs tl
+  in traverse_pairs st_pairs_ls
