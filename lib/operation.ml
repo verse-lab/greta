@@ -145,6 +145,14 @@ let find_reachable_states (from_st: state * state) (trans_ls: ((state * state) *
   in let res: (state * state) list = find_loop trans_ls [] in
   (if debug then Printf.printf "\n  >> Reachable states : "; Pp.pp_raw_states res); res
 
+let find_transitions_from_state_pairs (st_pair: state * state) (trans_ls1: transition list) (trans_ls2: transition list) (debug: bool): 
+  ((state * state) * (symbol * (state * state) list)) list =
+  let st1, st2 = (fst st_pair), (snd st_pair) in 
+  let alph1: symbol list = accessible_symbols_for_state st1 trans_ls1 debug in 
+  let alph2: symbol list = accessible_symbols_for_state st2 trans_ls2 debug in 
+  let alph_new: symbol list = take_smaller_symbols_list alph1 alph2 debug in 
+  cartesian_product_trans_from st_pair trans_ls1 trans_ls2 alph_new debug 
+
 (** Intersection of tree automata *)
 let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print: bool): ta =
   let open Printf in
@@ -152,27 +160,42 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
   Pp.pp_ta a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; printf "\n";
   if debug_print then (printf "\n  >> Versatile symbol list: [ "; 
   verSyms |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
-  let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
   (* Consider symbols excluding epsilon or Boolean for I *)
+  let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
   let syms_wo_epsilon = syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) in
-  let syms_wo_epsilon_or_bool = syms_wo_epsilon |> List.filter (fun s -> not (syms_equals s ("B", 0))) in
+  let syms_wo_epsilon_or_bool = syms_wo_epsilon |> List.filter (fun s -> not (syms_equals s ("B", 0))) 
+  in
   (* Find I := I_1 x I_2 first w/o epsilon or bool *)
-  let start_states: (state * state) = (a1.start_state, a2.start_state) in
+  let start_states: (state * state) = (a1.start_state, a2.start_state) 
+  in
   (* Based on I, get transitions for I *)
   let raw_init_trans_ls: ((state * state) * (symbol * (state * state) list)) list = 
     (if debug_print then printf "*** Find initial states-starting transitions : \n");
-    cartesian_product_trans_from start_states a1.transitions a2.transitions syms_wo_epsilon_or_bool debug_print in
+    cartesian_product_trans_from start_states a1.transitions a2.transitions syms_wo_epsilon_or_bool debug_print 
+  in
   (* Based on init state-starting transitions, find reachable states *)
-  let _(* reachable_states *): (state * state) list = 
+  let reachable_states: (state * state) list = 
     (if debug_print then printf "*** Find reachable states based on initial states-starting transitions : \n");
-    find_reachable_states start_states raw_init_trans_ls debug_print in
-  (* Based on E in list of reachable states, find transitions starting from E *)
-  (* 
-  let trans_from_reachables : transition list = 
-    reachable_states |> List.fold_left (fun acc_ls ((stat1, stat2), _) -> 
-      let trans_product = cartesian_product_trans_from stat1 stat2 a1.transitions a2.transitions syms_wo_epsilon debug_print in
-      (trans_product |> List.map snd) @ acc_ls) []
-  in *)
+    find_reachable_states start_states raw_init_trans_ls debug_print 
+  in
+  (* Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) *)
+  let raw_trans_from_reachables: ((state * state) * (symbol * (state * state) list)) list = 
+    (if debug_print then printf "*** Find transitions starting from the state in reachable states : \n");
+    reachable_states |> List.fold_left (fun acc (st1, st2) -> 
+      let cross_product_trans_from_states_pair = 
+        find_transitions_from_state_pairs (st1, st2) a1.transitions a2.transitions debug_print in 
+        cross_product_trans_from_states_pair @ acc) [] in
+  let init_trans_reachable_trans: ((state * state) * (symbol * (state * state) list)) list = 
+    raw_init_trans_ls @ raw_trans_from_reachables in 
+  (* init_trans_reachable_trans |> Pp.pp_raw_transitions;  *)
+  (* Write the 'raw_trans_from_reachables' in blocks for better comparison *)
+  let raw_trans_in_blocks: ((state * state) * (((state * state) * (symbol * (state * state) list))) list) list = 
+    (if debug_print then printf "*** Putting raw transitions in blocks of transitions : \n");
+    (start_states :: reachable_states) |> List.fold_left (fun acc (s1, s2) -> 
+      let block = collect_raw_trans_for_states_pair (s1, s2) init_trans_reachable_trans in acc @ [(s1, s2), block]) []
+  in 
+  (if debug_print then raw_trans_in_blocks |> List.iter (fun ((st1, st2), raw_trans) -> 
+    Printf.printf "\n\t For states (%s, %s), blocks of transitions : \n" st1 st2; Pp.pp_raw_transitions raw_trans));
   (* Then, given \Delta, find a list of duplicate states pairs *)
   (* Based on the duplicate states, remove transitions and rename states *)
   (* Introduce epsilon transitions to simplify \Delta *)

@@ -435,3 +435,55 @@ let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) 
     | (st1, st2) :: tl ->
       if (st1 = comp_st1) && (st2 = comp_st2) then true else traverse_pairs tl
   in traverse_pairs st_pairs_ls
+
+let accessible_symbols_for_state (init_st: state) (trans_ls: transition list) (debug: bool): symbol list =
+  let rec interm_sts_loop (ls': state list) (syms_ls: symbol list): symbol list * state list = 
+    match ls' with 
+    | [] -> syms_ls, []
+    | interm_hd :: interm_tl -> 
+      Printf.printf "\n\tNow looking for symbols starting from %s \n" interm_hd;
+      let i_syms, next_interm_ls = find_accessible_symbols trans_ls interm_hd [] syms_ls
+      in if (next_interm_ls = []) 
+         then interm_sts_loop interm_tl (i_syms@syms_ls) 
+         else interm_sts_loop next_interm_ls (i_syms@syms_ls)
+  and 
+  find_accessible_symbols (ls: transition list) (from_st: state) (interm_sts: state list) (syms_acc: symbol list): 
+    symbol list * state list =
+    match ls with 
+    | [] ->
+      if interm_sts = []
+      then syms_acc, []
+      else (Printf.printf "\n\tInterm states not empty: "; Pp.pp_states interm_sts; 
+           interm_sts_loop interm_sts syms_acc)
+    | (lft_st, (sym, rhs_sts)) :: tl -> 
+      if (lft_st = from_st) && (not (syms_equals sym epsilon_symb))
+      then find_accessible_symbols tl from_st interm_sts (sym::syms_acc)
+      else if (lft_st = from_st) && (syms_equals sym epsilon_symb)
+      then (let next_st = (List.hd rhs_sts) (* if eps-trans, save in 'interm_sts' and traverse til the end *)
+            in find_accessible_symbols tl from_st (next_st::interm_sts) syms_acc)
+      else find_accessible_symbols tl from_st interm_sts syms_acc
+  in let syms_res, _ = find_accessible_symbols trans_ls init_st [] [] in 
+  (if debug then Printf.printf "\n\t\t >> .. Found Symbols: "; syms_res |> List.iter Pp.pp_symbol);
+  syms_res
+
+let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list = 
+  let check_subset_of_fst_in_snd (syms1: symbol list) (syms2: symbol list): symbol list = 
+    let rec loop ls acc = 
+      match ls with [] -> List.rev acc
+      | hsym :: tl -> 
+        if List.mem hsym syms1 then loop tl (hsym::acc) else raise Invalid_symbol_list
+    in loop syms2 []
+  in 
+  let a1_len, a2_len = List.length a1, List.length a2 in 
+  let res = if (a1_len > a2_len) then check_subset_of_fst_in_snd a1 a2
+            else check_subset_of_fst_in_snd a2 a1 in 
+  if debug then (Printf.printf "\n\t >> Smaller symbols : "; res |> List.iter Pp.pp_symbol);res
+
+let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls: ((state * state) * (symbol * (state * state) list)) list): 
+  ((state * state) * (symbol * (state * state) list)) list =
+  let rec loop ls acc = 
+    match ls with [] -> List.rev acc
+    | (st_pr, _) as raw_tran :: tl ->
+      if state_pairs_equal states_pair st_pr then loop tl (raw_tran::acc) else loop tl acc
+  in loop raw_trans_ls []
+
