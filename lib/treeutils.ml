@@ -487,3 +487,47 @@ let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls
       if state_pairs_equal states_pair st_pr then loop tl (raw_tran::acc) else loop tl acc
   in loop raw_trans_ls []
 
+(* helper to collect RHS of raw transition list, ie, (sym, state pairs list) *)
+let sym_and_rhs_state_pairs (raw_trans: ((state * state) * (symbol * (state * state) list)) list): 
+  (symbol * (state * state) list) list =
+  raw_trans |> List.map (fun (_, (s, rhs_st_pair_ls)) -> (s, rhs_st_pair_ls))
+
+let same_sym_and_rhs_state_pairs (sym_rhs_stat_pairs1: (symbol * (state * state) list) list) 
+  (sym_rhs_stat_pairs2: (symbol * (state * state) list) list): bool =
+  if not ((List.length sym_rhs_stat_pairs1) = (List.length sym_rhs_stat_pairs2))
+  then false
+  else (let rec traverse ls = match ls with [] -> true 
+        | sym_rhs_states :: tl -> 
+          (if (List.mem sym_rhs_states sym_rhs_stat_pairs2)
+           then traverse tl
+           else false)
+        in traverse sym_rhs_stat_pairs1)
+
+(* helper for 'find_duplicate_state_pairs_in_trans_blocks' *)
+let find_state_pair_w_same_raw_rhs (sym_rhs_raw_states: (symbol * (state * state) list) list) 
+  (trans_blocks_ls: ((state * state) * (((state * state) * (symbol * (state * state) list))) list) list): (state * state) list = 
+  let rec loop ls acc = 
+    match ls with [] -> List.rev acc 
+    | (st_pair', raw_trans_ls') :: tl -> 
+      let curr_sym_and_rhs_state_pairs = sym_and_rhs_state_pairs raw_trans_ls' in
+      if (same_sym_and_rhs_state_pairs curr_sym_and_rhs_state_pairs sym_rhs_raw_states)
+      then loop tl (st_pair'::acc)
+      else loop tl acc
+  in loop trans_blocks_ls []
+
+let find_duplicate_state_pairs_in_trans_blocks 
+  (trans_blocks_ls: ((state * state) * (((state * state) * (symbol * (state * state) list))) list) list) 
+  (debug: bool): ((state * state) * (state * state)) list =
+  let rec traverse_trans_blocks (ls: ((state * state) * (((state * state) * (symbol * (state * state) list))) list) list) 
+    (acc: ((state * state) * (state * state)) list) =
+    match ls with [] -> acc 
+    | (st_pair, raw_trans_ls) :: tl -> 
+      let sym_and_rhs_raw_states = raw_trans_ls |> sym_and_rhs_state_pairs in
+      let same_rhs_states_ls: (state * state) list = find_state_pair_w_same_raw_rhs sym_and_rhs_raw_states tl in
+      let state_pairs_to_acc = same_rhs_states_ls |> List.map (fun st_pair' -> (st_pair, st_pair')) in
+      traverse_trans_blocks tl (acc @ state_pairs_to_acc)
+  in let res_state_pairs = traverse_trans_blocks trans_blocks_ls [] in 
+  if debug then (Printf.printf "\n\t >> Duplicate states pairs : "; 
+    res_state_pairs |> List.iter (fun pair_of_stats_pair ->  Pp.pp_raw_pair_of_state_pairs pair_of_stats_pair)); 
+  res_state_pairs
+

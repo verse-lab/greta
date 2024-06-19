@@ -12,6 +12,7 @@ exception No_other_trivial_symbols
 exception Invalid_transitions
 exception Invalid_state_lists
 exception Invalid_symbol_list
+exception Not_same_sym_and_rhs_state_pairs
 
 (* Top-down TA := (Q, F, Q_s, \Del) *)
 type ta =

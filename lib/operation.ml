@@ -168,12 +168,12 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
   (* Find I := I_1 x I_2 first w/o epsilon or bool *)
   let start_states: (state * state) = (a1.start_state, a2.start_state) 
   in
-  (* Based on I, get transitions for I *)
+  (* Get transitions that start from I *)
   let raw_init_trans_ls: ((state * state) * (symbol * (state * state) list)) list = 
     (if debug_print then printf "*** Find initial states-starting transitions : \n");
     cartesian_product_trans_from start_states a1.transitions a2.transitions syms_wo_epsilon_or_bool debug_print 
   in
-  (* Based on init state-starting transitions, find reachable states *)
+  (* Find reachable states based on I-starting transitions *)
   let reachable_states: (state * state) list = 
     (if debug_print then printf "*** Find reachable states based on initial states-starting transitions : \n");
     find_reachable_states start_states raw_init_trans_ls debug_print 
@@ -186,8 +186,8 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
         find_transitions_from_state_pairs (st1, st2) a1.transitions a2.transitions debug_print in 
         cross_product_trans_from_states_pair @ acc) [] in
   let init_trans_reachable_trans: ((state * state) * (symbol * (state * state) list)) list = 
-    raw_init_trans_ls @ raw_trans_from_reachables in 
-  (* init_trans_reachable_trans |> Pp.pp_raw_transitions;  *)
+    raw_init_trans_ls @ raw_trans_from_reachables 
+  in 
   (* Write the 'raw_trans_from_reachables' in blocks for better comparison *)
   let raw_trans_in_blocks: ((state * state) * (((state * state) * (symbol * (state * state) list))) list) list = 
     (if debug_print then printf "*** Putting raw transitions in blocks of transitions : \n");
@@ -196,8 +196,14 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
   in 
   (if debug_print then raw_trans_in_blocks |> List.iter (fun ((st1, st2), raw_trans) -> 
     Printf.printf "\n\t For states (%s, %s), blocks of transitions : \n" st1 st2; Pp.pp_raw_transitions raw_trans));
-  (* Then, given \Delta, find a list of duplicate states pairs *)
-  (* Based on the duplicate states, remove transitions and rename states *)
+  (* Find a list of duplicate states pairs *)
+  let _(* dup_states_pair_ls *): ((state * state) * (state * state)) list = 
+    (if debug_print then printf "*** Finding duplicate raw_states pairs : \n");
+    find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks debug_print
+  in
+  (* Remove transitions based on 'dup_states_pair_ls' *)
+  (* Replace state names based on 'dup_states_pair_ls'  *)
+  (* Rename states and populate Q, \Delta *)
   (* Introduce epsilon transitions to simplify \Delta *)
   (* 
   let stats1, stats2 = a1.states, a2.states in
@@ -211,9 +217,4 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
   printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta; 
   res_ta |> rename_states debug_print
 
-
-(** TODO: Simplify the resulting tree automata via :
-    - Enhancing the look via renaming states
-    - Removal of duplicate transitions
-    - Epsilon introduction/reduction (double-check on this) *)
 

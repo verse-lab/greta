@@ -39,6 +39,9 @@ let pp_states (ss: T.state list) =
 let pp_raw_states (ss: (T.state * T.state) list) = 
   printf "\tRaw states : { "; ss |> iter (fun ss -> printf "(%s, %s) " (fst ss) (snd ss)); printf "}\n"
 
+let pp_raw_pair_of_state_pairs ((ss1, ss2): (T.state * T.state) * (T.state * T.state)) = 
+  printf " ((%s, %s), (%s, %s)) " (fst ss1) (snd ss1) (fst ss2) (snd ss2)
+
 let pp_alphabet (a: T.symbol list) =
   printf "\tAlphabet : { "; a |> iter (fun x -> 
     printf " <%s, %d> " (fst x) (snd x) ); printf "}\n"
