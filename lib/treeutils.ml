@@ -375,16 +375,40 @@ let find_all_trans_starting_from (st: state) (trans_ls: transition list) =
 let order_trans_ls (st_ls: state list) (trans_ls: transition list): transition list = 
   st_ls |> List.fold_left (fun acc st ->  acc @ (find_all_trans_starting_from st trans_ls)) []
 
-let find_trans_starting_from_with_sym (st: state) (sym: symbol) (trans_ls: transition list) (debug: bool): transition =
+let find_rhs_states_from_state_with_sym (st: state) (sym: symbol) (trans_ls: transition list) (debug: bool): state list =
   if debug then Printf.printf "\nFinding transition starting from %s for symbol (%s, %i) ..\n" st (fst sym) (snd sym);
-  let res_ls = trans_ls |> List.filter (fun (lft_st, (s, _)) -> (lft_st = st) && (syms_equals s sym)) in 
-  if (List.length res_ls = 1) then (List.hd res_ls) else raise Invalid_transitions
-  (* (Printf.printf "Hey! \t "; res_ls |> Pp.pp_transitions; (List.hd res_ls))  *)
+  let rec interm_sts_loop (ls': state list) (rhs_sts_ls: state list): state list * state list = 
+    match ls' with 
+    | [] -> rhs_sts_ls, []
+    | interm_hd :: interm_tl -> 
+      Printf.printf "\nNow looking for RHS states starting from %s for symbol (%s, %i)\n" interm_hd (fst sym) (snd sym);
+      let i_rhs, next_interm_ls = find_rhs_states trans_ls interm_hd []
+      in if (i_rhs = []) then interm_sts_loop interm_tl [] else i_rhs, next_interm_ls
+  and 
+  find_rhs_states (ls: transition list) (from_st: state) (interm_sts: state list): state list * state list =
+    match ls with 
+    | [] ->
+      if interm_sts = []
+      then [], []
+      else (Printf.printf "\nInterm states not empty: "; Pp.pp_states interm_sts; 
+           interm_sts_loop interm_sts [])
+    | (lft_st, (s, rhs_sts)) :: tl -> 
+      if (lft_st = from_st) && (syms_equals s sym)
+      then rhs_sts, interm_sts
+      else if (lft_st = from_st) && (syms_equals s epsilon_symb)
+      then (let next_st = (List.hd rhs_sts) (* if eps-trans, save in 'interm_sts' and traverse til the end *)
+            in find_rhs_states tl from_st (next_st::interm_sts))
+      else find_rhs_states tl from_st interm_sts
+  in let res_rhs_sts, _ (* res_interm_sts*) = find_rhs_states trans_ls st [] in
+  (if debug then Printf.printf "\n\t .. Found RHS states: "; Pp.pp_states res_rhs_sts);
+  res_rhs_sts
 
 let cross_product_state_lists (st_ls1: state list) (st_ls2: state list): state list =
   let rec cross_loop ls1 ls2 acc = 
     match ls1, ls2 with 
     | [], [] -> List.rev acc
-    | h1 :: tl1, h2 :: tl2 -> cross_loop tl1 tl2 ((h1 ^ h2)::acc)
+    | h1 :: tl1, h2 :: tl2 -> 
+      let combined = if (h1 = "ϵ") || (h2 = "ϵ") then "ϵ" else h1 ^ h2
+      in cross_loop tl1 tl2 (combined::acc)
     | _, [] | [], _ -> raise Invalid_state_lists
   in cross_loop st_ls1 st_ls2 []

@@ -209,7 +209,7 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
       g.productions |> fold_left (fun acc (n, (t, ls)) ->  (n, ((t, (length ls)), ls)) :: acc) []
       |> map (fun (s, (op, s_ls)) -> 
         (* treat int (N) and bool (B) differently *)
-        if (fst op = "ε" && ((hd s_ls = "N") || (hd s_ls = "B"))) then (s, ((hd s_ls, 1), "ϵ"::[])) 
+        if (fst op = "ε" && ((hd s_ls = "N") || (hd s_ls = "B"))) then (s, ((hd s_ls, 0), "ϵ"::[])) 
         (* TODO (below stat): make this less computationally expensive *)
         else if (fst op = "ε") then (stat := s; (s, (op, s_ls))) else (stat := s; (s, (op, s_ls))))
         |> List.rev in 

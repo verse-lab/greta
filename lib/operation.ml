@@ -119,9 +119,9 @@ let cartesian_product_trans_from (st1: state) (st2: state) (trans1: transition l
   let rec traverse_alphabet ls (acc: transition list): transition list = 
     match ls with [] -> acc
     | hd_sym :: tl -> 
-      let (lft_st1, (_, rht_sts1)) = find_trans_starting_from_with_sym st1 hd_sym trans1 debug in
-      let (lft_st2, (_, rht_sts2)) = find_trans_starting_from_with_sym st2 hd_sym trans2 debug in
-      let new_lft_st: state = lft_st1 ^ lft_st2 in 
+      let rht_sts1: state list = find_rhs_states_from_state_with_sym st1 hd_sym trans1 debug in
+      let rht_sts2: state list = find_rhs_states_from_state_with_sym st2 hd_sym trans2 debug in
+      let new_lft_st: state = st1 ^ st2 in 
       let new_rht_sts: state list = cross_product_state_lists rht_sts1 rht_sts2 in
       traverse_alphabet tl ((new_lft_st, (hd_sym, new_rht_sts))::acc)
   in let res_trans = traverse_alphabet a [] in 
@@ -136,7 +136,8 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
   if debug_print then (printf "\n  >> Versatile symbol list: [ "; 
   verSyms |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
   let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
-  let syms_wo_epsilon = syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) in
+  (* Consider symbols excluding epsilon and Boolean for I *)
+  let syms_wo_epsilon = syms |> List.filter (fun s -> not (syms_equals s epsilon_symb) && not (syms_equals s ("B", 0))) in
   (* Find I := I_1 x I_2 first *)
   let start = cartesian_product_states [a1.start_state] [a2.start_state] debug_print |> List.hd in
   (* Based on I, get transitions for I *)
