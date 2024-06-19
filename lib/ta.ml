@@ -24,6 +24,7 @@ let null_ta =
   { states = []; alphabet = []; start_state = ""; transitions = [] }
 
 let epsilon_symb: symbol = ("ε", 1)
+let epsilon_state: state = "ϵ"
 
 let sym_equals sym str = (fst sym = str)
 

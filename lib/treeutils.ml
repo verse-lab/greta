@@ -408,7 +408,7 @@ let cross_product_state_lists (st_ls1: state list) (st_ls2: state list): state l
     match ls1, ls2 with 
     | [], [] -> List.rev acc
     | h1 :: tl1, h2 :: tl2 -> 
-      let combined = if (h1 = "ϵ") || (h2 = "ϵ") then "ϵ" else h1 ^ h2
-      in cross_loop tl1 tl2 (combined::acc)
+      let combined = if (h1 = epsilon_state) || (h2 = epsilon_state) 
+        then epsilon_state else h1 ^ h2 in cross_loop tl1 tl2 (combined::acc)
     | _, [] | [], _ -> raise Invalid_state_lists
   in cross_loop st_ls1 st_ls2 []
