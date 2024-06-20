@@ -57,15 +57,15 @@ let () =
             (* if user selects 1 or any other number, 2nd tree gets selected *)
             else loop tl ((texpr_ls2, t2, (oa2, op2), rls2)::acc))
         in loop inp_lst []
-    in let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
-        interact_with_user tree_pairs_lst 
-    in let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug
-    in let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug
-    in let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug 
-    in let ta_learned: T.ta = L.learn_ta o_a o_p ranked_symbols versatile_syms debug 
-    in let _(* ta_intersected *) = O.intersect ta_initial ta_learned versatile_syms debug in
-    ()
-    (* C.convertToGrammar ta_intersected versatile_syms debug parser_file) *)
+    in 
+    let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
+        interact_with_user tree_pairs_lst in 
+    let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug in 
+    let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
+    let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug in 
+    let ta_learned: T.ta = L.learn_ta o_a o_p ranked_symbols versatile_syms debug in 
+    let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in 
+    C.convertToGrammar ta_intersected versatile_syms debug parser_file
     end;
   if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file;
   (* while true do
