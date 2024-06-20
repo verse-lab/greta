@@ -426,7 +426,9 @@ let cross_product_raw_state_lists (st_ls1: state list) (st_ls2: state list): (st
   in cross_loop st_ls1 st_ls2 []
 
 let state_pair_append (st_pair: state * state): state = 
-  (fst st_pair) ^ (snd st_pair)
+  let st1, st2 = (fst st_pair), (snd st_pair) in 
+  if (st1 = epsilon_state) || (st2 = epsilon_state)
+  then epsilon_state else st1 ^ st2
 
 let state_pairs_equal (st_pair1: state * state) (st_pair2: state * state): bool = 
   (fst st_pair1) = (fst st_pair2) && (snd st_pair1) = (snd st_pair2)
@@ -541,15 +543,16 @@ let simplify_trans_blocks_with_epsilon_transitions
     (blocks_ls: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): 
     ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
     let st1_sym_rhs_ls: (symbol * (state * state) list) list = 
-      Printf.printf "\n\tIs it here?\n";
       blocks_ls |> List.filter (fun (ss, _) -> (state_pairs_equal ss st1)) 
       |> List.hd |> snd |> List.map snd 
-  in blocks_ls |> List.map (fun (st_pair, st_block) -> 
-    if (state_pairs_equal st_pair st2)
-    then (let new_st_block = st_block |> List.filter 
-            (fun (_, (sym_rhs_ls: symbol * (state * state) list)) -> not (List.mem sym_rhs_ls st1_sym_rhs_ls)) 
-          in (st_pair, new_st_block))
-    else (st_pair, st_block))
+    in 
+      blocks_ls |> List.map (fun (st_pair, st_block) -> 
+        if (state_pairs_equal st_pair st2)
+        then (let new_st_block = st_block |> List.filter 
+                (fun (_, (sym_rhs_ls: symbol * (state * state) list)) -> not (List.mem sym_rhs_ls st1_sym_rhs_ls))
+                |> List.append [(st2, (epsilon_symb, [st1]))] |> List.rev
+              in (st_pair, new_st_block))
+        else (st_pair, st_block))
   in 
   let rec simplify_trans_blocks (st_pair: state * state) (other_states_ls: (state * state) list) 
     (blocks_acc: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): 
@@ -566,10 +569,29 @@ let simplify_trans_blocks_with_epsilon_transitions
     | st_pair :: tl -> 
       (* Note: can consider 'tl' as other_states and do comparison assuming 'st_pair_ls' is ordered backward *)
       (* [prev, instead of tl] st_pair_ls |> List.filter (fun ss -> (not (state_pairs_equal ss st_pair))) *)
-      let new_trans_blocks = simplify_trans_blocks st_pair tl [] in
+      let new_trans_blocks = simplify_trans_blocks st_pair tl blocks_acc in
       traverse_states tl new_trans_blocks
   in let simplified_res = traverse_states st_pair_ls input_trans_blocks in 
   if debug then (Printf.printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
   simplified_res
 
 
+let raw_trans_in_blocks_to_trans (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
+  (debug: bool): transition list =
+  let convert_trans_block (block: ((state * state) * (symbol * (state * state) list)) list): transition list = 
+    let rec convert_block_loop ls' acc' = 
+      match ls' with [] -> List.rev acc'
+      | (st_pr, (sym, rhs_ls)) :: tl' ->
+        let lft_st_appnd = state_pair_append st_pr in
+        let rhs_sts_appnd = rhs_ls |> List.map state_pair_append in 
+        convert_block_loop tl' ((lft_st_appnd, (sym, rhs_sts_appnd))::acc')
+    in convert_block_loop block []
+  in 
+  let rec convert_loop ls acc = 
+    match ls with [] -> acc 
+    | (_, st_block) :: tl -> 
+      let converted_trans = convert_trans_block st_block 
+      in convert_loop tl (converted_trans@acc)
+  in let res_trans = convert_loop trans_blocks [] in 
+  if debug then (Printf.printf "\n\t >> Result of converting raw trans to transitions : \n"; res_trans |> Pp.pp_transitions);
+  res_trans

@@ -231,15 +231,16 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
     rename_trans_blocks states_renaming_map trans_in_blocks_replaced debug_print
   in
   (* Introduce epsilon transitions to simplify \Delta *)
-  let _trans_in_blocks_simplified_with_epsilon_trans: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+  let trans_in_blocks_simplified_with_epsilon_trans: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
     (if debug_print then printf "\n*** Simplifying transition blocks with epsilon transitions : \n");
     simplify_trans_blocks_with_epsilon_transitions trans_in_blocks_renamed (List.rev state_pairs_renamed) debug_print
-  in  
-  let _: bool = 
-    st1_transblock_subset_of_st2_transblock (List.nth state_pairs_renamed 0) (List.nth state_pairs_renamed 1) trans_in_blocks_renamed debug_print
-  in
+  in 
+  let res_trans: transition list = 
+    (if debug_print then printf "\n*** Rewriting transition blocks as transitions : \n");
+    raw_trans_in_blocks_to_trans trans_in_blocks_simplified_with_epsilon_trans debug_print
+  in 
   let res_ta = { states = res_states @ [epsilon_state] ; alphabet = syms ; 
-                 start_state = start_renamed ; transitions = [] } in
+                 start_state = start_renamed ; transitions = res_trans } in
   printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta; 
   res_ta |> rename_states debug_print
 
