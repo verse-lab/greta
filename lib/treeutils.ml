@@ -235,9 +235,6 @@ let present_tree_pair (trees: tree * tree): unit =
   printf "Option 0: \n"; print_strs expr1;
   printf "Option 1: \n"; print_strs expr2; printf "\n"
 
-let ask_again (filename: string): unit = 
-  Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
-
 (* (TODO) To remove redundancies wrt figuring out Oa-related trees *)
 let tree_with_single_operator (e: tree): bool =
   let fst_sym = node_symbol_full e in
@@ -595,3 +592,12 @@ let raw_trans_in_blocks_to_trans (trans_blocks: ((state * state) * ((state * sta
   in let res_trans = convert_loop trans_blocks [] in 
   if debug then (Printf.printf "\n\t >> Result of converting raw trans to transitions : \n"; res_trans |> Pp.pp_transitions);
   res_trans
+
+let ask_again (filename: string): unit = 
+  Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
+
+let inform_user_of_new_grammar (filename: string): unit =
+  Printf.printf "\nNew grammar is written on the file %s.\n\n" filename
+
+let success_message: unit =
+  Printf.printf "\nGrammar disambiguation succeeded!!\n\n "

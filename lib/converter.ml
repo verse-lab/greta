@@ -398,7 +398,8 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
 let convertToGrammar (ta_inp: ta) (versatiles: (terminal * int list) list) (debug: bool) (file: string) =
   ta_inp |> ta_to_cfg versatiles debug |> cfg_to_parser file debug
 
-(* ******************** Part III. Specify associativity > parser.mly ******************** *)
+(* Below: currently not taken into consideration  *)
+(* ******************** Specify associativity > parser.mly ******************** *)
 
 (** specify_associativity : specify associativity on parser file per user input (0, 1, 2) *)
 let specify_associativity (parser_file: string) (ind: int) (trees: tree * tree) (debug_print: bool): unit =

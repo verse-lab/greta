@@ -31,15 +31,13 @@ let () =
   let parser_file = "./lib/parser.mly" in
   let versatile_syms = [("IF", [2; 3])] in
   let conflicts_file = "./test/parser01.conflicts" in
-  let _test_conflicts_file = "./_build/default/lib/parser.conflicts" 
-  in
-  (* parser_file to (tree automaton, o_bp) *)
+  (* let _test_conflicts_file = "./_build/default/lib/parser.conflicts" in *)
+  (* Learn TA and O_bp wrt 'parser_file' *)
   let debug = true in
   let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa parser_file versatile_syms debug in
-  let ranked_symbols = ta_initial.alphabet in
-  if (Utils.check_conflicts conflicts_file debug) then 
-    (* if \E conflicts, learn user-selected trees and o_a, o_tmp *)
-    begin
+  let ranked_symbols = ta_initial.alphabet 
+  in
+  while (Utils.check_conflicts conflicts_file debug) do
     let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
       E.gen_examples conflicts_file ranked_symbols debug 
     in
@@ -62,18 +60,16 @@ let () =
     let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug in 
     let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
     let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug in 
-    let ta_learned: T.ta = L.learn_ta o_a o_p ranked_symbols versatile_syms debug in 
+    let ta_learned: T.ta = L.learn_ta o_a o_p ranked_symbols versatile_syms debug 
+    in 
+    (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in 
-    C.convertToGrammar ta_intersected versatile_syms debug parser_file
-    end;
-  if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file;
-  (* while true do
-    let inp = read_line () in
-    match Utils.parse_string inp with
-    | ast -> print_endline @@ Ast.show ast
-    | exception e -> print_endline @@ Printexc.to_string e
-  done; *)
-
+    C.convertToGrammar ta_intersected versatile_syms debug parser_file;
+    U.inform_user_of_new_grammar parser_file
+  done;
+  U.success_message
+  
+  
 (*** Assumptions made on the language designer (user of this tool):
  *   * Non-terminals representing boolean are specified with "cond" ^ s*
  *     - If this assumption changes, change data type to represent state to a tuple 
