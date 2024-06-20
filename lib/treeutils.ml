@@ -476,24 +476,34 @@ let same_sym_and_rhs_state_pairs (sym_rhs_stat_pairs1: (symbol * (state * state)
            else false)
         in traverse sym_rhs_stat_pairs1)
 
-let collect_unique_states_and_map_to_new_states 
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
-  (debug: bool): ((state * state) * (state * state)) list =
-  let unique_states_ls: (state * state) list = 
-    trans_blocks |> List.map (fun (st_pair, _) -> st_pair) in
-  let rec map_loop ls cnt cond_cnt acc: ((state * state) * (state * state)) list =
-    match ls with [] -> List.rev acc 
-    | st_pair_hd :: tl -> 
-      if (is_cond_state (fst st_pair_hd)) || (is_cond_state (snd st_pair_hd)) 
-      then (let mapped_pair: (state * state) = "C" ^ (string_of_int cond_cnt), "" in 
-            let to_acc: (state * state) * (state * state) = (st_pair_hd, mapped_pair)
-            in map_loop tl cnt (cond_cnt+1) (to_acc::acc)) 
-      else (let mapped_pair: (state * state) = "X" ^ (string_of_int cnt), "" in 
-            let to_acc: (state * state) * (state * state) = (st_pair_hd, mapped_pair)
-            in map_loop tl (cnt+1) cond_cnt (to_acc::acc))
-  in let res_map = map_loop unique_states_ls 1 1 [] in 
-  if debug then (Printf.printf "\n\t >> Results of unique states to new states mapping : \n\t";
-  res_map |> List.iter Pp.pp_raw_pair_of_state_pairs; Printf.printf "\n");
-  res_map
+let find_renamed_state (st_pair: state * state) 
+  (renaming_map: ((state * state) * (state * state)) list): state * state = 
+  match (List.assoc_opt st_pair renaming_map) with 
+    | None -> 
+      let epsilon_st_pair = (epsilon_state, epsilon_state) in
+      if (state_pairs_equal st_pair epsilon_st_pair) then epsilon_st_pair else raise No_state_in_renaming_map 
+    | Some matched_sts -> matched_sts
 
+let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)) list)
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list)
+  (debug: bool): ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
+  let rec rename_raw_trans ls' acc' =
+    match ls' with [] -> List.rev acc'
+    | (lhs_st_pair, (sym, rhs_st_pair_ls)) :: tl' -> 
+      let lhs_renamed = find_renamed_state lhs_st_pair states_renaming_map in 
+      let rhs_renamed: (state * state) list = 
+        rhs_st_pair_ls |> List.map (fun st_pr -> find_renamed_state st_pr states_renaming_map) in
+      let renamed_tran = (lhs_renamed, (sym, rhs_renamed)) in 
+      rename_raw_trans tl' (renamed_tran :: acc')
+  in
+  let rec rename_blocks_loop ls acc =
+    match ls with [] -> List.rev acc 
+    | (st_pair, trans_ls) :: tl -> 
+      let renamed_raw_trans = rename_raw_trans trans_ls [] in 
+      let to_acc = ((find_renamed_state st_pair states_renaming_map), renamed_raw_trans) in 
+      rename_blocks_loop tl (to_acc :: acc)
+  in let res_trans_blocks = rename_blocks_loop trans_blocks [] in 
+  if debug then (Printf.printf "\n\t >> Results of renaming in trans in blocks : \n"; 
+  res_trans_blocks |> Pp.pp_raw_trans_blocks);
+  res_trans_blocks
   

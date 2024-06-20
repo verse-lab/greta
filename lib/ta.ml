@@ -13,6 +13,7 @@ exception Invalid_transitions
 exception Invalid_state_lists
 exception Invalid_symbol_list
 exception Not_same_sym_and_rhs_state_pairs
+exception No_state_in_renaming_map
 
 (* Top-down TA := (Q, F, Q_s, \Del) *)
 type ta =
