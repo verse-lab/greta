@@ -146,7 +146,7 @@ let rewrite_syms (tts: (tree * tree) list): (tree * tree) list =
   tts |> List.map (fun (t1, t2) -> rewrite_syms_aux t1, rewrite_syms_aux t2)
 
 (** rename_states : rename states in ta_res from /\ *)
-let rename_states (debug_print: bool) (inp_ta: ta): ta =
+let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
   let open Printf in
   if debug_print then (printf "\nRename the following tree automaton:\n"; Pp.pp_ta inp_ta);
   let start_old, start_new = inp_ta.start_state, "expr1" in
@@ -154,8 +154,8 @@ let rename_states (debug_print: bool) (inp_ta: ta): ta =
   let eind, cind = ref 2, ref 1 in
   let states_mapping: (state * state) list = inp_ta.states |> List.fold_left (fun acc st_curr ->
     if (st_curr = start_old) then acc else if (st_curr = "ϵ") then (st_curr, st_curr)::acc else 
-    if (is_cond_expr st_curr) then let st_new = "cond_expr" ^ string_of_int !cind in cind := !cind+1; (st_curr, st_new)::acc 
-    else let st_new = "expr" ^ string_of_int !eind in eind := !eind + 2; (st_curr, st_new) :: acc) 
+    if (is_cond_state st_curr) then let st_new = "cond_expr" ^ string_of_int !cind in cind := !cind+1; (st_curr, st_new)::acc 
+    else let st_new = "expr" ^ string_of_int !eind in eind := !eind + 1; (st_curr, st_new) :: acc) 
     states_mapping_init in
   let replace_with_new (stat_old: state): state = match List.assoc_opt stat_old states_mapping with
     | Some v -> v | None -> raise (Failure "Old state is not found") in
@@ -580,7 +580,7 @@ let raw_trans_in_blocks_to_trans (trans_blocks: ((state * state) * ((state * sta
   (debug: bool): transition list =
   let convert_trans_block (block: ((state * state) * (symbol * (state * state) list)) list): transition list = 
     let rec convert_block_loop ls' acc' = 
-      match ls' with [] -> List.rev acc'
+      match ls' with [] -> acc'
       | (st_pr, (sym, rhs_ls)) :: tl' ->
         let lft_st_appnd = state_pair_append st_pr in
         let rhs_sts_appnd = rhs_ls |> List.map state_pair_append in 
@@ -588,7 +588,7 @@ let raw_trans_in_blocks_to_trans (trans_blocks: ((state * state) * ((state * sta
     in convert_block_loop block []
   in 
   let rec convert_loop ls acc = 
-    match ls with [] -> acc 
+    match ls with [] -> List.rev acc 
     | (_, st_block) :: tl -> 
       let converted_trans = convert_trans_block st_block 
       in convert_loop tl (converted_trans@acc)

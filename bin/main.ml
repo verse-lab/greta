@@ -4,7 +4,6 @@ open Stdlib
 module C = Converter
 module O = Operation
 module E = Examples
-module I = Interact
 module L = Learner
 module R = Runner
 module U = Treeutils

@@ -242,6 +242,6 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
   let res_ta = { states = res_states @ [epsilon_state] ; alphabet = syms ; 
                  start_state = start_renamed ; transitions = res_trans } in
   printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta; 
-  res_ta |> rename_states debug_print
+  res_ta |> rename_w_parser_friendly_states_in_ta debug_print
 
 
