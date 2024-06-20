@@ -36,8 +36,11 @@ let pp_cfg (c: C.cfg) =
 let pp_states (ss: T.state list) =
   printf "\tStates : { "; ss |> iter (printf "%s "); printf "}\n"
 
+let pp_raw_state (ss: (T.state * T.state)) = 
+  printf "(%s, %s) " (fst ss) (snd ss)
+
 let pp_raw_states (ss: (T.state * T.state) list) = 
-  printf "\tRaw states : { "; ss |> iter (fun ss -> printf "(%s, %s) " (fst ss) (snd ss)); printf "}\n"
+  printf "\tRaw states : { "; ss |> iter pp_raw_state; printf "}\n"
 
 let pp_raw_pair_of_state_pairs ((ss1, ss2): (T.state * T.state) * (T.state * T.state)) = 
   printf " ((%s, %s), (%s, %s)) " (fst ss1) (snd ss1) (fst ss2) (snd ss2)
