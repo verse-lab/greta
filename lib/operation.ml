@@ -196,24 +196,26 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
     raw_init_trans_ls @ raw_trans_from_reachables 
   in 
   (* Write the 'raw_trans_from_reachables' in blocks for better comparison *)
-  let raw_trans_in_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+  let raw_trans_in_blocks_sorted: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
     (if debug_print then printf "\n*** Putting raw transitions in blocks of transitions : \n");
     (start_states :: reachable_states) |> List.fold_left (fun acc (s1, s2) -> 
       let block = collect_raw_trans_for_states_pair (s1, s2) init_trans_reachable_trans in acc @ [(s1, s2), block]) []
+      |> List.stable_sort (fun (_, trans_ls1) (_, trans_ls2) -> 
+        Int.compare (List.length trans_ls2) (List.length trans_ls1))
   in 
-  if debug_print then raw_trans_in_blocks |> Pp.pp_raw_trans_blocks;
+  if debug_print then raw_trans_in_blocks_sorted |> Pp.pp_raw_trans_blocks;
   (* Find a list of duplicate states pairs *)
   let dup_states_pair_ls: ((state * state) * (state * state)) list = 
     (if debug_print then printf "\n*** Finding duplicate raw_states pairs : \n");
-    find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks debug_print
+    find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks_sorted debug_print
   in
   (* Remove transitions based on 'dup_states_pair_ls' *)
   let trans_in_blocks_cleaned: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
     (if debug_print then printf "\n*** Removing transition blocks baesd on duplicate states : \n");
-    remove_transitions_of_duplicate_states dup_states_pair_ls raw_trans_in_blocks debug_print
+    remove_transitions_of_duplicate_states dup_states_pair_ls raw_trans_in_blocks_sorted debug_print
   in
   (* Replace state names based on 'dup_states_pair_ls'  *)
-  let  trans_in_blocks_replaced: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+  let trans_in_blocks_replaced: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
     (if debug_print then printf "\n*** Replacing duplicate state names in transition blocks : \n");
     replace_dup_state_names dup_states_pair_ls trans_in_blocks_cleaned debug_print
   in
@@ -221,15 +223,23 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
   let states_renaming_map: ((state * state) * (state * state)) list =
     (if debug_print then printf "\n*** Collecting unique states and map to new states : \n");
     collect_unique_states_and_map_to_new_states trans_in_blocks_replaced debug_print in
-  let renamed_start: state = 
+  let start_renamed: state = 
     (find_renamed_state start_states states_renaming_map) |> state_pair_append in
-  let res_states: state list = 
-    states_renaming_map |> List.map snd |> List.map state_pair_append in
-  let _renamed_trans_in_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+  let state_pairs_renamed: (state * state) list = states_renaming_map |> List.map snd in 
+  let res_states: state list = state_pairs_renamed |> List.map state_pair_append in
+  let trans_in_blocks_renamed: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
     rename_trans_blocks states_renaming_map trans_in_blocks_replaced debug_print
   in
   (* Introduce epsilon transitions to simplify \Delta *)
-  let res_ta = { states = res_states @ [epsilon_state] ; alphabet = syms ; start_state = renamed_start ; transitions = [] } in
+  let _trans_in_blocks_simplified_with_epsilon_trans: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+    (if debug_print then printf "\n*** Simplifying transition blocks with epsilon transitions : \n");
+    simplify_trans_blocks_with_epsilon_transitions trans_in_blocks_renamed (List.rev state_pairs_renamed) debug_print
+  in  
+  let _: bool = 
+    st1_transblock_subset_of_st2_transblock (List.nth state_pairs_renamed 0) (List.nth state_pairs_renamed 1) trans_in_blocks_renamed debug_print
+  in
+  let res_ta = { states = res_states @ [epsilon_state] ; alphabet = syms ; 
+                 start_state = start_renamed ; transitions = [] } in
   printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta; 
   res_ta |> rename_states debug_print
 

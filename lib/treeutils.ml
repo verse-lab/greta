@@ -458,7 +458,7 @@ let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls
     match ls with [] -> List.rev acc
     | (st_pr, _) as raw_tran :: tl ->
       if state_pairs_equal states_pair st_pr then loop tl (raw_tran::acc) else loop tl acc
-  in loop raw_trans_ls []
+  in loop raw_trans_ls [] 
 
 (* helper to collect RHS of raw transition list, ie, (sym, state pairs list) *)
 let sym_and_rhs_state_pairs (raw_trans: ((state * state) * (symbol * (state * state) list)) list): 
@@ -506,4 +506,70 @@ let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)
   if debug then (Printf.printf "\n\t >> Results of renaming in trans in blocks : \n"; 
   res_trans_blocks |> Pp.pp_raw_trans_blocks);
   res_trans_blocks
+ 
+let find_trans_block_for_states_pair (st_pair: (state * state)) (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list):
+  ((state * state) * (symbol * (state * state) list)) list =
+  match List.assoc_opt st_pair trans_blocks with None -> raise Invalid_transitions
+  | Some ls -> ls
   
+let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair2: (state * state))
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list)
+  (debug: bool): bool = 
+  if debug then Printf.printf "\n\tIs (%s, %s) subset of (%s, %s)?\n" (fst st_pair1) (snd st_pair1) (fst st_pair2) (snd st_pair2);
+  let st1_trans_rhs_lst: (symbol * (state * state) list) list =
+    find_trans_block_for_states_pair st_pair1 trans_blocks |> List.map (fun (_, rhs_lst) -> rhs_lst) in
+  let st2_trans_rhs_lst: (symbol * (state * state) list) list =
+    find_trans_block_for_states_pair st_pair2 trans_blocks |> List.map (fun (_, rhs_lst) -> rhs_lst) in 
+  let res_bool = 
+    if (List.length st1_trans_rhs_lst) > (List.length st2_trans_rhs_lst)
+    then false else 
+    let rec traverse_rhs (ls: (symbol * (state * state) list) list): bool = 
+      match ls with [] -> true
+      | hsym_rhs_sts :: tl -> 
+        if (List.mem hsym_rhs_sts st2_trans_rhs_lst)
+        then traverse_rhs tl
+        else false
+    in traverse_rhs st1_trans_rhs_lst 
+  in if debug then (Printf.printf "\t %b" res_bool); 
+  res_bool
+
+let simplify_trans_blocks_with_epsilon_transitions 
+  (input_trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
+  (st_pair_ls: (state * state) list) (debug: bool): 
+  ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
+  let replace_st1_transkblock_in_st2_transblock_with_eps (st1: state * state) (st2: state * state) 
+    (blocks_ls: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): 
+    ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+    let st1_sym_rhs_ls: (symbol * (state * state) list) list = 
+      Printf.printf "\n\tIs it here?\n";
+      blocks_ls |> List.filter (fun (ss, _) -> (state_pairs_equal ss st1)) 
+      |> List.hd |> snd |> List.map snd 
+  in blocks_ls |> List.map (fun (st_pair, st_block) -> 
+    if (state_pairs_equal st_pair st2)
+    then (let new_st_block = st_block |> List.filter 
+            (fun (_, (sym_rhs_ls: symbol * (state * state) list)) -> not (List.mem sym_rhs_ls st1_sym_rhs_ls)) 
+          in (st_pair, new_st_block))
+    else (st_pair, st_block))
+  in 
+  let rec simplify_trans_blocks (st_pair: state * state) (other_states_ls: (state * state) list) 
+    (blocks_acc: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): 
+    ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
+    match other_states_ls with [] -> blocks_acc
+    | comp_st_pair :: tl -> 
+      if (st1_transblock_subset_of_st2_transblock st_pair comp_st_pair input_trans_blocks debug)
+      then (let new_trans_blocks = (replace_st1_transkblock_in_st2_transblock_with_eps st_pair comp_st_pair blocks_acc)
+            in simplify_trans_blocks st_pair tl new_trans_blocks)
+      else (simplify_trans_blocks st_pair tl blocks_acc)
+  in 
+  let rec traverse_states (ls: (state * state) list) blocks_acc =
+    match ls with [] -> blocks_acc
+    | st_pair :: tl -> 
+      (* Note: can consider 'tl' as other_states and do comparison assuming 'st_pair_ls' is ordered backward *)
+      (* [prev, instead of tl] st_pair_ls |> List.filter (fun ss -> (not (state_pairs_equal ss st_pair))) *)
+      let new_trans_blocks = simplify_trans_blocks st_pair tl [] in
+      traverse_states tl new_trans_blocks
+  in let simplified_res = traverse_states st_pair_ls input_trans_blocks in 
+  if debug then (Printf.printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
+  simplified_res
+
+
