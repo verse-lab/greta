@@ -599,5 +599,6 @@ let ask_again (filename: string): unit =
 let inform_user_of_new_grammar (filename: string): unit =
   Printf.printf "\nNew grammar is written on the file %s.\n\n" filename
 
-let success_message: unit =
-  Printf.printf "\nGrammar disambiguation succeeded!!\n\n "
+let no_conflicts_message (filename: string): unit = Printf.printf "\nThere are no ambiguities in %s.\n" filename
+let success_message (cnt: int): unit =
+  Printf.printf "\nGrammar disambiguation succeeded after %d number of interacting with the user!!\n\n " cnt

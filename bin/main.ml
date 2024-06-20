@@ -30,14 +30,16 @@ let () =
   (** Step 1: Initial inputs provided by the user *)
   let parser_file = "./lib/parser.mly" in
   let versatile_syms = [("IF", [2; 3])] in
-  let conflicts_file = "./test/parser01.conflicts" in
-  (* let _test_conflicts_file = "./_build/default/lib/parser.conflicts" in *)
+  let conflicts_file = "./_build/default/lib/parser.conflicts" in
+  (* let _test_conflicts_file = "./test/parser01.conflicts" in *)
   (* Learn TA and O_bp wrt 'parser_file' *)
   let debug = true in
   let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa parser_file versatile_syms debug in
-  let ranked_symbols = ta_initial.alphabet 
+  let ranked_symbols = ta_initial.alphabet in
+  let interact_counter = ref 0 
   in
-  while (Utils.check_conflicts conflicts_file debug) do
+  if (Utils.check_conflicts conflicts_file debug) then 
+  begin
     let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
       E.gen_examples conflicts_file ranked_symbols debug 
     in
@@ -54,7 +56,7 @@ let () =
             (* if user selects 1 or any other number, 2nd tree gets selected *)
             else loop tl ((texpr_ls2, t2, (oa2, op2), rls2)::acc))
         in loop inp_lst []
-    in 
+    in (interact_counter := !interact_counter + 1);
     let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
         interact_with_user tree_pairs_lst in 
     let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug in 
@@ -65,9 +67,10 @@ let () =
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in 
     C.convertToGrammar ta_intersected versatile_syms debug parser_file;
-    U.inform_user_of_new_grammar parser_file
-  done;
-  U.success_message
+    if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file
+  end
+  else U.no_conflicts_message parser_file
+  (* U.success_message !interact_counter *)
   
   
 (*** Assumptions made on the language designer (user of this tool):
