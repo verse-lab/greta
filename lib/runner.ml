@@ -1,11 +1,11 @@
 open Ta
 open Treeutils
 
-(** accept : TA starts in start_state at the root and 
+(* accept : TA starts in start_state at the root and 
     moves downward along branches of the tree, 
     associating along a run a state with each subterm inductively. 
     A tree is accepted if every branch can be gone through this way *)
-(** informal def : a tree gets rejected when for every initial state,
+(* informal def : a tree gets rejected when for every initial state,
     the tree gets stuck *)
 let accept (a: ta) (e: tree) (debug_print: bool): bool =
   let open List in

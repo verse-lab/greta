@@ -34,14 +34,14 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
   let syms_ls: string list = a_new |> List.map fst in
   printf "\nGenerate examples from conflicts in file %s\n" filename; 
   if debug_print then printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s ");
-  (** helpers *)
+  (* helpers *)
   let ic = open_in filename in
   let try_read () = try Some (input_line ic) with End_of_file -> None in
   let starts str lin = starts_with ~prefix:str lin in
   (* let arity_of_sym sym: int = match List.assoc_opt sym a_new with 
     | None -> printf "Symbol %s not found in alphabet" sym; -1 | Some n -> n in *)
   let is_in_alphabet s: bool = List.mem s syms_ls in
-  (** traverse and acc relevant lines for generating trees *)
+  (* traverse and acc relevant lines for generating trees *)
   let rec traverse (cnt: int) (count_started: bool) (res_acc: string list): string list =
     let relev_point1 lin = starts "** because of the following sub-derivation:" lin in
     let relev_point2 lin = starts "** is permitted because of the following sub-derivation:" lin in
@@ -63,7 +63,7 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
       else traverse cnt count_started res_acc
       (* if lines need to be read, turn on flag 'can_acclines' *)
   in
-  (** convert_to_tree convert an expression (string list) ["expr"; "sym"; "@expr"] 
+  (* convert_to_tree convert an expression (string list) ["expr"; "sym"; "@expr"] 
       to a tree (Node sym, [Leaf "expr"; ...]) *)
   let convert_to_tree_exprs (str_ls: string list): tree = 
     let rec conv_loop ls nodsym_acc subtrees_acc = 
@@ -75,7 +75,7 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
         else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc)
     in conv_loop str_ls ("", -1) []
   in 
-  (** extract trees to combine and corresponding symbol list *)
+  (* extract trees to combine and corresponding symbol list *)
   let extract_tree_exprs (relev_lines: string list): (tree * string list) list =
     let combine_term_w_dot (input_ls: string list): string list = 
       let rec loop ls (acc: string list) =
@@ -130,7 +130,7 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
               in [Prec (sym, 0); Prec (subt_sym, 1)])
         else raise Tree_specifies_oa_or_op
   in
-  (** combine_two_trees  *)
+  (* combine_two_trees  *)
   let combine_two_trees (te1: tree * string list) (te2: tree * string list): 
     (tree * (bool * bool) * restriction list) list =
     match te1, te2 with 

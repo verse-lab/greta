@@ -1,3 +1,9 @@
+/* *** Grammar_0 *** */
+// * vs. if1
+// * vs. if2
+// if1 vs. if2
+// * assoc
+
 %{
   open Ast
 %}
@@ -42,3 +48,4 @@ expr2:
   | INT  { Int $1 }
   | LPAREN expr1 RPAREN { Paren $2 }
   ;
+

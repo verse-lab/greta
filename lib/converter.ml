@@ -18,13 +18,13 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
   let wssemicol: regexp = regexp ({|[ \n\r\t]*|} ^ ";") in
   let argvar: regexp = regexp ("\\$" ^ {|[1-9]+|}) in
   let argvar_alt: regexp = regexp ("(\\$" ^ {|[1-9]+|}) in
-  (** temp_storage *)
+  (* temp_storage *)
   let nonterms_temp: nonterminal list ref = ref [] in
   let terms_temp: terminal list ref = ref [] in
   let prods_temp: production list ref = ref [] in
   let prog_id: string ref = ref "nullID" in
   let prods_started = ref false in
-  (** helpers **)
+  (* helpers *)
   let remove_colon (s: string): string = s |> split_on_char ':' |> List.hd in
   let ends tk s = ends_with ~suffix:tk s in
   let noteq a b = compare a b <> 0 in
@@ -32,9 +32,9 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
   let start_of_block s = not (starts "%%" s) 
       && not (string_match wsvertbar s 0) && not (string_match wssemicol s 0) && (ends ":" s) in
   let conds_to_exclude s = (s = "THEN") || (s = "Then") || (s = "ELSE") || (s = "Else") || (starts "Na" s) || (s = "Paren") in
-  (** extract_terms :
-    *   literals (%token <type> ...) to corresponding names, added to terms
-    *   if \E %token TRUE && FALSE, then add B to terms, and other tokens to nonterms *)
+  (* extract_terms :
+   *   literals (%token <type> ...) to corresponding names, added to terms
+   *   if \E %token TRUE && FALSE, then add B to terms, and other tokens to nonterms *)
   let extract_terms (st: string): unit =
     let ti, ts, tb = "%token <int>", "%token <string>", "%token <bool>" in
     let tt, tf = "%token TRUE", "%token FALSE" in
@@ -52,9 +52,9 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
         then 
           let st_ls = split_on_char ' ' st in List.iter (fun x -> 
             if (noteq x "%token") then terms_temp := x :: !terms_temp) st_ls 
-  (** extract_nonterms : 
-    *   identify the start symbol based on the prog_id
-    *   extract nonterms based on condition that it starts a block of transitions *)
+  (* extract_nonterms : 
+   *   identify the start symbol based on the prog_id
+   *   extract nonterms based on condition that it starts a block of transitions *)
   and extract_nonterms (st': string): unit =
     let ts' = "%start" in
     if starts ts' st' then split_on_char ' ' st' |> List.iter (fun x -> if noteq x ts' then prog_id := x)
@@ -63,8 +63,8 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
         then (nonterms_temp := x :: !nonterms_temp; cfg_res.start <- x))
     else if start_of_block st' then split_on_char ' ' st' |> List.iter (fun x -> let nonterm_to_add = remove_colon x in 
         if not (List.mem nonterm_to_add !nonterms_temp) then nonterms_temp := nonterm_to_add :: !nonterms_temp)
-  (** extract_prods :
-    *   if it starts with nonterminals, read transitions until ";" *)
+  (* extract_prods :
+   *   if it starts with nonterminals, read transitions until ";" *)
   in let rec extract_prods_from_block (nont_lhs: nonterminal) (blk_ls: string list): unit =
     let terms_ls = cfg_res.terms in match blk_ls with [] -> ()
     | blk_h :: blk_tl -> 
@@ -257,7 +257,7 @@ let ta_to_cfg (versatileTerminals: (terminal * int list) list) (debug_print: boo
   printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta a';
   if debug_print then (printf "\n  >> Versatile sybol list: [ ";
   versatileTerminals |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
-  (** helpers *)
+  (* helpers *)
   let remove_dups ls =
     let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
     List.fold_right unique_cons ls [] in
@@ -283,7 +283,7 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
   let open Printf in
   printf "\nWrite the grammar on parser file %s\n" parser_file;
   if debug_print then (printf "\n  Input grammar:\n"; Pp.pp_cfg g);
-  (** helpers *)
+  (* helpers *)
   let append_strs ls = ls |> List.fold_left (fun acc x -> 
     if (acc = "") then x else acc ^ " " ^ x) "" in
   let replace_wgstart (lst: string list): string = 
@@ -295,7 +295,7 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
         else  loop tl after_colon (h :: acc_ls)
     in loop lst false []
   in
-  (** Store lines_to_keep until the beginning of productions *)
+  (* Store lines_to_keep until the beginning of productions *)
   let ic = open_in parser_file in
   let rec divide_lines inp before_prod acc_keep prog_id: string list =
     match (read_line inp) with
@@ -311,7 +311,7 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
       else if (before_prod) then divide_lines inp before_prod (s :: acc_keep) prog_id
       else List.rev ("" :: acc_keep)
   in let lines_to_keep = divide_lines ic true [] "%dummy_id" in
-  (** collect production list in blocks *)
+  (* collect production list in blocks *)
   let collect_blocks (lst: production list): (production list) list =
     let rec blocks_loop ls curr_nont acc_prods (acc_res: (production list) list) =
       match ls with [] -> List.rev (acc_prods :: acc_res)
@@ -322,7 +322,7 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
         let block = List.rev acc_prods in blocks_loop prods_tl nont (prod_h :: []) (block :: acc_res)
     in blocks_loop lst "" [] []
   in 
-  (** specify rules on writing a corresponding line per production on parser.mly *)
+  (* specify rules on writing a corresponding line per production on parser.mly *)
   let corr_line (lhs: nonterminal) (op: terminal) (sls: string list): string list = 
     let beginning = "  | " in 
     if (is_cond_expr lhs && (List.hd sls = "B") && op = "ε") 
@@ -410,7 +410,7 @@ let specify_associativity (parser_file: string) (ind: int) (trees: tree * tree) 
   let line_to_add: string = assoc ^ " " ^ op in
   let open Printf in if debug_print then
     printf "\nWrite associativity %s of %s on parser file %s\n" assoc op parser_file;
-  (** Divide lines to add associativity in between them *)
+  (* Divide lines to add associativity in between them *)
   let ic = open_in parser_file in
   let rec divide_lines inp after_eof acc_prior acc_latter: string list * string list =
     match (read_line inp) with

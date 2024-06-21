@@ -5,7 +5,6 @@ module C = Converter
 module O = Operation
 module E = Examples
 module L = Learner
-module R = Runner
 module U = Treeutils
 module D = Draw
 module T = Ta

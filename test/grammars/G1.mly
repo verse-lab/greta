@@ -1,3 +1,9 @@
+/* *** G_1 *** */
+// + vs. *
+// if1 vs. if2
+// + assoc
+// * assoc
+
 %{
   open Ast
 %}
@@ -31,12 +37,12 @@ cond_expr:
   ;
 
 expr1:
-  | expr1 PLUS expr2 { Plus ($1, $3) }
+  | expr1 PLUS expr1 { Plus ($1, $3) }
+  | expr1 MUL expr1 { Mul ($1, $3) }
   | expr2  { $1 }
   ;
 
 expr2:
-  | expr2 MUL expr2 { Mul ($1, $3) }
   | IF cond_expr THEN expr2 { If ($2, Then ($4, Else Na)) }
   | IF cond_expr THEN expr2 ELSE expr2 { If ($2, Then ($4, Else $6)) }
   | INT  { Int $1 }
