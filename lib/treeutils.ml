@@ -438,6 +438,11 @@ let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) 
       if (st1 = comp_st1) && (st2 = comp_st2) then true else traverse_pairs tl
   in traverse_pairs st_pairs_ls
 
+let cons_uniq xs x = if List.mem x xs then xs else x :: xs
+
+let remove_dup_symbols (sym_ls: symbol list): symbol list = 
+  List.rev (List.fold_left cons_uniq [] sym_ls)
+
 let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list = 
   let check_subset_of_fst_in_snd (syms1: symbol list) (syms2: symbol list): symbol list = 
     let rec loop ls acc = 
@@ -479,6 +484,7 @@ let find_renamed_state (st_pair: state * state)
   (renaming_map: ((state * state) * (state * state)) list): state * state = 
   match (List.assoc_opt st_pair renaming_map) with 
     | None -> 
+      Printf.printf "\nWhich one?\n\t"; Pp.pp_raw_state st_pair;
       let epsilon_st_pair = (epsilon_state, epsilon_state) in
       if (state_pairs_equal st_pair epsilon_st_pair) then epsilon_st_pair else raise No_state_in_renaming_map 
     | Some matched_sts -> matched_sts
@@ -599,6 +605,8 @@ let ask_again (filename: string): unit =
 let inform_user_of_new_grammar (filename: string): unit =
   Printf.printf "\nNew grammar is written on the file %s.\n\n" filename
 
-let no_conflicts_message (filename: string): unit = Printf.printf "\nThere are no ambiguities in %s.\n" filename
+let no_conflicts_message (filename: string): unit = 
+  Printf.printf "\nThere are no ambiguities in %s.\n" filename
+
 let success_message (cnt: int): unit =
   Printf.printf "\nGrammar disambiguation succeeded after %d number of interacting with the user!!\n\n " cnt

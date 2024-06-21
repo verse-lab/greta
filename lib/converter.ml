@@ -194,7 +194,7 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
     let rec get_o_base_precedence (tls: transition list) (acc_res: restriction list): restriction list =
       match tls with [] -> List.rev acc_res
       | (lhs_st, (sym, _)) :: tl -> 
-        if (lhs_st = "cond_expr") || (syms_equals sym epsilon_symb) 
+        if (is_cond_state lhs_st) || (syms_equals sym epsilon_symb) 
             || (syms_equals sym ("LPARENRPAREN", 1)) || (syms_equals sym ("N", 0))
         then get_o_base_precedence tl acc_res
         else (let ord = match (assoc_opt lhs_st states_orders) with 

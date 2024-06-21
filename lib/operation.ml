@@ -34,9 +34,9 @@ let find_reachable_states (from_st: state * state) (trans_ls: ((state * state) *
 let accessible_symbols_for_state (init_st: state) (trans_ls: transition list) (debug: bool): symbol list =
   let rec interm_sts_loop (ls': state list) (syms_ls: symbol list): symbol list * state list = 
     match ls' with 
-    | [] -> syms_ls, []
+    | [] -> (remove_dup_symbols syms_ls), [] 
     | interm_hd :: interm_tl -> 
-      Printf.printf "\n\tNow looking for symbols starting from %s \n" interm_hd;
+      Printf.printf "\n\t -->> Now looking for symbols starting from %s \n" interm_hd;
       let i_syms, next_interm_ls = find_accessible_symbols trans_ls interm_hd [] syms_ls
       in if (next_interm_ls = []) 
          then interm_sts_loop interm_tl (i_syms@syms_ls) 
@@ -58,7 +58,7 @@ let accessible_symbols_for_state (init_st: state) (trans_ls: transition list) (d
             in find_accessible_symbols tl from_st (next_st::interm_sts) syms_acc)
       else find_accessible_symbols tl from_st interm_sts syms_acc
   in let syms_res, _ = find_accessible_symbols trans_ls init_st [] [] in 
-  (if debug then Printf.printf "\n\t\t >> .. Found Symbols: "; syms_res |> List.iter Pp.pp_symbol);
+  (if debug then Printf.printf "\n\t -->> .. Found Symbols: "; syms_res |> List.iter Pp.pp_symbol);
   syms_res
 
 let find_transitions_from_state_pairs (st_pair: state * state) (trans_ls1: transition list) (trans_ls2: transition list) (debug: bool): 
