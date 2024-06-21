@@ -34,13 +34,13 @@ let () =
   (* let _test_conflicts_file = "./test/parser01.conflicts" in *)
   (* Learn TA and O_bp wrt 'parser_file' *)
   let debug = true in
-  let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa parser_file versatile_syms debug in
-  let ranked_symbols = ta_initial.alphabet in
-  let interact_counter = ref 0 
-  in
-  if (Utils.check_conflicts conflicts_file debug) then 
+  if (Utils.check_conflicts conflicts_file debug) then
   begin
-    let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
+    let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa parser_file versatile_syms debug in
+    let ranked_symbols = ta_initial.alphabet in
+    let interact_counter = ref 0 
+    in
+      let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
       E.gen_examples conflicts_file ranked_symbols debug 
     in
     (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)
@@ -67,11 +67,13 @@ let () =
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in 
     C.convertToGrammar ta_intersected versatile_syms debug parser_file;
-    if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file
-  end
-  else U.no_conflicts_message parser_file
-  (* U.success_message !interact_counter *)
-  
+    U.run_again parser_file
+    (* if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file *)
+end
+else U.no_conflicts_message parser_file
+(* 
+U.success_message 100 (* !interact_counter *)
+*)
   
 (*** Assumptions made on the language designer (user of this tool):
  *   * Non-terminals representing boolean are specified with "cond" ^ s*

@@ -609,4 +609,7 @@ let no_conflicts_message (filename: string): unit =
   Printf.printf "\nThere are no ambiguities in %s.\n" filename
 
 let success_message (cnt: int): unit =
-  Printf.printf "\nGrammar disambiguation succeeded after %d number of interacting with the user!!\n\n " cnt
+  Printf.printf "\nGrammar disambiguation succeeded after %d rounds of user interaction\n\n " cnt
+
+let run_again (filename: string): unit = 
+  Printf.printf "\nNew grammar is written on the file %s. Run 'make' again.\n\n" filename
