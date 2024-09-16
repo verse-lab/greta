@@ -11,4 +11,16 @@ type cfg = (* CFG := (V, \Sigma, S, P) *)
 
 let null_cfg = { nonterms = []; terms = []; start = ""; productions = [] }
 
+type nt = string
+type t = string
+type sigma = T of t | Nt of nt
+type p = nt * int * sigma list
 
+type cfg2 = {
+  mutable nonterms : nt list;
+  mutable terms : t list;
+  mutable start : nt;
+  mutable productions : p list;
+}
+
+let null_cfg2 = { nonterms = []; terms = []; start = ""; productions = [] }

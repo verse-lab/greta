@@ -141,6 +141,67 @@ let parser_to_cfg (debug_print: bool) (filename : string): cfg =
   in Printf.printf "\n\nCFG defined in %s : \n" filename; Pp.pp_cfg (cfg_res);
   cfg_res
 
+let read_file filename = 
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true; do
+      lines := input_line chan :: !lines
+    done; !lines
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines
+
+let extract_cfg (debug_print: bool) (filename : string) : cfg2 = 
+  let lines = read_file filename in
+  (* extract sections *)
+  let sectionToLine = Hashtbl.create 5 in
+
+  let rec addLines section acc lines: unit =
+    match lines with
+    | h :: t -> (match h with
+      | a when (String.starts_with ~prefix:"=" a) 
+        -> let new_section = List.nth (String.split_on_char '=' a) 1 
+          in 
+            Hashtbl.add sectionToLine section acc;
+            addLines new_section [] t
+      | a 
+        -> (addLines section (a :: acc) t)
+      )
+    | [] -> Hashtbl.add sectionToLine section acc
+  in addLines "" [] lines;
+  (* check sections *)
+  assert (Hashtbl.mem sectionToLine "s");
+  assert (Hashtbl.mem sectionToLine "nt");
+  assert (Hashtbl.mem sectionToLine "t");
+  assert (Hashtbl.mem sectionToLine "p");
+  (* extract cfg *)
+  let start = List.hd (Hashtbl.find sectionToLine "s") in
+  let nonterms = Hashtbl.find sectionToLine "nt" in
+  let terms = Hashtbl.find sectionToLine "t" in
+  let t_prods = Hashtbl.find sectionToLine "p" in
+  let productions = List.mapi (fun i x -> 
+    let split = Str.bounded_split (Str.regexp " -> ") x 2 in
+    let lhs, rhs = List.hd split, List.nth split 1 in
+    let rhs = String.split_on_char ' ' rhs in
+    (lhs, i,
+    List.map (fun x -> 
+      if List.exists (fun y -> y = x) terms 
+        then T x
+      else if List.exists (fun y -> y = x) nonterms
+        then Nt x
+      else assert false) rhs
+    )
+  ) t_prods in
+  if debug_print then
+    Printf.printf "CFG extracted from %s:\n" filename;
+    Printf.printf "Start: %s\n" start;
+    Printf.printf "Nonterminals: %s\n" (String.concat " " nonterms);
+    Printf.printf "Terminals: %s\n" (String.concat " " terms);
+    Printf.printf "Productions:\n";
+    List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function T x -> x | Nt x -> x) rhs))) productions;
+  { nonterms; terms; start; productions }
+
 (** enhance_appearance : helper to enhance the symbol representation *)
 let enhance_appearance (a: ta): ta =
   let change_symbol s = 
@@ -271,7 +332,7 @@ let ta_to_cfg (versatileTerminals: (terminal * int list) list) (debug_print: boo
   let prods: production list = a'.transitions |> List.map (fun (st, (sym, st_ls)) ->
     if (sym_equals sym "N" || sym_equals sym "B") then (st, ("ε", [fst sym])) 
     else (st, (fst sym, st_ls))) in
-  let cfg_res = 
+  let cfg_res: cfg = 
     { nonterms = nonterms_excl_eps ; terms = unranked_terminals
     ; start = a'.start_state; productions = prods } in
   printf "\nCFG resulted from the TA : \n"; Pp.pp_cfg cfg_res;
