@@ -1,0 +1,11 @@
+(library 
+ (name greta)
+ (public_name greta)
+ (libraries sedlex menhirLib str core graphics qcheck)
+ (preprocess (pps ppx_deriving.std sedlex.ppx))
+ (flags :standard -rectypes))
+
+(menhir
+ (modules parser)
+ (flags --table --inspection --dump --explain --reference-graph))
+
