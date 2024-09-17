@@ -152,8 +152,18 @@ let read_file filename =
     close_in chan;
     List.rev !lines
 
+let ( $ ) a b = a b
+
 let extract_cfg (debug_print: bool) (filename : string) : cfg2 = 
   let lines = read_file filename in
+  let sanitize line = 
+    let line = String.trim line in
+    if String.starts_with ~prefix:"#" line then ""
+    else line
+  in
+  let clean lines = 
+    List.map sanitize lines |> List.filter (fun x -> x <> "")
+  in
   (* extract sections *)
   let sectionToLine = Hashtbl.create 5 in
 
@@ -176,15 +186,15 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
   assert (Hashtbl.mem sectionToLine "t");
   assert (Hashtbl.mem sectionToLine "p");
   (* extract cfg *)
-  let start = List.hd (Hashtbl.find sectionToLine "s") in
-  let nonterms = Hashtbl.find sectionToLine "nt" in
-  let terms = Hashtbl.find sectionToLine "t" in
-  let t_prods = Hashtbl.find sectionToLine "p" in
+  let start = List.hd (clean $ Hashtbl.find sectionToLine "s") in
+  let nonterms = clean $ Hashtbl.find sectionToLine "nt" in
+  let terms = clean $ Hashtbl.find sectionToLine "t" in
+  let t_prods = clean $ Hashtbl.find sectionToLine "p" in
   let productions = List.mapi (fun i x -> 
     let split = Str.bounded_split (Str.regexp " -> ") x 2 in
     let lhs, rhs = List.hd split, List.nth split 1 in
-    let rhs = String.split_on_char ' ' rhs in
-    (lhs, i,
+    let rhs = clean $ String.split_on_char ' ' rhs in
+    (sanitize lhs, i,
     List.map (fun x -> 
       if List.exists (fun y -> y = x) terms 
         then T x
@@ -201,6 +211,33 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
     Printf.printf "Productions:\n";
     List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function T x -> x | Nt x -> x) rhs))) productions;
   { nonterms; terms; start; productions }
+
+let cfg_of_cfg2 (cfg2: cfg2): cfg =
+  { 
+    nonterms = cfg2.nonterms; 
+    terms = cfg2.terms; 
+    start = cfg2.start; 
+    productions = cfg2.productions
+      |> List.map (fun (lhs, _, rhs) ->
+        let rec remove_first_t = function
+          | [] -> (None, [])
+          | T a :: t -> (Some (T a), t)
+          | h :: t -> (match remove_first_t t with
+            | (a, l) -> (a, h :: l))
+        in
+        let first_t, rhs' = match remove_first_t rhs with 
+        | (Some (T x), l) when x = "LPAREN" 
+          -> ("LPARENRPAREN", l)
+        | (Some (T x), l) -> (x, l)
+        | (None, l) -> ("ε", l)
+        | _ -> assert false
+        in
+        let proj = List.fold_right (fun a acc -> match a with
+          T _ -> acc | Nt x -> x :: acc) rhs' []
+        in
+        (lhs, (first_t, proj))
+      )
+  }
 
 (** enhance_appearance : helper to enhance the symbol representation *)
 let enhance_appearance (a: ta): ta =
@@ -295,8 +332,7 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
 let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_print: bool): 
   ta * restriction list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
-  file |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print
-
+  file |> extract_cfg debug_print |> cfg_of_cfg2 |> cfg_to_ta versatiles debug_print
 
 
 (* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)
