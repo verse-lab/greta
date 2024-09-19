@@ -1,13 +1,11 @@
+/* *** G1a *** */
+// 2 po's
+// & vs. |
+// & vs. ->
+
 %{
 open Ast;;
 %}
-
-/* Declare your tokens here. */
-
-/* menhir uses this declaration to automatically generate
- * a token datatype.
- * Each token carries a Range.t value 
- */
 
 %token EOF
 %token <Range.t * string> VAR
@@ -22,23 +20,25 @@ open Ast;;
 
 /* ---------------------------------------------------------------------- */
 
-/* Mark 'toplevel' as a starting nonterminal of the grammar */
 %start toplevel           
 
-/* Define type annotations for toplevel and bexp */
 %type <Ast.bexp> toplevel  
-%type <Ast.bexp> bexp
+%type <Ast.bexp> bexp1
+%type <Ast.bexp> bexp2
 %%
 
 toplevel:
-  | b=bexp EOF { b }        
+  | b=bexp1 EOF { b }        
 
-bexp:
-  | TRUE                { True }
-  | FALSE               { False }
-  | x=VAR               { Var (snd x) }
-  | l=bexp ARR r=bexp   { Imp(l, r) }
-  | l=bexp BAR r=bexp   { Or(l, r) }
-  | l=bexp AMPER r=bexp { And(l, r) }
-  | TILDE b=bexp        { Not(b) }
-  | LPAREN b=bexp RPAREN { b }
+bexp1:
+  | bexp2                 { $1 }
+  | x=VAR                 { Var (snd x) }
+  | l=bexp1 ARR r=bexp2   { Imp(l, r) }
+  | l=bexp1 BAR r=bexp2   { Or(l, r) }
+  | l=bexp2 AMPER r=bexp1 { And(l, r) }  
+
+bexp2:
+  | TRUE                  { True }
+  | FALSE                 { False }
+  | TILDE b=bexp2         { Not(b) }
+  | LPAREN b=bexp1 RPAREN { b }

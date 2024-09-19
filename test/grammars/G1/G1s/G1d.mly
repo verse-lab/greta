@@ -1,3 +1,15 @@
+/* *** G1d *** */
+// 6 po's 3 assoc's
+// & vs. |
+// & vs. ->
+// -> vs. |
+// -> vs. &
+// | vs. ->
+// | vs. &
+// & assoc
+// -> assoc
+// | assoc
+
 %{
 open Ast;;
 %}
@@ -30,11 +42,10 @@ bexp1:
   | x=VAR                 { Var (snd x) }
   | l=bexp1 ARR r=bexp1   { Imp(l, r) }
   | l=bexp1 BAR r=bexp1   { Or(l, r) }
-  | l=bexp1 AMPER r=bexp1 { And(l, r) }
+  | l=bexp1 AMPER r=bexp1 { And(l, r) }  
 
 bexp2:
   | TRUE                  { True }
   | FALSE                 { False }
   | TILDE b=bexp2         { Not(b) }
   | LPAREN b=bexp1 RPAREN { b }
-

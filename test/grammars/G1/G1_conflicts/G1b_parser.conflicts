@@ -1,0 +1,81 @@
+
+** Conflict (shift/reduce) in state 15.
+** Token involved: ARR
+** This state is reached from toplevel after reading:
+
+TILDE bexp2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp1 EOF 
+bexp2 
+(?)
+
+** In state 15, looking ahead at ARR, shifting is permitted
+** because of the following sub-derivation:
+
+TILDE bexp2 
+      bexp2 . ARR bexp2 
+
+** In state 15, looking ahead at ARR, reducing production
+** bexp2 -> TILDE bexp2
+** is permitted because of the following sub-derivation:
+
+bexp2 ARR bexp2 // lookahead token appears
+TILDE bexp2 . 
+
+** Conflict (shift/reduce) in state 14.
+** Tokens involved: BAR AMPER
+** The following explanations concentrate on token BAR.
+** This state is reached from toplevel after reading:
+
+bexp1 AMPER bexp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp1 EOF 
+(?)
+
+** In state 14, looking ahead at BAR, shifting is permitted
+** because of the following sub-derivation:
+
+bexp1 AMPER bexp1 
+            bexp1 . BAR bexp2 
+
+** In state 14, looking ahead at BAR, reducing production
+** bexp1 -> bexp1 AMPER bexp1
+** is permitted because of the following sub-derivation:
+
+bexp1 BAR bexp2 // lookahead token appears
+bexp1 AMPER bexp1 . 
+
+** Conflict (shift/reduce) in state 8.
+** Token involved: ARR
+** This state is reached from toplevel after reading:
+
+bexp2 ARR bexp2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp1 EOF 
+bexp2 
+(?)
+
+** In state 8, looking ahead at ARR, shifting is permitted
+** because of the following sub-derivation:
+
+bexp2 ARR bexp2 
+          bexp2 . ARR bexp2 
+
+** In state 8, looking ahead at ARR, reducing production
+** bexp2 -> bexp2 ARR bexp2
+** is permitted because of the following sub-derivation:
+
+bexp2 ARR bexp2 // lookahead token appears
+bexp2 ARR bexp2 . 
