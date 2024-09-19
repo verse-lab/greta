@@ -5,6 +5,6 @@
  (modules parser))
 
 (library
-  (name code)
+  (name g1)
   (libraries num unix)
   (modes byte native))
