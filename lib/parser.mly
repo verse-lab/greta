@@ -1,44 +1,44 @@
 %{
-  open Ast
+open Ast;;
 %}
 
-%token <int> INT
+/* Declare your tokens here. */
 
-%token TRUE
-%token FALSE
-%token IF
-%token THEN
-%token ELSE
-
-%token PLUS
-%token MUL
-
-%token LPAREN
-%token RPAREN
+/* menhir uses this declaration to automatically generate
+ * a token datatype.
+ * Each token carries a Range.t value 
+ */
 
 %token EOF
+%token <Range.t * string> VAR
+%token <Range.t> ARR      /* -> */
+%token <Range.t> BAR      /* | */
+%token <Range.t> AMPER    /* & */
+%token <Range.t> LPAREN   /* ( */
+%token <Range.t> RPAREN   /* ) */
+%token <Range.t> TILDE    /* ~ */
+%token <Range.t> TRUE     /* true */
+%token <Range.t> FALSE    /* false */
 
-%type <Ast.t> program
+/* ---------------------------------------------------------------------- */
 
-%start program
+/* Mark 'toplevel' as a starting nonterminal of the grammar */
+%start toplevel           
+
+/* Define type annotations for toplevel and bexp */
+%type <Ast.bexp> toplevel  
+%type <Ast.bexp> bexp
 %%
 
-program : expr1 EOF { $1 };
+toplevel:
+  | b=bexp EOF { b }        
 
-cond_expr:
-  | TRUE { Bool true }
-  | FALSE { Bool false } 
-  ;
-
-expr1:
-  | expr1 PLUS expr2 { Plus ($1, $3) }
-  | expr2  { $1 }
-  ;
-
-expr2:
-  | expr2 MUL expr2 { Mul ($1, $3) }
-  | IF cond_expr THEN expr2 { If ($2, Then ($4, Else Na)) }
-  | IF cond_expr THEN expr2 ELSE expr2 { If ($2, Then ($4, Else $6)) }
-  | INT  { Int $1 }
-  | LPAREN expr1 RPAREN { Paren $2 }
-  ;
+bexp:
+  | TRUE                { True }
+  | FALSE               { False }
+  | x=VAR               { Var (snd x) }
+  | l=bexp ARR r=bexp   { Imp(l, r) }
+  | l=bexp BAR r=bexp   { Or(l, r) }
+  | l=bexp AMPER r=bexp { And(l, r) }
+  | TILDE b=bexp        { Not(b) }
+  | LPAREN b=bexp RPAREN { b }
