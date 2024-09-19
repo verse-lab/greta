@@ -1,15 +1,32 @@
-### Test notes
+### Notes
 
 How we initially ran experiments
 
-#### Files w.r.t. Greta tool
+#### Files associated with the Greta
 
-|                      | Relevant files                                                                                                                                                                    | Variations | Test |
-| :------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------: | :--: |
-| **Greta tool** | `learner.ml`   `operation.ml`   <br />`ta.ml`   `cfg.ml`   `treeutils.ml`<br />`pp.ml`   `converter.ml`   <br />`examples.ml`   `runner.ml`    |    n/a    | n/a |
-| **Grammar 0** | `parser.mly`   `ast.ml`   `lexer.ml` <br />`range.ml`   `parseutils.ml`                                                                                          |     5     |  Y  |
-| **Grammar 1** | `parser.mly`   `ast.ml`   `lexer.mll` <br />`range.ml`   `range.mli`                                                                                           |     5     | wip |
-| **Grammar 2** | `parser.mly`   `ast.ml`   `astlib.ml` <br />`lexer.mll`   `range.ml`                                                                                           |     5     | wip |
-| **Grammar 3** | `parser.mly`                                                                                                                                                                    |    wip    | wip |
-| **Grammar 4** | `parser.mly`                                                                                                                                                                    |            |      |
-| **Grammar 5** | `parser.mly`                                                                                                                                                                    |            |      |
+* `learner.ml` - Tree automata learner algorithm
+* `operation.ml` -  Tree automata intersection algorithm
+* `ta.ml` - Data structure for tree automata
+* `cfg.ml` - Data structure for context-free grammar   
+* `treeutils.ml` - Utilities for tree automata  
+* `converter.ml` - Convert between tree automata and context-free grammar
+* `examples.ml` - Example data, example generator
+* `runner.ml` - Tree automata run to determine accept/reject
+* `pp.ml` - Pretty printers
+
+
+
+#### Test Data
+
+|                    | Variations | Dat ready? |       Tested?       | Relevant files                                                                        |
+| :-----------------: | :--------: | :--------: | :------------------: | ------------------------------------------------------------------------------------- |
+| **Grammar 0** |     5     |     Y     | Before Impl. changes | `parser.mly`   `ast.ml`   `lexer.ml`   `range.ml`   `parseutils.ml` |
+| **Grammar 1** |     5     |     Y     |          N          | `parser.mly`   `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`    |
+| **Grammar 2** |     5     |    wip    |          N          | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`   |
+| **Grammar 3** |    wip    |    wip    |          N          | `parser.mly`                                                                      |
+| **Grammar 4** |     5     |    wip    |          N          | `parser.mly`                                                                        |
+| **Grammar 5** |     -     |     -     |          -          | `parser.mly`                                                                        |
+| **Grammar 6** |     -     |     -     |          -          | `parser.mly`                                                                        |
+| **Grammar 7** |     -     |     -     |          -          | `parser.mly`                                                                        |
+| **Grammar 8** |     -     |     -     |          -          | `parser.mly`                                                                        |
+| **Grammar 9** |     -     |     -     |          -          | `parser.mly`                                                                        |
