@@ -6,6 +6,6 @@
  (flags --table --inspection --explain --dump))
 
 (library
-  (name greta)
+  (name g1)
   (modes byte native)
   (libraries unix num menhirLib str))
