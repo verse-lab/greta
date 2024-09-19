@@ -2,10 +2,9 @@
  (modules lexer))
 
 (menhir
- (modules start_parser parser)
- (flags --table --inspection --explain --dump))
+ (modules parser))
 
 (library
-  (name greta)
-  (modes byte native)
-  (libraries unix num menhirLib str))
+  (name code)
+  (libraries num unix)
+  (modes byte native))
