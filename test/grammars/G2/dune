@@ -1,0 +1,10 @@
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (modules parser))
+
+(library
+  (name code)
+  (libraries num unix)
+  (modes byte native))
