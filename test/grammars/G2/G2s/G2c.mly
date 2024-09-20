@@ -1,3 +1,12 @@
+/* *** G2c *** */
+// 6 conflicts - 3 po's 2 assoc's
+// if1 vs. if2
+// - vs. *
+// * vs. -
+// + assoc
+// - assoc
+// * assoc
+
 %{
 open Ast;;
 

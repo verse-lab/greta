@@ -1,0 +1,27 @@
+
+** Conflict (shift/reduce) in state 30.
+** Token involved: ELSE
+** This state is reached from toplevel after reading:
+
+IF LPAREN exp RPAREN IF LPAREN exp RPAREN stmt
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+stmts EOF 
+stmt stmts 
+(?)
+
+** In state 30, looking ahead at ELSE, reducing production
+** stmt -> IF LPAREN exp RPAREN stmt
+** is permitted because of the following sub-derivation:
+
+IF LPAREN exp RPAREN stmt ELSE stmt // lookahead token appears
+                     IF LPAREN exp RPAREN stmt . 
+
+** In state 30, looking ahead at ELSE, shifting is permitted
+** because of the following sub-derivation:
+
+IF LPAREN exp RPAREN stmt 
+                     IF LPAREN exp RPAREN stmt . ELSE stmt 

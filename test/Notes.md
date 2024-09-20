@@ -1,6 +1,6 @@
 ### Notes
 
-How we initially ran experiments
+Evaluation
 
 #### Files associated with the Greta
 
@@ -15,18 +15,22 @@ How we initially ran experiments
 * `pp.ml` - Pretty printers
 
 
-
 #### Test Data
 
-|                    | Variations | Dat ready? |       Tested?       | Relevant files                                                                        |
-| :-----------------: | :--------: | :--------: | :------------------: | ------------------------------------------------------------------------------------- |
-| **Grammar 0** |     5     |     Y     | Before Impl. changes | `parser.mly`   `ast.ml`   `lexer.ml`   `range.ml`   `parseutils.ml` |
-| **Grammar 1** |     5     |     Y     |          N          | `parser.mly`   `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`    |
-| **Grammar 2** |     5     |    wip    |          N          | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`   |
-| **Grammar 3** |    wip    |    wip    |          N          | `parser.mly`                                                                      |
-| **Grammar 4** |     5     |    wip    |          N          | `parser.mly`                                                                        |
-| **Grammar 5** |     -     |     -     |          -          | `parser.mly`                                                                        |
-| **Grammar 6** |     -     |     -     |          -          | `parser.mly`                                                                        |
-| **Grammar 7** |     -     |     -     |          -          | `parser.mly`                                                                        |
-| **Grammar 8** |     -     |     -     |          -          | `parser.mly`                                                                        |
-| **Grammar 9** |     -     |     -     |          -          | `parser.mly`                                                                        |
+|              | Varia-<br />tions | Data<br />Ready? | Init<br />Learn? | E2E<br />Tested? | Relevant Files                                                                        |
+| :----------: | :---------------: | :--------------: | :--------------: | :--------------: | ------------------------------------------------------------------------------------- |
+| **G0** |         5         |        Y        |        Y        |      Before      | `parser.mly`   `ast.ml`   `lexer.ml`   `range.ml`   `parseutils.ml` |
+| **G1** |         5         |        Y        |        -        |        N        | `parser.mly`   `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`    |
+| **G2** |         5         |     *WIP*     |        -        |        N        | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`   |
+| **G3** |         -         |        -        |        -        |        -        | `parser.mly`                                                                      |
+| **G4** |         -         |        -        |        -        |        -        | `parser.mly`                                                                      |
+| **G5** |         -         |        -        |        -        |        -        | `parser.mly`                                                                      |
+| **G6** |         -         |        -        |        -        |        -        | `parser.mly`                                                                        |
+| **G7** |         -         |        -        |        -        |        -        | `parser.mly`                                                                        |
+| **G8** |         -         |        -        |        -        |        -        | `parser.mly`                                                                        |
+| **G9** |         -         |        -        |        -        |        -        | `parser.mly`                                                                        |
+
+
+#### Test Results
+
+The results of the test can be summarized as follows:

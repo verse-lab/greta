@@ -1,3 +1,11 @@
+/* *** G2b *** */
+// 5 conflicts - 3 po's 2 assoc's
+// if1 vs. if2
+// - vs. *
+// * vs. -
+// * assoc
+// - assoc
+
 %{
 open Ast;;
 
@@ -31,6 +39,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %type <Ast.const> const
 %%
 
+
 toplevel:
   | p=stmts EOF  { p }
 
@@ -44,9 +53,8 @@ const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
 exp:
-  | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | exp2 { $1 }
-  
+  | e1=exp PLUS e2=exp2  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+
 exp2: 
   | e1=exp2 DASH e2=exp2  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
   | e1=exp2 STAR e2=exp2  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
