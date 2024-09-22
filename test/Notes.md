@@ -16,18 +16,18 @@ Evaluation
 
 #### Test Data
 
-|              | Varia-<br />tions | Data<br />Ready? | Init<br />Learn? | E2E<br />Tested? | Relevant Files                                                                                            |
-| :----------: | :---------------: | :--------------: | :--------------: | :--------------: | --------------------------------------------------------------------------------------------------------- |
-| **G0** |         5         |        Y        |        Y        |      Before      | `parser.mly`   `ast.ml`   `lexer.ml`   `range.ml`   `parseutils.ml`                     |
-| **G1** |         5         |        Y        |        -        |        N        | `parser.mly`   `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`                        |
-| **G2** |         5         |        Y        |        -        |        N        | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`                       |
-| **G3** |         5         |       wip       |        -        |        N        | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`   `range.mli`    |
-| **G4** |         -         |        -        |        -        |        -        | `parser.mly`                                                                                          |
-| **G5** |         -         |        -        |        -        |        -        | `parser.mly`                                                                                          |
-| **G6** |         -         |        -        |        -        |        -        | `parser.mly`                                                                                            |
-| **G7** |         -         |        -        |        -        |        -        | `parser.mly`                                                                                            |
-| **G8** |         -         |        -        |        -        |        -        | `parser.mly`                                                                                            |
-| **G9** |         -         |        -        |        -        |        -        | `parser.mly`                                                                                            |
+|              | Varia-<br />tions | Data<br />Ready? | Init<br />Learn? | E2E<br />Tested? |          Source          | Relevant Files                                                                                            |
+| :----------: | :---------------: | :--------------: | :--------------: | :--------------: | :-----------------------: | --------------------------------------------------------------------------------------------------------- |
+| **G0** |         5         |        Y        |        Y        |      Before      |           Paper           | `parser.mly`   `ast.ml`   `lexer.ml`   `range.ml`   `parseutils.ml`                     |
+| **G1** |         5         |        Y        |        -        |        N        | Compilers<br />coursework | `parser.mly`   `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`                        |
+| **G2** |         5         |        Y        |        -        |        N        | Compilers<br />coursework | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`                       |
+| **G3** |         5         |       wip       |        -        |        N        | Compilers<br />coursework | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`   `range.mli`    |
+| **G4** |         -         |        -        |        -        |        -        |       Stackoverflow       | `parser.mly`                                                                                          |
+| **G5** |         -         |        -        |        -        |        -        |       Stackoverflow       | `parser.mly`                                                                                          |
+| **G6** |         -         |        -        |        -        |        -        |       Stackoverflow       | `parser.mly`                                                                                            |
+| **G7** |         -         |        -        |        -        |        -        |          GitHub          | `parser.mly`                                                                                            |
+| **G8** |         -         |        -        |        -        |        -        |          GitHub          | `parser.mly`                                                                                            |
+| **G9** |         -         |        -        |        -        |        -        |          GitHub          | `parser.mly`                                                                                            |
 
 #### Test Results
 
