@@ -1,0 +1,82 @@
+
+** Conflict (shift/reduce) in state 12.
+** Token involved: MUL
+** This state is reached from program after reading:
+
+IF cond_expr THEN expr2 ELSE expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+expr1 EOF 
+expr2 
+(?)
+
+** In state 12, looking ahead at MUL, shifting is permitted
+** because of the following sub-derivation:
+
+IF cond_expr THEN expr2 ELSE expr2 
+                             expr2 . MUL expr2 
+
+** In state 12, looking ahead at MUL, reducing production
+** expr2 -> IF cond_expr THEN expr2 ELSE expr2
+** is permitted because of the following sub-derivation:
+
+expr2 MUL expr2 // lookahead token appears
+IF cond_expr THEN expr2 ELSE expr2 . 
+
+** Conflict (shift/reduce) in state 10.
+** Token involved: MUL
+** This state is reached from program after reading:
+
+expr2 MUL expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+expr1 EOF 
+expr2 
+(?)
+
+** In state 10, looking ahead at MUL, shifting is permitted
+** because of the following sub-derivation:
+
+expr2 MUL expr2 
+          expr2 . MUL expr2 
+
+** In state 10, looking ahead at MUL, reducing production
+** expr2 -> expr2 MUL expr2
+** is permitted because of the following sub-derivation:
+
+expr2 MUL expr2 // lookahead token appears
+expr2 MUL expr2 . 
+
+** Conflict (shift/reduce) in state 8.
+** Tokens involved: MUL ELSE
+** The following explanations concentrate on token MUL.
+** This state is reached from program after reading:
+
+IF cond_expr THEN expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+expr1 EOF 
+expr2 
+(?)
+
+** In state 8, looking ahead at MUL, shifting is permitted
+** because of the following sub-derivation:
+
+IF cond_expr THEN expr2 
+                  expr2 . MUL expr2 
+
+** In state 8, looking ahead at MUL, reducing production
+** expr2 -> IF cond_expr THEN expr2
+** is permitted because of the following sub-derivation:
+
+expr2 MUL expr2 // lookahead token appears
+IF cond_expr THEN expr2 . 
