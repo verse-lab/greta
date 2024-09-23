@@ -12,13 +12,6 @@ type t =
   and else_t = 
   | Else of t
 
-type cs3231 =
-  | Atom of string
-  | A1 of cs3231
-  | B1 of cs3231
-  | A2 of cs3231 * cs3231
-  | B2 of cs3231 * cs3231
-
 let rec pp fmt =
   function
   | Na -> Format.pp_print_space fmt ()

@@ -13,6 +13,8 @@ let parse lexbuf =
 let parse_string str =
   parse (Sedlexing.Utf8.from_string str)
 
+let runIf debug f = if debug then f ()
+
 (** utilities for reading lines from parser *)
 let read_line i = try Some (input_line i) with End_of_file -> None
 

@@ -255,83 +255,129 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
   ta * restriction list =
   let open List in
   let open Printf in
+  let epsilon_symb: symbol = ("ε", 1) in
+  let prods_rhs = g.productions |> map snd in
+  (* helper to compute rank of given symbol *)
+  let rank_of_symb (s: string): int =
+    match assoc_opt s prods_rhs with
+    | None -> 0
+    | Some symb_ls -> length symb_ls
+  in
+  let ranked_alphabet: symbol list = 
+    let auxiliary_symbols = ["THEN"; "ELSE"; "RPAREN"] in
+    g.terms
+    |> filter (fun x -> not (mem x auxiliary_symbols))
+    |> map (fun x -> if x = "LPAREN" then "LPARENRPAREN" else x)
+    |> map (fun x -> (x, rank_of_symb x))
+    (* add "ε" symbol to the alphabet *)
+    |> append [epsilon_symb] 
+  in
+  (runIf debug_print (fun _ ->
+    printf "\nRanked alphabet : \n";
+    iter (fun (s, r) -> printf "(%s, %i)\n" s r) ranked_alphabet)
+  );
+  (* helper to get restrictions from transitions *)
+  let trans_to_restrictions trans_ls init_st = 
+    let is_eps_prod (s, rhs) = 
+      syms_equals s epsilon_symb || length rhs = 1
+    in
+    let rec find_epsilon_prod ls lhs_nt =
+      match ls with 
+      | [] -> None
+      | (lhs, (s, rhs)) :: tl ->
+        if (lhs = lhs_nt) && is_eps_prod (s, rhs)
+          then Some (hd rhs)
+          else find_epsilon_prod tl lhs_nt
+    in
+    let rec get_order_loop ls nt acc =
+      if (mem nt acc) then acc else
+      let next_nt = find_epsilon_prod ls nt in
+      match next_nt with
+      | None -> nt :: acc
+      | Some new_nt -> get_order_loop ls new_nt (nt :: acc)
+    in
+    let states_ordered = List.mapi
+      (fun i st -> (st, i))
+      (get_order_loop trans_ls init_st [])
+    in
+    (runIf debug_print (fun _ -> 
+      printf "\nOrder of states : \n";
+      iter
+        (fun (st, lvl) -> printf "(%s, %i)\n" st lvl) 
+        states_ordered)
+    );
+    let rec get_o_base_precedence tls acc_res =
+      let auxiliary_labels = [
+        epsilon_symb;
+        ("LPARENRPAREN", 1);
+        ("N", 0)] 
+      in
+      match tls with 
+      | [] -> List.rev acc_res
+      | (lhs_st, (sym, _)) :: tl ->
+        if (is_cond_state lhs_st)
+          || exists (syms_equals sym) auxiliary_labels
+        then
+          get_o_base_precedence tl acc_res
+        else
+          let ord = match (assoc_opt lhs_st states_ordered) with 
+          | None -> raise State_with_no_matching_order
+          | Some o -> o
+          in
+          get_o_base_precedence tl (Prec (sym, ord)::acc_res)
+    in get_o_base_precedence trans_ls []
+  in
+  let (trans, restrictions) =
+    let stat: state ref = ref "" in
+    let trans_ls = 
+      g.productions
+      |> fold_left (fun acc (n, (t, ls)) ->
+        (n, ((t, (length ls)), ls)) :: acc) []
+      |> map (fun (s, (op, s_ls)) ->
+          if s_ls = [] then 
+            (s, (op, ["ϵ"]))
+          else
+            (stat := s; (s, (op, s_ls)))
+          )
+      |> List.rev in
+    let restrictions_ls = trans_to_restrictions trans_ls g.start in
+    trans_ls, restrictions_ls
+  in
   (* helper assuming at most 2 occurrences of versatileTerminals *)
   let last_ind ls elem =
     let rec loop i i_acc l = match l with [] -> i_acc
     | h::tl -> loop (i+1) (if fst h = elem then i else i_acc) tl
     in loop 0 (-1) ls in
-  let epsilon_symb: symbol = ("ε", 1) in
-  let prods_rhs = g.productions |> map snd in
-  (* helper to compute rank of given symbol *)
-  let rank_of_symb (debug: bool) (s: string): int =
-    if (s = "N" || s = "B") then (if debug then printf "\tSymbol N or S, so length 0.\n"; 0) else
-    match assoc_opt s prods_rhs with
-    | None -> raise (Failure "Infeasible: nonexisting symbol")
-    | Some symb_ls -> (if debug then (printf "\tSymbol %s has" s; symb_ls |> iter (printf " %s"); 
-      printf " so length is "; printf "%d.\n" (length symb_ls)); length symb_ls) in
-  let ranked_alphabet: symbol list = 
-    let rparen_exists = mem "RPAREN" g.terms in g.terms 
-    |> filter (fun x -> not (x = "THEN") && not (x = "ELSE") && not (x = "RPAREN"))
-    |> map (fun x -> if (x = "LPAREN" && rparen_exists) then "LPARENRPAREN" else x)
-    |> map (fun x -> (x, rank_of_symb debug_print x)) 
-    (* add "ε" symbol to the alphabet *)
-    |> append [epsilon_symb] in
-  (* helper to get restrictions from transitions *)
-  let trans_to_restrictions (trans_ls: transition list) (init_st: state): restriction list = 
-    let rec get_order_loop (ls: transition list) (curr_st: state) (acc: state list): state list = 
-      match ls with [] -> List.rev acc (* reverse is necessary for higher # ~ deeper *)
-      | (lhs_st, (s, rhs_sts)) :: tl -> 
-        if (lhs_st = curr_st) && (syms_equals s epsilon_symb)
-        then (let rhs_st = List.hd rhs_sts 
-              in get_order_loop tl rhs_st (rhs_st::acc))
-        else get_order_loop tl curr_st acc
-    in let states_ordered = get_order_loop trans_ls init_st [init_st] 
-    in let states_orders = states_ordered |> List.mapi (fun i st -> (st, i)) 
-    in (if debug_print then (printf "\nOrder of states : \n\t"; 
-      states_orders |> List.iter (fun (st, lvl) -> printf "(%s, %i) " st lvl); printf "\n\n")); 
-    let rec get_o_base_precedence (tls: transition list) (acc_res: restriction list): restriction list =
-      match tls with [] -> List.rev acc_res
-      | (lhs_st, (sym, _)) :: tl -> 
-        if (is_cond_state lhs_st) || (syms_equals sym epsilon_symb) 
-            || (syms_equals sym ("LPARENRPAREN", 1)) || (syms_equals sym ("N", 0))
-        then get_o_base_precedence tl acc_res
-        else (let ord = match (assoc_opt lhs_st states_orders) with 
-                        | None -> raise State_with_no_matching_order
-                        | Some o -> o 
-              in get_o_base_precedence tl (Prec (sym, ord)::acc_res))
-    in get_o_base_precedence trans_ls []
-  in 
-  let (trans, restrictions) : transition list * restriction list =
-    let stat: state ref = ref "" in
-    let trans_ls = 
-      g.productions |> fold_left (fun acc (n, (t, ls)) ->  (n, ((t, (length ls)), ls)) :: acc) []
-      |> map (fun (s, (op, s_ls)) -> 
-        (* treat int (N) and bool (B) differently *)
-        if (fst op = "ε" && ((hd s_ls = "N") || (hd s_ls = "B"))) then (s, ((hd s_ls, 0), "ϵ"::[])) 
-        (* TODO (below stat): make this less computationally expensive *)
-        else if (fst op = "ε") then (stat := s; (s, (op, s_ls))) else (stat := s; (s, (op, s_ls))))
-        |> List.rev in 
-    let restrictions_ls = trans_to_restrictions trans_ls g.start in 
-    trans_ls, restrictions_ls
-  in
   (* add versatile symbols -- with multiple ranks -- to alphabet *)
-  let toadd_versterms (debug: bool): symbol list = versatileTerminals |> map fst |> map (fun term ->
-    let lasti = last_ind prods_rhs term in
-    let rank_of_lasti: int = match nth_opt prods_rhs lasti with
-      | None -> raise (Failure "Infeasible")
-      | Some (t, symb_ls) -> (if debug then (printf "\tSymbol %s has" t; symb_ls |> iter (printf " %s"); 
-        printf " so length is "; printf "%d.\n" (length symb_ls)); length symb_ls) 
-    in (term, rank_of_lasti)) in
-  let ta_res = 
-    { states = "ϵ"::g.nonterms; alphabet = ranked_alphabet @ (toadd_versterms debug_print)
-    ; start_state = g.start; transitions = trans } |> enhance_appearance in
-  printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res; 
+  let toadd_versterms = 
+    versatileTerminals 
+    |> map fst
+    |> map (fun term ->
+      let lasti = last_ind prods_rhs term in
+      let rank_of_lasti: int = match nth_opt prods_rhs lasti with
+        | None -> raise (Failure "Infeasible")
+        | Some (t, symb_ls) ->
+          (runIf debug_print (fun _ ->
+            printf "\n\tSymbol %s has" t; symb_ls |> iter (printf " %s");
+            printf " so length is "; printf "%d.\n" (length symb_ls))
+          );
+          length symb_ls
+     in (term, rank_of_lasti)) in
+  let ta_res =
+    { 
+      states = "ϵ"::g.nonterms; 
+      alphabet = ranked_alphabet @ toadd_versterms; 
+      start_state = g.start; 
+      transitions = trans
+    } |> enhance_appearance in
+  printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
   printf "\nRestrictions O_bp obtained from the TA_g : "; Pp.pp_restriction_lst restrictions;
   ta_res, restrictions
 
 let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_print: bool): 
   ta * restriction list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
+  (* "./lib/parser.mly" |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print *)
   file |> extract_cfg debug_print |> cfg_of_cfg2 |> cfg_to_ta versatiles debug_print
 
 

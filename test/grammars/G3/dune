@@ -1,0 +1,11 @@
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (modules start_parser parser)
+ (flags --table --inspection --explain --dump))
+
+(library
+  (name greta2)
+  (modes byte native)
+  (libraries unix num menhirLib str))
