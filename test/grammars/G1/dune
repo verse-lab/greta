@@ -6,5 +6,5 @@
 
 (library
   (name g1)
-  (libraries num unix)
-  (modes byte native))
+  (modes byte native)
+  (libraries unix num menhirLib str))
