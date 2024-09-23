@@ -1,3 +1,12 @@
+/* *** G3b *** */
+// 10 conflicts - 10 po's 0 assoc
+// (Q) is this unfixable by any chance?
+// -1 vs. (, { (2)
+// -2 vs. (, { (2)
+// == vs. (, { (2)
+// + vs. (, { (2)
+// * vs. (, { (2)
+
 %{
 open Ast
 
@@ -125,7 +134,7 @@ exp1:
 exp2:
   | i=INT               { loc $startpos $endpos @@ CInt i }
   | LPAREN e=exp1 RPAREN { e }
-
+  
 vdecl:
   | VAR id=IDENT EQ init=exp1 { (id, init) }
 
@@ -151,3 +160,4 @@ else_stmt:
   | (* empty *)       { [] }
   | ELSE b=block      { b }
   | ELSE ifs=if_stmt  { [ ifs ] }
+

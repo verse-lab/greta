@@ -1,4 +1,4 @@
-(* open Assert *)
+open Assert
 
 type 'a node = { elt : 'a; loc : Range.t }
 

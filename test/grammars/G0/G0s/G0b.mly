@@ -1,4 +1,6 @@
 /* *** G0b *** */
+// 3 po's 2 assoc's
+// * vs. +
 // + vs. *
 // if1 vs. if2
 // + assoc

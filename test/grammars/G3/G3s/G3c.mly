@@ -1,3 +1,9 @@
+/* *** G3c *** */
+// 14 conflicts - 14 po's 0 assoc
+// ~ vs. *, +, ==, -2 (4)
+// -1 vs. *, +, (, {, ==, -2 (6)
+// ! vs. *, +, ==, -2 (4)
+
 %{
 open Ast
 
@@ -113,7 +119,7 @@ lhs:
 
 exp1:
   | exp2 { $1 }
-  | e1=exp2 b=bop e2=exp1 { loc $startpos $endpos @@ Bop (b, e1, e2) }
+  | e1=exp1 b=bop e2=exp2 { loc $startpos $endpos @@ Bop (b, e1, e2) }
   | id=IDENT            { loc $startpos $endpos @@ Id id }
   | e=exp1 LBRACKET i=exp1 RBRACKET
                         { loc $startpos $endpos @@ Index (e, i) }
@@ -125,6 +131,7 @@ exp1:
 exp2:
   | i=INT               { loc $startpos $endpos @@ CInt i }
   | LPAREN e=exp1 RPAREN { e }
+  
 
 vdecl:
   | VAR id=IDENT EQ init=exp1 { (id, init) }
@@ -151,3 +158,4 @@ else_stmt:
   | (* empty *)       { [] }
   | ELSE b=block      { b }
   | ELSE ifs=if_stmt  { [ ifs ] }
+

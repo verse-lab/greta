@@ -1,8 +1,22 @@
+/* *** G1e *** */
+// 9 po's 3 assoc's
+// ~ vs. |
+// ~ vs. ->
+// ~ vs. &
+// & vs. |
+// & vs. ->
+// -> vs. |
+// -> vs. &
+// | vs. ->
+// | vs. &
+// & assoc
+// -> assoc
+// | assoc
+
+
 %{
 open Ast;;
 %}
-
-/* Declare your tokens here. */
 
 /* menhir uses this declaration to automatically generate
  * a token datatype.

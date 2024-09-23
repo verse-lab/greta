@@ -5,7 +5,7 @@
 
 open Format
 open Ast
-open Range  
+(* open Range   *)
 
 (* 
  * Parse an AST from a lexbuf 
@@ -72,7 +72,7 @@ and print_exp_aux fmt level e =
   );
   (if this_level < level then pps ")" )
 
-let print_decl_aux semi fmt {elt={id; init}} =
+let print_decl_aux semi fmt {elt={id; init}; _} =
   pp_open_hbox fmt ();
   pp_print_string fmt "int";
   pp_print_space fmt ();

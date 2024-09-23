@@ -1,3 +1,11 @@
+/* *** G3a *** */
+// 9 conflicts - 8 po's 1 assoc
+// -2 vs. == (1)
+// == vs. *, +, (, {, -2 (5)
+// == assoc (1)
+// + vs. == (1)
+// * vs. == (1)
+
 %{
 open Ast
 
@@ -39,6 +47,9 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a node =
 %token GLOBAL   /* global */
 
 
+
+%left PLUS DASH
+%left STAR
 %nonassoc BANG
 %nonassoc TILDE
 %nonassoc LBRACKET
@@ -113,18 +124,19 @@ lhs:
 
 exp1:
   | exp2 { $1 }
-  | e1=exp2 b=bop e2=exp1 { loc $startpos $endpos @@ Bop (b, e1, e2) }
+  | e1=exp1 b=bop e2=exp1 { loc $startpos $endpos @@ Bop (b, e1, e2) }
   | id=IDENT            { loc $startpos $endpos @@ Id id }
   | e=exp1 LBRACKET i=exp1 RBRACKET
                         { loc $startpos $endpos @@ Index (e, i) }
   | e=exp1 LPAREN es=separated_list(COMMA, exp1) RPAREN
                         { loc $startpos $endpos @@ Call (e,es) }
-  | t=rtyp NULL           { loc $startpos $endpos @@ CNull t }
-  | u=uop e=exp1         { loc $startpos $endpos @@ Uop (u, e) }
 
 exp2:
   | i=INT               { loc $startpos $endpos @@ CInt i }
-  | LPAREN e=exp1 RPAREN { e }
+  | t=rtyp NULL           { loc $startpos $endpos @@ CNull t }
+  | u=uop e=exp2         { loc $startpos $endpos @@ Uop (u, e) }
+  | LPAREN e=exp1 RPAREN { e } 
+  
 
 vdecl:
   | VAR id=IDENT EQ init=exp1 { (id, init) }
@@ -151,3 +163,4 @@ else_stmt:
   | (* empty *)       { [] }
   | ELSE b=block      { b }
   | ELSE ifs=if_stmt  { [ ifs ] }
+

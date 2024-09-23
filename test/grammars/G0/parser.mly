@@ -43,17 +43,3 @@ expr2:
   | LPAREN expr1 RPAREN { Paren $2 }
   ;
 
-
-
-
-expr2:
-  | expr2 MUL expr3 { Mul ($1, $3) }
-  | expr3  { $1 }
-  ;
-
-expr3:
-  | IF cond_expr THEN expr3 { If ($2, Then ($4, Else Na)) }
-  | IF cond_expr THEN expr3 ELSE expr3 { If ($2, Then ($4, Else $6)) }
-  | INT  { Int $1 }
-  | LPAREN expr1 RPAREN { Paren $2 }
-  ;
