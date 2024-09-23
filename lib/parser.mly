@@ -1,40 +1,153 @@
 %{
-  open Ast
+open Ast
+
+let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a node =
+  { elt ; loc=Range.mk_lex_range startpos endpos }
+
 %}
 
-%token <int> INT
-
-%token TRUE
-%token FALSE
-%token IF
-%token THEN
-%token ELSE
-
-%token PLUS
-%token MUL
-
-%token LPAREN
-%token RPAREN
-
+/* Declare your tokens here. */
 %token EOF
+%token <int64>  INT
+%token NULL
+%token <string> STRING
+%token <string> IDENT
 
-%type <Ast.t> program
+%token TINT     /* int */
+%token TVOID    /* void */
+%token TSTRING  /* string */
+%token IF       /* if */
+%token ELSE     /* else */
+%token WHILE    /* while */
+%token RETURN   /* return */
+%token VAR      /* var */
+%token SEMI     /* ; */
+%token COMMA    /* , */
+%token LBRACE   /* { */
+%token RBRACE   /* } */
+%token PLUS     /* + */
+%token DASH     /* - */
+%token STAR     /* * */
+%token EQEQ     /* == */
+%token EQ       /* = */
+%token LPAREN   /* ( */
+%token RPAREN   /* ) */
+%token LBRACKET /* [ */
+%token RBRACKET /* ] */
+%token TILDE    /* ~ */
+%token BANG     /* ! */
+%token GLOBAL   /* global */
 
-%start program
+
+%nonassoc BANG
+%nonassoc TILDE
+%nonassoc LBRACKET
+%nonassoc LPAREN
+
+/* ---------------------------------------------------------------------- */
+
+%start prog
+%start exp_top
+%start stmt_top
+%type <Ast.exp Ast.node> exp_top
+%type <Ast.stmt Ast.node> stmt_top
+
+%type <Ast.prog> prog
+%type <Ast.exp Ast.node> exp1
+%type <Ast.exp Ast.node> exp2
+%type <Ast.stmt Ast.node> stmt
+%type <Ast.block> block
+%type <Ast.ty> ty
 %%
 
-program : expr EOF { $1 };
+exp_top:
+  | e=exp1 EOF { e }
 
-cond_expr:
-  | TRUE { Bool true }
-  | FALSE { Bool false } 
-  ;
+stmt_top:
+  | s=stmt EOF { s }
 
-expr:
-  | INT  { Int $1 }
-  | expr PLUS expr { Plus ($1, $3) }
-  | expr MUL expr { Mul ($1, $3) }
-  | LPAREN expr RPAREN { Paren $2 }
-  | IF cond_expr THEN expr { If ($2, Then ($4, Else Na)) }
-  | IF cond_expr THEN expr ELSE expr { If ($2, Then ($4, Else $6)) }
-  ;
+prog:
+  | p=list(decl) EOF  { p }
+
+decl:
+  | GLOBAL name=IDENT EQ init=gexp SEMI
+    { Gvdecl (loc $startpos $endpos { name; init }) }
+  | frtyp=ret_ty fname=IDENT LPAREN args=arglist RPAREN body=block
+    { Gfdecl (loc $startpos $endpos { frtyp; fname; args; body }) }
+
+arglist:
+  | l=separated_list(COMMA, pair(ty,IDENT)) { l }
+    
+ty:
+  | TINT   { TInt }
+  | r=rtyp { TRef r } 
+
+
+%inline ret_ty:
+  | TVOID  { RetVoid }
+  | t=ty   { RetVal t }
+
+%inline rtyp:
+  | TSTRING { RString }
+  | t=ty LBRACKET RBRACKET { RArray t }
+
+%inline bop:
+  | PLUS   { Add }
+  | DASH   { Sub }
+  | STAR   { Mul }
+  | EQEQ   { Eq } 
+
+%inline uop:
+  | DASH  { Neg }
+  | BANG  { Lognot }
+  | TILDE { Bitnot }
+
+gexp:
+  | t=rtyp NULL  { loc $startpos $endpos @@ CNull t }
+  | i=INT      { loc $startpos $endpos @@ CInt i } 
+
+lhs:  
+  | id=IDENT            { loc $startpos $endpos @@ Id id }
+  | e=exp1 LBRACKET i=exp1 RBRACKET
+                        { loc $startpos $endpos @@ Index (e, i) }
+
+exp1:
+  | exp2 { $1 }
+  | e1=exp2 b=bop e2=exp1 { loc $startpos $endpos @@ Bop (b, e1, e2) }
+  | id=IDENT            { loc $startpos $endpos @@ Id id }
+  | e=exp1 LBRACKET i=exp1 RBRACKET
+                        { loc $startpos $endpos @@ Index (e, i) }
+  | e=exp1 LPAREN es=separated_list(COMMA, exp1) RPAREN
+                        { loc $startpos $endpos @@ Call (e,es) }
+  | t=rtyp NULL           { loc $startpos $endpos @@ CNull t }
+  | u=uop e=exp1         { loc $startpos $endpos @@ Uop (u, e) }
+
+exp2:
+  | i=INT               { loc $startpos $endpos @@ CInt i }
+  | LPAREN e=exp1 RPAREN { e }
+
+vdecl:
+  | VAR id=IDENT EQ init=exp1 { (id, init) }
+
+stmt: 
+  | d=vdecl SEMI        { loc $startpos $endpos @@ Decl(d) }
+  | p=lhs EQ e=exp1 SEMI { loc $startpos $endpos @@ Assn(p,e) }
+  | e=exp1 LPAREN es=separated_list(COMMA, exp1) RPAREN SEMI
+                        { loc $startpos $endpos @@ SCall (e, es) }
+  | ifs=if_stmt         { ifs }
+  | RETURN SEMI         { loc $startpos $endpos @@ Ret(None) }
+  | RETURN e=exp1 SEMI   { loc $startpos $endpos @@ Ret(Some e) }
+  | WHILE LPAREN e=exp1 RPAREN b=block  
+                        { loc $startpos $endpos @@ While(e, b) } 
+
+block:
+  | LBRACE stmts=list(stmt) RBRACE { stmts }
+
+if_stmt:
+  | IF LPAREN e=exp1 RPAREN b1=block b2=else_stmt
+    { loc $startpos $endpos @@ If(e,b1,b2) }
+
+else_stmt:
+  | (* empty *)       { [] }
+  | ELSE b=block      { b }
+  | ELSE ifs=if_stmt  { [ ifs ] }

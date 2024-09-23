@@ -1,0 +1,135 @@
+
+** Conflict (shift/reduce) in state 34.
+** Tokens involved: LPAREN LBRACKET
+** The following explanations concentrate on token LPAREN.
+** This state is reached from exp_top after reading:
+
+DASH exp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp_top 
+exp1 EOF 
+(?)
+
+** In state 34, looking ahead at LPAREN, shifting is permitted
+** because of the following sub-derivation:
+
+DASH exp1 
+     exp1 . LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN 
+
+** In state 34, looking ahead at LPAREN, reducing production
+** exp1 -> DASH exp1
+** is permitted because of the following sub-derivation:
+
+exp1 LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN // lookahead token appears
+DASH exp1 . 
+
+** Conflict (shift/reduce) in state 32.
+** Tokens involved: LPAREN LBRACKET
+** The following explanations concentrate on token LPAREN.
+** This state is reached from exp_top after reading:
+
+exp2 DASH exp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp_top 
+exp1 EOF 
+(?)
+
+** In state 32, looking ahead at LPAREN, reducing production
+** exp1 -> exp2 DASH exp1
+** is permitted because of the following sub-derivation:
+
+exp1 LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN // lookahead token appears
+exp2 DASH exp1 . 
+
+** In state 32, looking ahead at LPAREN, shifting is permitted
+** because of the following sub-derivation:
+
+exp2 DASH exp1 
+          exp1 . LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN 
+
+** Conflict (shift/reduce) in state 30.
+** Tokens involved: LPAREN LBRACKET
+** The following explanations concentrate on token LPAREN.
+** This state is reached from exp_top after reading:
+
+exp2 EQEQ exp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp_top 
+exp1 EOF 
+(?)
+
+** In state 30, looking ahead at LPAREN, reducing production
+** exp1 -> exp2 EQEQ exp1
+** is permitted because of the following sub-derivation:
+
+exp1 LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN // lookahead token appears
+exp2 EQEQ exp1 . 
+
+** In state 30, looking ahead at LPAREN, shifting is permitted
+** because of the following sub-derivation:
+
+exp2 EQEQ exp1 
+          exp1 . LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN 
+
+** Conflict (shift/reduce) in state 28.
+** Tokens involved: LPAREN LBRACKET
+** The following explanations concentrate on token LPAREN.
+** This state is reached from exp_top after reading:
+
+exp2 PLUS exp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp_top 
+exp1 EOF 
+(?)
+
+** In state 28, looking ahead at LPAREN, reducing production
+** exp1 -> exp2 PLUS exp1
+** is permitted because of the following sub-derivation:
+
+exp1 LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN // lookahead token appears
+exp2 PLUS exp1 . 
+
+** In state 28, looking ahead at LPAREN, shifting is permitted
+** because of the following sub-derivation:
+
+exp2 PLUS exp1 
+          exp1 . LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN 
+
+** Conflict (shift/reduce) in state 16.
+** Tokens involved: LPAREN LBRACKET
+** The following explanations concentrate on token LPAREN.
+** This state is reached from exp_top after reading:
+
+exp2 STAR exp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp_top 
+exp1 EOF 
+(?)
+
+** In state 16, looking ahead at LPAREN, reducing production
+** exp1 -> exp2 STAR exp1
+** is permitted because of the following sub-derivation:
+
+exp1 LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN // lookahead token appears
+exp2 STAR exp1 . 
+
+** In state 16, looking ahead at LPAREN, shifting is permitted
+** because of the following sub-derivation:
+
+exp2 STAR exp1 
+          exp1 . LPAREN loption(separated_nonempty_list(COMMA,exp1)) RPAREN 

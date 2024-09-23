@@ -1,0 +1,81 @@
+
+** Conflict (shift/reduce) in state 37.
+** Tokens involved: STAR PLUS EQEQ DASH
+** The following explanations concentrate on token STAR.
+** This state is reached from exp_top after reading:
+
+TILDE exp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp_top 
+exp1 EOF 
+(?)
+
+** In state 37, looking ahead at STAR, shifting is permitted
+** because of the following sub-derivation:
+
+TILDE exp1 
+      exp1 . STAR exp2 
+
+** In state 37, looking ahead at STAR, reducing production
+** exp1 -> TILDE exp1
+** is permitted because of the following sub-derivation:
+
+exp1 STAR exp2 // lookahead token appears
+TILDE exp1 . 
+
+** Conflict (shift/reduce) in state 34.
+** Tokens involved: STAR PLUS LPAREN LBRACKET EQEQ DASH
+** The following explanations concentrate on token STAR.
+** This state is reached from exp_top after reading:
+
+DASH exp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp_top 
+exp1 EOF 
+(?)
+
+** In state 34, looking ahead at STAR, shifting is permitted
+** because of the following sub-derivation:
+
+DASH exp1 
+     exp1 . STAR exp2 
+
+** In state 34, looking ahead at STAR, reducing production
+** exp1 -> DASH exp1
+** is permitted because of the following sub-derivation:
+
+exp1 STAR exp2 // lookahead token appears
+DASH exp1 . 
+
+** Conflict (shift/reduce) in state 15.
+** Tokens involved: STAR PLUS EQEQ DASH
+** The following explanations concentrate on token STAR.
+** This state is reached from exp_top after reading:
+
+BANG exp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp_top 
+exp1 EOF 
+(?)
+
+** In state 15, looking ahead at STAR, shifting is permitted
+** because of the following sub-derivation:
+
+BANG exp1 
+     exp1 . STAR exp2 
+
+** In state 15, looking ahead at STAR, reducing production
+** exp1 -> BANG exp1
+** is permitted because of the following sub-derivation:
+
+exp1 STAR exp2 // lookahead token appears
+BANG exp1 . 
