@@ -1,153 +1,173 @@
 %{
-open Ast
-
-let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a node =
-  { elt ; loc=Range.mk_lex_range startpos endpos }
-
+(* parser�����Ѥ����ѿ����ؿ������ʤɤ���� *)
+open Syntax
+let addtyp x = (x, Type.gentyp ())
 %}
 
-/* Declare your tokens here. */
+/* (* �����ɽ���ǡ���������� (caml2html: parser_token) *) */
+%token <bool> BOOL
+%token <int> INT
+%token <float> FLOAT
+%token NOT
+%token MINUS
+%token PLUS
+%token MINUS_DOT
+%token PLUS_DOT
+%token AST_DOT
+%token SLASH_DOT
+%token EQUAL
+%token LESS_GREATER
+%token LESS_EQUAL
+%token GREATER_EQUAL
+%token LESS
+%token GREATER
+%token IF
+%token THEN
+%token ELSE
+%token <Id.t> IDENT
+%token LET
+%token IN
+%token REC
+%token COMMA
+%token ARRAY_CREATE
+%token DOT
+%token LESS_MINUS
+%token SEMICOLON
+%token LPAREN
+%token RPAREN
 %token EOF
-%token <int64>  INT
-%token NULL
-%token <string> STRING
-%token <string> IDENT
 
-%token TINT     /* int */
-%token TVOID    /* void */
-%token TSTRING  /* string */
-%token IF       /* if */
-%token ELSE     /* else */
-%token WHILE    /* while */
-%token RETURN   /* return */
-%token VAR      /* var */
-%token SEMI     /* ; */
-%token COMMA    /* , */
-%token LBRACE   /* { */
-%token RBRACE   /* } */
-%token PLUS     /* + */
-%token DASH     /* - */
-%token STAR     /* * */
-%token EQEQ     /* == */
-%token EQ       /* = */
-%token LPAREN   /* ( */
-%token RPAREN   /* ) */
-%token LBRACKET /* [ */
-%token RBRACKET /* ] */
-%token TILDE    /* ~ */
-%token BANG     /* ! */
-%token GLOBAL   /* global */
+/* (* ͥ���̤�associativity��������㤤������⤤���ء� (caml2html: parser_prior) *) */
+%nonassoc IN
+%right prec_let
+%right SEMICOLON
+%right prec_if
+%right LESS_MINUS
+%nonassoc prec_tuple
+%left COMMA
+%left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL
+%left MINUS PLUS_DOT MINUS_DOT // PLUS
+%left AST_DOT SLASH_DOT
+%right prec_unary_minus
+%left prec_app
+%left DOT
 
+/* (* ���ϵ������� *) */
+%type <Syntax.t> exp
+%start exp
 
-%nonassoc BANG
-%nonassoc TILDE
-%nonassoc LBRACKET
-%nonassoc LPAREN
-
-/* ---------------------------------------------------------------------- */
-
-%start prog
-%start exp_top
-%start stmt_top
-%type <Ast.exp Ast.node> exp_top
-%type <Ast.stmt Ast.node> stmt_top
-
-%type <Ast.prog> prog
-%type <Ast.exp Ast.node> exp1
-%type <Ast.exp Ast.node> exp2
-%type <Ast.stmt Ast.node> stmt
-%type <Ast.block> block
-%type <Ast.ty> ty
 %%
 
-exp_top:
-  | e=exp1 EOF { e }
+simple_exp: /* (* ��̤�Ĥ��ʤ��Ƥ�ؿ��ΰ����ˤʤ�뼰 (caml2html: parser_simple) *) */
+| LPAREN exp RPAREN
+    { $2 }
+| LPAREN RPAREN
+    { Unit }
+| BOOL
+    { Bool($1) }
+| INT
+    { Int($1) }
+| FLOAT
+    { Float($1) }
+| IDENT
+    { Var($1) }
+| simple_exp DOT LPAREN exp RPAREN
+    { Get($1, $4) }
 
-stmt_top:
-  | s=stmt EOF { s }
+exp: /* (* ���̤μ� (caml2html: parser_exp) *) */
+| simple_exp
+    { $1 }
+| NOT exp
+    %prec prec_app
+    { Not($2) }
+| MINUS exp
+    %prec prec_unary_minus
+    { match $2 with
+    | Float(f) -> Float(-.f) (* -1.23�ʤɤϷ����顼�ǤϤʤ��Τ��̰��� *)
+    | e -> Neg(e) }
+| exp PLUS exp /* (* ­������ʸ���Ϥ���롼�� (caml2html: parser_add) *) */
+    { Add($1, $3) }
+| exp MINUS exp
+    { Sub($1, $3) }
+| exp EQUAL exp
+    { Eq($1, $3) }
+| exp LESS_GREATER exp
+    { Not(Eq($1, $3)) (* some float comparisons differ from OCaml for NaN; see: https://github.com/esumii/min-caml/issues/13#issuecomment-1147032750 *) }
+| exp LESS exp
+    { Not(LE($3, $1)) }
+| exp GREATER exp
+    { Not(LE($1, $3)) }
+| exp LESS_EQUAL exp
+    { LE($1, $3) }
+| exp GREATER_EQUAL exp
+    { LE($3, $1) }
+| IF exp THEN exp ELSE exp
+    %prec prec_if
+    { If($2, $4, $6) }
+| MINUS_DOT exp
+    %prec prec_unary_minus
+    { FNeg($2) }
+| exp PLUS_DOT exp
+    { FAdd($1, $3) }
+| exp MINUS_DOT exp
+    { FSub($1, $3) }
+| exp AST_DOT exp
+    { FMul($1, $3) }
+| exp SLASH_DOT exp
+    { FDiv($1, $3) }
+| LET IDENT EQUAL exp IN exp
+    %prec prec_let
+    { Let(addtyp $2, $4, $6) }
+| LET REC fundef IN exp
+    %prec prec_let
+    { LetRec($3, $5) }
+| simple_exp actual_args
+    %prec prec_app
+    { App($1, $2) }
+| elems
+    %prec prec_tuple
+    { Tuple($1) }
+| LET LPAREN pat RPAREN EQUAL exp IN exp
+    { LetTuple($3, $6, $8) }
+| simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
+    { Put($1, $4, $7) }
+| exp SEMICOLON exp
+    { Let((Id.gentmp Type.Unit, Type.Unit), $1, $3) }
+| ARRAY_CREATE simple_exp simple_exp
+    %prec prec_app
+    { Array($2, $3) }
+| error
+    { failwith
+        (Printf.sprintf "parse error near characters %d-%d"
+           (Parsing.symbol_start ())
+           (Parsing.symbol_end ())) }
 
-prog:
-  | p=list(decl) EOF  { p }
+fundef:
+| IDENT formal_args EQUAL exp
+    { { name = addtyp $1; args = $2; body = $4 } }
 
-decl:
-  | GLOBAL name=IDENT EQ init=gexp SEMI
-    { Gvdecl (loc $startpos $endpos { name; init }) }
-  | frtyp=ret_ty fname=IDENT LPAREN args=arglist RPAREN body=block
-    { Gfdecl (loc $startpos $endpos { frtyp; fname; args; body }) }
+formal_args:
+| IDENT formal_args
+    { addtyp $1 :: $2 }
+| IDENT
+    { [addtyp $1] }
 
-arglist:
-  | l=separated_list(COMMA, pair(ty,IDENT)) { l }
-    
-ty:
-  | TINT   { TInt }
-  | r=rtyp { TRef r } 
+actual_args:
+| actual_args simple_exp
+    %prec prec_app
+    { $1 @ [$2] }
+| simple_exp
+    %prec prec_app
+    { [$1] }
 
+elems:
+| elems COMMA exp
+    { $1 @ [$3] }
+| exp COMMA exp
+    { [$1; $3] }
 
-%inline ret_ty:
-  | TVOID  { RetVoid }
-  | t=ty   { RetVal t }
-
-%inline rtyp:
-  | TSTRING { RString }
-  | t=ty LBRACKET RBRACKET { RArray t }
-
-%inline bop:
-  | PLUS   { Add }
-  | DASH   { Sub }
-  | STAR   { Mul }
-  | EQEQ   { Eq } 
-
-%inline uop:
-  | DASH  { Neg }
-  | BANG  { Lognot }
-  | TILDE { Bitnot }
-
-gexp:
-  | t=rtyp NULL  { loc $startpos $endpos @@ CNull t }
-  | i=INT      { loc $startpos $endpos @@ CInt i } 
-
-lhs:  
-  | id=IDENT            { loc $startpos $endpos @@ Id id }
-  | e=exp1 LBRACKET i=exp1 RBRACKET
-                        { loc $startpos $endpos @@ Index (e, i) }
-
-exp1:
-  | exp2 { $1 }
-  | e1=exp2 b=bop e2=exp1 { loc $startpos $endpos @@ Bop (b, e1, e2) }
-  | id=IDENT            { loc $startpos $endpos @@ Id id }
-  | e=exp1 LBRACKET i=exp1 RBRACKET
-                        { loc $startpos $endpos @@ Index (e, i) }
-  | e=exp1 LPAREN es=separated_list(COMMA, exp1) RPAREN
-                        { loc $startpos $endpos @@ Call (e,es) }
-  | t=rtyp NULL           { loc $startpos $endpos @@ CNull t }
-  | u=uop e=exp1         { loc $startpos $endpos @@ Uop (u, e) }
-
-exp2:
-  | i=INT               { loc $startpos $endpos @@ CInt i }
-  | LPAREN e=exp1 RPAREN { e }
-
-vdecl:
-  | VAR id=IDENT EQ init=exp1 { (id, init) }
-
-stmt: 
-  | d=vdecl SEMI        { loc $startpos $endpos @@ Decl(d) }
-  | p=lhs EQ e=exp1 SEMI { loc $startpos $endpos @@ Assn(p,e) }
-  | e=exp1 LPAREN es=separated_list(COMMA, exp1) RPAREN SEMI
-                        { loc $startpos $endpos @@ SCall (e, es) }
-  | ifs=if_stmt         { ifs }
-  | RETURN SEMI         { loc $startpos $endpos @@ Ret(None) }
-  | RETURN e=exp1 SEMI   { loc $startpos $endpos @@ Ret(Some e) }
-  | WHILE LPAREN e=exp1 RPAREN b=block  
-                        { loc $startpos $endpos @@ While(e, b) } 
-
-block:
-  | LBRACE stmts=list(stmt) RBRACE { stmts }
-
-if_stmt:
-  | IF LPAREN e=exp1 RPAREN b1=block b2=else_stmt
-    { loc $startpos $endpos @@ If(e,b1,b2) }
-
-else_stmt:
-  | (* empty *)       { [] }
-  | ELSE b=block      { b }
-  | ELSE ifs=if_stmt  { [ ifs ] }
+pat:
+| pat COMMA IDENT
+    { $1 @ [addtyp $3] }
+| IDENT COMMA IDENT
+    { [addtyp $1; addtyp $3] }

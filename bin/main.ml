@@ -32,7 +32,7 @@ let () =
   let conflicts_file = "./_build/default/lib/parser.conflicts" in
   (* let _test_conflicts_file = "./test/parser01.conflicts" in *)
   (* Learn TA and O_bp wrt 'parser_file' *)
-  let debug = true in
+  let debug = false in
   if (Utils.check_conflicts conflicts_file debug) then
   begin
     let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa parser_file versatile_syms debug in

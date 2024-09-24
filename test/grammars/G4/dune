@@ -1,0 +1,11 @@
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (flags --explain --dump) 	
+ (modules parser))
+
+(library
+  (name g4)
+  (modes byte native)
+  (libraries assert num menhirLib str))
