@@ -1,0 +1,580 @@
+
+** Conflict (shift/reduce) in state 97.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+NOT exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 97, looking ahead at PLUS, reducing production
+** exp -> NOT exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+NOT exp . 
+
+** In state 97, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+NOT exp 
+    exp . PLUS exp 
+
+** Conflict (shift/reduce) in state 96.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+MINUS_DOT exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 96, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+MINUS_DOT exp 
+          exp . PLUS exp 
+
+** In state 96, looking ahead at PLUS, reducing production
+** exp -> MINUS_DOT exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+MINUS_DOT exp . 
+
+** Conflict (shift/reduce) in state 95.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+MINUS exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 95, looking ahead at PLUS, reducing production
+** exp -> MINUS exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+MINUS exp . 
+
+** In state 95, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+MINUS exp 
+      exp . PLUS exp 
+
+** Conflict (shift/reduce) in state 92.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+LET IDENT EQUAL exp IN exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 92, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+LET IDENT EQUAL exp IN exp 
+                       exp . PLUS exp 
+
+** In state 92, looking ahead at PLUS, reducing production
+** exp -> LET IDENT EQUAL exp IN exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+LET IDENT EQUAL exp IN exp . 
+
+** Conflict (shift/reduce) in state 85.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+LET LPAREN pat RPAREN EQUAL exp IN exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 85, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+LET LPAREN pat RPAREN EQUAL exp IN exp 
+                                   exp . PLUS exp 
+
+** In state 85, looking ahead at PLUS, reducing production
+** exp -> LET LPAREN pat RPAREN EQUAL exp IN exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+LET LPAREN pat RPAREN EQUAL exp IN exp . 
+
+** Conflict (shift/reduce) in state 75.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+LET REC fundef IN exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 75, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+LET REC fundef IN exp 
+                  exp . PLUS exp 
+
+** In state 75, looking ahead at PLUS, reducing production
+** exp -> LET REC fundef IN exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+LET REC fundef IN exp . 
+
+** Conflict (shift/reduce) in state 71.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+IF exp THEN exp ELSE exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 71, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+IF exp THEN exp ELSE exp 
+                     exp . PLUS exp 
+
+** In state 71, looking ahead at PLUS, reducing production
+** exp -> IF exp THEN exp ELSE exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+IF exp THEN exp ELSE exp . 
+
+** Conflict (shift/reduce) in state 60.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 60, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp 
+                                            exp . PLUS exp 
+
+** In state 60, looking ahead at PLUS, reducing production
+** exp -> simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp . 
+
+** Conflict (shift/reduce) in state 57.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp COMMA exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 57, looking ahead at PLUS, reducing production
+** elems -> exp COMMA exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+elems // lookahead token is inherited
+exp COMMA exp . 
+
+** In state 57, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+elems 
+exp COMMA exp 
+          exp . PLUS exp 
+
+** Conflict (shift/reduce) in state 55.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp EQUAL exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 55, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp EQUAL exp 
+          exp . PLUS exp 
+
+** In state 55, looking ahead at PLUS, reducing production
+** exp -> exp EQUAL exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp EQUAL exp . 
+
+** Conflict (shift/reduce) in state 53.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp GREATER exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 53, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp GREATER exp 
+            exp . PLUS exp 
+
+** In state 53, looking ahead at PLUS, reducing production
+** exp -> exp GREATER exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp GREATER exp . 
+
+** Conflict (shift/reduce) in state 51.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp GREATER_EQUAL exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 51, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp GREATER_EQUAL exp 
+                  exp . PLUS exp 
+
+** In state 51, looking ahead at PLUS, reducing production
+** exp -> exp GREATER_EQUAL exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp GREATER_EQUAL exp . 
+
+** Conflict (shift/reduce) in state 49.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp LESS exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 49, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp LESS exp 
+         exp . PLUS exp 
+
+** In state 49, looking ahead at PLUS, reducing production
+** exp -> exp LESS exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp LESS exp . 
+
+** Conflict (shift/reduce) in state 47.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp LESS_EQUAL exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 47, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp LESS_EQUAL exp 
+               exp . PLUS exp 
+
+** In state 47, looking ahead at PLUS, reducing production
+** exp -> exp LESS_EQUAL exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp LESS_EQUAL exp . 
+
+** Conflict (shift/reduce) in state 45.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp LESS_GREATER exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 45, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp LESS_GREATER exp 
+                 exp . PLUS exp 
+
+** In state 45, looking ahead at PLUS, reducing production
+** exp -> exp LESS_GREATER exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp LESS_GREATER exp . 
+
+** Conflict (shift/reduce) in state 43.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp MINUS exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 43, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp MINUS exp 
+          exp . PLUS exp 
+
+** In state 43, looking ahead at PLUS, reducing production
+** exp -> exp MINUS exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp MINUS exp . 
+
+** Conflict (shift/reduce) in state 41.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp MINUS_DOT exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 41, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp MINUS_DOT exp 
+              exp . PLUS exp 
+
+** In state 41, looking ahead at PLUS, reducing production
+** exp -> exp MINUS_DOT exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp MINUS_DOT exp . 
+
+** Conflict (shift/reduce) in state 39.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+elems COMMA exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 39, looking ahead at PLUS, reducing production
+** elems -> elems COMMA exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+elems // lookahead token is inherited
+elems COMMA exp . 
+
+** In state 39, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+elems 
+elems COMMA exp 
+            exp . PLUS exp 
+
+** Conflict (shift/reduce) in state 36.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp AST_DOT exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 36, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp AST_DOT exp 
+            exp . PLUS exp 
+
+** In state 36, looking ahead at PLUS, reducing production
+** exp -> exp AST_DOT exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp AST_DOT exp . 
+
+** Conflict (shift/reduce) in state 34.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp PLUS_DOT exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 34, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp PLUS_DOT exp 
+             exp . PLUS exp 
+
+** In state 34, looking ahead at PLUS, reducing production
+** exp -> exp PLUS_DOT exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp PLUS_DOT exp . 
+
+** Conflict (shift/reduce) in state 32.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp SEMICOLON exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 32, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp SEMICOLON exp 
+              exp . PLUS exp 
+
+** In state 32, looking ahead at PLUS, reducing production
+** exp -> exp SEMICOLON exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp SEMICOLON exp . 
+
+** Conflict (shift/reduce) in state 30.
+** Tokens involved: SLASH_DOT SEMICOLON PLUS_DOT PLUS MINUS_DOT MINUS LESS_GREATER LESS_EQUAL LESS GREATER_EQUAL GREATER EQUAL COMMA AST_DOT
+** The following explanations concentrate on token SLASH_DOT.
+** This state is reached from exp after reading:
+
+exp PLUS exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 30, looking ahead at SLASH_DOT, reducing production
+** exp -> exp PLUS exp
+** is permitted because of the following sub-derivation:
+
+exp SLASH_DOT exp // lookahead token appears
+exp PLUS exp . 
+
+** In state 30, looking ahead at SLASH_DOT, shifting is permitted
+** because of the following sub-derivation:
+
+exp PLUS exp 
+         exp . SLASH_DOT exp 
+
+** Conflict (shift/reduce) in state 28.
+** Token involved: PLUS
+** This state is reached from exp after reading:
+
+exp SLASH_DOT exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+exp 
+(?)
+
+** In state 28, looking ahead at PLUS, shifting is permitted
+** because of the following sub-derivation:
+
+exp SLASH_DOT exp 
+              exp . PLUS exp 
+
+** In state 28, looking ahead at PLUS, reducing production
+** exp -> exp SLASH_DOT exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp SLASH_DOT exp . 

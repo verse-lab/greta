@@ -16,18 +16,18 @@ Evaluation
 
 #### Test Data
 
-|              | Tokens | Varia-<br />tions | Data<br />Ready? | Init<br />Learn? | E2E<br />Tested? |                 Source                 | Relevant Files                                                                                            |
-| :----------: | :----: | :---------------: | :--------------: | :--------------: | :--------------: | :------------------------------------: | --------------------------------------------------------------------------------------------------------- |
-| **G0** |   11   |         5         |        Y        |        Y        |      Before      |                 Paper                 | `parser.mly`   `ast.ml`   `lexer.ml`   `range.ml`   `parseutils.ml`                     |
-| **G1** |   10   |         5         |        Y        |        -        |        N        |       Compilers<br />coursework       | `parser.mly`   `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`                        |
-| **G2** |   18   |         5         |        Y        |        -        |        N        |       Compilers<br />coursework       | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`                       |
-| **G3** |   29   |         5         |        Y        |        -        |        N        |       Compilers<br />coursework       | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`   `range.mli`    |
-| **G4** |        |         5         |       wip       |        -        |        N        | Minimal subset of<br />OCaml (MinCaml) | `llparser.mly`   `lexer.mll`   `id.ml`   `syntax.ml`   `type.ml`                        |
-| **G5** |        |         5         |       wip       |        -        |        N        |    Yacc grammar<br />for C language    | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
-| **G6** |        |         5         |       wip       |        -        |        N        |        ANSI C Yacc<br />Grammar        | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
-| **G7** |        |         -         |        -        |        -        |        -        |       GitHub<br />(Project name)       | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
-| **G8** |        |         -         |        -        |        -        |        -        |       GitHub<br />(Project name)       | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
-| **G9** |        |         -         |        -        |        -        |        -        |       GitHub<br />(Project name)       | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
+|              | Tokens | Varia-<br />tions | Data<br />Ready? | Init<br />Learn? | E2E<br />Tested? |              Source              | Relevant Files                                                                                            |
+| :----------: | :----: | :---------------: | :--------------: | :--------------: | :--------------: | :------------------------------: | --------------------------------------------------------------------------------------------------------- |
+| **G0** |   11   |         5         |        Y        |        Y        |      Before      |              Paper              | `parser.mly`   `ast.ml`   `lexer.ml`   `range.ml`   `parseutils.ml`                     |
+| **G1** |   10   |         5         |        Y        |        -        |        N        |    Compilers<br />coursework    | `parser.mly`   `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`                        |
+| **G2** |   18   |         5         |        Y        |        -        |        N        |    Compilers<br />coursework    | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`                       |
+| **G3** |   29   |         5         |        Y        |        -        |        N        |    Compilers<br />coursework    | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`   `range.mli`    |
+| **G4** |   31   |         5         |        Y        |        -        |        N        |  Minimal OCaml <br />(MinCaml)  | `llparser.mly`   `lexer.mll`   `id.ml`   `syntax.ml`   `type.ml`                        |
+| **G5** |   -   |         5         |       wip       |        -        |        N        | Yacc grammar<br />for C language | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
+| **G6** |   -   |         5         |       wip       |        -        |        N        |     ANSI C Yacc<br />Grammar     | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
+| **G7** |   -   |         -         |        -        |        -        |        -        |    GitHub<br />(Project name)    | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
+| **G8** |   -   |         -         |        -        |        -        |        -        |    GitHub<br />(Project name)    | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
+| **G9** |   -   |         -         |        -        |        -        |        -        |    GitHub<br />(Project name)    | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
 
 #### Test Results
 
