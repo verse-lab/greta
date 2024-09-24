@@ -1,5 +1,29 @@
 /* *** G4a *** */
-// 14 conflicts 
+// 36 conflicts - 35 po's, 1 assoc
+// not vs. - 
+// -. vs. - 
+// - vs. +
+// let id = e in e vs. - 
+// let (pat) = e in e vs. -
+// let rec fundef in e vs. -
+// if2 vs. -
+// se . (e) <- e vs. e - e
+// elems | e , e vs. - 
+// = vs. -
+// > vs. -
+// >= vs. -
+// < vs. -
+// <= vs. -
+// *. vs. -
+// <> vs. -
+// -. vs. -
+// + vs. -
+// elems | e , e vs. + 
+// +. vs. -
+// ; vs. -
+// + vs. /., ;, +., -., +, <>, <=, <, >=, >, =, ,, *. (13)
+// - assoc
+// /. vs. -
 
 %{
 open Syntax

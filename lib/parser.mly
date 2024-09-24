@@ -36,17 +36,6 @@ let addtyp x = (x, Type.gentyp ())
 %token RPAREN
 %token EOF
 
-/* (caml2html: parser_prior) */
-// %nonassoc IN
-// %right prec_let
-// %right SEMICOLON
-// %right prec_if
-// %right LESS_MINUS
-// %nonassoc prec_tuple
-// %left COMMA
-// %right prec_unary_minus
-// %left prec_app
-
 %type <Syntax.t> exp
 %start exp
 
@@ -72,10 +61,8 @@ exp: /* (caml2html: parser_exp) */
 | simple_exp
     { $1 }
 | NOT exp
-    // %prec prec_app
     { Not($2) }
 | MINUS exp
-    // %prec prec_unary_minus
     { match $2 with
     | Float(f) -> Float(-.f)
     | e -> Neg(e) }
@@ -96,10 +83,8 @@ exp: /* (caml2html: parser_exp) */
 | exp GREATER_EQUAL exp
     { LE($3, $1) }
 | IF exp THEN exp ELSE exp
-    // %prec prec_if
     { If($2, $4, $6) }
 | MINUS_DOT exp
-    // %prec prec_unary_minus
     { FNeg($2) }
 | exp PLUS_DOT exp
     { FAdd($1, $3) }
@@ -110,16 +95,12 @@ exp: /* (caml2html: parser_exp) */
 | exp SLASH_DOT exp
     { FDiv($1, $3) }
 | LET IDENT EQUAL exp IN exp
-    // %prec prec_let
     { Let(addtyp $2, $4, $6) }
 | LET REC fundef IN exp
-    // %prec prec_let
     { LetRec($3, $5) }
 | simple_exp actual_args
-    // %prec prec_app
     { App($1, $2) }
 | elems
-    // %prec prec_tuple
     { Tuple($1) }
 | LET LPAREN pat RPAREN EQUAL exp IN exp
     { LetTuple($3, $6, $8) }
@@ -128,7 +109,6 @@ exp: /* (caml2html: parser_exp) */
 | exp SEMICOLON exp
     { Let((Id.gentmp Type.Unit, Type.Unit), $1, $3) }
 | ARRAY_CREATE simple_exp simple_exp
-    // %prec prec_app
     { Array($2, $3) }
 | error
     { failwith
@@ -148,10 +128,8 @@ formal_args:
 
 actual_args:
 | actual_args simple_exp
-    // %prec prec_app
     { $1 @ [$2] }
 | simple_exp
-    // %prec prec_app
     { [$1] }
 
 elems:

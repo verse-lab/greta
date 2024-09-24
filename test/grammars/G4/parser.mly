@@ -1,3 +1,5 @@
+(* Source: FDPE'05, MinCaml (paper link: http://esumii.github.io/min-caml/paper.pdf) *)
+
 %{
 open Syntax
 let addtyp x = (x, Type.gentyp ())
