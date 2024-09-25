@@ -6,141 +6,6 @@ open Treeutils
 exception State_with_no_matching_order
 
 (* ******************** Part I. Conversion of parser.mly > CFG > TA ******************** *)
-
-let parser_to_cfg (debug_print: bool) (filename : string): cfg =
-  let open Str in
-  let open String in
-  let open Printf in
-  printf "\n\nParse the file %s to its corresponding CFG\n" filename;
-  let cfg_res: cfg = { nonterms = []; terms = []; start = ""; productions = [] } in
-  let wsopen: regexp = regexp ({|[ \n\r\t]*|} ^ "open") in
-  let wsvertbar: regexp = regexp ({|[ \n\r\t]*|} ^ "|") in
-  let wssemicol: regexp = regexp ({|[ \n\r\t]*|} ^ ";") in
-  let argvar: regexp = regexp ("\\$" ^ {|[1-9]+|}) in
-  let argvar_alt: regexp = regexp ("(\\$" ^ {|[1-9]+|}) in
-  (* temp_storage *)
-  let nonterms_temp: nonterminal list ref = ref [] in
-  let terms_temp: terminal list ref = ref [] in
-  let prods_temp: production list ref = ref [] in
-  let prog_id: string ref = ref "nullID" in
-  let prods_started = ref false in
-  (* helpers *)
-  let remove_colon (s: string): string = s |> split_on_char ':' |> List.hd in
-  let ends tk s = ends_with ~suffix:tk s in
-  let noteq a b = compare a b <> 0 in
-  let true_exists, false_exists, b_inserted = ref false, ref false, ref false in
-  let start_of_block s = not (starts "%%" s) 
-      && not (string_match wsvertbar s 0) && not (string_match wssemicol s 0) && (ends ":" s) in
-  let conds_to_exclude s = (s = "THEN") || (s = "Then") || (s = "ELSE") || (s = "Else") || (starts "Na" s) || (s = "Paren") in
-  (* extract_terms :
-   *   literals (%token <type> ...) to corresponding names, added to terms
-   *   if \E %token TRUE && FALSE, then add B to terms, and other tokens to nonterms *)
-  let extract_terms (st: string): unit =
-    let ti, ts, tb = "%token <int>", "%token <string>", "%token <bool>" in
-    let tt, tf = "%token TRUE", "%token FALSE" in
-    let is_literal = (starts ti st) || (starts ts st) || (starts tb st) in
-      if is_literal
-      then let st_ls = split_on_char ' ' st in List.iter (fun x -> 
-        if ((noteq x "%token") && (noteq x "<int>") && (noteq x "<string>") && (noteq x "<bool>"))
-        then terms_temp := x :: !terms_temp) st_ls
-        ; terms_temp := List.map (fun y -> if y = "INT" then "N" else if y = "BOOL" then (b_inserted := true; "B") else y) !terms_temp
-      else 
-        (if not !b_inserted && (starts tt st) then true_exists := true else 
-         if not !b_inserted && (starts tf st) then false_exists := true);
-         if not !b_inserted && !true_exists && !false_exists then (terms_temp := "B" :: !terms_temp; b_inserted := true);
-        if (starts "%token" st) && not (starts "%token EOF" st) && not (starts tt st) && not (starts tf st) && not (st = "") && not is_literal
-        then 
-          let st_ls = split_on_char ' ' st in List.iter (fun x -> 
-            if (noteq x "%token") then terms_temp := x :: !terms_temp) st_ls 
-  (* extract_nonterms : 
-   *   identify the start symbol based on the prog_id
-   *   extract nonterms based on condition that it starts a block of transitions *)
-  and extract_nonterms (st': string): unit =
-    let ts' = "%start" in
-    if starts ts' st' then split_on_char ' ' st' |> List.iter (fun x -> if noteq x ts' then prog_id := x)
-    else if starts !prog_id st' then split_on_char ' ' st' |> List.iter (fun x -> if (noteq !prog_id x && noteq ":" x 
-        && noteq "EOF" x && noteq "{" x && noteq "}" x && noteq "};" x && not (string_match argvar x 0)) 
-        then (nonterms_temp := x :: !nonterms_temp; cfg_res.start <- x))
-    else if start_of_block st' then split_on_char ' ' st' |> List.iter (fun x -> let nonterm_to_add = remove_colon x in 
-        if not (List.mem nonterm_to_add !nonterms_temp) then nonterms_temp := nonterm_to_add :: !nonterms_temp)
-  (* extract_prods :
-   *   if it starts with nonterminals, read transitions until ";" *)
-  in let rec extract_prods_from_block (nont_lhs: nonterminal) (blk_ls: string list): unit =
-    let terms_ls = cfg_res.terms in match blk_ls with [] -> ()
-    | blk_h :: blk_tl -> 
-      let symbs_ls = blk_h |> split_on_char ' ' |> List.filter (fun x -> 
-        noteq "" x && noteq "|" x && noteq "{" x && noteq "}" x && noteq "};" x && noteq "Bool" x)
-      in let rec collect_prod ls (term_rhs: terminal list) (symbs_rhs: string list): unit = 
-          match ls with [] -> 
-            (if List.length symbs_rhs = 0 then ()
-            else if List.length term_rhs = 0
-            then (if (debug_print) then (printf "\tLength of term_rhs is 0.\n\n");
-                  prods_temp := (nont_lhs, ("ε", List.rev symbs_rhs)) :: !prods_temp)
-            else if List.length term_rhs = 1
-            then (if (debug_print) then (printf "\tLength of term_rhs %s is 1 and attaching symbs_rhs " (List.hd term_rhs);
-                 (List.rev symbs_rhs) |> List.iteri (fun i x -> if i = 0 then printf " %s" x else printf ", %s" x); printf "\n\n");
-                 prods_temp := (nont_lhs, (List.hd term_rhs, List.rev symbs_rhs)) :: !prods_temp)
-            else if List.length term_rhs = 2
-            then let term_rhs_final = List.fold_left (fun a b -> a ^ b) "" (List.rev term_rhs)
-              in (if (debug_print) then (printf "\tLength of term_rhs %s is 2 and attaching symbs_rhs " (List.hd term_rhs);
-              (List.rev symbs_rhs) |> List.iteri (fun i x -> if i = 0 then printf "%s" x else printf ", %s" x); printf "\n\n");
-              prods_temp := (nont_lhs, (term_rhs_final, List.rev symbs_rhs)) :: !prods_temp)
-            else raise (Invalid_argument "RHS Terminal can have at most two symbols!"));
-            extract_prods_from_block nont_lhs blk_tl
-          | h :: tl ->
-            if (debug_print) then printf "\n\tNow processing %s\n" h;
-            if (List.mem h terms_ls && not (List.mem (uppercase_ascii h) term_rhs)) && not (conds_to_exclude h) 
-            then (if debug_print then printf "\tCollecting %s as term_rhs\n" h; collect_prod tl (h::term_rhs) symbs_rhs)
-            else if (string_match argvar h 0) || (string_match argvar_alt h 0) || conds_to_exclude h || (List.mem (uppercase_ascii h) term_rhs)
-            then (if debug_print then printf "\t%s is argvar or cond to exclude, so skip..\n" h; collect_prod tl term_rhs symbs_rhs)
-            (* Below temporary fix for Int and Bool cases *)
-            else if (h = "Int") 
-            then (if debug_print then printf "\t%s is Int, so skip..\n" h; collect_prod tl term_rhs symbs_rhs) 
-            else if (h = "INT") 
-            then (if debug_print then printf "\t%s is INT, so add \"N\" to symbs_rhs.\n" h; collect_prod tl term_rhs ("N"::symbs_rhs))
-            else if (h = "true" || h = "TRUE") 
-            then (if debug_print then printf "\t%s is true || TRUE, so start collect_prod over with [] symbs_rhs..\n" h; collect_prod tl term_rhs []) (* To skip this entire case so we have only 1 BOOL *)
-            else if (h = "false") 
-            then (if debug_print then printf "\t%s is false so skip..\n" h; collect_prod tl term_rhs symbs_rhs)
-            else if (h = "FALSE") 
-            then (if debug_print then printf "\t%s is FALSE so add \"B\" to symbs_rhs\n" h; collect_prod tl term_rhs ("B"::symbs_rhs)) 
-            else (if debug_print then printf "\tAll other situations don't suffice for %s, so add %s to symbs_rhs.\n" h h; collect_prod tl term_rhs (h::symbs_rhs))
-         in collect_prod symbs_ls [] []
-  in
-  let rec traverse inp acc : string list =
-     match (read_line inp) with 
-     | None -> cfg_res.terms <- (List.rev !terms_temp); List.rev acc
-     | Some s ->
-      if not (starts "{%%" s) && not (starts "%}" s) && not (string_match wsopen s 0)
-      then extract_terms s;
-      (* only takes lines that are relevant for productions *)
-      if (starts "%start" s) then prods_started := true;
-      if (!prods_started) then traverse inp (s::acc) else traverse inp acc
-  in let relev_lines : string list = traverse (open_in filename) [] in 
-  let _ = relev_lines |> List.iter (fun y -> extract_nonterms y); cfg_res.nonterms <- List.rev !nonterms_temp
-  ;if (debug_print) then (printf "\n\tTerminals: {"; cfg_res.terms |> List.iter (printf " %s"); printf " }\n";
-                           printf "\n\tNon-terminals: {" ;cfg_res.nonterms |> List.iter (printf " %s"); printf " }\n\n")
-  in let rec traverse_nxt (stls: string list) (acc_nont_lhs) (acc_block: string list): unit = 
-      if (debug_print) then printf "\n\tCalling traverse_nxt now\n";
-      match stls with [] -> printf "\tEnd of traverse_nxt\n"; cfg_res.productions <- (List.rev !prods_temp)
-      | shd :: stl ->
-        (if (starts !prog_id shd)
-        then (if debug_print then printf "\tStarting with prog_id, so skip\n"; traverse_nxt stl acc_nont_lhs acc_block)
-        else if (ends ";" shd || string_match wssemicol shd 0)
-        then (if debug_print then printf "\tEnding with ; so extract prods for \"%s\"\n" acc_nont_lhs;
-          extract_prods_from_block (remove_colon acc_nont_lhs) (List.rev acc_block); traverse_nxt stl "" [])
-        else if List.mem (remove_colon shd) cfg_res.nonterms (* [prev] start_of_block shd *)
-        then (if debug_print then printf "\tStart of the block, so loop with \"%s\" as nont_lhs\n" shd; traverse_nxt stl shd acc_block)
-        else if (starts "%start" shd || starts "%%" shd)
-        then (if debug_print then printf "\tEither %%start or %%%%, so skip\n"; traverse_nxt stl acc_nont_lhs acc_block)
-        else if string_match wsvertbar shd 0
-        then (if debug_print then printf "\tVertical bar line so accumulate %s\n" shd; traverse_nxt stl acc_nont_lhs (shd :: acc_block))
-        else (if debug_print then printf "\tEmpty line so skip\n"; traverse_nxt stl acc_nont_lhs acc_block))
-  in let _ = if (debug_print) then (printf "  >> Rel lines before running traverse_nxt\n\n";
-    relev_lines |> List.iter (fun x -> printf "%s\n" x)); traverse_nxt relev_lines "" []
-  in Printf.printf "\n\nCFG defined in %s : \n" filename; Pp.pp_cfg (cfg_res);
-  cfg_res
-
 let read_file filename = 
   let lines = ref [] in
   let chan = open_in filename in
@@ -187,22 +52,28 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
   assert (Hashtbl.mem sectionToLine "p");
   (* extract cfg *)
   let start = List.hd (clean $ Hashtbl.find sectionToLine "s") in
-  let nonterms = clean $ Hashtbl.find sectionToLine "nt" in
-  let terms = clean $ Hashtbl.find sectionToLine "t" in
+  let nonterms = ref (clean $ Hashtbl.find sectionToLine "nt") in
+  let terms= clean $ Hashtbl.find sectionToLine "t" in
   let t_prods = clean $ Hashtbl.find sectionToLine "p" in
   let productions = List.mapi (fun i x -> 
-    let split = Str.bounded_split (Str.regexp " -> ") x 2 in
-    let lhs, rhs = List.hd split, List.nth split 1 in
-    let rhs = clean $ String.split_on_char ' ' rhs in
-    (sanitize lhs, i,
-    List.map (fun x -> 
-      if List.exists (fun y -> y = x) terms 
-        then T x
-      else if List.exists (fun y -> y = x) nonterms
-        then Nt x
-      else assert false) rhs
-    )
-  ) t_prods in
+      let split = Str.bounded_split (Str.regexp "->") x 2 in
+      let lhs, rhs = 
+        List.hd split, 
+        if List.length split > 1 
+          then List.nth split 1
+          else (nonterms := "ϵ" :: !nonterms;"ϵ")
+      in
+      let rhs = clean $ String.split_on_char ' ' rhs in
+      (sanitize lhs, i,
+      List.map (fun x ->
+        if List.exists (fun y -> y = x) terms
+          then T x
+        else if List.exists (fun y -> y = x) !nonterms
+          then Nt x
+        else raise (Failure "RHS contains unknown symbols")) rhs)
+    ) t_prods
+  in
+  let nonterms = !nonterms in
   if debug_print then
     Printf.printf "CFG extracted from %s:\n" filename;
     Printf.printf "Start: %s\n" start;
@@ -212,7 +83,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
     List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function T x -> x | Nt x -> x) rhs))) productions;
   { nonterms; terms; start; productions }
 
-let cfg_of_cfg2 (cfg2: cfg2): cfg =
+let cfg_of_cfg2 (cfg2: cfg2): cfg3 =
   { 
     nonterms = cfg2.nonterms; 
     terms = cfg2.terms; 
@@ -225,80 +96,84 @@ let cfg_of_cfg2 (cfg2: cfg2): cfg =
           | h :: t -> (match remove_first_t t with
             | (a, l) -> (a, h :: l))
         in
+        let len = List.length rhs in
         let first_t, rhs' = match remove_first_t rhs with 
         | (Some (T x), l) when x = "LPAREN" 
-          -> ("LPARENRPAREN", l)
-        | (Some (T x), l) -> (x, l)
-        | (None, l) -> ("ε", l)
+          -> (("LPARENRPAREN", len - 2), l)
+        | (Some (T x), l) -> ((x, len - 1), l)
+        | (None, l) -> (("ε", len), l)
         | _ -> assert false
         in
         let proj = List.fold_right (fun a acc -> match a with
           T _ -> acc | Nt x -> x :: acc) rhs' []
         in
-        (lhs, (first_t, proj))
+        (lhs, (first_t, proj), rhs)
       )
   }
 
 (** enhance_appearance : helper to enhance the symbol representation *)
 let enhance_appearance (a: ta): ta =
   let change_symbol s = 
-    let s', s'' = fst s, snd s in 
-    (* if (s' = "MUL") then "*", s'' else if (s' = "PLUS") then "+", s'' else  *)
-    if (s' = "LPARENRPAREN") then "()", s'' else s in
-  let alph_updated: symbol list = a.alphabet |> List.map (fun sym -> change_symbol sym) in
-  let trans_updated: transition list = a.transitions |> List.map (fun (st, (sym, st_ls)) ->
-    let sym_new = change_symbol sym in (st, (sym_new, st_ls))) in
-  { states = a.states; alphabet = alph_updated 
-  ; start_state = a.start_state ; transitions = trans_updated }
+    let s', s'' = fst s, snd s in
+    if (s' = "LPARENRPAREN") then "()", s'' else s 
+  in
+  let alph_updated: symbol list = a.alphabet 
+    |> List.map (fun sym -> change_symbol sym) 
+  in
+  let trans_updated: transition list =
+    a.transitions 
+    |> List.map (fun (st, (sym, st_ls)) ->
+      let sym_new = change_symbol sym in (st, (sym_new, st_ls))) 
+  in
+  {
+    states = a.states; 
+    alphabet = alph_updated; 
+    start_state = a.start_state; 
+    transitions = trans_updated 
+  }
 
-let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: bool) (g: cfg): 
+let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3): 
   ta * restriction list =
   let open List in
   let open Printf in
   let epsilon_symb: symbol = ("ε", 1) in
-  let prods_rhs = g.productions |> map snd in
-  (* helper to compute rank of given symbol *)
-  let rank_of_symb (s: string): int =
-    match assoc_opt s prods_rhs with
-    | None -> 0
-    | Some symb_ls -> length symb_ls
+  let ranked_alphabet = map 
+    (fun (_, (a, _), _) -> a)
+    g.productions
   in
-  let ranked_alphabet: symbol list = 
-    let auxiliary_symbols = ["THEN"; "ELSE"; "RPAREN"] in
-    g.terms
-    |> filter (fun x -> not (mem x auxiliary_symbols))
-    |> map (fun x -> if x = "LPAREN" then "LPARENRPAREN" else x)
-    |> map (fun x -> (x, rank_of_symb x))
-    (* add "ε" symbol to the alphabet *)
-    |> append [epsilon_symb] 
-  in
-  (runIf debug_print (fun _ ->
-    printf "\nRanked alphabet : \n";
-    iter (fun (s, r) -> printf "(%s, %i)\n" s r) ranked_alphabet)
-  );
   (* helper to get restrictions from transitions *)
-  let trans_to_restrictions trans_ls init_st = 
-    let is_eps_prod (s, rhs) = 
-      syms_equals s epsilon_symb || length rhs = 1
+  let trans_to_restrictions trans_ls nt_ls init_st =
+    let rec fixpoint f (x: 'a ref) =
+      let changed = f x in
+      if changed then fixpoint f x else x
     in
-    let rec find_epsilon_prod ls lhs_nt =
-      match ls with 
-      | [] -> None
-      | (lhs, (s, rhs)) :: tl ->
-        if (lhs = lhs_nt) && is_eps_prod (s, rhs)
-          then Some (hd rhs)
-          else find_epsilon_prod tl lhs_nt
+    let nt_to_order = ref (Hashtbl.create 10) in
+    let num_nt = length nt_ls in
+    iter
+      (fun st -> Hashtbl.add !nt_to_order st (num_nt + 1)) 
+      nt_ls;
+    Hashtbl.replace !nt_to_order init_st 0;
+    Hashtbl.add !nt_to_order "ϵ" (num_nt + 1); (* pseudo nt *)
+    let get_order table =
+      fold_left (fun acc (st, (_, rhs), _) ->
+          let changed = ref false in
+          iter 
+            (fun s ->
+              let ord = Hashtbl.find !table s in
+              let ord' = Hashtbl.find !table st in
+              if ord > (ord' + 1) then (
+                Hashtbl.replace !table s (ord' + 1);
+                changed := true
+            )) rhs;
+          acc || !changed
+        )
+        false
+        trans_ls
     in
-    let rec get_order_loop ls nt acc =
-      if (mem nt acc) then acc else
-      let next_nt = find_epsilon_prod ls nt in
-      match next_nt with
-      | None -> nt :: acc
-      | Some new_nt -> get_order_loop ls new_nt (nt :: acc)
-    in
-    let states_ordered = List.mapi
-      (fun i st -> (st, i))
-      (get_order_loop trans_ls init_st [])
+    let nt_to_order' = fixpoint get_order nt_to_order in
+    let states_ordered = Hashtbl.fold
+      (fun k v acc -> (k, v) :: acc) 
+      !nt_to_order' [] 
     in
     (runIf debug_print (fun _ -> 
       printf "\nOrder of states : \n";
@@ -306,79 +181,66 @@ let cfg_to_ta (versatileTerminals: (terminal * int list) list) (debug_print: boo
         (fun (st, lvl) -> printf "(%s, %i)\n" st lvl) 
         states_ordered)
     );
-    let rec get_o_base_precedence tls acc_res =
+    let rec get_o_base_precedence trans acc_res =
       let auxiliary_labels = [
         epsilon_symb;
-        ("LPARENRPAREN", 1);
-        ("N", 0)] 
+        ("LPARENRPAREN", 1)] 
       in
-      match tls with 
+      match trans with
       | [] -> List.rev acc_res
-      | (lhs_st, (sym, _)) :: tl ->
+      | (lhs_st, (sym, _), rhs) :: tl ->
         if (is_cond_state lhs_st)
           || exists (syms_equals sym) auxiliary_labels
+          || length rhs = 1 &&
+            ((hd rhs = Nt "ϵ") || match hd rhs with T _ -> true | _ -> false)
         then
-          get_o_base_precedence tl acc_res
+          get_o_base_precedence tl (((Prec (sym, -1)), rhs)::acc_res)
         else
-          let ord = match (assoc_opt lhs_st states_ordered) with 
-          | None -> raise State_with_no_matching_order
+          let ord = match (assoc_opt lhs_st states_ordered) with
+          | None ->
+            (runIf debug_print (fun _ -> 
+              printf "\n\nState %s has no matching order.\n" lhs_st));
+            raise State_with_no_matching_order
           | Some o -> o
           in
-          get_o_base_precedence tl (Prec (sym, ord)::acc_res)
+          get_o_base_precedence tl ((Prec (sym, ord), rhs)::acc_res)
     in get_o_base_precedence trans_ls []
   in
   let (trans, restrictions) =
-    let stat: state ref = ref "" in
-    let trans_ls = 
-      g.productions
-      |> fold_left (fun acc (n, (t, ls)) ->
-        (n, ((t, (length ls)), ls)) :: acc) []
-      |> map (fun (s, (op, s_ls)) ->
-          if s_ls = [] then 
-            (s, (op, ["ϵ"]))
-          else
-            (stat := s; (s, (op, s_ls)))
-          )
-      |> List.rev in
-    let restrictions_ls = trans_to_restrictions trans_ls g.start in
+    let trans_ls = fold_right 
+      (fun (n, (t, ls), _) acc -> (n, (t, ls)) :: acc) 
+      g.productions []
+    in
+    let restrictions_ls = trans_to_restrictions
+      g.productions g.nonterms g.start 
+    in
     trans_ls, restrictions_ls
   in
-  (* helper assuming at most 2 occurrences of versatileTerminals *)
-  let last_ind ls elem =
-    let rec loop i i_acc l = match l with [] -> i_acc
-    | h::tl -> loop (i+1) (if fst h = elem then i else i_acc) tl
-    in loop 0 (-1) ls in
-  (* add versatile symbols -- with multiple ranks -- to alphabet *)
-  let toadd_versterms = 
-    versatileTerminals 
-    |> map fst
-    |> map (fun term ->
-      let lasti = last_ind prods_rhs term in
-      let rank_of_lasti: int = match nth_opt prods_rhs lasti with
-        | None -> raise (Failure "Infeasible")
-        | Some (t, symb_ls) ->
-          (runIf debug_print (fun _ ->
-            printf "\n\tSymbol %s has" t; symb_ls |> iter (printf " %s");
-            printf " so length is "; printf "%d.\n" (length symb_ls))
-          );
-          length symb_ls
-     in (term, rank_of_lasti)) in
   let ta_res =
     { 
-      states = "ϵ"::g.nonterms; 
-      alphabet = ranked_alphabet @ toadd_versterms; 
+      states = g.nonterms; 
+      alphabet = ranked_alphabet; 
       start_state = g.start; 
       transitions = trans
     } |> enhance_appearance in
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
-  printf "\nRestrictions O_bp obtained from the TA_g : "; Pp.pp_restriction_lst restrictions;
-  ta_res, restrictions
+  printf "\nRestrictions O_bp obtained from the TA_g : \n"; Pp.pp_restriction'_lst restrictions;
+  ta_res, (restrictions |> split |> fst)
 
 let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_print: bool): 
   ta * restriction list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   (* "./lib/parser.mly" |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print *)
-  file |> extract_cfg debug_print |> cfg_of_cfg2 |> cfg_to_ta versatiles debug_print
+  file
+  |>
+  (runIf debug_print (fun _ -> Printf.printf "\n\nConvert parser.mly to its corresponding CFG\n"); 
+  extract_cfg debug_print)
+  |>
+  (runIf debug_print (fun _ -> Printf.printf "\n\nConvert between CFG formats\n");
+  cfg_of_cfg2)
+  |>
+  (runIf debug_print (fun _ -> Printf.printf "\n\nConverting CFG to TA\n");
+  cfg_to_ta versatiles debug_print)
 
 
 (* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)

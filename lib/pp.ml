@@ -128,6 +128,18 @@ let pp_restriction_lst (rls:T.restriction list) =
       | T.Assoc (s, a) -> (printf "("; pp_symbol s; printf ", %s) " a)
       | T.Prec (s, i) -> printf "("; pp_symbol s; printf ", %i) " i); printf "\n\n"
 
+let pp_restriction'_lst (rls:(T.restriction * (C.sigma list)) list) =
+  let pp_sigma_list sls =
+    printf "[ "; 
+    iter (fun s -> match s with 
+      | C.T s' -> printf "%s " s'
+      | C.Nt s' -> printf "%s " s') sls; 
+    printf "]\n"
+  in
+  rls |> iter (fun r -> match r with 
+      | T.Assoc (s, a), sg -> (printf "("; pp_symbol s; printf ", %s) " a);pp_sigma_list sg
+      | T.Prec (s, i), sg -> printf "("; pp_symbol s; printf ", %i) " i;pp_sigma_list sg)
+
 let pp_combined_trees (inp_ls: ((T.tree * (bool * bool) * T.restriction list)) list) =
   printf "\n  >> Resulted example trees: \n\n"; 
   inp_ls |> iter (fun ((t, (oa, op), rls)) -> 

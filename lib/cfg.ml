@@ -1,6 +1,15 @@
 type nonterminal = string
 type terminal = string
-type production = nonterminal * (terminal * string list)
+type sigma = T of terminal | Nt of nonterminal
+type production = 
+  nonterminal (* lhs *)
+  * (terminal * nonterminal list) (* rhs with identifying symbol, and nonterminals *)
+
+type production2 = 
+  nonterminal (* lhs *)
+  * ((terminal * int) * nonterminal list) (* rhs with identifying symbol, and nonterminals *)
+  * sigma list (* full ordered rhs *)
+(* symbol = (identifying symbol, rank) *)
 
 type cfg = (* CFG := (V, \Sigma, S, P) *)
   { mutable nonterms : nonterminal list;   (* V - a set of nonterminals/variables, eg, E, +  *)
@@ -9,11 +18,17 @@ type cfg = (* CFG := (V, \Sigma, S, P) *)
     mutable productions : production list; (* P - a set of productions, eg, E -> E + E       *)
   }
 
+type cfg3 = (* CFG := (V, \Sigma, S, P) *)
+  { mutable nonterms : nonterminal list;   (* V - a set of nonterminals/variables, eg, E, +  *)
+    mutable terms : terminal list;         (* \Sigma - a set of terminals, eg, N             *)
+    mutable start : nonterminal;           (* S - start symbol, \in V, eg, E                 *)
+    mutable productions : production2 list; (* P - a set of productions, eg, E -> E + E       *)
+  }
+
 let null_cfg = { nonterms = []; terms = []; start = ""; productions = [] }
 
 type nt = string
 type t = string
-type sigma = T of t | Nt of nt
 type p = nt * int * sigma list
 
 type cfg2 = {
