@@ -37,9 +37,13 @@ let addtyp x = (x, Type.gentyp ())
 %token EOF
 
 %type <Syntax.t> exp
-%start exp
+%type <Syntax.t> prog
+%start prog
 
 %%
+
+prog:
+| e=exp EOF { e }
 
 simple_exp: /* (caml2html: parser_simple) */
 | LPAREN exp RPAREN

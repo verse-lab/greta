@@ -22,7 +22,7 @@ Evaluation
 | **G1** |   10   |         5         |        Y        |        -        |        N        |    Compilers<br />coursework    | `parser.mly`   `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`                        |
 | **G2** |   18   |         5         |        Y        |        -        |        N        |    Compilers<br />coursework    | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`                       |
 | **G3** |   29   |         5         |        Y        |        -        |        N        |    Compilers<br />coursework    | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`   `range.mli`    |
-| **G4** |   31   |         5         |        Y        |        -        |        N        |  Minimal OCaml <br />(MinCaml)  | `llparser.mly`   `lexer.mll`   `id.ml`   `syntax.ml`   `type.ml`                        |
+| **G4** |   31   |         5         |        Y        |        -        |        N        |  Minimal OCaml<br />(MinCaml)  | `parser.mly`   `lexer.mll`   `id.ml`   `syntax.ml`   `type.ml`                          |
 | **G5** |   -   |         5         |       wip       |        -        |        N        | Yacc grammar<br />for C language | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
 | **G6** |   -   |         5         |       wip       |        -        |        N        |     ANSI C Yacc<br />Grammar     | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
 | **G7** |   -   |         -         |        -        |        -        |        -        |    GitHub<br />(Project name)    | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
