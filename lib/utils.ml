@@ -1,3 +1,26 @@
+(** utilities for gluing togther the Menhir parser with the Sedlex lexer  *)
+(* let revised_parse (lexbuf: Sedlexing.lexbuf): Ast.t =
+  let tok () =
+    let tok = Lexer.token lexbuf in
+    let (st,ed) = Sedlexing.lexing_positions lexbuf in
+    (tok,st,ed) in
+  MenhirLib.Convert.Simplified.traditional2revised
+    Parser.program tok
+
+let parse lexbuf =
+  try revised_parse lexbuf with Parser.Error -> failwith "failed to parse" 
+
+let parse_string str =
+  parse (Sedlexing.Utf8.from_string str) *)
+
+let id x = x
+
+let remove_dups ls =
+  let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
+  List.fold_right unique_cons ls []
+
+let runIf debug f = if debug then f ()
+
 (** utilities for reading lines from parser *)
 let read_line i = try Some (input_line i) with End_of_file -> None
 

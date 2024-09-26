@@ -21,10 +21,11 @@ type ta =
     mutable alphabet : symbol list;
     mutable start_state : state;
     mutable transitions : transition list;
+    mutable trivial_nts : state list;
   }
 
 let null_ta = 
-  { states = []; alphabet = []; start_state = ""; transitions = [] }
+  { states = []; alphabet = []; start_state = ""; transitions = []; trivial_nts = [] }
 
 let epsilon_symb: symbol = ("ε", 1)
 let epsilon_state: state = "ϵ"

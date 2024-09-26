@@ -30,12 +30,13 @@ let () =
   let parser_file = "./lib/parser.mly" in
   let versatile_syms = [("IF", [2; 3])] in
   let conflicts_file = "./_build/default/lib/parser.conflicts" in
+  let cfg_file = "./_build/default/lib/parser.cfg" in
   (* let _test_conflicts_file = "./test/parser01.conflicts" in *)
   (* Learn TA and O_bp wrt 'parser_file' *)
   let debug = false in
   if (Utils.check_conflicts conflicts_file debug) then
   begin
-    let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa parser_file versatile_syms debug in
+    let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa cfg_file debug in
     let ranked_symbols = ta_initial.alphabet in
     let interact_counter = ref 0 
     in
