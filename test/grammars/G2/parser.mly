@@ -26,14 +26,12 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token RPAREN   /* ) */
 
 %left PLUS DASH
-%left STAR
-
-
+%left STAR                           
+                         
 /* ---------------------------------------------------------------------- */
 %start toplevel
 %type <Ast.prog> toplevel
 %type <Ast.exp> exp
-%type <Ast.block> block
 %type <Ast.const> const
 %%
 
@@ -51,18 +49,9 @@ const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
 exp:
-  | e=exp0   { e }
-
-exp0:
-  | e1=exp0 PLUS e2=exp1 { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | e1=exp0 DASH e2=exp1 { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | e=exp1 { e }
-
-exp1:
-  | e1=exp1 STAR e2=exp2 { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | e=exp2 { e }
-
-exp2:    
+  | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | e1=exp DASH e2=exp  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  | e1=exp STAR e2=exp  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=exp RPAREN { e }
