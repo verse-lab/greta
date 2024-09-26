@@ -252,6 +252,23 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       |> for_all (fun (_, ((_, a), _), _) -> a = 0)
     )
   in
+  (* Uncomment the following maps when ready to use *)
+  (* let add htbl k v =
+    if Hashtbl.mem htbl k
+    then Hashtbl.add htbl k (v :: (Hashtbl.find htbl k))
+    else Hashtbl.add htbl k [v]
+  in
+  let o_bp = Hashtbl.create (length prods) in
+  let transitions = Hashtbl.create (length prods) in
+  (iter (fun (prc, (lhs, rhs)) ->
+    let s, o = match prc with
+    | Prec x -> x
+    | _ -> assert false
+    in
+    add o_bp o s;
+    add transitions (lhs, s) rhs;
+  ) restrictions);
+  Hashtbl.iter (fun k v -> Hashtbl.replace o_bp k (remove_dups v)) o_bp; *)
   let ta_res =
     { 
       states = nonterms;
