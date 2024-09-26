@@ -123,7 +123,8 @@ let enhance_appearance (a: ta): ta =
   let trans_updated: transition list =
     a.transitions 
     |> List.map (fun (st, (sym, st_ls)) ->
-      let sym_new = change_symbol sym in (st, (sym_new, st_ls))) 
+      let sym_new = change_symbol sym 
+      in (st, (sym_new, st_ls))) 
   in
   {
     states = a.states; 
@@ -194,7 +195,7 @@ let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3):
           || length rhs = 1 &&
             ((hd rhs = Nt "ϵ") || match hd rhs with T _ -> true | _ -> false)
         then
-          get_o_base_precedence tl (((Prec (sym, -1)), rhs)::acc_res)
+          get_o_base_precedence tl (((Prec (sym, -1)), (lhs_st, rhs))::acc_res)
         else
           let ord = match (assoc_opt lhs_st states_ordered) with
           | None ->
@@ -203,7 +204,7 @@ let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3):
             raise State_with_no_matching_order
           | Some o -> o
           in
-          get_o_base_precedence tl ((Prec (sym, ord), rhs)::acc_res)
+          get_o_base_precedence tl ((Prec (sym, ord), (lhs_st, rhs))::acc_res)
     in get_o_base_precedence trans_ls []
   in
   let (trans, restrictions) =

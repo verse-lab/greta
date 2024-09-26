@@ -128,12 +128,13 @@ let pp_restriction_lst (rls:T.restriction list) =
       | T.Assoc (s, a) -> (printf "("; pp_symbol s; printf ", %s) " a)
       | T.Prec (s, i) -> printf "("; pp_symbol s; printf ", %i) " i); printf "\n\n"
 
-let pp_restriction'_lst (rls:(T.restriction * (C.sigma list)) list) =
+let pp_restriction'_lst (rls:(T.restriction * (C.nonterminal * C.sigma list)) list) =
   let pp_sigma_list sls =
+    printf "%s " (fst sls);
     printf "[ "; 
     iter (fun s -> match s with 
       | C.T s' -> printf "%s " s'
-      | C.Nt s' -> printf "%s " s') sls; 
+      | C.Nt s' -> printf "%s " s') (snd sls); 
     printf "]\n"
   in
   rls |> iter (fun r -> match r with 
