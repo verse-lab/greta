@@ -55,13 +55,15 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
   let nonterms = ref (clean $ Hashtbl.find sectionToLine "nt") in
   let terms= clean $ Hashtbl.find sectionToLine "t" in
   let t_prods = clean $ Hashtbl.find sectionToLine "p" in
+  let added_eps = ref false in
   let productions = List.mapi (fun i x -> 
       let split = Str.bounded_split (Str.regexp "->") x 2 in
       let lhs, rhs = 
         List.hd split, 
         if List.length split > 1 
           then List.nth split 1
-          else (nonterms := "ϵ" :: !nonterms;"ϵ")
+          else (if not !added_eps 
+            then (nonterms := "ϵ" :: !nonterms; added_eps := true);"ϵ")
       in
       let rhs = clean $ String.split_on_char ' ' rhs in
       (sanitize lhs, i,
@@ -130,7 +132,8 @@ let enhance_appearance (a: ta): ta =
     states = a.states; 
     alphabet = alph_updated; 
     start_state = a.start_state; 
-    transitions = trans_updated 
+    transitions = trans_updated;
+    trivial_nts = a.trivial_nts 
   }
 
 let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3): 
@@ -217,15 +220,26 @@ let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3):
     in
     trans_ls, restrictions_ls
   in
+  (* trivial nts are nts with only zero arity productions *)
+  let trivial_nts = g.nonterms
+    |> filter (fun nt ->
+      filter (fun (lhs, _, _) -> lhs = nt) g.productions
+      |> for_all (fun (_, ((_, a), _), _) -> a = 0)
+    )
+  in
+
   let ta_res =
     { 
-      states = g.nonterms; 
-      alphabet = ranked_alphabet; 
-      start_state = g.start; 
-      transitions = trans
+      states = g.nonterms;
+      alphabet = ranked_alphabet;
+      start_state = g.start;
+      transitions = trans;
+      trivial_nts = trivial_nts
     } |> enhance_appearance in
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
   printf "\nRestrictions O_bp obtained from the TA_g : \n"; Pp.pp_restriction'_lst restrictions;
+  printf "\n >> Trivial non-terminals: [ ";
+  trivial_nts |> iter (fun x -> printf "%s " x); printf "]\n";
   ta_res, (restrictions |> split |> fst)
 
 let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_print: bool): 
@@ -255,7 +269,7 @@ let undo_enhancement (a: ta): ta =
   let trans_updated = a.transitions |> List.map (fun (st, (sym, st_ls)) ->
     let sym_new = undo_change_symbol sym in (st, (sym_new, st_ls))) in 
   { states = a.states ; alphabet = alph_updated
-  ; start_state = a.start_state ; transitions = trans_updated }
+  ; start_state = a.start_state ; transitions = trans_updated ; trivial_nts = a.trivial_nts }
 
 let ta_to_cfg (versatileTerminals: (terminal * int list) list) (debug_print: bool) (a: ta): cfg = 
   let open Printf in
