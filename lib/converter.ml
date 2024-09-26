@@ -27,7 +27,8 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
     else line
   in
   let clean lines = 
-    List.map sanitize lines |> List.filter (fun x -> x <> "")
+    List.map sanitize lines
+    |> List.filter (fun x -> x <> "" && x <> "EOF")
   in
   (* extract sections *)
   let sectionToLine = Hashtbl.create 5 in
@@ -85,7 +86,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
     List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function T x -> x | Nt x -> x) rhs))) productions;
   { nonterms; terms; start; productions }
 
-let cfg_of_cfg2 (cfg2: cfg2): cfg3 =
+let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
   { 
     nonterms = cfg2.nonterms; 
     terms = cfg2.terms; 
@@ -136,17 +137,55 @@ let enhance_appearance (a: ta): ta =
     trivial_nts = a.trivial_nts 
   }
 
-let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3): 
+let optimize_cfg_starts (g: cfg3) (level: int) =
+  let open List in
+  let rec h (nts: nonterminal list) (starts: nonterminal list) (prods: production2 list) level =
+    if level = 0 then (nts, starts, prods)
+    else
+      let next_starts = map
+        (fun s -> filter 
+          (fun (lhs, _, _) -> lhs = s) 
+          prods
+          |> partition (fun (_, (sym, _), _) -> sym = ("ε", 1))
+          |> fun a -> (s, a)
+        )
+        starts
+      in
+      let (nts_to_remove, start_to_keep) = next_starts
+        |> partition (fun (_, (_, nontrivial_prods)) -> nontrivial_prods = [])
+        |> fun (a, b) -> (map fst a, map fst b)
+      in
+      let new_prods = filter
+        (fun (lhs, _, _) -> not (mem lhs nts_to_remove))
+        prods
+      in
+      let new_nts = filter 
+        (fun nt -> not (mem nt nts_to_remove)) 
+        nts 
+      in
+      let new_starts = next_starts
+        |> map (fun (_, (trivial_prods, _)) -> trivial_prods)
+        |> flatten
+        |> map (fun (_, _, rhs) -> match hd rhs with Nt x -> x | _ -> assert false)
+      in
+      let (rec_nts, rec_starts, rec_prods) =
+        h new_nts new_starts new_prods (level - 1)
+      in
+      (rec_nts, start_to_keep @ rec_starts, rec_prods)
+  in h g.nonterms [g.start] g.productions level
+
+let cfg_to_ta (debug_print: bool) (g: cfg3): 
   ta * restriction list =
   let open List in
   let open Printf in
-  let epsilon_symb: symbol = ("ε", 1) in
+  let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
   let ranked_alphabet = map 
     (fun (_, (a, _), _) -> a)
-    g.productions
+    prods
+    |> remove_dups
   in
   (* helper to get restrictions from transitions *)
-  let trans_to_restrictions trans_ls nt_ls init_st =
+  let trans_to_restrictions trans_ls nt_ls init_sts =
     let rec fixpoint f (x: 'a ref) =
       let changed = f x in
       if changed then fixpoint f x else x
@@ -154,9 +193,9 @@ let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3):
     let nt_to_order = ref (Hashtbl.create 10) in
     let num_nt = length nt_ls in
     iter
-      (fun st -> Hashtbl.add !nt_to_order st (num_nt + 1)) 
+      (fun st -> Hashtbl.add !nt_to_order st (num_nt + 1))
       nt_ls;
-    Hashtbl.replace !nt_to_order init_st 0;
+    iter (fun st -> Hashtbl.replace !nt_to_order st 0) init_sts;
     Hashtbl.add !nt_to_order "ϵ" (num_nt + 1); (* pseudo nt *)
     let get_order table =
       fold_left (fun acc (st, (_, rhs), _) ->
@@ -186,39 +225,25 @@ let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3):
         states_ordered)
     );
     let rec get_o_base_precedence trans acc_res =
-      let auxiliary_labels = [
-        epsilon_symb;
-        ("LPARENRPAREN", 1)] 
-      in
       match trans with
       | [] -> List.rev acc_res
       | (lhs_st, (sym, _), rhs) :: tl ->
-        if (is_cond_state lhs_st)
-          || exists (syms_equals sym) auxiliary_labels
-          || length rhs = 1 &&
-            ((hd rhs = Nt "ϵ") || match hd rhs with T _ -> true | _ -> false)
-        then
-          get_o_base_precedence tl (((Prec (sym, -1)), (lhs_st, rhs))::acc_res)
-        else
-          let ord = match (assoc_opt lhs_st states_ordered) with
+        let ord = match (assoc_opt lhs_st states_ordered) with
           | None ->
             (runIf debug_print (fun _ -> 
               printf "\n\nState %s has no matching order.\n" lhs_st));
             raise State_with_no_matching_order
           | Some o -> o
-          in
-          get_o_base_precedence tl ((Prec (sym, ord), (lhs_st, rhs))::acc_res)
+        in
+        get_o_base_precedence tl ((Prec (sym, ord), (lhs_st, rhs))::acc_res)
     in get_o_base_precedence trans_ls []
   in
-  let (trans, restrictions) =
-    let trans_ls = fold_right 
-      (fun (n, (t, ls), _) acc -> (n, (t, ls)) :: acc) 
-      g.productions []
-    in
-    let restrictions_ls = trans_to_restrictions
-      g.productions g.nonterms g.start 
-    in
-    trans_ls, restrictions_ls
+  let trans = fold_right 
+    (fun (n, (t, ls), _) acc -> (n, (t, ls)) :: acc) 
+    prods []
+  in
+  let restrictions = trans_to_restrictions
+    prods nonterms starts 
   in
   (* trivial nts are nts with only zero arity productions *)
   let trivial_nts = g.nonterms
@@ -227,12 +252,11 @@ let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3):
       |> for_all (fun (_, ((_, a), _), _) -> a = 0)
     )
   in
-
   let ta_res =
     { 
-      states = g.nonterms;
+      states = nonterms;
       alphabet = ranked_alphabet;
-      start_state = g.start;
+      start_state = starts |> hd;
       transitions = trans;
       trivial_nts = trivial_nts
     } |> enhance_appearance in
@@ -242,7 +266,7 @@ let cfg_to_ta (_: (terminal * int list) list) (debug_print: bool) (g: cfg3):
   trivial_nts |> iter (fun x -> printf "%s " x); printf "]\n";
   ta_res, (restrictions |> split |> fst)
 
-let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_print: bool): 
+let convertToTa (file: string) (debug_print: bool):
   ta * restriction list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   (* "./lib/parser.mly" |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print *)
@@ -252,10 +276,10 @@ let convertToTa (file: string) (versatiles: (terminal * int list) list) (debug_p
   extract_cfg debug_print)
   |>
   (runIf debug_print (fun _ -> Printf.printf "\n\nConvert between CFG formats\n");
-  cfg_of_cfg2)
+  cfg3_of_cfg2)
   |>
   (runIf debug_print (fun _ -> Printf.printf "\n\nConverting CFG to TA\n");
-  cfg_to_ta versatiles debug_print)
+  cfg_to_ta debug_print)
 
 
 (* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)

@@ -15,6 +15,10 @@ let parse_string str =
 
 let id x = x
 
+let remove_dups ls =
+  let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
+  List.fold_right unique_cons ls []
+
 let runIf debug f = if debug then f ()
 
 (** utilities for reading lines from parser *)

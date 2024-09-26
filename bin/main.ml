@@ -36,7 +36,7 @@ let () =
   let debug = true in
   if (Utils.check_conflicts conflicts_file debug) then
   begin
-    let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa cfg_file versatile_syms debug in
+    let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa cfg_file debug in
     let ranked_symbols = ta_initial.alphabet in
     let interact_counter = ref 0 
     in
