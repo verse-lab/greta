@@ -102,22 +102,21 @@ let pp_tree_to_expr (e: T.tree) =
     | Node (sym, subts) -> 
       (* TO FIX: example trees gen with versatiles sometimes have arities not equal to (length subts) 
        *         so instead of using (length subts) should be able to use (snd sym) *)
-      let s', rnk = fst sym, (length subts) in
-      if (rnk = 0 && is_empty_leaf subts) then 
-        (printf "%s " s')
-      else if (rnk = 2 && s' = "IF") then 
-        (printf "( %s " s'; ptree_loop (nth subts 0); 
-        printf "THEN "; ptree_loop (nth subts 1); printf ") ")
-      else if (rnk = 2 && not (s' = "IF")) then 
-        (printf "( "; ptree_loop (nth subts 0); 
-        printf "%s " s'; ptree_loop (nth subts 1); printf ") ")
-      else if (rnk = 1 && s' = "LPARENRPAREN") then 
-        (printf "( LPAREN "; ptree_loop (nth subts 0); printf "RPAREN ) ") 
-      else if (rnk = 3 && s' = "IF") then 
-        (printf "( %s " s'; ptree_loop (nth subts 0);
-        printf "THEN "; ptree_loop (nth subts 1);
-        printf "ELSE "; ptree_loop (nth subts 2); printf ") ")
-      else printf "Node %s with a rnk other than 1, 2 or 3!" (fst sym)
+      let s', rnk = fst sym, snd sym in (* (length subts) *)
+      match s', rnk with 
+      | _, 0 -> 
+        if (rnk = 0 && is_empty_leaf subts) then (printf "%s " s')
+        else raise (Failure "pp_tree_to_expr : no trivial symbol case")
+      | "LPARENRPAREN", 1 ->
+        printf "( LPAREN "; ptree_loop (nth subts 0); printf "RPAREN ) "
+      | "LBRACERPRACE", 1 ->
+        printf "( LBRACE "; ptree_loop (nth subts 0); printf "RBRACE ) "
+      | _, 2 -> 
+        printf "( "; ptree_loop (nth subts 0); 
+        printf "( %s " s'; ptree_loop (nth subts 1); printf ") "
+      | s, _ ->
+        printf "( %s " s;  subts |> List.iter (fun t -> ptree_loop t); printf " ) "
+         (* printf "Node %s with a rnk other than 1, 2 or 3!" (fst sym) *)
   in ptree_loop e  
 
 let pp_expr_lst (sls:string list) = 

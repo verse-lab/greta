@@ -73,6 +73,7 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
       match ls with [] -> Node (nodsym_acc, List.rev subtrees_acc)
       | (sh: string) :: stl -> 
         if (is_in_alphabet sh) 
+          (* *** debug *** *)
         then (let sym_rank = (List.length str_ls) - 1
               in conv_loop stl (sh, sym_rank) subtrees_acc)
         else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc)
@@ -89,8 +90,9 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
           else loop tl (hd :: acc)
       in loop input_ls []
     in
-    let refine_str (str: string): string list = str |> split_on_char ' ' 
-        |> List.filter (fun x -> not (x = "THEN") && not (x = "ELSE") && not (x = ""))
+    let refine_str (str: string): string list = str |> split_on_char ' '
+         (* *** debug *** *)
+        |> List.filter (fun x -> not (x = "")) 
         |> combine_term_w_dot
     in
     (* change to each str in list to e.g., [expr; sym; @expr] in list *)

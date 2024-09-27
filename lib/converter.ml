@@ -253,12 +253,15 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
     )
   in
   (* Uncomment the following maps when ready to use *)
-  (* let add htbl k v =
+  (* 
+  let add htbl k v =
     if Hashtbl.mem htbl k
     then Hashtbl.add htbl k (v :: (Hashtbl.find htbl k))
     else Hashtbl.add htbl k [v]
   in
+  (* order -> symbol list *)
   let o_bp = Hashtbl.create (length prods) in
+  (* lhs * symbol -> (sigma list) list    ---- (rhs <=> sigma list) *)
   let transitions = Hashtbl.create (length prods) in
   (iter (fun (prc, (lhs, rhs)) ->
     let s, o = match prc with
@@ -268,7 +271,8 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
     add o_bp o s;
     add transitions (lhs, s) rhs;
   ) restrictions);
-  Hashtbl.iter (fun k v -> Hashtbl.replace o_bp k (remove_dups v)) o_bp; *)
+  Hashtbl.iter (fun k v -> Hashtbl.replace o_bp k (remove_dups v)) o_bp; 
+  *)
   let ta_res =
     { 
       states = nonterms;

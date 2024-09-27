@@ -183,7 +183,7 @@ let tree_to_expr (t: tree) : string list =
   let rec tree_loop t: string list =
     match t with Leaf s -> [s]
     | Node (sym, subts) ->
-      let s', rnk = fst sym, snd sym in (* (length subts) *)
+      let s', rnk = fst sym, snd sym in 
       match s', rnk with 
       | _, 0 -> 
         if is_empty_leaf subts then [s'] 
