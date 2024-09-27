@@ -1,100 +1,68 @@
+(* A lexer for the simple boolean logic grammar specified in grammar.txt *)
+
 {
-(* lexerが利用する変数、関数、型などの定義 *)
-open Parser
-(* open Type *)
+  open Lexing
+  open Parser
+  open Range
+  
+  exception Lexer_error of Range.t * string
+
+  (* Creates a Range.pos from the Lexing.position data *)
+  let pos_of_lexpos (p:Lexing.position) : pos =
+    mk_pos (p.pos_lnum) (p.pos_cnum - p.pos_bol)
+
+  (* Here, pos_lnum is the line number; pos_bol is the offset of the
+     beginning of the line (number of characters between the beginning of
+     the lexbuf and the beginning of the line); pos_cnum is the offset of
+     the position (number of characters between the beginning of the
+     lexbuf and the position). *)
+    
+  (* Creates a Range.t from two Lexing.positions *)
+  let mk_lex_range (p1:Lexing.position) (p2:Lexing.position) : Range.t =
+    mk_range p1.pos_fname (pos_of_lexpos p1) (pos_of_lexpos p2)
+
+  (* Expose the lexer state as a Range.t value *)
+  let lex_range lexbuf : Range.t = 
+    mk_lex_range (lexeme_start_p lexbuf) (lexeme_end_p lexbuf)
+
+  (* Reset the lexer state *)
+  let reset_lexbuf (filename:string) lexbuf : unit =
+    lexbuf.lex_curr_p <- {
+      pos_fname = filename;
+      pos_cnum = 0;
+      pos_bol = 0;
+      pos_lnum = 1;
+    }
+    
+  (* Boilerplate to define exceptional cases in the lexer. *)
+  let unexpected_char lexbuf (c:char) : 'a =
+    raise (Lexer_error (lex_range lexbuf,
+        Printf.sprintf "Unexpected character: '%c'" c))
 }
 
-(* 正規表現の略記 *)
-let space = [' ' '\t' '\n' '\r']
-let digit = ['0'-'9']
-let lower = ['a'-'z']
-let upper = ['A'-'Z']
 
+(* Basic regular expressions for the tokens of this grammar *)
+let lowercase = ['a'-'z']
+let uppercase = ['A'-'Z']
+let character = uppercase | lowercase
+let whitespace = ['\t' ' ' '\r' '\n']
+let digit = ['0'-'9']
+
+(* Returns a token of type as specified in parser.mly 
+   
+   Each token carries a Range.t value indicating its
+   position in the file.
+*)
 rule token = parse
-| space+
-    { token lexbuf }
-| "(*"
-    { comment lexbuf; (* ネストしたコメントのためのトリック *)
-      token lexbuf }
-| '('
-    { LPAREN }
-| ')'
-    { RPAREN }
-| "true"
-    { BOOL(true) }
-| "false"
-    { BOOL(false) }
-| "not"
-    { NOT }
-| digit+ (* 整数を字句解析するルール (caml2html: lexer_int) *)
-    { INT(int_of_string (Lexing.lexeme lexbuf)) }
-| digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
-    { FLOAT(float_of_string (Lexing.lexeme lexbuf)) }
-| '-' (* -.より後回しにしなくても良い? 最長一致? *)
-    { MINUS }
-| '+' (* +.より後回しにしなくても良い? 最長一致? *)
-    { PLUS }
-| "-."
-    { MINUS_DOT }
-| "+."
-    { PLUS_DOT }
-| "*."
-    { AST_DOT }
-| "/."
-    { SLASH_DOT }
-| '='
-    { EQUAL }
-| "<>"
-    { LESS_GREATER }
-| "<="
-    { LESS_EQUAL }
-| ">="
-    { GREATER_EQUAL }
-| '<'
-    { LESS }
-| '>'
-    { GREATER }
-| "if"
-    { IF }
-| "then"
-    { THEN }
-| "else"
-    { ELSE }
-| "let"
-    { LET }
-| "in"
-    { IN }
-| "rec"
-    { REC }
-| ','
-    { COMMA }
-| '_'
-    { IDENT(Id.gentmp Type.Unit) }
-| "Array.create" | "Array.make" (* [XX] ad hoc *)
-    { ARRAY_CREATE }
-| '.'
-    { DOT }
-| "<-"
-    { LESS_MINUS }
-| ';'
-    { SEMICOLON }
-| eof
-    { EOF }
-| lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)
-    { IDENT(Lexing.lexeme lexbuf) }
-| _
-    { failwith
-        (Printf.sprintf "unknown token %s near characters %d-%d"
-           (Lexing.lexeme lexbuf)
-           (Lexing.lexeme_start lexbuf)
-           (Lexing.lexeme_end lexbuf)) }
-and comment = parse
-| "*)"
-    { () }
-| "(*"
-    { comment lexbuf;
-      comment lexbuf }
-| eof
-    { Format.eprintf "warning: unterminated comment@." }
-| _
-    { comment lexbuf }
+  | eof         { EOF }
+  | whitespace+ { token lexbuf }  (* skip whitespace *)
+  | "true"      { TRUE (lex_range lexbuf) }
+  | "false"     { FALSE (lex_range lexbuf) }
+  | character+  { VAR (lex_range lexbuf, lexeme lexbuf) }
+  | '|'         { BAR (lex_range lexbuf) }
+  | '&'         { AMPER (lex_range lexbuf) }
+  | '~'         { TILDE (lex_range lexbuf) }
+  | "->"        { ARR (lex_range lexbuf) }
+  | '('         { LPAREN (lex_range lexbuf) }
+  | ')'         { RPAREN (lex_range lexbuf) }
+  | _ as c      { unexpected_char lexbuf c }

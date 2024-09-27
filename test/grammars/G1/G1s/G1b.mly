@@ -23,7 +23,8 @@ open Ast;;
 %start toplevel           
 
 %type <Ast.bexp> toplevel  
-%type <Ast.bexp> bexp
+%type <Ast.bexp> bexp1
+%type <Ast.bexp> bexp2
 %%
 
 toplevel:

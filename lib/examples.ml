@@ -28,12 +28,15 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
   let open List in
   let open String in
   let open Printf in
-  let a_new = a |> List.map (fun (sym, ar) -> 
-    match sym with "+" -> ("PLUS", ar) | "*" -> ("MUL", ar) | "()" -> ("LPARENRPAREN", ar)
-    | rest -> (rest, ar)) in
-  let syms_ls: string list = a_new |> List.map fst in
+  (* 
+    let a_new = a |> List.map (fun (sym, ar) -> 
+      match sym with "+" -> ("PLUS", ar) | "*" -> ("MUL", ar) | "()" -> ("LPARENRPAREN", ar)
+      | rest -> (rest, ar)) in
+  *)
+  let syms_ls: string list = a |> List.map fst in
   printf "\nGenerate examples from conflicts in file %s\n" filename; 
-  if debug_print then printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s ");
+    (* *** debug *** *)
+    if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); printf "\n");
   (* helpers *)
   let ic = open_in filename in
   let try_read () = try Some (input_line ic) with End_of_file -> None in
@@ -154,11 +157,22 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
         else (let texpr2 = List.hd tl in 
               let two_trees_combined: (tree * (bool * bool) * restriction list) list = 
                   combine_two_trees texpr1 texpr2 in 
+                  (* *** debug *** *)
+                  if debug_print then (printf "\n\nCombined tree: "; 
+                    let (fst_tree, _, _) = List.nth two_trees_combined 0 in 
+                    let (snd_tree, _, _) = List.nth two_trees_combined 1
+                    in Pp.pp_tree fst_tree; printf "\n"; Pp.pp_tree snd_tree);
               combine_loop (List.tl tl) (two_trees_combined @ res_acc))
     in combine_loop e_trees_n_exprs []
   in
   let relev_ls: string list = traverse 1 false [] in 
-  let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in
+    (* *** debug *** *)
+    if debug_print then (printf "\tRel lines: "; relev_ls |> List.iteri (fun i l -> (printf "#%d %s \n" (i+1) l)); printf "\n"); 
+  let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
+    (* *** debug *** *)
+    if debug_print then (printf "\tExtracted trees: "; 
+    let tls: tree list = extracted_trees_n_exprs |> List.map fst 
+    in List.iter (fun x -> (Pp.pp_tree x; printf "\n")) tls; printf "\n"); 
   let combined_trees: (tree * (bool * bool) * restriction list) list = 
                                                 combine_tree_exprs extracted_trees_n_exprs in
   (* generate tree expressions by splitting per every two combined ones *)

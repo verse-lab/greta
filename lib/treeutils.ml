@@ -171,28 +171,34 @@ let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
  *                 works for the tree combining 2 trees each of which has height 1
  *                 needed to differentiate two expressions when they both use the same operator
  *                 e.g., (expr + expr) + expr   vs.   expr + (expr + expr) *)
-let tree_to_expr (t: tree): string list =
+let tree_to_expr (t: tree) : string list =
   let open List in
+    (* *** debug *** *)
+    let open Printf in 
+    (printf "\n\nTree_to_expr "; Pp.pp_tree t);
   let is_empty_leaf (ts: tree list) =
     match (hd ts, length ts) with (Leaf "ϵ"), 1 -> true | _ -> false in
   let rec tree_loop t: string list =
     match t with Leaf s -> [s]
     | Node (sym, subts) ->
-      let s', rnk = fst sym, (length subts) in
-      if (rnk = 0 && is_empty_leaf subts) then [s']
-      else if (rnk = 2 && s' = "IF") then
-        (["("; s'] @ tree_loop (nth subts 0) @ 
-        ["THEN"] @ tree_loop (nth subts 1) @ [")"])
-      else if (rnk = 2 && not (s' = "IF")) then
-        (["("] @ tree_loop (nth subts 0) @ 
-        [s'] @ tree_loop (nth subts 1) @ [")"])
-      else if (rnk = 1 && s' = "LPARENRPAREN") then 
-        (["("; "LPAREN"] @ tree_loop (nth subts 1) @ ["RPAREN"; ")"])
-      else if (rnk = 3 && s' = "IF") then 
-        (["("; s'] @ tree_loop (nth subts 0) @ 
-        ["THEN"] @ tree_loop (nth subts 1) @
-        ["ELSE"] @ tree_loop (nth subts 2) @ [")"])
-      else raise (Failure "Node with a rank other than 1, 2 or 3!")
+      let s', rnk = fst sym, snd sym in (* (length subts) *)
+      match s', rnk with 
+      | _, 0 -> 
+        if is_empty_leaf subts then [s'] else raise (Failure "what's this now")
+      | "LPARENRPAREN", 1 -> 
+        ["("; "LPAREN"] @ tree_loop (nth subts 1) @ ["RPAREN"; ")"]
+      | "LBRACERBRACE", 1 -> 
+        ["("; "LBRACE"] @ tree_loop (nth subts 1) @ ["RBRACE"; ")"]
+      | s, 1 -> 
+        [s] @ tree_loop (nth subts 0)
+      | "IF", 2 -> 
+        ["("; s'] @ tree_loop (nth subts 0) @ ["THEN"] @ tree_loop (nth subts 1) @ [")"]
+      | _, 2 -> 
+        ["("] @ tree_loop (nth subts 0) @ [s'] @ tree_loop (nth subts 1) @ [")"]
+      | "IF", 3 -> 
+        ["("; s'] @ tree_loop (nth subts 0) @ ["THEN"] @ tree_loop (nth subts 1) @ ["ELSE"] @ tree_loop (nth subts 2) @ [")"]
+      | _, _ -> 
+        raise (Failure "Node with a rank other than 1, 2 or 3!")
   in tree_loop t
 
 (* (TODO) After fixing UI, remove 'gen_dual_expr' and 'present_tree_pair_single_operator' *)
