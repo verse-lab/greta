@@ -167,6 +167,8 @@ let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
   if debug_print then (printf "\nResult of renaming:\n"; Pp.pp_ta ta_res; printf "\n");
   ta_res
 
+(* let subts_to_list (subts: tree list):  *)
+
 (** tree_to_expr : helper to make the dual tree expression easier
  *                 works for the tree combining 2 trees each of which has height 1
  *                 needed to differentiate two expressions when they both use the same operator
@@ -175,7 +177,7 @@ let tree_to_expr (t: tree) : string list =
   let open List in
     (* *** debug *** *)
     let open Printf in 
-    (printf "\n\nTree_to_expr "; Pp.pp_tree t);
+    (printf "\n\nTree_to_expr "; Pp.pp_tree t; printf "\n\n");
   let is_empty_leaf (ts: tree list) =
     match (hd ts, length ts) with (Leaf "ϵ"), 1 -> true | _ -> false in
   let rec tree_loop t: string list =
@@ -184,21 +186,23 @@ let tree_to_expr (t: tree) : string list =
       let s', rnk = fst sym, snd sym in (* (length subts) *)
       match s', rnk with 
       | _, 0 -> 
-        if is_empty_leaf subts then [s'] else raise (Failure "what's this now")
+        if is_empty_leaf subts then [s'] 
+          (* TODO: Handle trivial symbols here *)
+        else raise (Failure "what's this now")
       | "LPARENRPAREN", 1 -> 
         ["("; "LPAREN"] @ tree_loop (nth subts 1) @ ["RPAREN"; ")"]
       | "LBRACERBRACE", 1 -> 
         ["("; "LBRACE"] @ tree_loop (nth subts 1) @ ["RBRACE"; ")"]
-      | s, 1 -> 
-        [s] @ tree_loop (nth subts 0)
+        (* TODO: Make the rank below to be generalizable *)
       | "IF", 2 -> 
         ["("; s'] @ tree_loop (nth subts 0) @ ["THEN"] @ tree_loop (nth subts 1) @ [")"]
       | _, 2 -> 
         ["("] @ tree_loop (nth subts 0) @ [s'] @ tree_loop (nth subts 1) @ [")"]
       | "IF", 3 -> 
         ["("; s'] @ tree_loop (nth subts 0) @ ["THEN"] @ tree_loop (nth subts 1) @ ["ELSE"] @ tree_loop (nth subts 2) @ [")"]
-      | _, _ -> 
-        raise (Failure "Node with a rank other than 1, 2 or 3!")
+      | s, _ -> 
+        let treeexprs_for_subts = subts |> fold_left (fun acc t -> acc @ tree_loop t) [] in 
+        ["("; s] @ treeexprs_for_subts @ [")"] 
   in tree_loop t
 
 (* (TODO) After fixing UI, remove 'gen_dual_expr' and 'present_tree_pair_single_operator' *)
