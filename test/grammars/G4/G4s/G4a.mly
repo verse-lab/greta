@@ -151,7 +151,7 @@ exp: /* (caml2html: parser_exp) */
 | simple_exp actual_args
     %prec prec_app
     { App($1, $2) }
-| elems
+| LPAREN elems RPAREN
     %prec prec_tuple
     { Tuple($1) }
 | LET LPAREN pat RPAREN EQUAL exp IN exp

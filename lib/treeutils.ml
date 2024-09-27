@@ -187,8 +187,7 @@ let tree_to_expr (t: tree) : string list =
       match s', rnk with 
       | _, 0 -> 
         if is_empty_leaf subts then [s'] 
-          (* TODO: Handle trivial symbols here *)
-        else raise (Failure "what's this now")
+        else raise (Failure "tree_to_expr : no trivial case should be presented as a tree")
       | "LPARENRPAREN", 1 -> 
         ["("; "LPAREN"] @ tree_loop (nth subts 1) @ ["RPAREN"; ")"]
       | "LBRACERBRACE", 1 -> 

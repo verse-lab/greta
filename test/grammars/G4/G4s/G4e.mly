@@ -132,8 +132,8 @@ exp: /* (caml2html: parser_exp) */
     { LetRec($3, $5) }
 | simple_exp actual_args
     { App($1, $2) }
-| elems
-    { Tuple($1) }
+| LPAREN elems RPAREN
+    { Tuple($2) }
 | LET LPAREN pat RPAREN EQUAL exp IN exp
     { LetTuple($3, $6, $8) }
 | simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
