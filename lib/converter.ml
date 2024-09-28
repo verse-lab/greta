@@ -4,6 +4,7 @@ open Utils
 open Treeutils
 
 exception State_with_no_matching_order
+exception Trivial_symbols_not_found_in_prods
 
 (* ******************** Part I. Conversion of parser.mly > CFG > TA ******************** *)
 let read_file filename = 
@@ -134,7 +135,7 @@ let enhance_appearance (a: ta): ta =
     alphabet = alph_updated; 
     start_state = a.start_state; 
     transitions = trans_updated;
-    trivial_nts = a.trivial_nts 
+    trivial_sym_nts = a.trivial_sym_nts 
   }
 
 let optimize_cfg_starts (g: cfg3) (level: int) =
@@ -244,14 +245,25 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   in
   let restrictions = trans_to_restrictions
     prods nonterms starts 
-  in
+  in 
   (* trivial nts are nts with only zero arity productions *)
-  let trivial_nts = g.nonterms
+  let trivial_nts : state list = g.nonterms
     |> filter (fun nt ->
       filter (fun (lhs, _, _) -> lhs = nt) g.productions
       |> for_all (fun (_, ((_, a), _), _) -> a = 0)
-    )
+    ) 
   in
+  let find_symbol_from_productions (nt: nonterminal) (p: production2 list): symbol = 
+    let rec loop prods =
+      match prods with [] -> raise Trivial_symbols_not_found_in_prods
+      | (n, ((term, i), _), _) :: tl -> 
+        if nt = n then (term, i)
+        else loop tl
+    in loop p
+  in
+  let trivial_syms_nts = trivial_nts |> map (fun nt -> 
+    if (nt = epsilon_state) then (epsilon_symb, nt) else ((find_symbol_from_productions nt g.productions), nt)) 
+  in 
   (* ********************************************** *)
   (* Uncomment the following maps when ready to use *)
   (* ********************************************** *)
@@ -281,14 +293,14 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       alphabet = ranked_alphabet;
       start_state = starts |> hd;
       transitions = trans;
-      trivial_nts = trivial_nts
+      trivial_sym_nts = trivial_syms_nts
     } |> enhance_appearance in
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
   (* *** debug *** *)
   (* TODO: to simplify the structure *)
   printf "\nRestrictions O_bp obtained from the TA_g : \n"; Pp.pp_restriction'_lst restrictions;
   printf "\n >> Trivial non-terminals: [ ";
-  trivial_nts |> iter (fun x -> printf "%s " x); printf "]\n";
+  trivial_syms_nts |> iter (fun (s, x) -> printf " ("; Pp.pp_symbol s; printf ", %s ) " x); printf "]\n";
   printf "\nOrder -> symbol list O_bp map : \n"; Pp.pp_obp_tbl o_bp_tbl;
   printf "\n >> Transitions hashmap : \n"; Pp.pp_transitions_tbl transitions_tbl;
   let sigma_state_lst = restrictions |> map (fun (_r, (st, sig_ls)) -> ((hd sig_ls), st)) in 
@@ -321,7 +333,7 @@ let undo_enhancement (a: ta): ta =
   let trans_updated = a.transitions |> List.map (fun (st, (sym, st_ls)) ->
     let sym_new = undo_change_symbol sym in (st, (sym_new, st_ls))) in 
   { states = a.states ; alphabet = alph_updated
-  ; start_state = a.start_state ; transitions = trans_updated ; trivial_nts = a.trivial_nts }
+  ; start_state = a.start_state ; transitions = trans_updated ; trivial_sym_nts = a.trivial_sym_nts }
 
 let ta_to_cfg (versatileTerminals: (terminal * int list) list) (debug_print: bool) (a: ta): cfg = 
   let open Printf in

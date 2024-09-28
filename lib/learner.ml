@@ -100,7 +100,7 @@ let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int
   let raw_trans_ls: transition list = 
     get_transitions oa_ls op_ls o_bp_tbl sigma_state_ls a lvl_state_pairs init_state transitions_tbl debug_print in
   let ordered_trans_ls = order_trans_ls state_ls raw_trans_ls in
-  let ta_res = { states = state_ls; alphabet = a; start_state = init_state; transitions = ordered_trans_ls; trivial_nts=[] } in 
+  let ta_res = { states = state_ls; alphabet = a; start_state = init_state; transitions = ordered_trans_ls; trivial_sym_nts=[] } in 
   printf "\n\nLearned TA:\n"; Pp.pp_ta ta_res; ta_res
 
 
