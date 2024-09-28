@@ -91,7 +91,6 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
       in loop input_ls []
     in
     let refine_str (str: string): string list = str |> split_on_char ' '
-         (* *** debug *** *)
         |> List.filter (fun x -> not (x = "")) 
         |> combine_term_w_dot
     in

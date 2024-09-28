@@ -7,6 +7,7 @@ module E = Examples
 module L = Learner
 module U = Treeutils
 module D = Draw
+module G = Cfg
 module T = Ta
 
 (* *************** Grammar REpair with Tree Automata *************** *)
@@ -36,7 +37,9 @@ let () =
   let debug = true in
   if (Utils.check_conflicts conflicts_file debug) then
   begin
-    let (ta_initial, o_bp): T.ta * T.restriction list = C.convertToTa cfg_file debug in
+    let (ta_initial, o_bp, transitions_tbl, o_bp_tbl)
+      : T.ta * T.restriction list * (((T.state * T.symbol), G.sigma list list) Hashtbl.t) * ((int, T.symbol list) Hashtbl.t) = 
+      C.convertToTa cfg_file debug in
     let ranked_symbols = ta_initial.alphabet in
     let interact_counter = ref 0 
     in

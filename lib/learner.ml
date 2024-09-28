@@ -16,20 +16,23 @@ let get_states (op_ls: restriction list): ((int * state) list) * state =
   in
   (gen_states @ default_states), (List.hd gen_states |> snd)
 
-let get_transitions (oa_ls: restriction list) (op_ls: restriction list) (a: symbol list)
-  (_(* versatiles *): (string * int list) list) (lvl_state_pairs: (int * state) list) (start: state) (debug: bool): transition list =
-  let trivial_syms = a |> List.filter (fun (_, rnk) -> (rnk = 0) || (rnk = 1)) in
-  let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) && not (rnk = 1))
-    |> List.map (fun (s, rnk) -> if (s = "+") then ("PLUS", rnk) else if (s = "*") then ("MUL", rnk) else (s, rnk)) 
+let get_transitions (oa_ls: restriction list) (op_ls: restriction list) (a: symbol list) 
+  (_(* versatiles *): (string * int list) list) (lvl_state_pairs: (int * state) list) 
+  (start: state) (debug: bool): transition list =
+  let open Printf in
+  let trivial_syms = a |> List.filter (fun (_, rnk) -> (rnk = 0) ) in (* || (rnk = 1) *)
+  let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) ) (* && not (rnk = 1) *)
+    (* |> List.map (fun (s, rnk) -> if (s = "+") then ("PLUS", rnk) else if (s = "*") then ("MUL", rnk) else (s, rnk))  *)
   in
   (if debug then 
-    Printf.printf "\nTrivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s);
-    Printf.printf "\nNontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s));
+    printf "\nTrivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
+    printf "\nNontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s)); printf "\n";
   (* helper 'get_sym_state' for 'gen_trans_nontrivials' *)
   let get_sym_state (s: symbol) = 
     let sym_order = (order_in_op_lst s op_ls) + 1 in
     match (List.assoc_opt sym_order lvl_state_pairs) with 
     | None -> raise No_state_for_sym_order | Some st -> st in
+  (* *** debug *** *)
   let rec gen_trans_nontrivials sym_ls acc: transition list =
     match sym_ls with [] -> acc
     | sym :: tl -> 

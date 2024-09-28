@@ -45,9 +45,10 @@ let pp_raw_states (ss: (T.state * T.state) list) =
 let pp_raw_pair_of_state_pairs ((ss1, ss2): (T.state * T.state) * (T.state * T.state)) = 
   printf " ((%s, %s), (%s, %s)) " (fst ss1) (snd ss1) (fst ss2) (snd ss2)
 
+let pp_symbol (s: T.symbol) = printf " <%s, %d> " (fst s) (snd s)
+
 let pp_alphabet (a: T.symbol list) =
-  printf "\tAlphabet : { "; a |> iter (fun x -> 
-    printf " <%s, %d> " (fst x) (snd x) ); printf "}\n"
+  printf "\tAlphabet : { "; a |> iter (fun x -> pp_symbol x); printf "}\n"
 
 let pp_root (s: T.state) = printf "\tStart State : { %s }\n" s
 
@@ -70,7 +71,6 @@ let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
   pp_root (a.start_state); pp_transitions (a.transitions); pp_loline ()
 
-let pp_symbol (s: T.symbol) = printf "<%s, %d> " (fst s) (snd s)
 let pp_fst (s: T.symbol) = printf "\"%s\" " (fst s)
 
 let pp_tree (e: T.tree) =
@@ -127,15 +127,15 @@ let pp_restriction_lst (rls:T.restriction list) =
       | T.Assoc (s, a) -> (printf "("; pp_symbol s; printf ", %s) " a)
       | T.Prec (s, i) -> printf "("; pp_symbol s; printf ", %i) " i); printf "\n\n"
 
+let pp_sigma_list sls =
+  printf "%s " (fst sls);
+  printf "[ "; 
+  iter (fun s -> match s with 
+    | C.T s' -> printf "%s " s'
+    | C.Nt s' -> printf "%s " s') (snd sls); 
+  printf "]\n"
+
 let pp_restriction'_lst (rls:(T.restriction * (C.nonterminal * C.sigma list)) list) =
-  let pp_sigma_list sls =
-    printf "%s " (fst sls);
-    printf "[ "; 
-    iter (fun s -> match s with 
-      | C.T s' -> printf "%s " s'
-      | C.Nt s' -> printf "%s " s') (snd sls); 
-    printf "]\n"
-  in
   rls |> iter (fun r -> match r with 
       | T.Assoc (s, a), sg -> (printf "("; pp_symbol s; printf ", %s) " a);pp_sigma_list sg
       | T.Prec (s, i), sg -> printf "("; pp_symbol s; printf ", %i) " i;pp_sigma_list sg)
@@ -154,3 +154,14 @@ let pp_exprs (exprs_ls: (string list * string list) list) =
     printf "\n\t>> First expression : "; ls1 |> iter (printf "%s ");
     printf "\n\t>> Second expression : "; ls2 |> iter (printf "%s "); printf "\n"); 
     printf "\n"
+
+let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) = 
+  printf "\n  >> O_bp table: \n";
+  obp_tbl |> Hashtbl.iter (fun o_idx s_ls -> printf "\n\tOrder %i -> " o_idx; 
+    s_ls |> iter pp_symbol; printf "\n"); printf "\n"
+
+let pp_transitions_tbl (tbl: ((T.state * T.symbol), C.sigma list list) Hashtbl.t) = 
+  printf "\n  >> Transitions table: \n";
+  tbl |> Hashtbl.iter (fun (lhs, s) lsls -> printf "\n  ( State %s, " lhs; pp_symbol s; 
+  printf ") -> \n"; lsls |> iter (fun ls -> pp_sigma_list ("", ls)))
+
