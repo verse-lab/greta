@@ -71,12 +71,10 @@ let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
   pp_root (a.start_state); pp_transitions (a.transitions); pp_loline ()
 
-let pp_fst (s: T.symbol) = printf "\"%s\" " (fst s)
-
 let pp_tree (e: T.tree) =
   let rec loop (e: T.tree) =
     match e with Leaf s -> printf " Leaf %s " s
-    | Node (sym, subts) -> printf " Node ("; pp_fst sym; printf " ["; 
+    | Node (sym, subts) -> printf " Node ("; pp_symbol sym; printf " ["; 
       let len = List.length subts in subts |> List.iteri (fun i x -> 
         if (i = len-1) then loop x else (loop x; printf "; ")); printf "])"
   in loop e

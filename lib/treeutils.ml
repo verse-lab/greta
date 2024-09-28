@@ -3,7 +3,7 @@ open Ta
 exception Leaf_has_no_symbol
 exception No_assoc_possible
 exception No_prec_possible
-exception Op_has_nontrivial_symbol
+exception Op_has_trivial_symbol
 
 (** is_cond_expr : check if state is representing boolean state *)
 let is_cond_expr (s: state): bool =
@@ -346,7 +346,7 @@ let is_left_assoc (s: symbol) (oa_ls: restriction list): bool =
 
 let order_in_op_lst (s: symbol) (op_ls: restriction list): int =
   let rec traverse_op ls =
-    match ls with [] -> raise Op_has_nontrivial_symbol
+    match ls with [] -> raise Op_has_trivial_symbol
     | Prec (sym, o) :: tl -> 
       if (syms_equals s sym) then o
       else traverse_op tl
