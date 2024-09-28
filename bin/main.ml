@@ -37,8 +37,8 @@ let () =
   let debug = true in
   if (Utils.check_conflicts conflicts_file debug) then
   begin
-    let (ta_initial, o_bp, terminal_lhs_lst, transitions_tbl, o_bp_tbl): 
-      T.ta * T.restriction list * (G.sigma * T.state) list * (((T.state * T.symbol), G.sigma list list) Hashtbl.t) * ((int, T.symbol list) Hashtbl.t) = 
+    let (ta_initial, o_bp, transitions_tbl, o_bp_tbl): 
+      T.ta * T.restriction list * (((T.state * T.symbol), G.sigma list list) Hashtbl.t) * ((int, T.symbol list) Hashtbl.t) = 
       C.convertToTa cfg_file debug in
     let ranked_symbols = ta_initial.alphabet in
     let interact_counter = ref 0 
@@ -66,7 +66,7 @@ let () =
     let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
     let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug in 
     let ta_learned: T.ta = 
-      L.learn_ta o_a o_p o_bp_tbl terminal_lhs_lst ranked_symbols transitions_tbl debug 
+      L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols transitions_tbl debug 
     in 
     let versatile_syms = [] in
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)

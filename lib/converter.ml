@@ -176,7 +176,7 @@ let optimize_cfg_starts (g: cfg3) (level: int) =
   in h g.nonterms [g.start] g.productions level
 
 let cfg_to_ta (debug_print: bool) (g: cfg3): 
-  ta * restriction list * (sigma * state) list * (((state * symbol), sigma list list) Hashtbl.t) * ((int, symbol list) Hashtbl.t) =
+  ta * restriction list * (((state * symbol), sigma list list) Hashtbl.t) * ((int, symbol list) Hashtbl.t) =
   let open List in
   let open Printf in
   let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
@@ -303,11 +303,10 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   trivial_syms_nts |> iter (fun (s, x) -> printf " ("; Pp.pp_symbol s; printf ", %s ) " x); printf "]\n";
   printf "\nOrder -> symbol list O_bp map : \n"; Pp.pp_obp_tbl o_bp_tbl;
   printf "\n >> Transitions hashmap : \n"; Pp.pp_transitions_tbl transitions_tbl;
-  let sigma_state_lst = restrictions |> map (fun (_r, (st, sig_ls)) -> ((hd sig_ls), st)) in 
-  ta_res, (restrictions |> split |> fst), sigma_state_lst, transitions_tbl, o_bp_tbl
+  ta_res, (restrictions |> split |> fst), transitions_tbl, o_bp_tbl
 
 let convertToTa (file: string) (debug_print: bool):
-  ta * restriction list * (sigma * state) list * (((state * symbol), sigma list list) Hashtbl.t) * ((int, symbol list) Hashtbl.t) = 
+  ta * restriction list * (((state * symbol), sigma list list) Hashtbl.t) * ((int, symbol list) Hashtbl.t) = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   (* "./lib/parser.mly" |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print *)
   file
