@@ -285,6 +285,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       (* Only add non-trivial symbols to o_bp_tbl *)
       match s with (_, rnk) -> if (rnk != 0) 
         then begin 
+          (* If key already exists, then simply add to existing ones *)
           let exist_val = Hashtbl.find_opt o_bp_tbl o in
           match exist_val with None -> add o_bp_tbl o s 
           | Some ls -> Hashtbl.replace o_bp_tbl o (s::ls)
