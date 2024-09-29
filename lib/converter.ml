@@ -275,7 +275,6 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   (* o_bp : order -> symbol list *)
   let o_bp_tbl : (int, symbol list) Hashtbl.t  = Hashtbl.create (length prods) in
   (* transitions_tbl : lhs * symbol -> (sigma list) list   ----   (rhs <=> sigma list) *)
-  (* TODO: Change the transition list to hashtable below! *)
   let transitions_tbl : ((state * symbol), sigma list list) Hashtbl.t = 
     Hashtbl.create (length prods) in
     (iter (fun (prc, (lhs, rhs)) ->
@@ -284,7 +283,12 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       | _ -> assert false
       in
       (* Only add non-trivial symbols to o_bp_tbl *)
-      match s with (_, rnk) -> if (rnk != 0) then add o_bp_tbl o s;
+      match s with (_, rnk) -> if (rnk != 0) 
+        then begin 
+          let exist_val = Hashtbl.find_opt o_bp_tbl o in
+          match exist_val with None -> add o_bp_tbl o s 
+          | Some ls -> Hashtbl.replace o_bp_tbl o (s::ls)
+        end;
       add transitions_tbl (lhs, s) rhs;
     ) restrictions);
     Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl; 

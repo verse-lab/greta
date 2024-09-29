@@ -4,7 +4,7 @@ open Cfg
 
 exception No_state_for_sym_order
 exception Max_level_state
-exception Huh
+exception No_lhs_state
 
 let get_states (op_ls: restriction list): ((int * state) list) * state = 
   let default_states = [(0, "C"); (-1, "ϵ")] in
@@ -39,14 +39,14 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
     let sym_sigma = 
       let correct_sym = if (sym_equals sym "LBRACE") then ("LBRACERBRACE", 1) else sym in
       sym_lhs_ls |> List.assoc_opt correct_sym in
-    match sym_sigma with None -> raise Huh
+    match sym_sigma with None -> raise No_lhs_state
     | Some st -> st in 
   let max_lvl = 
     lvl_state_pairs |> List.map fst |> List.fold_left max 1 in
   let last_state: state = 
     match (List.assoc_opt max_lvl lvl_state_pairs) with 
     None -> raise Max_level_state | Some st -> st in 
-  let find_rhs_lst_lst (s: symbol): sigma list list = Utils.assoc_all s sym_rhs_ls in
+  let find_rhs_lst_lst (s: symbol): sigma list list = Utils.assoc_all s sym_rhs_ls debug in
   let is_terminal (x: sigma) = 
     match x with T _ -> true | Nt _ -> false
   in
@@ -74,14 +74,15 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
       else 
         match_collect tl curr_st ((Nt curr_st)::acc)
   in
-  printf "max? %i\n" max_lvl;
   let rec run_for_each_level lvl: unit =
     if (lvl <= max_lvl-1)
     then 
-      (if debug then printf "\n\t >> Now considering level %i >> \n" lvl;
-      let sym_ls = find o_bp_tbl lvl in 
+      (if debug then printf "\n\n\t >> Now considering level %i >> \n" lvl;
+      let sym_ls_ls : symbol list list = find_all o_bp_tbl lvl in 
+      printf "\n\t >> Length of syms --> %i" (List.length sym_lhs_ls);
       let curr_st = "e" ^ (string_of_int (lvl+1)) in
-      sym_ls |> List.iter (fun sym -> 
+      let run_for_sym_ls ls = 
+        ls |> List.iter (fun sym -> 
         let sym_rhs_ls_ls : sigma list list = find_rhs_lst_lst sym in
         let sym_rhs_lsls_learned = 
           sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
@@ -90,7 +91,9 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
         in
           if debug then printf "\n\tAdding transition for (State %s, " curr_st; 
           Pp.pp_symbol sym; printf ")";
-          add trans_tbl (curr_st, sym) sym_rhs_lsls_learned);
+          add trans_tbl (curr_st, sym) sym_rhs_lsls_learned) 
+      in 
+        sym_ls_ls |> List.iter run_for_sym_ls;
         run_for_each_level (lvl+1))
       else 
         printf "done"

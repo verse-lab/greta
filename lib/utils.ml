@@ -42,10 +42,14 @@ let check_conflicts (conflicts_file: string) (debug_print: bool): bool =
   if res then printf "\t\t\tYES\n\n" else printf "\t\t\tNO\n\n");
   res
 
-let assoc_all (a: 'a) (ab_ls: ('a * 'b list) list): 'b list list = 
+let assoc_all (a: Ta.symbol) (ab_ls: (Ta.symbol * Cfg.sigma list) list) (debug_print: bool): Cfg.sigma list list = 
   let rec loop ls acc =
     match ls with [] -> List.rev acc
     | (x, xs) :: tl ->
       if (x = a) then loop tl (xs::acc)
       else loop tl acc
-  in loop ab_ls []
+  in let res = loop ab_ls [] in 
+  if debug_print then 
+    (let open Pp in let open Printf in printf "\n   For symbol "; pp_symbol a; 
+     printf " collected:\n\t"; res |> List.iter (fun s_ls -> pp_sigma_list ("", s_ls)));
+  res
