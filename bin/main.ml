@@ -32,7 +32,6 @@ let () =
   (* let _versatile_syms = [("IF", [2; 3])] in *)
   let conflicts_file = "./_build/default/lib/parser.conflicts" in
   let cfg_file = "./_build/default/lib/parser.cfg" in
-  (* let _test_conflicts_file = "./test/parser01.conflicts" in *)
   (* Learn TA and O_bp wrt 'parser_file' *)
   let debug = true in
   if (Utils.check_conflicts conflicts_file debug) then

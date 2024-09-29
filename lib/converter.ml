@@ -283,7 +283,8 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       | Prec x -> x
       | _ -> assert false
       in
-      add o_bp_tbl o s;
+      (* Only add non-trivial symbols to o_bp_tbl *)
+      match s with (_, rnk) -> if (rnk != 0) then add o_bp_tbl o s;
       add transitions_tbl (lhs, s) rhs;
     ) restrictions);
     Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl; 

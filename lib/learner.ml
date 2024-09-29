@@ -4,6 +4,7 @@ open Cfg
 
 exception No_state_for_sym_order
 exception Max_level_state
+exception Huh
 
 let get_states (op_ls: restriction list): ((int * state) list) * state = 
   let default_states = [(0, "C"); (-1, "ϵ")] in
@@ -17,68 +18,86 @@ let get_states (op_ls: restriction list): ((int * state) list) * state =
   in
   (gen_states @ default_states), (List.hd gen_states |> snd)
 
-let get_transitions (_oa_ls: restriction list) (op_ls: restriction list) 
+let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list) 
   (o_bp_tbl: (int, symbol list) Hashtbl.t) (sym_lhs_ls: (symbol * state) list)
   (a: symbol list) (lvl_state_pairs: (int * state) list) (start: state) 
   (sym_rhs_ls: (symbol * sigma list) list) (debug: bool): 
   ((state * symbol), sigma list list) Hashtbl.t =
   let open Printf in
-  let trivial_syms = a |> List.filter (fun (_, rnk) -> (rnk = 0) ) in (* || (rnk = 1) *)
-  let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) ) (* && not (rnk = 1) *)
+  let open Hashtbl in
+  let trivial_syms = a |> List.filter (fun (_, rnk) -> (rnk = 0) ) in
+  let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) )
   in
   (if debug then 
     printf "\nTrivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
     printf "\nNontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s)); printf "\n";
-  (* --- helpers for gen transitions for trivial symbols --- *)
-  let rec gen_epsilon_trans num_levels i acc = 
-    if num_levels = 1 then acc 
-    else begin 
-      let (left_st, right_st): state * state = "e" ^ (string_of_int i), "e" ^ (string_of_int (i+1)) in 
-      let new_eps_trans: transition = (left_st, (epsilon_symb, [right_st])) in 
-      gen_epsilon_trans (num_levels - 1) (i+1) (new_eps_trans::acc)
-    end 
-  in let eps_trans: transition list = 
-    gen_epsilon_trans (levels_in_op_ls op_ls) 1 [] 
-  in 
-  let max_lvl = lvl_state_pairs |> List.map fst |> List.fold_left max 1 in
+  let trans_tbl : ((state * symbol), sigma list list) Hashtbl.t = 
+    create (length o_bp_tbl) (* size guessed wrt. # of transitions in o_bp_tbl *) in
+  (* --- helpers --- *)
+  let find_lhs (sym: symbol): state = 
+    if debug then printf "\n\tlooking for lhs state of symbol "; Pp.pp_symbol sym;
+    let sym_sigma = 
+      let correct_sym = if (sym_equals sym "LBRACE") then ("LBRACERBRACE", 1) else sym in
+      sym_lhs_ls |> List.assoc_opt correct_sym in
+    match sym_sigma with None -> raise Huh
+    | Some st -> st in 
+  let max_lvl = 
+    lvl_state_pairs |> List.map fst |> List.fold_left max 1 in
   let last_state: state = 
     match (List.assoc_opt max_lvl lvl_state_pairs) with 
     None -> raise Max_level_state | Some st -> st in 
-  let last_paren_to_fst = 
-    (last_state, (("LPARENRPAREN", 1), [start])) in
-  let find_lhs (sym: symbol): state = 
-    let sym_sigma = sym_lhs_ls |> List.assoc_opt sym in
-    match sym_sigma with None -> raise Not_found
-    | Some st -> st
-  in 
-  (* transitions for trivial symbols (eg, (), INT, BOOL) *)
-  let rec gen_trans_trivials sym_ls acc: transition list = 
-    match sym_ls with [] -> List.rev acc 
-    | sym :: tl -> 
-      let triv_state = find_lhs sym in
-      gen_trans_trivials tl ((triv_state, (sym, [epsilon_state]))::acc) in 
-  let trans_trivials: transition list = gen_trans_trivials trivial_syms (last_paren_to_fst::eps_trans)
-  in 
-  if debug then printf "\n  >> Trivial transitions \n"; Pp.pp_transitions trans_trivials;
-  (* *** debug WIP *** *)
-  (* To start from here! *)
-  let is_terminal _x = true in 
-  (* if debug then printf "\n\tLooking at ";; *)
-  (* --- helper for gen transitions for nontrivial symbols --- *)
-  let find_rhs_lst s = match List.assoc_opt s sym_rhs_ls with None -> raise Not_found | Some ls -> ls in
-  let gen_transition_for_symbol (lvl: int) (sym: symbol): transition = 
-    let srhs_ls = find_rhs_lst sym in
-    let rec match_collect ls acc =
-      match ls with [] -> List.rev acc
-      | h :: tl -> 
-        (* if h is terminal then keep, if nonterminal then replace with curr level state *)
-        if (is_terminal h) then match_collect tl (h::acc)
-        else 
-          match_collect tl acc
-    in let _rhs_lst : sigma list = match_collect srhs_ls [] in 
-    let lhs = "e" ^ (string_of_int lvl) 
-    in (lhs, (sym, [])) (*rhs_lst*)
-  in 
+  let find_rhs_lst_lst (s: symbol): sigma list list = Utils.assoc_all s sym_rhs_ls in
+  let is_terminal (x: sigma) = 
+    match x with T _ -> true | Nt _ -> false
+  in
+  (* --------------- *)
+  (* Step 1 - add last state ->_{<(), 1>} start state to 'trans_tbl' *)
+  add trans_tbl (last_state, ("LPARENRPAREN", 1)) [[(Nt start)]];
+  (* Step 2 - add epsilon transitions *)
+  for i = 1 to (max_lvl-1) do 
+    begin 
+      let (left_st, right_st): state * state = "e" ^ (string_of_int i), "e" ^ (string_of_int (i+1)) in 
+      add trans_tbl (left_st, epsilon_symb) [[(Nt right_st)]]
+    end done;
+  (* Step 3 - add transitions for trivial symbols (eg, INT, BOOL) *)
+  trivial_syms |> List.iter (fun sym -> let triv_state = find_lhs sym 
+    in add trans_tbl (triv_state, sym) [[(Nt epsilon_state)]]);
+  if debug then printf "\n  >> After adding trivial transitions \n"; 
+    Pp.pp_transitions_tbl trans_tbl;
+  (* Step 4 - add transitions for nontrivial symbols level by level *)
+  let rec match_collect (ls: sigma list) (curr_st: state) (acc: sigma list): 
+    sigma list =
+    match ls with [] -> List.rev acc
+    | h :: tl -> 
+      (* if h is terminal then keep, if nonterminal then replace with curr level state *)
+      if (is_terminal h) then match_collect tl curr_st (h::acc)
+      else 
+        match_collect tl curr_st ((Nt curr_st)::acc)
+  in
+  printf "max? %i\n" max_lvl;
+  let rec run_for_each_level lvl: unit =
+    if (lvl <= max_lvl-1)
+    then 
+      (if debug then printf "\n\t >> Now considering level %i >> \n" lvl;
+      let sym_ls = find o_bp_tbl lvl in 
+      let curr_st = "e" ^ (string_of_int (lvl+1)) in
+      sym_ls |> List.iter (fun sym -> 
+        let sym_rhs_ls_ls : sigma list list = find_rhs_lst_lst sym in
+        let sym_rhs_lsls_learned = 
+          sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
+          let sym_rhs_ls_learned = match_collect rhs_ls curr_st []
+          in sym_rhs_ls_learned :: acc ) [] 
+        in
+          if debug then printf "\n\tAdding transition for (State %s, " curr_st; 
+          Pp.pp_symbol sym; printf ")";
+          add trans_tbl (curr_st, sym) sym_rhs_lsls_learned);
+        run_for_each_level (lvl+1))
+      else 
+        printf "done"
+  in run_for_each_level 0;
+  if debug then printf "\n  >> After adding nontrivial transitions \n"; 
+    Pp.pp_transitions_tbl trans_tbl;
+  (* 
   let rec gen_trans_nontrivials lvl acc = 
     if debug then printf "\n >> Gen transitions at level %i" lvl;
     if lvl > max_lvl then acc 
@@ -90,7 +109,7 @@ let get_transitions (_oa_ls: restriction list) (op_ls: restriction list)
       gen_trans_nontrivials (lvl+1) acc @ curr_transitions 
   in
   let trans_nontrivials = gen_trans_nontrivials 1 [] in
-  (* 
+   
   let get_sym_state (s: symbol) = 
     let sym_order = (order_in_op_lst s op_ls) + 1 in
     match (List.assoc_opt sym_order lvl_state_pairs) with 
@@ -115,8 +134,7 @@ let get_transitions (_oa_ls: restriction list) (op_ls: restriction list)
   in let trans_nontrivals: transition list = gen_trans_nontrivials nontrivial_syms [] 
   in 
    *)
-  if debug then printf "\n  >> Nontrivial transitions \n"; Pp.pp_transitions trans_nontrivials;
-  trans_nontrivials @ trans_trivials 
+  trans_tbl
 
 let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
   (sym_state_ls: (symbol * state) list) (a: symbol list) 

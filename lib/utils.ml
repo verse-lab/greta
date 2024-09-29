@@ -41,3 +41,11 @@ let check_conflicts (conflicts_file: string) (debug_print: bool): bool =
   if debug_print then (printf "\n\n  >> Is there any conflicts in grammar?\n";
   if res then printf "\t\t\tYES\n\n" else printf "\t\t\tNO\n\n");
   res
+
+let assoc_all (a: 'a) (ab_ls: ('a * 'b list) list): 'b list list = 
+  let rec loop ls acc =
+    match ls with [] -> List.rev acc
+    | (x, xs) :: tl ->
+      if (x = a) then loop tl (xs::acc)
+      else loop tl acc
+  in loop ab_ls []
