@@ -20,7 +20,8 @@ let get_states (op_ls: restriction list): ((int * state) list) * state =
 let get_transitions (_oa_ls: restriction list) (op_ls: restriction list) 
   (o_bp_tbl: (int, symbol list) Hashtbl.t) (sym_lhs_ls: (symbol * state) list)
   (a: symbol list) (lvl_state_pairs: (int * state) list) (start: state) 
-  (sym_rhs_ls: (symbol * sigma list) list) (debug: bool): transition list =
+  (sym_rhs_ls: (symbol * sigma list) list) (debug: bool): 
+  ((state * symbol), sigma list list) Hashtbl.t =
   let open Printf in
   let trivial_syms = a |> List.filter (fun (_, rnk) -> (rnk = 0) ) in (* || (rnk = 1) *)
   let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) ) (* && not (rnk = 1) *)
@@ -119,17 +120,18 @@ let get_transitions (_oa_ls: restriction list) (op_ls: restriction list)
 
 let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
   (sym_state_ls: (symbol * state) list) (a: symbol list) 
-  (sym_rhs_ls: (symbol * sigma list) list) (debug_print: bool): ta = 
+  (sym_rhs_ls: (symbol * sigma list) list) (debug_print: bool): ta2 = 
   let open Printf in 
   if debug_print then (printf "\n\nLearn a tree automaton based on:\n\tO_a: ";
   Pp.pp_restriction_lst oa_ls; printf "\n\tO_p: "; Pp.pp_restriction_lst op_ls; 
   printf "\n\tAlphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n");
   let (lvl_state_pairs, init_state): (int * state) list * state = get_states op_ls in
   let state_ls: state list = lvl_state_pairs |> List.map snd in
-  let raw_trans_ls: transition list = 
+  let raw_trans_ls: ((state * symbol), sigma list list) Hashtbl.t = 
     get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_rhs_ls debug_print in
-  let ordered_trans_ls = order_trans_ls state_ls raw_trans_ls in
-  let ta_res = { states = state_ls; alphabet = a; start_state = init_state; transitions = ordered_trans_ls; trivial_sym_nts=[] } in 
-  printf "\n\nLearned TA:\n"; Pp.pp_ta ta_res; ta_res
+  (* let ordered_trans_ls = order_trans_ls state_ls raw_trans_ls in *)
+  let ta_res: ta2 = { states = state_ls; alphabet = a; start_state = init_state; 
+  transitions = raw_trans_ls; trivial_sym_nts=[] } in 
+  printf "\n\nLearned TA:\n"; Pp.pp_ta2 ta_res; ta_res
 
 

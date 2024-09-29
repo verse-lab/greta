@@ -163,7 +163,7 @@ let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
   let trans_new = inp_ta.transitions |> List.map (fun (stlhs, (sym, stsrhs)) ->
     let stlhs_new = replace_with_new stlhs in 
     let stsrhs_new = stsrhs |> List.map replace_with_new in (stlhs_new, (sym, stsrhs_new))) in
-  let ta_res = {states=states_new; alphabet=inp_ta.alphabet; start_state=start_new; transitions=trans_new; trivial_sym_nts=[]} in 
+  let ta_res: ta = {states=states_new; alphabet=inp_ta.alphabet; start_state=start_new; transitions=trans_new; trivial_sym_nts=[]} in 
   if debug_print then (printf "\nResult of renaming:\n"; Pp.pp_ta ta_res; printf "\n");
   ta_res
 

@@ -239,9 +239,9 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
     (if debug_print then printf "\n*** Rewriting transition blocks as transitions : \n");
     raw_trans_in_blocks_to_trans trans_in_blocks_simplified_with_epsilon_trans debug_print
   in 
-  let res_ta = { states = res_states @ [epsilon_state] ; alphabet = syms ; 
+  let res_ta: ta = { states = res_states @ [epsilon_state] ; alphabet = syms ; 
                  start_state = start_renamed ; transitions = res_trans; trivial_sym_nts = [] } in
   printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta; 
-  res_ta |> rename_w_parser_friendly_states_in_ta debug_print
+  res_ta (*|> rename_w_parser_friendly_states_in_ta debug_print *)
 
 

@@ -38,7 +38,7 @@ let () =
   if (Utils.check_conflicts conflicts_file debug) then
   begin
     let (ta_initial, o_bp, sym_rhs_lst, o_bp_tbl): 
-      T.ta * T.restriction list * (T.symbol * G.sigma list) list * ((int, T.symbol list) Hashtbl.t) = 
+      T.ta2 * T.restriction list * (T.symbol * G.sigma list) list * ((int, T.symbol list) Hashtbl.t) = 
       C.convertToTa cfg_file debug in
     let ranked_symbols = ta_initial.alphabet in
     let interact_counter = ref 0 
@@ -65,14 +65,17 @@ let () =
     let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug in 
     let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
     let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug in 
-    let ta_learned: T.ta = 
+    let _ta_learned: T.ta2 = 
       L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_rhs_lst debug 
     in 
+    ()
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
+    (* 
     let versatile_syms = [] in
     let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in 
     C.convertToGrammar ta_intersected versatile_syms debug parser_file;
     U.run_again parser_file
+     *)
     (* if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file *)
 end
 else U.no_conflicts_message parser_file
