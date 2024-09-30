@@ -46,7 +46,7 @@ decl:
   | TINT id=ident EQ init=exp { loc $startpos $endpos @@ {id; init} }
 
 const:
-  | i=INT { loc $startpos $endpos @@ CInt i }
+  | k=INT { loc $startpos $endpos @@ CInt k }
 
 exp:
   | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }

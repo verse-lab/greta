@@ -180,6 +180,8 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   let open List in
   let open Printf in
   let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
+  if debug_print then 
+    (printf "\n\t *** (debugging) Nonterminals\n\t"; nonterms |> Pp.pp_nonterminals; printf "\n");
   let ranked_alphabet = map 
     (fun (_, (a, _), _) -> a)
     prods
@@ -187,7 +189,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   in
   (* helper to get restrictions from transitions *)
   let trans_to_restrictions trans_ls nt_ls init_sts =
-    let rec fixpoint f (x: 'a ref) =
+    let rec fixpoint f (x: (nonterminal, int) Hashtbl.t ref) =
       let changed = f x in
       if changed then fixpoint f x else x
     in
@@ -197,18 +199,27 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       (fun st -> Hashtbl.add !nt_to_order st (num_nt + 1))
       nt_ls;
     iter (fun st -> Hashtbl.replace !nt_to_order st 0) init_sts;
+    (* 
     Hashtbl.add !nt_to_order "ϵ" (num_nt + 1); (* pseudo nt *)
+     *)
     let get_order table =
       fold_left (fun acc (st, (_, rhs), _) ->
           let changed = ref false in
           iter 
             (fun s ->
-              let ord = Hashtbl.find !table s in
-              let ord' = Hashtbl.find !table st in
-              if ord > (ord' + 1) then (
-                Hashtbl.replace !table s (ord' + 1);
-                changed := true
-            )) rhs;
+                (* *** debugging *** *)
+                (* if debug_print then printf "\n\t *** (debugging) Getting order for nonterminal %s" s; *)
+                if (String.equal s "ϵ") then 
+                  (* Temporary fix *)
+                  (Hashtbl.replace !table s (-1);
+                  changed := false)
+                else 
+                  (let ord = Hashtbl.find !table s in
+                  let ord' = Hashtbl.find !table st in
+                  if ord > (ord' + 1) then (
+                    Hashtbl.replace !table s (ord' + 1);
+                    changed := true))
+            ) rhs;
           acc || !changed
         )
         false
