@@ -81,7 +81,7 @@ let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) 
   pp_raw_transitions raw_trans)
 
 let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) = 
-  printf "\n  >> O_bp table: \n";
+  printf "\n  >> O_p table: \n";
   obp_tbl |> Hashtbl.iter (fun o_idx s_ls -> printf "\n\tOrder %i -> " o_idx; 
     s_ls |> iter pp_symbol; printf "\n"); printf "\n"
 
