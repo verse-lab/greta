@@ -18,7 +18,7 @@ let get_states (op_ls: restriction list): ((int * state) list) * state =
   in
   (gen_states @ default_states), (List.hd gen_states |> snd)
 
-let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list) 
+let get_transitions (oa_ls: restriction list) (op_ls: restriction list) 
   (o_bp_tbl: (int, symbol list) Hashtbl.t) (sym_lhs_ls: (symbol * state) list)
   (a: symbol list) (lvl_state_pairs: (int * state) list) (start: state) 
   (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_nonterms: (symbol * state) list) (debug: bool): 
@@ -65,34 +65,62 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
   if debug then printf "\n  >> After adding trivial transitions \n"; 
     Pp.pp_transitions_tbl trans_tbl;
   (* Step 4 - add transitions for nontrivial symbols level by level *)
+  (* --- helpers for this step --- *)
   let is_trivial_nonterm (x: sigma) = 
     let trivial_nonterms = triv_nonterms |> List.map snd in
       match x with T _ -> false 
       | Nt x' -> (List.mem x' trivial_nonterms)
   in
-  let rec match_collect (ls: sigma list) (curr_st: state) (acc: sigma list): 
-    sigma list =
-    match ls with [] -> List.rev acc
-    | h :: tl -> 
-      (* if h is terminal then keep, if nonterminal then replace with curr level state *)
-      if (is_terminal h) || (sigmas_equal h (Nt epsilon_state)) then match_collect tl curr_st (h::acc)
-      else if (is_trivial_nonterm h) then match_collect tl curr_st (h::acc)
-      else
-        match_collect tl curr_st ((Nt curr_st)::acc)
+  let rec match_collect (sym: symbol) (ls: sigma list) (curr_st: state) (acc: sigma list): sigma list =
+    let syms_wrt_oa = oa_ls |> List.map (fun x -> match x with 
+      Assoc (s, _) -> s | Prec _ -> raise No_prec_possible) in 
+    if ((arity sym) = 2) && (List.mem sym syms_wrt_oa) 
+    then 
+      (* account for associativity *)
+      (let higher_state = get_higher_state curr_st in 
+       if (is_left_assoc sym oa_ls)
+       then [(Nt higher_state); (T (fst sym)); (Nt curr_st)]
+       else [(Nt curr_st); (T (fst sym)); (Nt higher_state)])
+    else 
+      (match ls with [] -> List.rev acc
+      | h :: tl -> 
+        (* if h is terminal then keep, if nonterminal then replace with curr level state *)
+        if (is_terminal h) || (sigmas_equal h (Nt epsilon_state)) then match_collect sym tl curr_st (h::acc)
+        else if (is_trivial_nonterm h) then match_collect sym tl curr_st (h::acc)
+        else
+          match_collect sym tl curr_st ((Nt curr_st)::acc))
   in
+  let sym_ord_ls_wrt_op = op_ls |> List.map (fun x -> match x with 
+    Assoc _ -> raise No_assoc_possible | Prec (s, o) -> (s, o)) in
+  (* 
+    let syms_op = sym_lhs_ls |> List.map fst in
+  *)
+  let _new_op_tbl: (int, symbol list) Hashtbl.t = o_bp_tbl in 
+  (* update op_tbl based on op_ls *)  
+  sym_ord_ls_wrt_op |> List.iter (fun (s, o) -> 
+    (* first remove the symbol from the existing hashtbl *)
+    printf "\n\t *** (debugging) For symbol!"; Pp.pp_symbol s;
+    o_bp_tbl |> Hashtbl.iter (fun i sls' -> if (List.mem s sls') then 
+      (let new_sls' = List.filter (fun x -> not (syms_equals s x)) sls' 
+      in Hashtbl.replace o_bp_tbl i new_sls'));
+    (* then add the symbol corresponding to the new order *)
+    let existing = Hashtbl.find o_bp_tbl o in
+    let new_sym_ls = s :: existing in
+    Hashtbl.replace o_bp_tbl o new_sym_ls);
   let rec run_for_each_level lvl: unit =
     if (lvl <= max_lvl-1)
     then 
       (if debug then printf "\n\n\t >> Now considering level %i >> \n" (lvl+1);
+      (* Collect nontrivial symbols per level [note: lvl starts from 0 to max-1] *)
       let sym_ls_ls : symbol list list = find_all o_bp_tbl lvl in 
-      printf "\n\t >> Length of syms --> %i" (List.length sym_lhs_ls);
+      printf "\n\t >> Length of syms --> %i" (List.length (List.hd sym_ls_ls));
       let curr_st = "e" ^ (string_of_int (lvl+1)) in
       let run_for_sym_ls ls = 
         ls |> List.iter (fun sym -> 
         let sym_rhs_ls_ls : sigma list list = find_rhs_lst_lst sym lvl in
         let sym_rhs_lsls_learned = 
           sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
-          let sym_rhs_ls_learned = match_collect rhs_ls curr_st []
+          let sym_rhs_ls_learned = match_collect sym rhs_ls curr_st []
           in sym_rhs_ls_learned :: acc ) [] 
         in
           if debug then printf "\n\tAdding transition for (State %s, " curr_st; 
@@ -107,23 +135,6 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
   if debug then printf "\n  >> After adding nontrivial transitions \n"; 
     Pp.pp_transitions_tbl trans_tbl;
   (* 
-  let rec gen_trans_nontrivials lvl acc = 
-    if debug then printf "\n >> Gen transitions at level %i" lvl;
-    if lvl > max_lvl then acc 
-    else 
-      (* use o_bp_tbl to look up relevant symbols in curr lvl *)
-      let sym_ls = Hashtbl.find o_bp_tbl lvl in 
-      let curr_transitions = sym_ls |> List.fold_left (fun sym_acc s -> 
-        (gen_transition_for_symbol lvl s)::sym_acc) [] in
-      gen_trans_nontrivials (lvl+1) acc @ curr_transitions 
-  in
-  let trans_nontrivials = gen_trans_nontrivials 1 [] in
-   
-  let get_sym_state (s: symbol) = 
-    let sym_order = (order_in_op_lst s op_ls) + 1 in
-    match (List.assoc_opt sym_order lvl_state_pairs) with 
-    | None -> raise No_state_for_sym_order | Some st -> st 
-  in
   let rec _gen_trans_nontrivials_prev sym_ls acc: transition list =
     match sym_ls with [] -> acc
     | sym :: tl -> 
@@ -142,7 +153,7 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
          in gen_trans_nontrivials tl (trans::acc))
   in let trans_nontrivals: transition list = gen_trans_nontrivials nontrivial_syms [] 
   in 
-   *)
+  *)
   trans_tbl
 
 let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
