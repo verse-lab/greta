@@ -21,7 +21,7 @@ let get_states (op_ls: restriction list): ((int * state) list) * state =
 let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list) 
   (o_bp_tbl: (int, symbol list) Hashtbl.t) (sym_lhs_ls: (symbol * state) list)
   (a: symbol list) (lvl_state_pairs: (int * state) list) (start: state) 
-  (sym_rhs_ls: (symbol * sigma list) list) (debug: bool): 
+  (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_nonterms: (symbol * state) list) (debug: bool): 
   ((state * symbol), sigma list list) Hashtbl.t =
   let open Printf in
   let open Hashtbl in
@@ -46,7 +46,7 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
   let last_state: state = 
     match (List.assoc_opt max_lvl lvl_state_pairs) with 
     None -> raise Max_level_state | Some st -> st in 
-  let find_rhs_lst_lst (s: symbol): sigma list list = Utils.assoc_all s sym_rhs_ls debug in
+  let find_rhs_lst_lst (s: symbol) (o: int): sigma list list = Utils.assoc_all s o sym_ord_rhs_ls debug in
   let is_terminal (x: sigma) = 
     match x with T _ -> true | Nt _ -> false
   in
@@ -65,12 +65,18 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
   if debug then printf "\n  >> After adding trivial transitions \n"; 
     Pp.pp_transitions_tbl trans_tbl;
   (* Step 4 - add transitions for nontrivial symbols level by level *)
+  let is_trivial_nonterm (x: sigma) = 
+    let trivial_nonterms = triv_nonterms |> List.map snd in
+      match x with T _ -> false 
+      | Nt x' -> (List.mem x' trivial_nonterms)
+  in
   let rec match_collect (ls: sigma list) (curr_st: state) (acc: sigma list): 
     sigma list =
     match ls with [] -> List.rev acc
     | h :: tl -> 
       (* if h is terminal then keep, if nonterminal then replace with curr level state *)
       if (is_terminal h) || (sigmas_equal h (Nt epsilon_state)) then match_collect tl curr_st (h::acc)
+      else if (is_trivial_nonterm h) then match_collect tl curr_st (h::acc)
       else
         match_collect tl curr_st ((Nt curr_st)::acc)
   in
@@ -83,7 +89,7 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
       let curr_st = "e" ^ (string_of_int (lvl+1)) in
       let run_for_sym_ls ls = 
         ls |> List.iter (fun sym -> 
-        let sym_rhs_ls_ls : sigma list list = find_rhs_lst_lst sym in
+        let sym_rhs_ls_ls : sigma list list = find_rhs_lst_lst sym lvl in
         let sym_rhs_lsls_learned = 
           sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
           let sym_rhs_ls_learned = match_collect rhs_ls curr_st []
@@ -141,7 +147,7 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
 
 let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
   (sym_state_ls: (symbol * state) list) (a: symbol list) 
-  (sym_rhs_ls: (symbol * sigma list) list) (debug_print: bool): ta2 = 
+  (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_nonterms: (symbol * state) list) (debug_print: bool): ta2 = 
   let open Printf in 
   if debug_print then (printf "\n\nLearn a tree automaton based on:\n\tO_a: ";
   Pp.pp_restriction_lst oa_ls; printf "\n\tO_p: "; Pp.pp_restriction_lst op_ls; 
@@ -149,7 +155,7 @@ let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int
   let (lvl_state_pairs, init_state): (int * state) list * state = get_states op_ls in
   let state_ls: state list = lvl_state_pairs |> List.map snd in
   let raw_trans_ls: ((state * symbol), sigma list list) Hashtbl.t = 
-    get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_rhs_ls debug_print in
+    get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_ord_rhs_ls triv_nonterms debug_print in
   (* let ordered_trans_ls = order_trans_ls state_ls raw_trans_ls in *)
   let ta_res: ta2 = { states = state_ls; alphabet = a; start_state = init_state; 
   transitions = raw_trans_ls; trivial_sym_nts=[] } in 

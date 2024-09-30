@@ -176,7 +176,7 @@ let optimize_cfg_starts (g: cfg3) (level: int) =
   in h g.nonterms [g.start] g.productions level
 
 let cfg_to_ta (debug_print: bool) (g: cfg3): 
-  ta2 * restriction list * (symbol * sigma list) list * ((int, symbol list) Hashtbl.t) =
+  ta2 * restriction list * ((symbol * int) * sigma list) list * ((int, symbol list) Hashtbl.t) * (symbol * state) list =
   let open List in
   let open Printf in
   let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
@@ -318,7 +318,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
          | Some ls' -> 
            Hashtbl.replace transitions_tbl (lhs, s) (rhs::ls')
     ) restrictions);
-    (* Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl;  *)
+    Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl; 
   (* ********************************************** *)
   let ta_res: ta2 =
     { 
@@ -337,19 +337,33 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   printf "\n >> Order -> symbol list O_bp map : \n"; Pp.pp_obp_tbl o_bp_tbl;
   printf "\n >> Transitions hashmap : \n"; Pp.pp_transitions_tbl transitions_tbl;
   printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta2 ta_res;
-  let trivial_syms = trivial_syms_nts |> map fst in 
+  let trivial_syms = trivial_syms_nts |> map fst |> filter (fun x -> not (syms_equals epsilon_symb x)) in 
+  printf "\n *** (debugging) Trivial symbols: [ "; trivial_syms |> List.iter Pp.pp_symbol; printf " ] \n";
   let restrictions_without_trivials : restriction list = 
     (restrictions |> split |> fst) |> filter (fun x -> match x with Prec (s, _) | Assoc (s, _) -> 
         List.fold_left (fun acc tsym -> acc && not (syms_equals s tsym)) true trivial_syms)
   in 
   (* restrictions : (restriction * (load * sigma list)) list *)
-  let sym_to_rhs_lst : (symbol * sigma list) list = restrictions |> List.map (fun (r, (_lhs, sig_ls)) -> 
-    match r with Prec (s, _) | Assoc (s, _) -> (s, sig_ls)) |> List.filter (fun (s, _) -> 
-      List.fold_left (fun acc tsym -> acc && not (syms_equals s tsym)) true trivial_syms) in 
-  ta_res, restrictions_without_trivials, sym_to_rhs_lst, o_bp_tbl
+  let rec to_sym_ord_rhs_lst (rls: (restriction * (state * sigma list)) list) (acc: ((symbol * int) * sigma list) list) = 
+    match rls with [] -> List.rev acc 
+    | (r, (_lhs, sig_ls)) :: tl -> begin 
+      match r with 
+      | Prec (sym, o) -> 
+        let to_acc = ((sym, o), sig_ls) in to_sym_ord_rhs_lst tl (to_acc::acc)
+      | Assoc _ -> to_sym_ord_rhs_lst tl acc
+    end 
+  in
+  let sym_ord_to_rhs_lst : ((symbol * int) * sigma list) list = to_sym_ord_rhs_lst restrictions []
+  (* 
+  List.map (fun (r, (_lhs, sig_ls)) -> 
+      match r with Prec (s, o) -> ((s, o), sig_ls)) |> List.filter (fun ((s, o), _) -> 
+        List.fold_left (fun acc tsym -> acc && not (syms_equals s tsym)) true trivial_syms
+        | Assoc (s, a) -> )  *)
+  in 
+  ta_res, restrictions_without_trivials, sym_ord_to_rhs_lst, o_bp_tbl, trivial_syms_nts
 
 let convertToTa (file: string) (debug_print: bool):
-  ta2 * restriction list * (symbol * sigma list) list * ((int, symbol list) Hashtbl.t) = 
+  ta2 * restriction list * ((symbol * int) * sigma list) list * ((int, symbol list) Hashtbl.t) * (symbol * state) list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   (* "./lib/parser.mly" |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print *)
   file

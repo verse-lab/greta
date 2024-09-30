@@ -42,15 +42,18 @@ let check_conflicts (conflicts_file: string) (debug_print: bool): bool =
   if res then printf "\t\t\tYES\n\n" else printf "\t\t\tNO\n\n");
   res
 
-let assoc_all (a: Ta.symbol) (ab_ls: (Ta.symbol * Cfg.sigma list) list) (debug_print: bool): Cfg.sigma list list = 
+let assoc_all (a: Ta.symbol) (ord: int) (ab_ls: ((Ta.symbol * int) * Cfg.sigma list) list) (debug_print: bool): Cfg.sigma list list = 
+  let _take_out_epsilon_state (lsls: Cfg.sigma list list): Cfg.sigma list list = 
+    let eps_ls = [(Cfg.Nt Ta.epsilon_state)] in
+    lsls |> List.filter (fun ls -> not (ls = eps_ls))
+  in
   let rec loop ls acc =
     match ls with [] -> List.rev acc
-    | (x, xs) :: tl ->
-      if (Ta.syms_equals a x) then loop tl (xs::acc)
+    | ((x, o), xs) :: tl ->
+      if (Ta.syms_equals a x) && (o = ord) then loop tl (xs::acc)
       else loop tl acc
-  in let res = loop ab_ls [] in 
-  let res_epsilon_acc = if (res = []) then [[(Cfg.Nt Ta.epsilon_state)]] else res in
-  if debug_print then 
-    (let open Pp in let open Printf in printf "\n\n\t   For symbol "; pp_symbol a; 
-     printf " collected:\t"; res_epsilon_acc |> List.iter (fun s_ls -> pp_sigma_list ("", s_ls)));
-  res_epsilon_acc
+  in let res = loop ab_ls [] in (* |> take_out_epsilon_state *)
+  let open Pp in let open Printf in 
+  if debug_print then (printf "\n\n\t   For symbol "; pp_symbol a; printf " collected:\t"; 
+  res |> List.iter (fun s_ls -> printf " [ "; s_ls |> List.iter pp_sigma; printf "] "));
+  res
