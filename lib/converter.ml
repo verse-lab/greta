@@ -239,13 +239,15 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
         get_o_base_precedence tl ((Prec (sym, ord), (lhs_st, rhs))::acc_res)
     in get_o_base_precedence trans_ls []
   in
-  let _trans = fold_right 
+  (* let trans = fold_right 
     (fun (n, (t, ls), _) acc -> (n, (t, ls)) :: acc) 
     prods []
-  in
-  let restrictions = trans_to_restrictions
+  in *)
+  let restrictions : ((restriction * (nonterminal * sigma list)) list) = trans_to_restrictions
     prods nonterms starts 
   in 
+  (* *** debug *** *)
+  if debug_print then printf "\n\t *** (debugging) Check restrictions!\n";Pp.pp_restriction'_lst restrictions;
   (* trivial nts are nts with only zero arity productions *)
   let trivial_nts : state list = g.nonterms
     |> filter (fun nt ->
@@ -261,9 +263,12 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
         else loop tl
     in loop p
   in
-  let trivial_syms_nts = trivial_nts |> map (fun nt -> 
+  let trivial_syms_nts : (symbol * nonterminal) list = trivial_nts |> map (fun nt -> 
     if (nt = epsilon_state) then (epsilon_symb, nt) else ((find_symbol_from_productions nt g.productions), nt)) 
   in 
+  (* *** debug *** *)
+  if debug_print then (printf "\n\t *** (debugging) Check trivial symbols and nonterminals\n"; 
+    trivial_syms_nts |> List.iter (fun (s, nt) -> Pp.pp_symbol s; printf " --- paried with ---> State %s \n" nt ));
   (* ********************************************** *)
   (* Uncomment the following maps when ready to use *)
   (* ********************************************** *)
@@ -288,11 +293,21 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
           (* If key already exists, then simply add to existing ones *)
           let exist_val = Hashtbl.find_opt o_bp_tbl o in
           match exist_val with None -> add o_bp_tbl o s 
-          | Some ls -> Hashtbl.replace o_bp_tbl o (s::ls)
+          | Some ls -> 
+            (* *** debugging *** *)
+            (if debug_print then printf "\n\t *** (debugging) For order %i" o;
+            printf "\n\t *** already exist sym_lst so add this symbol to symbol list "; 
+            ls |> List.iter Pp.pp_symbol; printf "\n";
+            Hashtbl.replace o_bp_tbl o (s::ls))
         end;
-      add transitions_tbl (lhs, s) rhs;
+        (if debug_print then printf "\n\t ****** (debugging) Add (State %s, " lhs; Pp.pp_symbol s;
+        printf ") ---> RHS list "; rhs |> List.iter Pp.pp_sigma);
+      let exist_in_trantbl = Hashtbl.find_opt transitions_tbl (lhs, s) 
+      in match exist_in_trantbl with None -> add transitions_tbl (lhs, s) rhs
+         | Some ls' -> 
+           Hashtbl.replace transitions_tbl (lhs, s) (rhs::ls')
     ) restrictions);
-    Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl; 
+    (* Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl;  *)
   (* ********************************************** *)
   let ta_res: ta2 =
     { 
@@ -304,14 +319,13 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
     } 
   (* |> enhance_appearance *) 
   in
-  printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta2 ta_res;
   (* *** debug *** *)
-  (* TODO: to simplify the structure *)
-  printf "\nRestrictions O_bp obtained from the TA_g : \n"; Pp.pp_restriction'_lst restrictions;
   printf "\n >> Trivial non-terminals: [ ";
   trivial_syms_nts |> iter (fun (s, x) -> printf " ("; Pp.pp_symbol s; printf ", %s ) " x); printf "]\n";
-  printf "\nOrder -> symbol list O_bp map : \n"; Pp.pp_obp_tbl o_bp_tbl;
+  printf "\n >> Restrictions restriction'_lst O_bp obtained from the TA_g : \n"; Pp.pp_restriction'_lst restrictions;
+  printf "\n >> Order -> symbol list O_bp map : \n"; Pp.pp_obp_tbl o_bp_tbl;
   printf "\n >> Transitions hashmap : \n"; Pp.pp_transitions_tbl transitions_tbl;
+  printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta2 ta_res;
   let trivial_syms = trivial_syms_nts |> map fst in 
   let restrictions_without_trivials : restriction list = 
     (restrictions |> split |> fst) |> filter (fun x -> match x with Prec (s, _) | Assoc (s, _) -> 

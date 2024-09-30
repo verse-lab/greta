@@ -46,10 +46,11 @@ let assoc_all (a: Ta.symbol) (ab_ls: (Ta.symbol * Cfg.sigma list) list) (debug_p
   let rec loop ls acc =
     match ls with [] -> List.rev acc
     | (x, xs) :: tl ->
-      if (x = a) then loop tl (xs::acc)
+      if (Ta.syms_equals a x) then loop tl (xs::acc)
       else loop tl acc
   in let res = loop ab_ls [] in 
+  let res_epsilon_acc = if (res = []) then [[(Cfg.Nt Ta.epsilon_state)]] else res in
   if debug_print then 
-    (let open Pp in let open Printf in printf "\n   For symbol "; pp_symbol a; 
-     printf " collected:\n\t"; res |> List.iter (fun s_ls -> pp_sigma_list ("", s_ls)));
-  res
+    (let open Pp in let open Printf in printf "\n\n\t   For symbol "; pp_symbol a; 
+     printf " collected:\t"; res_epsilon_acc |> List.iter (fun s_ls -> pp_sigma_list ("", s_ls)));
+  res_epsilon_acc

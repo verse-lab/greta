@@ -70,14 +70,14 @@ let get_transitions (_oa_ls: restriction list) (_op_ls: restriction list)
     match ls with [] -> List.rev acc
     | h :: tl -> 
       (* if h is terminal then keep, if nonterminal then replace with curr level state *)
-      if (is_terminal h) then match_collect tl curr_st (h::acc)
-      else 
+      if (is_terminal h) || (sigmas_equal h (Nt epsilon_state)) then match_collect tl curr_st (h::acc)
+      else
         match_collect tl curr_st ((Nt curr_st)::acc)
   in
   let rec run_for_each_level lvl: unit =
     if (lvl <= max_lvl-1)
     then 
-      (if debug then printf "\n\n\t >> Now considering level %i >> \n" lvl;
+      (if debug then printf "\n\n\t >> Now considering level %i >> \n" (lvl+1);
       let sym_ls_ls : symbol list list = find_all o_bp_tbl lvl in 
       printf "\n\t >> Length of syms --> %i" (List.length sym_lhs_ls);
       let curr_st = "e" ^ (string_of_int (lvl+1)) in

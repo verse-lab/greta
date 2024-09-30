@@ -87,8 +87,16 @@ let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) =
 
 let pp_transitions_tbl (tbl: ((T.state * T.symbol), C.sigma list list) Hashtbl.t) = 
   printf "\n\tTransitions (htbl): { ";
-  tbl |> Hashtbl.iter (fun (lhs, s) lsls -> printf "\n\t\t\t\t( State %s, " lhs; pp_symbol s; 
-  printf ") -> "; lsls |> iter (fun ls -> printf "[ "; ls |> iter pp_sigma; printf "] ")); printf "\n\t\t\t    }\n"
+  tbl |> Hashtbl.iter (fun (lhs, s) lsls -> 
+    let print_lhs_st_sym () = printf "\n\t\t\t\t( State %s, " lhs; pp_symbol s; printf ") -> " in 
+      let num_rhs_ls = List.length lsls in 
+      if (num_rhs_ls = 1) then 
+        (let rhs_ls = List.hd lsls in 
+        print_lhs_st_sym (); printf "[ "; rhs_ls |> iter pp_sigma; printf "] ")
+      else 
+        (lsls |> iter (fun ls -> 
+        print_lhs_st_sym (); printf "[ "; ls |> iter pp_sigma; printf "] "))); 
+      printf "\n\t\t\t    }\n"
 
 let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 

@@ -36,7 +36,7 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
   let syms_ls: string list = a |> List.map fst in
   printf "\nGenerate examples from conflicts in file %s\n" filename; 
     (* *** debug *** *)
-    if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); printf "\n");
+    (* if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); printf "\n"); *)
   (* helpers *)
   let ic = open_in filename in
   let try_read () = try Some (input_line ic) with End_of_file -> None in
@@ -168,12 +168,14 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
   in
   let relev_ls: string list = traverse 1 false [] in 
     (* *** debug *** *)
+    (* 
     if debug_print then (printf "\tRel lines: "; relev_ls |> List.iteri (fun i l -> (printf "#%d %s \n" (i+1) l)); printf "\n"); 
+     *)
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
     (* *** debug *** *)
     if debug_print then (printf "\tExtracted trees: "; 
     let tls: tree list = extracted_trees_n_exprs |> List.map fst 
-    in List.iter (fun x -> (Pp.pp_tree x; printf "\n")) tls; printf "\n"); 
+    in List.iter (fun x -> (Pp.pp_tree x; printf "\n\t")) tls; printf "\n"); 
   let combined_trees: (tree * (bool * bool) * restriction list) list = 
                                                 combine_tree_exprs extracted_trees_n_exprs in
   (* generate tree expressions by splitting per every two combined ones *)
@@ -204,10 +206,11 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
               gen_texamples tl 0 [] (to_acc::res_acc))
     in gen_texamples combined_trees 0 [] []
   in
-  if debug_print then (Pp.pp_collected_from_conflicts relev_ls; 
-  (* Pp.pp_tree_pairs_syms extracted_trees_syms;  *)
-  Pp.pp_combined_trees combined_trees;
-  Pp.pp_exprs tree_expressions);
+  (* 
+  Pp.pp_collected_from_conflicts relev_ls 
+  Pp.pp_tree_pairs_syms extracted_trees_syms;  
+  *)
+  if debug_print then (Pp.pp_combined_trees combined_trees; Pp.pp_exprs tree_expressions);
   tree_example_pairs
 
 

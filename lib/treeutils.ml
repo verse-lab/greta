@@ -175,9 +175,11 @@ let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
  *                 e.g., (expr + expr) + expr   vs.   expr + (expr + expr) *)
 let tree_to_expr (t: tree) : string list =
   let open List in
+  (* 
     (* *** debug *** *)
     let open Printf in 
-    (printf "\n\nTree_to_expr "; Pp.pp_tree t; printf "\n\n");
+    (printf "\n\n\t\t >> Tree_to_expr "; Pp.pp_tree t; printf "\n\n");
+  *)
   let is_empty_leaf (ts: tree list) =
     match (hd ts, length ts) with (Leaf "ϵ"), 1 -> true | _ -> false in
   let rec tree_loop t: string list =
@@ -285,13 +287,13 @@ let collect_oa_restrictions (example_trees: (string list * tree * (bool * bool) 
 (debug_print: bool): restriction list = 
 let res = example_trees 
   |> List.fold_left (fun acc (_, _, (oa, _), rls) -> if oa then rls @ acc else acc) [] 
-in if debug_print then (Printf.printf "\nCollected O_a : "; Pp.pp_restriction_lst res); res
+in if debug_print then (Printf.printf "\n  Collected O_a : "; Pp.pp_restriction_lst res); res
 
 let collect_op_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
   (debug_print: bool): restriction list = 
   let res = example_trees 
     |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls @ acc else acc) [] 
-  in if debug_print then (Printf.printf "\nCollected O_p : "; Pp.pp_restriction_lst res); res
+  in if debug_print then (Printf.printf "\n  Collected O_p : "; Pp.pp_restriction_lst res); res
 
 (* helper for 'combine_op_restrictions'
  - find all occurrences of (s, o) for sym 's' in o_tmp and combine all the matching o's *)
@@ -323,7 +325,7 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
       in traverse_o_bp tl (Prec (sym, op_order_combined)::acc)
   in let combined_op = traverse_o_bp o_bp [] 
   in let reordered_combined_op = reorder_op combined_op in
-  (if debug_print then Printf.printf "\nCombined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
+  (if debug_print then Printf.printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
 let sym_in_oa_lst (s: symbol) (oa_ls: restriction list): bool =

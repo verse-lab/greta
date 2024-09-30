@@ -39,3 +39,9 @@ type cfg2 = {
 }
 
 let null_cfg2 = { nonterms = []; terms = []; start = ""; productions = [] }
+
+let sigmas_equal (a: sigma) (b: sigma): bool = 
+  match a, b with 
+  | T _, Nt _ | Nt _, T _ -> false 
+  | T a', T b' -> a' = b'
+  | Nt a', Nt b' -> a' = b'
