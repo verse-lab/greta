@@ -101,7 +101,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     o_bp_tbl |> iter (fun o sym_ls -> if (List.mem s sym_ls) then ord_in_bp := o); 
     !ord_in_bp != o'
   in
-  (*  *)
+  (* ------------- TODO: later can simplify below ------------- *)
   (* Something needs to be done here!  *)
   let new_op_tbl: (int, symbol list) Hashtbl.t = o_bp_tbl in (* *** (debugging) Hashtbl.copy *)
   (* update op_tbl based on op_ls *)  
@@ -115,11 +115,11 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     let existing = Hashtbl.find new_op_tbl o in
     let new_sym_ls = s :: existing in
     Hashtbl.replace new_op_tbl o new_sym_ls);
-  (*  *)
+  (* ---------------------------------------------------------- *)
   (* *** debug *** *)
   if debug then (printf "\n *** (debugging) Before updating o_bp_tbl \n"; Pp.pp_obp_tbl o_bp_tbl;
   printf "\n *** (debugging) After updating new_op_tbl \n"; Pp.pp_obp_tbl new_op_tbl);
-  (*  *)
+  (* ---------------------------------------------------------- *)
   let rec run_for_each_level lvl: unit =
     if (lvl <= max_lvl-1)
     then 

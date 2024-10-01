@@ -7,6 +7,7 @@ exception No_prec_possible
 exception Op_has_trivial_symbol
 exception No_sig_ls_in_sig_lsls
 exception No_cross_product_sigls_possible
+exception Reachable_states_not_matching
 
 (** is_cond_expr : check if state is representing boolean state *)
 let is_cond_expr (s: state): bool =
@@ -467,7 +468,7 @@ let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma 
   (sigma * sigma) list list =
   let open List in
   let open Printf in 
-  if debug then (printf "\nFinding cross product of sigma_lsls : \n"; 
+  if debug then (printf "\n\tFinding cross product of sigma_lsls : \n"; 
     sig_lsls1 |> Pp.pp_sigma_listlist; sig_lsls2 |> Pp.pp_sigma_listlist);
   let len1, len2 = length (sig_lsls1), length (sig_lsls2) in
   if (len1 != len2) then [[]] 
@@ -476,7 +477,7 @@ let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma 
       match lsls1 with [] -> acc
       | sig_ls_hd1 :: tl1 -> 
         let sig_ls2 = find_corresponding_sigls sig_ls_hd1 sig_lsls2 in
-        (if debug then printf "\n\t corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
+        (if debug then printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
         if (is_empty sig_ls2) then cross_loop tl1 acc
         else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 [] in
               cross_loop tl1 (cross_product_siglsls::acc))
