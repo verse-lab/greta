@@ -8,6 +8,7 @@ exception Op_has_trivial_symbol
 exception No_sig_ls_in_sig_lsls
 exception No_cross_product_sigls_possible
 exception Reachable_states_not_matching
+exception No_terminal_possible
 
 (** is_cond_expr : check if state is representing boolean state *)
 let is_cond_expr (s: state): bool =
@@ -485,6 +486,10 @@ let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma 
     if debug then (printf "\n Result of cross product:\n\t"; reslsls |> iter Pp.pp_sigma_sigma_list); 
     reslsls
 
+let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
+  match Hashtbl.find_opt tbl (st, sym) with None -> false
+  | Some _ -> true
+
 let state_pair_append (st_pair: state * state): state = 
   let st1, st2 = (fst st_pair), (snd st_pair) in 
   if (st1 = epsilon_state) || (st2 = epsilon_state)
@@ -517,7 +522,7 @@ let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool):
   let a1_len, a2_len = List.length a1, List.length a2 in 
   let res = if (a1_len > a2_len) then check_subset_of_fst_in_snd a1 a2
             else check_subset_of_fst_in_snd a2 a1 in 
-  if debug then (Printf.printf "\n\t >> Smaller symbols : "; res |> List.iter Pp.pp_symbol);res
+  if debug then (Printf.printf "\n\t >> Smaller symbols : "; res |> List.iter Pp.pp_symbol; Printf.printf "\n\n");res
 
 let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls: ((state * state) * (symbol * (state * state) list)) list): 
   ((state * state) * (symbol * (state * state) list)) list =
