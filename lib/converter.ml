@@ -300,7 +300,14 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       | _ -> assert false
       in
       (* Only add non-trivial symbols to o_bp_tbl *)
-      match s with (_, rnk) -> if (rnk != 0) 
+      match s with (_, rnk) -> 
+        let get_fst_rhs_sigma rhs_ls = 
+          if (List.is_empty rhs_ls) then ""
+          else begin 
+            match (List.hd rhs_ls) with Nt st -> st 
+            | T _ -> "" end 
+        in
+        if ((rnk != 0) && (not (List.mem (get_fst_rhs_sigma rhs) trivial_nts)))
         then begin 
           (* If key already exists, then simply add to existing ones *)
           let exist_val = Hashtbl.find_opt o_bp_tbl o in

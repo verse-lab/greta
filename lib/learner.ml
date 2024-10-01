@@ -96,20 +96,36 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let syms_op = sym_ord_ls_wrt_op |> List.map fst in
   let order_of_sym s = List.assoc s sym_ord_ls_wrt_op in 
   let different_order_in_obp (s: symbol) (o': int): bool = 
+    if (syms_equals s epsilon_symb) then false else
     let ord_in_bp: int ref = ref 999 in (* some random initial number *)
     o_bp_tbl |> iter (fun o sym_ls -> if (List.mem s sym_ls) then ord_in_bp := o); 
     !ord_in_bp != o'
   in
+  (*  *)
+  (* Something needs to be done here!  *)
+  let new_op_tbl: (int, symbol list) Hashtbl.t = o_bp_tbl in (* *** (debugging) Hashtbl.copy *)
+  (* update op_tbl based on op_ls *)  
+  sym_ord_ls_wrt_op |> List.iter (fun (s, o) -> 
+    (* first remove the symbol from the existing hashtbl *)
+    printf "\n\t *** (debugging) For symbol!"; Pp.pp_symbol s;
+    new_op_tbl |> Hashtbl.iter (fun i sls' -> if (List.mem s sls') then 
+      (let new_sls' = List.filter (fun x -> not (syms_equals s x)) sls' 
+      in Hashtbl.replace new_op_tbl i new_sls'));
+    (* then add the symbol corresponding to the new order *)
+    let existing = Hashtbl.find new_op_tbl o in
+    let new_sym_ls = s :: existing in
+    Hashtbl.replace new_op_tbl o new_sym_ls);
+  (*  *)
   (* *** debug *** *)
-  (* 
-  if debug then (printf "\n *** (debugging) Before updating o_bp_tbl \n"; Pp.pp_obp_tbl o_bp_tbl);
-  *)
+  if debug then (printf "\n *** (debugging) Before updating o_bp_tbl \n"; Pp.pp_obp_tbl o_bp_tbl;
+  printf "\n *** (debugging) After updating new_op_tbl \n"; Pp.pp_obp_tbl new_op_tbl);
+  (*  *)
   let rec run_for_each_level lvl: unit =
     if (lvl <= max_lvl-1)
     then 
       (if debug then printf "\n\n\t >> Now considering level %i >> \n" (lvl+1);
       (* Collect nontrivial symbols per level [note: lvl starts from 0 to max-1] *)
-      let sym_ls_ls : symbol list list = find_all o_bp_tbl lvl in 
+      let sym_ls_ls : symbol list list = find_all o_bp_tbl lvl in (* *** (debugging)o_bp_tbl *)
       printf "\n\t >> Length of syms --> %i" (List.length (List.hd sym_ls_ls));
       let curr_st = "e" ^ (string_of_int (lvl+1)) in
       let run_for_sym_ls ls = 

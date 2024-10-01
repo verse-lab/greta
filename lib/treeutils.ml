@@ -439,12 +439,12 @@ let cross_product_raw_state_lists (st_ls1: state list) (st_ls2: state list): (st
 let find_corresponding_sigls (sig_ls: sigma list) (sig_lsls: sigma list list): sigma list = 
   let rec corresponding_sig_lists (sig_ls1: sigma list) (sig_ls2: sigma list) (acc: bool): bool = 
     match sig_ls1, sig_ls2 with 
-    | _, [] | [], _ -> false
+    | _, [] | [], _ -> acc
     | sh1 :: stl1, sh2 :: stl2 -> 
       if (is_terminal sh1) && (is_terminal sh2)
       then (if sigmas_equal sh1 sh2
             then corresponding_sig_lists stl1 stl2 (true && acc)
-            else false)
+            else corresponding_sig_lists stl1 stl2 (false && acc))
       else if (not (is_terminal sh1)) && (not (is_terminal sh2))
       then corresponding_sig_lists stl1 stl2 (true && acc)
       else false in
@@ -467,7 +467,7 @@ let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma 
   (sigma * sigma) list list =
   let open List in
   let open Printf in 
-  if debug then (printf "\nCross product of sigma_lsls : \n"; 
+  if debug then (printf "\nFinding cross product of sigma_lsls : \n"; 
     sig_lsls1 |> Pp.pp_sigma_listlist; sig_lsls2 |> Pp.pp_sigma_listlist);
   let len1, len2 = length (sig_lsls1), length (sig_lsls2) in
   if (len1 != len2) then [[]] 
@@ -476,10 +476,13 @@ let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma 
       match lsls1 with [] -> acc
       | sig_ls_hd1 :: tl1 -> 
         let sig_ls2 = find_corresponding_sigls sig_ls_hd1 sig_lsls2 in
+        (if debug then printf "\n\t corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
         if (is_empty sig_ls2) then cross_loop tl1 acc
         else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 [] in
               cross_loop tl1 (cross_product_siglsls::acc))
-    in cross_loop sig_lsls1 []
+    in let reslsls: (sigma * sigma) list list = cross_loop sig_lsls1 [] in 
+    if debug then (printf "\n Result of cross product:\n\t"; reslsls |> iter Pp.pp_sigma_sigma_list); 
+    reslsls
 
 let state_pair_append (st_pair: state * state): state = 
   let st1, st2 = (fst st_pair), (snd st_pair) in 

@@ -62,6 +62,10 @@ let pp_sigma_list sls =
 let pp_sigma_list2 sls = 
   printf "[ "; sls |> iter pp_sigma; printf "] \n"
 
+let pp_sigma_sigma_list (ssls: (C.sigma * C.sigma) list) = 
+  printf "[ "; ssls |> iter (fun (sig1, sig2) -> 
+    printf "( "; pp_sigma sig1; printf ", "; pp_sigma sig2; printf ") "); printf "] \n"
+
 let pp_sigma_listlist slsls = 
   printf "  [ \n\t"; slsls |> iter pp_sigma_list2; printf "\n  ]\n"
 
