@@ -176,7 +176,8 @@ let optimize_cfg_starts (g: cfg3) (level: int) =
   in h g.nonterms [g.start] g.productions level
 
 let cfg_to_ta (debug_print: bool) (g: cfg3): 
-  ta2 * restriction list * ((symbol * int) * sigma list) list * ((int, symbol list) Hashtbl.t) * (symbol * state) list =
+  ta2 * restriction list * ((symbol * int) * sigma list) list * 
+  ((int, symbol list) Hashtbl.t) * (symbol * state) list * symbol list =
   let open List in
   let open Printf in
   let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
@@ -360,10 +361,11 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
         List.fold_left (fun acc tsym -> acc && not (syms_equals s tsym)) true trivial_syms
         | Assoc (s, a) -> )  *)
   in 
-  ta_res, restrictions_without_trivials, sym_ord_to_rhs_lst, o_bp_tbl, trivial_syms_nts
+  ta_res, restrictions_without_trivials, sym_ord_to_rhs_lst, o_bp_tbl, trivial_syms_nts, trivial_syms
 
 let convertToTa (file: string) (debug_print: bool):
-  ta2 * restriction list * ((symbol * int) * sigma list) list * ((int, symbol list) Hashtbl.t) * (symbol * state) list = 
+  ta2 * restriction list * ((symbol * int) * sigma list) list * 
+  ((int, symbol list) Hashtbl.t) * (symbol * state) list * symbol list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
   (* "./lib/parser.mly" |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print *)
   file

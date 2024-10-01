@@ -45,3 +45,6 @@ let sigmas_equal (a: sigma) (b: sigma): bool =
   | T _, Nt _ | Nt _, T _ -> false 
   | T a', T b' -> a' = b'
   | Nt a', Nt b' -> a' = b'
+
+let is_terminal (x: sigma): bool = 
+  match x with T _ -> true | Nt _ -> false

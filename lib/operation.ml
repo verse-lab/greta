@@ -1,23 +1,45 @@
 open Ta
 open Treeutils
+open Cfg
 
-let cartesian_product_trans_from (starting_states: state * state) (trans1: transition list) (trans2: transition list) 
-  (a: symbol list) (debug: bool): ((state * state) * (symbol * (state * state) list)) list = 
-  let st1, st2 = (fst starting_states), (snd starting_states) in
-  let rec traverse_alphabet ls (acc: ((state * state) * (symbol * (state * state) list)) list): 
-    ((state * state) * (symbol * (state * state) list)) list = 
-    match ls with [] -> acc
-    | hd_sym :: tl -> 
-      let rht_sts1: state list = find_rhs_states_from_state_with_sym st1 hd_sym trans1 debug in
-      let rht_sts2: state list = find_rhs_states_from_state_with_sym st2 hd_sym trans2 debug in
-      let new_rht_sts: (state * state) list = cross_product_raw_state_lists rht_sts1 rht_sts2 in
-      let new_trans: (state * state) * (symbol * (state * state) list) = 
-        ((st1, st2), (hd_sym, new_rht_sts)) in 
-      traverse_alphabet tl (new_trans::acc)
-  in let res_st1_st2_trans = traverse_alphabet a [] in 
-  if debug then (Printf.printf "\nResult of %s-starting transitions X %s-starting transitions : \n" st1 st2; 
-    Pp.pp_raw_transitions res_st1_st2_trans); res_st1_st2_trans
-
+let cartesian_product_trans_from (starting_states: (state * state) list) 
+  (trans_tbl1: ((state * symbol), sigma list list) Hashtbl.t) (trans_tbl2: ((state * symbol), sigma list list) Hashtbl.t) 
+  (nontriv_syms: symbol list) (debug: bool): (((state * state) * symbol) * (sigma * sigma) list list) list = 
+  let open Printf in
+  (* --- helper to traverse alphabet and find transitions --- *)
+  let find_rhs_in_tbl (sym: symbol) (st: state) (tbl: ((state * symbol), sigma list list) Hashtbl.t) = 
+    if debug then (printf "\nFinding rhs in tbl for (State %s, symbol \t" st; Pp.pp_symbol sym; printf ")\n\t ---> in transitions table:\n";
+      Pp.pp_transitions_tbl tbl);
+    match Hashtbl.find_opt tbl (st, sym) with None -> []
+    | Some sig_ls -> sig_ls 
+  in
+  let find_transitions (st1: state) (st2: state): (((state * state) * symbol) * (sigma * sigma) list list) list =
+    let rec traverse_alphabet (ls: symbol list) (acc: (((state * state) * symbol) * (sigma * sigma) list list) list): 
+      (((state * state) * symbol) * (sigma * sigma) list list) list = 
+      match ls with [] -> acc
+      | (hd_sym: symbol) :: tl -> 
+        let rsig_lsls1: sigma list list = find_rhs_in_tbl hd_sym st1 trans_tbl1 in
+        let rsig_lsls2: sigma list list = find_rhs_in_tbl hd_sym st2 trans_tbl2 in
+        let new_rht_sts: (sigma * sigma) list list = cross_product_raw_sigma_lsls rsig_lsls1 rsig_lsls2 debug in
+        let new_trans: ((state * state) * symbol) * (sigma * sigma) list list = 
+          (((st1, st2), hd_sym), new_rht_sts) in 
+          traverse_alphabet tl (new_trans :: acc)
+    in traverse_alphabet nontriv_syms []
+  in
+  let rec cartesian_loop (starts: (state * state) list) (acc: (((state * state) * symbol) * (sigma * sigma) list list) list) = 
+    match starts with [] -> acc 
+    | (st1, st2) :: tl -> 
+      let trans_to_acc: (((state * state) * symbol) * (sigma * sigma) list list) list = 
+        find_transitions st1 st2 in
+        cartesian_loop tl (trans_to_acc @ acc)
+  in let res_st1_st2_trans: (((state * state) * symbol) * (sigma * sigma) list list) list = 
+    cartesian_loop starting_states [] in
+  let open Printf in
+  if debug then (printf "\nTransitions startin from states [ "; 
+    starting_states |> List.iter (fun (s1, s2) -> printf "(%s, %s) " s1 s2); printf "] : \n"; 
+    Pp.pp_raw_transitions_new res_st1_st2_trans); res_st1_st2_trans
+  
+(* 
 let find_reachable_states (from_st: state * state) (trans_ls: ((state * state) * (symbol * (state * state) list)) list) 
   (debug: bool): (state * state) list = 
   let rec find_loop ls (acc: (state * state) list) = 
@@ -159,28 +181,33 @@ let collect_unique_states_and_map_to_new_states
   if debug then (Printf.printf "\n\t >> Results of unique states to new states mapping : \n\t";
   res_map |> List.iter Pp.pp_raw_pair_of_state_pairs; Printf.printf "\n");
   res_map
+ *)
+
 
 (** Intersection of tree automata *)
-let intersect (a1: ta2) (a2: ta2) (verSyms: (string * int list) list) (debug_print: bool): ta2 =
+let intersect (a1: ta2) (a2: ta2) (verSyms: (string * int list) list) (_trivSyms: symbol list) (debug_print: bool): ta2 =
   let open Printf in
   printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
   Pp.pp_ta2 a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta2 a2; printf "\n";
   if debug_print then (printf "\n  >> Versatile symbol list: [ "; 
   verSyms |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
-  (* Consider symbols excluding epsilon or Boolean for I *)
+  (* Consider symbols excluding trivial symbols *)
   let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
-  let syms_wo_epsilon = syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) in
+  (* 
+  let _syms_nontrivial = syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) in
   let _syms_wo_epsilon_or_bool = syms_wo_epsilon |> List.filter (fun s -> not (syms_equals s ("B", 0))) 
   in
-  (* Find I := I_1 x I_2 first w/o epsilon or bool *)
-  let _start_states: (state list * state list) = (a1.start_states, a2.start_states) 
+  *)
+  (* Find I := I_1 x I_2 *)
+  let start_states_raw: (state * state) list = 
+    a1.start_states |> List.map (fun s1 -> a2.start_states |> List.map (fun s2 -> (s1, s2))) |> List.flatten
   in
-  (* 
   (* Get transitions that start from I *)
-  let raw_init_trans_ls: ((state * state) * (symbol * (state * state) list)) list = 
-    (if debug_print then printf "\n*** Find initial states-starting transitions : \n");
-    cartesian_product_trans_from start_states a1.transitions a2.transitions syms_wo_epsilon_or_bool debug_print 
+  let raw_init_trans_ls: (((state * state) * symbol) * (sigma * sigma) list list) list = 
+    cartesian_product_trans_from start_states_raw a1.transitions a2.transitions syms debug_print 
   in
+  (if debug_print then printf "\n*** Find initial states-starting transitions : \n"; Pp.pp_raw_transitions_new raw_init_trans_ls);
+  (* 
   (*  *)
   (* Find reachable states based on I-starting transitions *)
   let reachable_states: (state * state) list = 
@@ -245,8 +272,9 @@ let intersect (a1: ta2) (a2: ta2) (verSyms: (string * int list) list) (debug_pri
                  start_state = start_renamed ; transitions = res_trans; trivial_sym_nts = [] } in
   *)
   (*  *)
+  let starts: state list = start_states_raw |> List.map (fun (s1, s2) -> s1 ^ "_" ^ s2) in 
   let res_ta: ta2 = { states = [] ; alphabet = syms ; 
-                    start_states = [] ; transitions = Hashtbl.create 0 ; trivial_sym_nts = [] } in
+                    start_states = starts ; transitions = Hashtbl.create 0 ; trivial_sym_nts = [] } in
   printf "\nResult of TA intersection: \n"; Pp.pp_ta2 res_ta; 
   res_ta (*|> rename_w_parser_friendly_states_in_ta debug_print *)
 

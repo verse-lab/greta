@@ -59,6 +59,12 @@ let pp_sigma_list sls =
     | C.Nt s' -> printf "%s " s') (snd sls); 
   printf "]\n"
 
+let pp_sigma_list2 sls = 
+  printf "[ "; sls |> iter pp_sigma; printf "] \n"
+
+let pp_sigma_listlist slsls = 
+  printf "  [ \n\t"; slsls |> iter pp_sigma_list2; printf "\n  ]\n"
+
 let pp_alphabet (a: T.symbol list) =
   printf "\tAlphabet : { "; a |> iter (fun x -> pp_symbol x); printf "}\n"
 
@@ -78,6 +84,13 @@ let pp_raw_transitions (ts: ((T.state * T.state) * (T.symbol * (T.state * T.stat
     printf "\t\t\t(%s, %s) ->_{<%s, %i>} [ " st1 st2 (fst sym) (snd sym); 
     st_pairs_ls |> iter (fun (rst1, rst2) -> printf "(%s, %s) " rst1 rst2); printf "]\n");
     printf " \t\t      }\n"
+
+let pp_raw_transitions_new (ts: (((T.state * T.state) * T.symbol) * (C.sigma * C.sigma) list list) list) = 
+  printf "\tRaw Transitions (new) : { \n"; ts |> iter (fun (((st1, st2), sym), sig_pairs_lsls) -> 
+    printf "\t\t\t(%s, %s) ->_{<%s, %i>} [ " st1 st2 (fst sym) (snd sym); 
+    sig_pairs_lsls |> iter (fun sig_pairs_ls -> sig_pairs_ls 
+      |> iter (fun (rsig1, rsig2) -> printf "("; pp_sigma rsig1; printf ", "; pp_sigma rsig2; printf ") ")); 
+      printf "]\n"); printf " \t\t      }\n"
 
 let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) * (T.symbol * (T.state * T.state) list)) list) list) =
   ts_blocks |> List.iter (fun ((st1, st2), raw_trans) -> Printf.printf "\n\tFor states (%s, %s), blocks of transitions : \n" st1 st2;
