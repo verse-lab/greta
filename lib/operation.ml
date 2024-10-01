@@ -161,25 +161,27 @@ let collect_unique_states_and_map_to_new_states
   res_map
 
 (** Intersection of tree automata *)
-let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print: bool): ta =
+let intersect (a1: ta2) (a2: ta2) (verSyms: (string * int list) list) (debug_print: bool): ta2 =
   let open Printf in
   printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
-  Pp.pp_ta a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; printf "\n";
+  Pp.pp_ta2 a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta2 a2; printf "\n";
   if debug_print then (printf "\n  >> Versatile symbol list: [ "; 
   verSyms |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
   (* Consider symbols excluding epsilon or Boolean for I *)
   let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
   let syms_wo_epsilon = syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) in
-  let syms_wo_epsilon_or_bool = syms_wo_epsilon |> List.filter (fun s -> not (syms_equals s ("B", 0))) 
+  let _syms_wo_epsilon_or_bool = syms_wo_epsilon |> List.filter (fun s -> not (syms_equals s ("B", 0))) 
   in
   (* Find I := I_1 x I_2 first w/o epsilon or bool *)
-  let start_states: (state * state) = (a1.start_state, a2.start_state) 
+  let _start_states: (state list * state list) = (a1.start_states, a2.start_states) 
   in
+  (* 
   (* Get transitions that start from I *)
   let raw_init_trans_ls: ((state * state) * (symbol * (state * state) list)) list = 
     (if debug_print then printf "\n*** Find initial states-starting transitions : \n");
     cartesian_product_trans_from start_states a1.transitions a2.transitions syms_wo_epsilon_or_bool debug_print 
   in
+  (*  *)
   (* Find reachable states based on I-starting transitions *)
   let reachable_states: (state * state) list = 
     (if debug_print then printf "\n*** Find reachable states based on initial states-starting transitions : \n");
@@ -239,9 +241,13 @@ let intersect (a1: ta) (a2: ta) (verSyms: (string * int list) list) (debug_print
     (if debug_print then printf "\n*** Rewriting transition blocks as transitions : \n");
     raw_trans_in_blocks_to_trans trans_in_blocks_simplified_with_epsilon_trans debug_print
   in 
-  let res_ta: ta = { states = res_states @ [epsilon_state] ; alphabet = syms ; 
+  let _res_ta_old: ta = { states = res_states @ [epsilon_state] ; alphabet = syms ; 
                  start_state = start_renamed ; transitions = res_trans; trivial_sym_nts = [] } in
-  printf "\nResult of TA intersection: \n"; Pp.pp_ta res_ta; 
+  *)
+  (*  *)
+  let res_ta: ta2 = { states = [] ; alphabet = syms ; 
+                    start_states = [] ; transitions = Hashtbl.create 0 ; trivial_sym_nts = [] } in
+  printf "\nResult of TA intersection: \n"; Pp.pp_ta2 res_ta; 
   res_ta (*|> rename_w_parser_friendly_states_in_ta debug_print *)
 
 

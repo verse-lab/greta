@@ -64,14 +64,14 @@ let () =
     let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug in 
     let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
     let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug in 
-    let _ta_learned: T.ta2 = 
+    let ta_learned: T.ta2 = 
       L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_nonterms debug 
     in 
-    ()
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
-    (* 
     let versatile_syms = [] in
-    let ta_intersected = O.intersect ta_initial ta_learned versatile_syms debug in 
+    let _ta_intersected: T.ta2 = O.intersect ta_initial ta_learned versatile_syms debug in 
+    ()
+    (* 
     C.convertToGrammar ta_intersected versatile_syms debug parser_file;
     U.run_again parser_file
      *)

@@ -324,7 +324,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
     { 
       states = nonterms;
       alphabet = ranked_alphabet;
-      start_state = starts |> hd;
+      start_states = starts;
       transitions = transitions_tbl;
       trivial_sym_nts = trivial_syms_nts
     } 

@@ -165,7 +165,7 @@ let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int
   let raw_trans_ls: ((state * symbol), sigma list list) Hashtbl.t = 
     get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_ord_rhs_ls triv_nonterms debug_print in
   (* let ordered_trans_ls = order_trans_ls state_ls raw_trans_ls in *)
-  let ta_res: ta2 = { states = state_ls; alphabet = a; start_state = init_state; 
+  let ta_res: ta2 = { states = state_ls; alphabet = a; start_states = [init_state]; 
   transitions = raw_trans_ls; trivial_sym_nts=[] } in 
   printf "\n\nLearned TA:\n"; Pp.pp_ta2 ta_res; ta_res
 

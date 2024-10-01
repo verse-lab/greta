@@ -64,6 +64,9 @@ let pp_alphabet (a: T.symbol list) =
 
 let pp_root (s: T.state) = printf "\tStart State : { %s }\n" s
 
+let pp_roots (ss: T.state list) = 
+  printf "\tStart States : { "; ss |> iter (printf "%s "); printf "}\n"
+
 let pp_transitions (ts: T.transition list) =
   printf "\tTransitions : { \n"; ts |> iter (fun x -> 
     printf "\t\t\t%s ->_{%s} " (fst x) (fst (fst (snd x))); 
@@ -104,7 +107,7 @@ let pp_ta (a: T.ta) =
 
 let pp_ta2 (a: T.ta2) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
-  pp_root (a.start_state); pp_transitions_tbl (a.transitions); pp_loline ()
+  pp_roots (a.start_states); pp_transitions_tbl (a.transitions); pp_loline ()
 
 let pp_tree (e: T.tree) =
   let rec loop (e: T.tree) =
