@@ -251,21 +251,17 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
         get_o_base_precedence tl ((Prec (sym, ord), (lhs_st, rhs))::acc_res)
     in get_o_base_precedence trans_ls []
   in
-  (* let trans = fold_right 
-    (fun (n, (t, ls), _) acc -> (n, (t, ls)) :: acc) 
-    prods []
-  in *)
   let restrictions : ((restriction * (nonterminal * sigma list)) list) = trans_to_restrictions
     prods nonterms starts 
   in 
   (* *** debug *** *)
-  if debug_print then printf "\n\t *** (debugging) Check restrictions!\n";Pp.pp_restriction'_lst restrictions;
+  if debug_print then printf "\n\t *** Check restrictions!\n";Pp.pp_restriction'_lst restrictions;
   (* trivial nts are nts with only zero arity productions *)
   let trivial_nts : state list = g.nonterms
     |> filter (fun nt ->
       filter (fun (lhs, _, _) -> lhs = nt) g.productions
-      |> for_all (fun (_, ((_, a), _), _) -> a = 0)
-    ) 
+      |> for_all (fun (_, ((_, a), _), _) -> a = 0) 
+    ) |> filter (fun x -> (not (String.equal epsilon_state x)))
   in
   let find_symbol_from_productions (nt: nonterminal) (p: production2 list): symbol = 
     let rec loop prods =
@@ -277,6 +273,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   in
   let trivial_syms_nts : (symbol * nonterminal) list = trivial_nts |> map (fun nt -> 
     if (nt = epsilon_state) then (epsilon_symb, nt) else ((find_symbol_from_productions nt g.productions), nt)) 
+    |> List.filter (fun (s, _) -> not (syms_equals epsilon_symb s))
   in 
   (* *** debug *** *)
   if debug_print then (printf "\n\t *** (debugging) Check trivial symbols and nonterminals\n"; 
@@ -294,37 +291,40 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   (* transitions_tbl : lhs * symbol -> (sigma list) list   ----   (rhs <=> sigma list) *)
   let transitions_tbl : ((state * symbol), sigma list list) Hashtbl.t = 
     Hashtbl.create (length prods) in
-    (iter (fun (prc, (lhs, rhs)) ->
+    (iter (fun (prc, (lhs, rhss)) ->
       let s, o = match prc with
       | Prec x -> x
       | _ -> assert false
       in
       (* Only add non-trivial symbols to o_bp_tbl *)
       match s with (_, rnk) -> 
-        let get_fst_rhs_sigma rhs_ls = 
-          if (List.is_empty rhs_ls) then ""
-          else begin 
-            match (List.hd rhs_ls) with Nt st -> st 
-            | T _ -> "" end 
+        let is_trivial_rhs rhs_ls = 
+          let first_elem = 
+            if (List.is_empty rhs_ls) then ""
+            else begin 
+              match (List.hd rhs_ls) with Nt st -> st 
+              | T _ -> "" end 
+          in (List.mem first_elem trivial_nts) && ((List.length rhs_ls) = 1)
         in
-        if ((rnk != 0) && (not (List.mem (get_fst_rhs_sigma rhs) trivial_nts)))
+        if ((rnk != 0) && (not (is_trivial_rhs rhss)))
         then begin 
           (* If key already exists, then simply add to existing ones *)
           let exist_val = Hashtbl.find_opt o_bp_tbl o in
+          printf "\n\nWhich symbol?? "; Pp.pp_symbol s; printf"\n\n";
           match exist_val with None -> add o_bp_tbl o s 
           | Some ls -> 
             (* *** debugging *** *)
-            (if debug_print then printf "\n\t *** (debugging) For order %i" o;
+            (if debug_print then printf "\n\t   For order %i" o;
             printf "\n\t *** already exist sym_lst so add this symbol to symbol list "; 
             ls |> List.iter Pp.pp_symbol; printf "\n";
             Hashtbl.replace o_bp_tbl o (s::ls))
         end;
-        (if debug_print then printf "\n\t ****** (debugging) Add (State %s, " lhs; Pp.pp_symbol s;
-        printf ") ---> RHS list "; rhs |> List.iter Pp.pp_sigma);
+        (if debug_print then printf "\n\t ****** Add (State %s, " lhs; Pp.pp_symbol s;
+        printf ") ---> RHS list "; rhss |> List.iter Pp.pp_sigma);
       let exist_in_trantbl = Hashtbl.find_opt transitions_tbl (lhs, s) 
-      in match exist_in_trantbl with None -> add transitions_tbl (lhs, s) rhs
-         | Some ls' -> 
-           Hashtbl.replace transitions_tbl (lhs, s) (rhs::ls')
+      in match exist_in_trantbl with None -> add transitions_tbl (lhs, s) rhss
+          | Some ls' -> 
+            Hashtbl.replace transitions_tbl (lhs, s) (rhss::ls')
     ) restrictions);
     Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl; 
   (* ********************************************** *)

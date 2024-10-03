@@ -460,7 +460,7 @@ let find_corresponding_sigls (sig_ls: sigma list) (sig_lsls: sigma list list): s
 
 let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (acc: (sigma * sigma) list): 
   (sigma * sigma) list = 
-  match sig_ls1, sig_ls2 with [], [] -> acc
+  match sig_ls1, sig_ls2 with [], [] -> List.rev acc
   | T t1 :: stl1, T t2 :: stl2 -> cross_product_siglsls stl1 stl2 ((T t1, T t2)::acc)
   | Nt nt1 :: stl1, Nt nt2 :: stl2 -> cross_product_siglsls stl1 stl2 ((Nt nt1, Nt nt2)::acc)
   | (T _)::_, (Nt _)::_ | (Nt _)::_, (T _)::_ | _, [] | [], _ -> raise No_cross_product_sigls_possible
@@ -483,7 +483,7 @@ let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma 
         else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 [] in
               cross_loop tl1 (cross_product_siglsls::acc))
     in let reslsls: (sigma * sigma) list list = cross_loop sig_lsls1 [] in 
-    if debug then (printf "\n Result of cross product:\n\t"; reslsls |> iter Pp.pp_sigma_sigma_list); 
+    if debug then (printf "\n\n\n  >> Result of cross product:\n\t"; reslsls |> iter Pp.pp_sigma_sigma_list; printf "\n\n\n"); 
     reslsls
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
@@ -514,9 +514,10 @@ let remove_dup_symbols (sym_ls: symbol list): symbol list =
 let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list = 
   let check_subset_of_fst_in_snd (syms1: symbol list) (syms2: symbol list): symbol list = 
     let rec loop ls acc = 
-      match ls with [] -> List.rev acc
+      match ls with [] -> acc
       | hsym :: tl -> 
-        if List.mem hsym syms1 then loop tl (hsym::acc) else raise Invalid_symbol_list
+        if List.mem hsym syms1 then loop tl (hsym::acc) else 
+          (Pp.pp_symbol hsym; raise Invalid_symbol_list)
     in loop syms2 []
   in 
   let a1_len, a2_len = List.length a1, List.length a2 in 
