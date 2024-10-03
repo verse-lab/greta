@@ -43,11 +43,42 @@ let accessible_symbols_for_state (init_st: state) (trans_tbl: ((state * symbol),
     syms_res |> List.iter Pp.pp_symbol; Printf.printf "\n\n");
   syms_res
 
-let cartesian_product_trans_from (starting_states: (state * state) list) 
+
+(* --- helper to traverse alphabet and find transitions --- *)
+let rec find_rhs_in_tbl (sym: symbol) (st: state) (interm_sts: state list) 
+  (tbl: ((state * symbol), sigma list list) Hashtbl.t) (debug: bool)
+  : sigma list list = 
+  let open Printf in
+  let res = match Hashtbl.find_opt tbl (st, sym) with 
+    | None -> 
+      (match interm_sts with 
+      | [] -> 
+        if debug then printf "\n\t\t ===> Interm states empty!\n"; []
+      | ist_hd :: ist_tl -> 
+        if debug then printf "\n\t\t ===>!! Interm states not empty!\n";
+        find_rhs_in_tbl sym ist_hd ist_tl tbl debug)
+    | Some sig_ls -> sig_ls 
+  in
+  if debug then (printf "\n\t\t ===> Finding rhs in tbl for ( State %s, symbol " st; 
+    Pp.pp_symbol sym; printf ")\n\t\t"; res |> List.iter Pp.pp_sigma_list2); 
+    res
+
+let find_intermediate_states (from_st: state)
+  (tbl: ((state * symbol), sigma list list) Hashtbl.t) (debug: bool): state list = 
+  let res = 
+    (let rhs_nonterms: sigma list = Hashtbl.find_all tbl (from_st, epsilon_symb) |> List.flatten |> List.flatten in 
+      rhs_nonterms 
+      |> List.map (fun s -> match s with Nt s' -> s' | T _ -> raise No_terminal_possible)
+      |> List.filter (fun x -> not (String.equal epsilon_state x)))
+  in if debug then (Printf.printf "\n\t\t   >==> Found intermediate states for State %s \n\t\t" from_st; 
+  Pp.pp_states res); res
+
+
+  let cartesian_product_trans_from (starting_states: (state * state) list) 
   (trans_tbl1: ((state * symbol), sigma list list) Hashtbl.t) (trans_tbl2: ((state * symbol), sigma list list) Hashtbl.t) 
   (nontriv_syms: symbol list) (debug: bool): (((state * state) * symbol) * (sigma * sigma) list list) list = 
-  let open Printf in
   (* --- helper to traverse alphabet and find transitions --- *)
+  (* 
   let find_rhs_in_tbl (sym: symbol) (st: state) (tbl: ((state * symbol), sigma list list) Hashtbl.t) = 
     let res = match Hashtbl.find_opt tbl (st, sym) with None -> []
     | Some sig_ls -> sig_ls in
@@ -57,81 +88,26 @@ let cartesian_product_trans_from (starting_states: (state * state) list)
       (* printf "\t ---> in transitions table:\n"; Pp.pp_transitions_tbl tbl *)
       ); res
   in
-  let find_transitions (st1: state) (st2: state): (((state * state) * symbol) * (sigma * sigma) list list) list =
-    let rec interm_sts_loop (interm_sts': (state * state) list) (trans_ls: (((state * state) * symbol) * (sigma * sigma) list list) list): 
-      (((state * state) * symbol) * (sigma * sigma) list list) list * (state * state) list = 
-      match interm_sts' with 
-      | [] -> trans_ls, []
-      | (interm_st1, interm_st2) :: interm_sts_tl -> 
-        if debug then (printf "\n\t -->>> Now looking for transitions from states ( %s, %s )\n" interm_st1 interm_st2);
-        let syms1 = accessible_symbols_for_state interm_st1 trans_tbl1 nontriv_syms debug in 
-        let syms2 = accessible_symbols_for_state interm_st2 trans_tbl2 nontriv_syms debug in 
-        let syms_smaller = take_smaller_symbols_list syms1 syms2 debug in
-        let i_trans, next_interm_sts_ls = traverse_symbols_and_find_trans interm_st1 interm_st2 syms_smaller trans_ls
-        in
-          if (List.is_empty next_interm_sts_ls)
-          then interm_sts_loop interm_sts_tl (i_trans @ trans_ls)
-          else interm_sts_loop next_interm_sts_ls (i_trans @ trans_ls)
-    and 
-    traverse_symbols_and_find_trans (from_st1: state) (from_st2: state) (s_ls: symbol list) 
-      (trans_acc: (((state * state) * symbol) * (sigma * sigma) list list) list): 
-      (((state * state) * symbol) * (sigma * sigma) list list) list * (state * state) list = 
-      match s_ls with [] -> trans_acc, [] (* to change! *)
-      | (hd_sym: symbol) :: syms_tl -> 
-        let rsig_lsls1: sigma list list = find_rhs_in_tbl hd_sym from_st1 trans_tbl1 in
-        let rsig_lsls2: sigma list list = find_rhs_in_tbl hd_sym from_st2 trans_tbl2 in
-        let new_rht_sts: (sigma * sigma) list list = cross_product_raw_sigma_lsls rsig_lsls1 rsig_lsls2 debug 
-        in
-          if (List.is_empty new_rht_sts) 
-          then traverse_symbols_and_find_trans from_st1 from_st2 syms_tl trans_acc
-          else
-            begin
-              let curr_st_syms1: symbol list = 
-                s_ls |> List.fold_left (fun acc sym -> if (exist_in_tbl from_st1 sym trans_tbl1) then sym::acc else acc) [] in
-              let curr_st_syms2: symbol list = 
-                s_ls |> List.fold_left (fun acc sym -> if (exist_in_tbl from_st2 sym trans_tbl2) then sym::acc else acc) [] in
-              let curr_st_interm_sts1: state list = 
-                curr_st_syms1 |> List.fold_left (fun acc sym -> 
-                  if (syms_equals epsilon_symb sym)
-                  then 
-                    (let rhs_nonterms: sigma list = Hashtbl.find_all trans_tbl1 (from_st1, epsilon_symb) |> List.flatten |> List.flatten in 
-                    let rhs_sts: state list = rhs_nonterms 
-                    |> List.map (fun s -> match s with Nt s' -> s' | T _ -> raise No_terminal_possible)
-                    |> List.filter (fun x -> not (String.equal epsilon_state x)) in
-                    rhs_sts @ acc)
-                  else acc) []
-              in
-              let curr_st_interm_sts2: state list = 
-                curr_st_syms2 |> List.fold_left (fun acc sym -> 
-                  if (syms_equals epsilon_symb sym)
-                  then 
-                    (let rhs_nonterms: sigma list = Hashtbl.find_all trans_tbl2 (from_st2, epsilon_symb) |> List.flatten |> List.flatten in 
-                    let rhs_sts: state list = rhs_nonterms 
-                    |> List.map (fun s -> match s with Nt s' -> s' | T _ -> raise No_terminal_possible)
-                    |> List.filter (fun x -> not (String.equal epsilon_state x)) in
-                    rhs_sts @ acc)
-                  else acc) []
-              in
-              let curr_interm_sts_pairs: (state * state) list =  curr_st_interm_sts1 |> List.map (fun s1 -> 
-                curr_st_interm_sts2 |> List.map (fun s2 -> (s1, s2))) |> List.flatten
-              in
-              if (List.is_empty curr_interm_sts_pairs)
-              then 
-                begin
-                (if debug then printf "\n\t ***** Interm states empty!\n" )
-                
-                end
-              else 
-                (if debug then printf "\n\t ***** Interm states not empty : "; curr_interm_sts_pairs |> List.iter (fun (x1, x2) -> 
-                  printf "(%s, %s) " x1 x2));
-                let new_trans: ((state * state) * symbol) * (sigma * sigma) list list = 
-                  (((from_st1, from_st2), hd_sym), new_rht_sts) in 
-                interm_sts_loop curr_interm_sts_pairs (new_trans :: trans_acc)
-            end
-    in let trans_res, _ = traverse_symbols_and_find_trans st1 st2 nontriv_syms [] in 
-    (if debug then printf "\n\t *** (debugging) For (State %s, State %s) \n\t *** (debugging) ----->> ... Found raw transitions \n" st1 st2; 
-      Pp.pp_raw_transitions_new trans_res);
-    trans_res
+   *)
+  let find_transitions (st1: state) (st2: state): 
+    (((state * state) * symbol) * (sigma * sigma) list list) list =
+    let rec traverse_alphabet (ls: symbol list) 
+      (acc: (((state * state) * symbol) * (sigma * sigma) list list) list): 
+      (((state * state) * symbol) * (sigma * sigma) list list) list = 
+      match ls with [] -> acc
+      | (hd_sym: symbol) :: tl -> 
+        let interm_sts1 = find_intermediate_states st1 trans_tbl1 debug in 
+        let interm_sts2 = find_intermediate_states st2 trans_tbl2 debug in  
+        let rsig_lsls1: sigma list list = find_rhs_in_tbl hd_sym st1 interm_sts1 trans_tbl1 debug in
+        let rsig_lsls2: sigma list list = find_rhs_in_tbl hd_sym st2 interm_sts2 trans_tbl2 debug in
+        let new_rht_sts: (sigma * sigma) list list = cross_product_raw_sigma_lsls rsig_lsls1 rsig_lsls2 debug in
+        if (List.is_empty new_rht_sts) 
+        then traverse_alphabet tl acc
+        else
+          let new_trans: ((state * state) * symbol) * (sigma * sigma) list list = 
+            (((st1, st2), hd_sym), new_rht_sts) in 
+            traverse_alphabet tl (new_trans :: acc)
+    in traverse_alphabet nontriv_syms []
   in
   let rec cartesian_loop (starts: (state * state) list) (acc: (((state * state) * symbol) * (sigma * sigma) list list) list) = 
     match starts with [] -> acc 
@@ -142,9 +118,63 @@ let cartesian_product_trans_from (starting_states: (state * state) list)
   in let res_st1_st2_trans: (((state * state) * symbol) * (sigma * sigma) list list) list = 
     cartesian_loop starting_states [] in
   let open Printf in
-  if debug then (printf "\n   -->> Transitions starting from states [ "; 
+  if debug then (printf "\nTransitions startin from states [ "; 
     starting_states |> List.iter (fun (s1, s2) -> printf "(%s, %s) " s1 s2); printf "] : \n"; 
     Pp.pp_raw_transitions_new res_st1_st2_trans); res_st1_st2_trans
+
+
+(* other version... ! *)
+let cartesian_product_trans_from2 (starting_states: (state * state) list) 
+  (trans_tbl1: ((state * symbol), sigma list list) Hashtbl.t) (trans_tbl2: ((state * symbol), sigma list list) Hashtbl.t) 
+  (nontriv_syms: symbol list) (debug: bool): (((state * state) * symbol) * (sigma * sigma) list list) list = 
+  let open Printf in
+  let hd_sym = nontriv_syms |> List.hd in
+  let rec find_transitions (sls: (state * state) list) (trans_acc: (((state * state) * symbol) * (sigma * sigma) list list) list): 
+    (((state * state) * symbol) * (sigma * sigma) list list) list =
+    match sls with [] -> trans_acc
+    | (from_st1, from_st2) :: ss_tl -> 
+      let interm_sts1: state list = 
+        nontriv_syms |> List.fold_left (fun acc sym -> 
+          if (syms_equals epsilon_symb sym)
+          then 
+            (let rhs_nonterms: sigma list = Hashtbl.find_all trans_tbl1 (from_st1, epsilon_symb) |> List.flatten |> List.flatten in 
+            let rhs_sts: state list = rhs_nonterms 
+            |> List.map (fun s -> match s with Nt s' -> s' | T _ -> raise No_terminal_possible)
+            |> List.filter (fun x -> not (String.equal epsilon_state x)) in
+            rhs_sts @ acc)
+          else acc) []
+      in
+      let interm_sts2: state list = 
+        nontriv_syms |> List.fold_left (fun acc sym -> 
+          if (syms_equals epsilon_symb sym)
+          then 
+            (let rhs_nonterms: sigma list = Hashtbl.find_all trans_tbl2 (from_st2, epsilon_symb) |> List.flatten |> List.flatten in 
+            let rhs_sts: state list = rhs_nonterms 
+            |> List.map (fun s -> match s with Nt s' -> s' | T _ -> raise No_terminal_possible)
+            |> List.filter (fun x -> not (String.equal epsilon_state x)) in
+            rhs_sts @ acc)
+          else acc) []
+      in
+      if debug then 
+        (printf "\n\t <<< --- curr_st1's interm states? --- >>>\n\n"; interm_sts1 |> Pp.pp_states; 
+        printf "\n\t <<< --- curr_st2's interm states? --- >>>\n\n"; interm_sts2 |> Pp.pp_states);
+      let rsig_lsls1: sigma list list = find_rhs_in_tbl hd_sym from_st1 interm_sts1 trans_tbl1 debug in
+      let rsig_lsls2: sigma list list = find_rhs_in_tbl hd_sym from_st2 interm_sts2 trans_tbl2 debug in
+      let new_rht_sts: (sigma * sigma) list list = cross_product_raw_sigma_lsls rsig_lsls1 rsig_lsls2 debug 
+      in
+        if (List.is_empty new_rht_sts) 
+        then (printf "\n\nHERE! EMPTY RHS\n"; [])
+        else
+          let new_trans: ((state * state) * symbol) * (sigma * sigma) list list = 
+            (((from_st1, from_st2), hd_sym), new_rht_sts) in 
+        find_transitions ss_tl (new_trans :: trans_acc)
+  in let res_st1_st2_trans = find_transitions starting_states [] in
+  if debug then (printf "\n\t\t   -->> Transitions starting from states [ "; 
+    starting_states |> List.iter (fun (s1, s2) -> printf "(%s, %s) " s1 s2); printf "] : \n"; 
+    Pp.pp_raw_transitions_new res_st1_st2_trans); 
+    res_st1_st2_trans  
+    
+
   
 let find_reachable_states (from_sts: (state * state) list) (trans_ls: (((state * state) * symbol) * (sigma * sigma) list list) list) 
   (debug: bool): (state * state) list = 
@@ -192,37 +222,59 @@ let find_transitions_from_state_pairs (st1: state) (st2: state)
 
 
 (** Intersection of tree automata *)
-let intersect (a1: ta2) (a2: ta2) (verSyms: (string * int list) list) (trivSyms: symbol list) (debug_print: bool): ta2 =
-  let open Printf in
-  printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
-  Pp.pp_ta2 a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta2 a2; printf "\n";
-  if debug_print then (printf "\n  >> Versatile symbol list: [ "; 
-  verSyms |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
-  (* Consider symbols excluding trivial symbols *)
+let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms: symbol list) (debug_print: bool): ta2 =
+  let open Printf in 
+  let pp_loline_new () = 
+    let loleft, mid, loright = "\t╘══════════", "═══════════", "══════════╛" in
+    let mids = mid ^ mid ^ mid ^ mid in
+    let line = loleft ^ mids ^ mids ^ loright in 
+    printf "%s\n" line
+  in
+  let pp_upline_new () = 
+    let upleft, mid, upright = "\n\n\n\t╒══════════", "═══════════", "══════════╕" in
+    let mids = mid ^ mid ^ mid ^ mid in
+    let line = upleft ^ mids ^ mids ^ upright in 
+    printf "%s\n\t " line
+  in
+  if debug_print then (printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
+  Pp.pp_ta2 a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta2 a2; printf "\n"; 
+  (* printf "\n  >> Versatile symbol list: [ "; verSyms |> List.map fst |> List.iter (fun x -> printf "%s " x);  *)
+  printf "]\n");
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 0 - Consider symbols excluding trivial symbols *)
   let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
-  let syms_nontrivial = syms |> List.filter (fun s -> not (List.mem s trivSyms)) in
-  (* Find I := I_1 x I_2 *)
+  let syms_nontrivial = syms |> List.filter (fun s -> not (List.mem s trivSyms)) 
+  in 
+  (if debug_print then pp_upline_new (); printf "##### Step 0 - Found nontrivial symbols\n\t"; 
+    syms_nontrivial |> List.iter Pp.pp_symbol; printf "\n"; pp_loline_new ());
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 1 - Find the set of initial states, ie, I := I_1 x I_2 *)
   let start_states_raw: (state * state) list = 
     a1.start_states |> List.map (fun s1 -> a2.start_states |> List.map (fun s2 -> (s1, s2))) |> List.flatten
   in
-  (* Get transitions for nontriv symbols that start from I *)
+  (if debug_print then pp_upline_new (); printf "##### Step 1 - Found the set of initial states\n\t"; 
+    start_states_raw |> Pp.pp_raw_states; pp_loline_new ());
+  
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 2 - Get raw transitions for nontriv symbols that 'start_states_raw' from I *)
   let raw_init_trans_ls: (((state * state) * symbol) * (sigma * sigma) list list) list = 
     cartesian_product_trans_from start_states_raw a1.transitions a2.transitions syms_nontrivial debug_print 
   in
-  (if debug_print then printf "\n *** Find initial states-starting transitions : \n"; 
-    Pp.pp_raw_transitions_new raw_init_trans_ls);
-  (* Find reachable states based on I-starting transitions *)
+  (if debug_print then pp_upline_new (); printf "##### Step 2 - Find initial states-starting transitions : \n\t"; 
+    Pp.pp_raw_transitions_new raw_init_trans_ls; pp_loline_new ());
+  
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 3 - Find reachable states based on I-starting transitions *)
   let init_reachable_states: (state * state) list = 
     find_reachable_states start_states_raw raw_init_trans_ls debug_print 
   in
-  (if debug_print then printf "\n *** Found reachable states based on initial states-starting transitions : \n"; 
-    Pp.pp_raw_states init_reachable_states);
-  (* Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) *)
+  (if debug_print then pp_upline_new (); printf "##### Step 3 - Found reachable states based on intial states-starting transitions\n\t"; 
+    Pp.pp_raw_states init_reachable_states; pp_loline_new ());
   
-  
-  (* To resume from here! *)
-  (* As I find more reachable states, need to collect transitions from the reachable states
-   * Then, combination of the transitions will be initial raw transitions! *)
+    (* As I find more reachable states, need to collect transitions from the reachable states
+     * Then, combination of the transitions will be initial raw transitions! *)
   (* 
   let raw_trans_from_reachables: (((state * state) * symbol) * (sigma * sigma) list list) list = 
     init_reachable_states |> List.fold_left (fun acc (st1, st2) -> 
@@ -232,15 +284,21 @@ let intersect (a1: ta2) (a2: ta2) (verSyms: (string * int list) list) (trivSyms:
       let cross_product_trans_from_states_pair = 
         find_transitions_from_state_pairs st1 st2 a1.transitions a2.transitions alph_new debug_print in 
         cross_product_trans_from_states_pair @ acc) [] in
-  (if debug_print then printf "\n *** Find transitions from reachable states : \n"; 
+  
+        (if debug_print then printf "\n *** (current) (debugging) Find transitions from reachable states : \n"; 
     Pp.pp_raw_transitions_new raw_trans_from_reachables);
    *)
   
-  let rec collect_all_raw_trans (states_reachable_left: (state * state) list) (states_reachabe_acc)
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 4 - Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) *)
+  let rec collect_all_raw_trans (states_reachable_left: (state * state) list) 
+    (states_reachabe_acc: (state * state) list)
     (trans_acc: (((state * state) * symbol) * (sigma * sigma) list list) list): 
     (((state * state) * symbol) * (sigma * sigma) list list) list = 
-    match states_reachable_left with [] -> trans_acc
+    match states_reachable_left with 
+    | [] -> trans_acc
     | (st_hd1, st_hd2) :: reachable_states_tl -> 
+      if debug_print then (printf "\n\t (current) looking for raw trans ");
       (* --- find transitions from the curr states pair --- *)
       let alph1: symbol list = accessible_symbols_for_state st_hd1 a1.transitions syms_nontrivial debug_print in 
       let alph2: symbol list = accessible_symbols_for_state st_hd2 a2.transitions syms_nontrivial debug_print in 
@@ -264,9 +322,9 @@ let intersect (a1: ta2) (a2: ta2) (verSyms: (string * int list) list) (trivSyms:
           (curr_raw_trans_from_states_pair @ trans_acc)
   in let all_raw_trans_from_all_reachables = 
     collect_all_raw_trans init_reachable_states init_reachable_states [] in 
-  (if debug_print then printf "\n *** All the raw trasitions from all the reachable states : \n"; 
-    Pp.pp_raw_transitions_new all_raw_trans_from_all_reachables);
-
+  (if debug_print then pp_upline_new (); printf "##### (current) (debugging) Step 4 - Found all the raw trasitions from all the reachable states  : \n\t"; 
+    Pp.pp_raw_transitions_new all_raw_trans_from_all_reachables; pp_loline_new ());
+  
 
   (*   
   let init_trans_reachable_trans: ((state * state) * (symbol * (state * state) list)) list = 
