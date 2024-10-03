@@ -516,8 +516,9 @@ let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool):
     let rec loop ls acc = 
       match ls with [] -> acc
       | hsym :: tl -> 
-        if List.mem hsym syms1 then loop tl (hsym::acc) else 
-          (Pp.pp_symbol hsym; raise Invalid_symbol_list)
+        if List.mem hsym syms1 then loop tl (hsym::acc) 
+        else loop tl acc
+          (* (Pp.pp_symbol hsym; raise Invalid_symbol_list) *)
     in loop syms2 []
   in 
   let a1_len, a2_len = List.length a1, List.length a2 in 
