@@ -120,12 +120,12 @@ let cartesian_product_trans_from (starting_states: (state * state) list)
 
 
 let find_reachable_states (from_sts: (state * state) list) (trans_ls: (((state * state) * symbol) * (sigma * sigma) list list) list) 
-  (debug: bool): (state * state) list = 
+  (triv_states: state list) (debug: bool): (state * state) list = 
   let rec get_state_pairs (sig_pairs_ls: (sigma * sigma) list) (stp_acc: (state * state) list): (state * state) list = 
     match sig_pairs_ls with [] -> stp_acc
     | (T _, T _) :: tl -> get_state_pairs tl stp_acc 
     | (Nt s1, Nt s2) :: tl -> 
-      if (s1 = epsilon_state) || (s2 = epsilon_state)
+      if (s1 = epsilon_state) || (s2 = epsilon_state) || ((List.mem s1 triv_states) && (List.mem s2 triv_states))
       then get_state_pairs tl stp_acc
       else get_state_pairs tl ((s1, s2)::stp_acc)
     | (T _, Nt _) :: _ | (Nt _, T _) :: _ -> raise Reachable_states_not_matching 
@@ -143,24 +143,26 @@ let find_reachable_states (from_sts: (state * state) list) (trans_ls: (((state *
         (find_loop st1 st2 tl find_acc)
   in 
   let rec traverse_from_states (ls: (state * state) list) (acc: (state * state) list) = 
-    match ls with [] -> acc 
+    match ls with [] -> List.rev acc 
     | (st1, st2) :: tl -> 
       let state_pairs_ls: (state * state) list = find_loop st1 st2 trans_ls [] in
       let state_pairs_wo_itself: (state * state) list = state_pairs_ls 
         |> List.filter (fun (s1, s2) -> (not (String.equal s1 st1)) || (not (String.equal s2 st2))) in
       traverse_from_states tl (state_pairs_wo_itself @ acc)
   in let res = traverse_from_states from_sts [] in
+  let res_wo_dups = Utils.remove_dups res in
   let open Printf in 
   (if debug then printf "\n  >> Reachable states from init state_pairs"; 
-  Pp.pp_raw_states from_sts; Pp.pp_raw_states res); res
+  Pp.pp_raw_states from_sts; Pp.pp_raw_states res_wo_dups); res_wo_dups
 
 
 (** Intersection of tree automata *)
-let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms: symbol list) (debug_print: bool): ta2 =
+let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms: symbol list) 
+  (triv_sym_state_ls: (symbol * state) list) (debug_print: bool): ta2 =
   let open Printf in 
   let pp_loline_new () = 
     let loleft, mid, loright = "\t╘══════════", "═══════════", "══════════╛" 
-    in let mids = mid ^ mid ^ mid ^ mid in let line = loleft ^ mids ^ mids ^ loright in printf "%s\n" line
+    in let mids = mid ^ mid ^ mid ^ mid in let line = loleft ^ mids ^ mids ^ loright in printf "%s\n\n" line
   in
   let pp_upline_new () = 
     let upleft, mid, upright = "\n\n\n\t╒══════════", "═══════════", "══════════╕" 
@@ -195,8 +197,10 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
   
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 3 - Find reachable states based on I-starting transitions *)
+  let triv_states: state list = triv_sym_state_ls |> List.map snd 
+  in
   let init_reachable_states: (state * state) list = 
-    find_reachable_states start_states_raw raw_init_trans_ls debug_print 
+    find_reachable_states start_states_raw raw_init_trans_ls triv_states debug_print 
   in
   (if debug_print then pp_upline_new (); printf "##### Step 3 - Found reachable states based on intial states-starting transitions\n\t"; 
     Pp.pp_raw_states init_reachable_states; pp_loline_new ());
@@ -204,6 +208,7 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
     (* As I find more reachable states, need to collect transitions from the reachable states
      * Then, combination of the transitions will be initial raw transitions! *)
   
+  (* 
   let raw_trans_from_reachables: (((state * state) * symbol) * (sigma * sigma) list list) list = 
     init_reachable_states |> List.fold_left (fun acc (st1, st2) -> 
       let alph1: symbol list = accessible_symbols_for_state st1 a1.transitions syms_nontrivial debug_print in
@@ -215,9 +220,8 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
   
         (if debug_print then printf "\n *** Find transitions from reachable states : \n"; 
     Pp.pp_raw_transitions_new raw_trans_from_reachables);
+   *)
   
-  
-  (* 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 4 - Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) *)
   let rec collect_all_raw_trans (states_reachable_left: (state * state) list) 
@@ -238,7 +242,7 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
       in
       (* --- collect reachable states from the curr states pair --- *)
       let curr_reachable_states = 
-        find_reachable_states [(st_hd1, st_hd2)] curr_raw_trans_from_states_pair debug_print 
+        find_reachable_states [(st_hd1, st_hd2)] curr_raw_trans_from_states_pair triv_states debug_print 
       in
       (* --- pass in as new 'states_reachable', the ones that do not already appeared --- *)
       let new_states_reachable_to_add: (state * state) list = 
@@ -252,15 +256,8 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
     collect_all_raw_trans init_reachable_states init_reachable_states [] in 
   (if debug_print then pp_upline_new (); printf "##### (current) (debugging) Step 4 - Found all the raw trasitions from all the reachable states  : \n\t"; 
     Pp.pp_raw_transitions_new all_raw_trans_from_all_reachables; pp_loline_new ());
-   *)
-
-
-  (*   
-  let init_trans_reachable_trans: ((state * state) * (symbol * (state * state) list)) list = 
-    raw_init_trans_ls @ raw_trans_from_reachables 
-  in *)
   
-  
+
   (* 
   (* Write the 'raw_trans_from_reachables' in blocks for better comparison *)
   let raw_trans_in_blocks_sorted: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 

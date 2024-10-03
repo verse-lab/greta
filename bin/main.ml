@@ -36,7 +36,7 @@ let () =
   let debug = true in
   if (Utils.check_conflicts conflicts_file debug) then
   begin
-    let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_nonterms, triv_syms): 
+    let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms): 
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
       ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
       C.convertToTa cfg_file debug in
@@ -66,11 +66,12 @@ let () =
     let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
     let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug in 
     let ta_learned: T.ta2 = 
-      L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_nonterms debug 
+      L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states debug 
     in 
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let versatile_syms = [] in
-    let _ta_intersected: T.ta2 = O.intersect ta_initial ta_learned versatile_syms triv_syms debug in 
+    let _ta_intersected: T.ta2 = 
+      O.intersect ta_initial ta_learned versatile_syms triv_syms triv_syms_states debug in 
     ()
     (* 
     C.convertToGrammar ta_intersected versatile_syms debug parser_file;
