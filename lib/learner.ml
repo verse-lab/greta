@@ -94,6 +94,9 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let sym_ord_ls_wrt_op: (symbol * int) list = op_ls |> List.map (fun x -> match x with 
     Assoc _ -> raise No_assoc_possible | Prec (s, o) -> (s, o)) in
   let syms_op = sym_ord_ls_wrt_op |> List.map fst in
+  let original_order s: int = 
+    let sym_ord_ls = sym_ord_rhs_ls |> List.map (fun ((s, o), _sls) -> (s, o)) in
+    List.assoc s sym_ord_ls in
   let order_of_sym s = List.assoc s sym_ord_ls_wrt_op in 
   let different_order_in_obp (s: symbol) (o': int): bool = 
     if (syms_equals s epsilon_symb) then false else
@@ -130,16 +133,20 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       let curr_st = "e" ^ (string_of_int (lvl+1)) in
       let run_for_sym_ls ls = 
         ls |> List.iter (fun sym -> 
-        let sym_rhs_ls_ls : sigma list list = find_rhs_lst_lst sym lvl in
+        let sym_rhs_ls_ls : sigma list list = 
+          let original_lvl = original_order sym in
+          find_rhs_lst_lst sym original_lvl in
         let sym_rhs_lsls_learned = 
           if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
           then 
-            (printf "\n *** Part of Syms_O_p \t"; Pp.pp_symbol sym;
-            sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
-            let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
-            let new_st = "e" ^ (string_of_int (new_lvl+1)) in
-            let sym_rhs_ls_learned = match_collect sym rhs_ls new_st []
-            in sym_rhs_ls_learned :: acc) [])
+            ((* printf "\n *** Part of Syms_O_p \t"; Pp.pp_symbol sym; *)
+            sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls ->
+              let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
+              let new_st = "e" ^ (string_of_int (new_lvl+1)) in
+              let sym_rhs_ls_learned = match_collect sym rhs_ls new_st []
+              in 
+              (* (printf "\noriginal rhs_ls_ls"; sym_rhs_ls_ls |> List.flatten |> Pp.pp_sigma_list2); *)
+              sym_rhs_ls_learned :: acc) [])
           else 
             (sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
             let sym_rhs_ls_learned = match_collect sym rhs_ls curr_st []
@@ -148,13 +155,14 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
           if debug then printf "\n\tAdding transition for (State %s, " curr_st; Pp.pp_symbol sym; printf ")";
           if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
           then 
-            (printf "\nHERE!";
-             let _old_st = curr_st in
+            (let _old_st = curr_st in
              let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
              let new_st = "e" ^ (string_of_int (new_lvl+1)) in
              (* [fixed] remove transition (old_st, sym) -> ... *)
              (* [fixed] remove trans_tbl (old_st, sym); *)
              (* add transition (new_st, sym) -> rhs_lsls_learned *)
+             (* [fixed] (printf "\tNew state! %s" new_st; 
+             sym_rhs_lsls_learned |> List.flatten |> Pp.pp_sigma_list2); *)
              add trans_tbl (new_st, sym) sym_rhs_lsls_learned)
           else
             add trans_tbl (curr_st, sym) sym_rhs_lsls_learned) 
