@@ -500,7 +500,7 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
   in
   let len1, len2 = length (sig_lsls_ls1), length (sig_lsls_ls2) in
   let reslsls: (sigma * sigma) list list =
-    if (is_empty sig_lsls_ls1) || (is_empty sig_lsls_ls2) then (printf "\n\nIS THIS IT?!?!\n\n"; [[]] )
+    if (is_empty sig_lsls_ls1) || (is_empty sig_lsls_ls2) then [[]]
     else 
       begin
         if (len1 = 1) && (len2 = 1) 
