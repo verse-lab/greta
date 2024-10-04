@@ -583,12 +583,12 @@ let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls
   in loop raw_trans_ls [] 
 
 (* helper to collect RHS of raw transition list, ie, (sym, state pairs list) *)
-let sym_and_rhs_state_pairs (raw_trans: ((state * state) * (symbol * (state * state) list)) list): 
-  (symbol * (state * state) list) list =
-  raw_trans |> List.map (fun (_, (s, rhs_st_pair_ls)) -> (s, rhs_st_pair_ls))
+let sym_and_rhs_sigma_pairs (raw_trans: ((state * state) * (symbol * (sigma * sigma) list)) list): 
+  (symbol * (sigma * sigma) list) list =
+  raw_trans |> List.map (fun (_, (s, rhs_sg_pair_ls)) -> (s, rhs_sg_pair_ls))
 
-let same_sym_and_rhs_state_pairs (sym_rhs_stat_pairs1: (symbol * (state * state) list) list) 
-  (sym_rhs_stat_pairs2: (symbol * (state * state) list) list): bool =
+let same_sym_and_rhs_sigma_pairs (sym_rhs_stat_pairs1: (symbol * (sigma * sigma) list) list) 
+  (sym_rhs_stat_pairs2: (symbol * (sigma * sigma) list) list): bool =
   if not ((List.length sym_rhs_stat_pairs1) = (List.length sym_rhs_stat_pairs2))
   then false
   else (let rec traverse ls = match ls with [] -> true 
@@ -598,6 +598,7 @@ let same_sym_and_rhs_state_pairs (sym_rhs_stat_pairs1: (symbol * (state * state)
            else false)
         in traverse sym_rhs_stat_pairs1)
 
+(* 
 let find_renamed_state (st_pair: state * state) 
   (renaming_map: ((state * state) * (state * state)) list): state * state = 
   match (List.assoc_opt st_pair renaming_map) with 
@@ -607,7 +608,6 @@ let find_renamed_state (st_pair: state * state)
       if (state_pairs_equal st_pair epsilon_st_pair) then epsilon_st_pair else raise No_state_in_renaming_map 
     | Some matched_sts -> matched_sts
 
-(* 
 let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)) list)
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list)
   (debug: bool): ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =

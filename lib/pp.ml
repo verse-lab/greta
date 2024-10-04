@@ -43,7 +43,7 @@ let pp_raw_states (ss: (T.state * T.state) list) =
   printf "\tRaw states : { "; ss |> iter pp_raw_state; printf "}\n"
 
 let pp_raw_pair_of_state_pairs ((ss1, ss2): (T.state * T.state) * (T.state * T.state)) = 
-  printf " ((%s, %s), (%s, %s)) " (fst ss1) (snd ss1) (fst ss2) (snd ss2)
+  printf " ((%s, %s), (%s, %s)) " (fst ss1) (snd ss1) (fst ss2) (snd ss2); printf "\n"
 
 let pp_symbol (s: T.symbol) = printf " <%s, %d> " (fst s) (snd s)
 
