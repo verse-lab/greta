@@ -376,7 +376,7 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
       |> List.stable_sort (fun (_, trans_ls1) (_, trans_ls2) -> 
       Int.compare (List.length trans_ls2) (List.length trans_ls1))
   in
-  (if debug_print then pp_upline_new (); printf "##### Step 5 Putting raw transitions in blocks of transitions : \n\t";
+  (if debug_print then pp_upline_new (); printf "##### Step 5 - Putting raw transitions in blocks of transitions : \n\t";
     Pp.pp_raw_trans_blocks raw_trans_in_blocks_sorted; pp_loline_new ()); 
   
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -385,7 +385,7 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
     (if debug_print then printf "\n*** Finding duplicate raw_states pairs : \n");
     find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks_sorted debug_print
   in
-  (if debug_print then pp_upline_new (); printf "##### Step 6 Found a list of duplicate states pairs : \n";
+  (if debug_print then pp_upline_new (); printf "##### Step 6 - Found a list of duplicate states pairs : \n";
     dup_states_pair_ls |> List.iter (fun ls -> printf "\n\t"; Pp.pp_raw_pair_of_state_pairs ls); pp_loline_new ()); 
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -394,52 +394,65 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
     (if debug_print then printf "\n*** Removing transition blocks baesd on duplicate states : \n");
     remove_transitions_of_duplicate_states dup_states_pair_ls raw_trans_in_blocks_sorted debug_print
   in
-  (if debug_print then pp_upline_new (); printf "##### Step 7 Removed raw transitions wrt duplicate states pairs : \n";
+  (if debug_print then pp_upline_new (); printf "##### Step 7 - Removed raw transitions wrt duplicate states pairs : \n";
     Pp.pp_raw_trans_blocks raw_trans_blocks_cleaned; pp_loline_new ());
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 8 - Replace state names based on 'dup_states_pair_ls' *)  
-  let trans_in_blocks_replaced: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
+  let trans_blocks_replaced: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
     (if debug_print then printf "\n*** Replacing duplicate state names in transition blocks : \n");
     replace_dup_state_names dup_states_pair_ls raw_trans_blocks_cleaned debug_print
   in
-  (if debug_print then pp_upline_new (); printf "##### Step 8 Replace state names wrt duplicate states pairs : \n";
-    Pp.pp_raw_trans_blocks trans_in_blocks_replaced; pp_loline_new ());
+  (if debug_print then pp_upline_new (); printf "##### Step 8 - Replaced state names wrt duplicate states pairs : \n";
+    Pp.pp_raw_trans_blocks trans_blocks_replaced; pp_loline_new ());
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 9 - Rename states and populate Q, \Delta and raw trans blocks *)  
+  (* Step 9 - Rename states and populate Q, raw trans blocks *)  
   let states_renaming_map: ((state * state) * (state * state)) list =
     (if debug_print then printf "\n*** Collecting unique states and map to new states : \n");
-    collect_unique_states_and_map_to_new_states trans_in_blocks_replaced start_states_raw debug_print in
+    collect_unique_states_and_map_to_new_states trans_blocks_replaced start_states_raw debug_print in
   let start_states_renamed: state list = 
     start_states_raw |> List.fold_left (fun acc start_state -> 
       let new_start_state = (find_renamed_state start_state states_renaming_map) |> state_pair_append
       in new_start_state :: acc) [] in
   let state_pairs_renamed: (state * state) list = states_renaming_map |> List.map snd in 
   let res_states: state list = state_pairs_renamed |> List.map state_pair_append in 
-  let raw_trans_blocks_renamed: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
-    rename_trans_blocks states_renaming_map trans_in_blocks_replaced debug_print
+  let trans_blocks_renamed: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
+    rename_trans_blocks states_renaming_map trans_blocks_replaced debug_print
   in 
-  (if debug_print then pp_upline_new (); printf "##### Step 9 Rename states in Q and raw trans blocks : \n";
-    Pp.pp_raw_trans_blocks raw_trans_blocks_renamed; pp_loline_new ());
+  (if debug_print then pp_upline_new (); printf "##### Step 9 - Renamed states in Q and raw trans blocks : \n";
+    Pp.pp_raw_trans_blocks trans_blocks_renamed; pp_loline_new ());
 
-  (* 
-  (* Introduce epsilon transitions to simplify \Delta *)
-  let trans_in_blocks_simplified_with_epsilon_trans: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
-    (if debug_print then printf "\n*** Simplifying transition blocks with epsilon transitions : \n");
-    simplify_trans_blocks_with_epsilon_transitions trans_in_blocks_renamed (List.rev state_pairs_renamed) debug_print
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 10 - Introduce epsilon transitions to simplify raw trans blocks *)
+  let trans_blocks_simplified_eps_trans: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
+    simplify_trans_blocks_with_epsilon_transitions trans_blocks_renamed (List.rev state_pairs_renamed) debug_print
   in 
-  let res_trans: transition list = 
-    (if debug_print then printf "\n*** Rewriting transition blocks as transitions : \n");
-    raw_trans_in_blocks_to_trans trans_in_blocks_simplified_with_epsilon_trans debug_print
+  (if debug_print then pp_upline_new (); printf "##### Step 10 - Introduced epsilon transitions to simplify raw trans blocks : \n";
+    Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new ());
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 11 - Convert raw trans blocks to transitions format ((state, symbol), sigma list list) Hashtbl.t *)
+  let res_raw_trans: (((state * state) * symbol) * (sigma * sigma) list) list = 
+    trans_blocks_simplified_eps_trans |> List.fold_left (fun res_acc (_, trans_block) -> 
+      let transformed = trans_block |> List.fold_left (fun acc (st_pair, (sym, sig_sig_ls)) -> 
+        let trans_new = ((st_pair, sym), sig_sig_ls) in trans_new :: acc) []
+      in transformed @ res_acc) []
   in 
-  let _res_ta_old: ta = { states = res_states @ [epsilon_state] ; alphabet = syms ; 
-                 start_state = start_renamed ; transitions = res_trans; trivial_sym_nts = [] } in
-  *)
-  
-  (* let starts: state list = start_states_raw |> List.map (fun (s1, s2) -> s1 ^ "_" ^ s2) in  *)
-  let res_ta: ta2 = { states = res_states ; alphabet = syms ; 
-                    start_states = start_states_renamed ; transitions = Hashtbl.create 0 ; trivial_sym_nts = [] } in
+  Pp.pp_raw_trans_simplified res_raw_trans;
+  let res_trans_ls: ((state * symbol) * sigma list) list = 
+    res_raw_trans |> List.map (fun ((st_pair, sym), sig_sig_ls) -> 
+      let new_sig_ls = sig_sig_ls |> List.map fst in ((fst st_pair), sym), new_sig_ls) 
+  in 
+  let res_trans_tbl: ((state * symbol), sigma list list) Hashtbl.t = Hashtbl.create (Hashtbl.length a2.transitions) in
+    res_trans_ls |> List.iter (fun ((st, sym), sig_ls) -> 
+      Hashtbl.add res_trans_tbl (st, sym) [sig_ls]);
+  (if debug_print then pp_upline_new (); printf "##### Step 11 - Converted trans blocks to transitions hashtbl : \n";
+    Pp.pp_transitions_tbl res_trans_tbl; pp_loline_new ());
+
+  let res_ta: ta2 = 
+    { states = res_states @ [epsilon_state] ; alphabet = syms ; start_states = start_states_renamed ; 
+      transitions = res_trans_tbl ; trivial_sym_nts = [] } in
   printf "\nResult of TA intersection: \n"; Pp.pp_ta2 res_ta; 
   res_ta (*|> rename_w_parser_friendly_states_in_ta debug_print *)
 

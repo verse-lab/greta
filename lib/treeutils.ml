@@ -609,12 +609,7 @@ let find_renamed_state (st_pair: state * state)
   (renaming_map: ((state * state) * (state * state)) list): state * state = 
   match (List.assoc_opt st_pair renaming_map) with 
     | None -> 
-      (* Printf.printf "\nWhich one?\n\t"; Pp.pp_raw_state st_pair; *)
       ((fst st_pair), "")
-      (* 
-      let epsilon_st_pair = (epsilon_state, epsilon_state) in
-      if (state_pairs_equal st_pair epsilon_st_pair) then epsilon_st_pair else raise No_state_in_renaming_map 
-      *)
     | Some matched_sts -> matched_sts
 
 let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)) list)
@@ -645,23 +640,24 @@ let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)
   res_trans_blocks |> Pp.pp_raw_trans_blocks);
   res_trans_blocks
  
-let find_trans_block_for_states_pair (st_pair: (state * state)) (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list):
-  ((state * state) * (symbol * (state * state) list)) list =
+let find_trans_block_for_states_pair (st_pair: (state * state)) 
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list):
+  ((state * state) * (symbol * (sigma * sigma) list)) list =
   match List.assoc_opt st_pair trans_blocks with None -> raise Invalid_transitions
   | Some ls -> ls
   
 let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair2: (state * state))
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list)
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
   (debug: bool): bool = 
   if debug then Printf.printf "\n\tIs (%s, %s) subset of (%s, %s)?\n" (fst st_pair1) (snd st_pair1) (fst st_pair2) (snd st_pair2);
-  let st1_trans_rhs_lst: (symbol * (state * state) list) list =
+  let st1_trans_rhs_lst: (symbol * (sigma * sigma) list) list =
     find_trans_block_for_states_pair st_pair1 trans_blocks |> List.map (fun (_, rhs_lst) -> rhs_lst) in
-  let st2_trans_rhs_lst: (symbol * (state * state) list) list =
+  let st2_trans_rhs_lst: (symbol * (sigma * sigma) list) list =
     find_trans_block_for_states_pair st_pair2 trans_blocks |> List.map (fun (_, rhs_lst) -> rhs_lst) in 
   let res_bool = 
     if (List.length st1_trans_rhs_lst) > (List.length st2_trans_rhs_lst)
     then false else 
-    let rec traverse_rhs (ls: (symbol * (state * state) list) list): bool = 
+    let rec traverse_rhs (ls: (symbol * (sigma * sigma) list) list): bool = 
       match ls with [] -> true
       | hsym_rhs_sts :: tl -> 
         if (List.mem hsym_rhs_sts st2_trans_rhs_lst)
@@ -671,29 +667,30 @@ let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair
   in if debug then (Printf.printf "\t %b" res_bool); 
   res_bool
 
-(* 
 let simplify_trans_blocks_with_epsilon_transitions 
-  (input_trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
+  (input_trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
   (st_pair_ls: (state * state) list) (debug: bool): 
-  ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
+  ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
   let replace_st1_transkblock_in_st2_transblock_with_eps (st1: state * state) (st2: state * state) 
-    (blocks_ls: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): 
-    ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
-    let st1_sym_rhs_ls: (symbol * (state * state) list) list = 
+    (blocks_ls: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
+    ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
+    let st1_sym_rhs_ls: (symbol * (sigma * sigma) list) list = 
       blocks_ls |> List.filter (fun (ss, _) -> (state_pairs_equal ss st1)) 
       |> List.hd |> snd |> List.map snd 
     in 
-      blocks_ls |> List.map (fun (st_pair, st_block) -> 
+      blocks_ls |> List.map (fun ((st_pair, st_raw_trans_block): (state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) -> 
         if (state_pairs_equal st_pair st2)
-        then (let new_st_block = st_block |> List.filter 
-                (fun (_, (sym_rhs_ls: symbol * (state * state) list)) -> not (List.mem sym_rhs_ls st1_sym_rhs_ls))
-                |> List.append [(st2, (epsilon_symb, [st1]))] |> List.rev
-              in (st_pair, new_st_block))
-        else (st_pair, st_block))
+        then 
+          let new_st_raw_trans_block: ((state * state) * (symbol * (sigma * sigma) list)) list = 
+            st_raw_trans_block |> List.filter (fun (_st_pair, sym_sig_sig_ls) -> not (List.mem sym_sig_sig_ls st1_sym_rhs_ls))
+            |> List.append [(st2, (epsilon_symb, [(Nt (fst st1), Nt (snd st1))]))]
+          in (st_pair, new_st_raw_trans_block)
+        else 
+          (st_pair, st_raw_trans_block))
   in 
   let rec simplify_trans_blocks (st_pair: state * state) (other_states_ls: (state * state) list) 
-    (blocks_acc: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): 
-    ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
+    (blocks_acc: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
+    ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
     match other_states_ls with [] -> blocks_acc
     | comp_st_pair :: tl -> 
       if (st1_transblock_subset_of_st2_transblock st_pair comp_st_pair input_trans_blocks debug)
@@ -711,29 +708,6 @@ let simplify_trans_blocks_with_epsilon_transitions
   in let simplified_res = traverse_states st_pair_ls input_trans_blocks in 
   if debug then (Printf.printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
   simplified_res
-
-
-let raw_trans_in_blocks_to_trans (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
-  (debug: bool): transition list =
-  let convert_trans_block (block: ((state * state) * (symbol * (state * state) list)) list): transition list = 
-    let rec convert_block_loop ls' acc' = 
-      match ls' with [] -> acc'
-      | (st_pr, (sym, rhs_ls)) :: tl' ->
-        let lft_st_appnd = state_pair_append st_pr in
-        let rhs_sts_appnd = rhs_ls |> List.map state_pair_append in 
-        convert_block_loop tl' ((lft_st_appnd, (sym, rhs_sts_appnd))::acc')
-    in convert_block_loop block []
-  in 
-  let rec convert_loop ls acc = 
-    match ls with [] -> List.rev acc 
-    | (_, st_block) :: tl -> 
-      let converted_trans = convert_trans_block st_block 
-      in convert_loop tl (converted_trans@acc)
-  in let res_trans = convert_loop trans_blocks [] in 
-  if debug then (Printf.printf "\n\t >> Result of converting raw trans to transitions : \n"; res_trans |> Pp.pp_transitions);
-  res_trans
-
- *)
 
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
