@@ -167,6 +167,28 @@ let find_reachable_states (from_sts: (state * state) list) (trans_ls: (((state *
   (if debug then printf "\n  >> Reachable states from init state_pairs"; 
   Pp.pp_raw_states from_sts; Pp.pp_raw_states res_wo_dups); res_wo_dups
 
+let collect_existing_raw_trans_for_states_pair (from_states: state * state) (raw_trans: (((state * state) * symbol) * (sigma * sigma) list) list): 
+  ((state * state) * (symbol * (sigma * sigma) list)) list  = 
+  let from_st1, from_st2 = fst from_states, snd from_states 
+  in raw_trans |> List.fold_left (fun acc (((st1, st2), sym), sig_sig_ls) ->
+      if ((String.equal from_st1 st1) && (String.equal from_st2 st2))
+      then ((st1, st2), (sym, sig_sig_ls)) :: acc
+      else acc) []
+
+(* To resume from here! *)
+(* helper for 'find_duplicate_state_pairs_in_trans_blocks' *)
+let find_state_pair_w_same_raw_rhs (sym_rhs_raw_states: (symbol * (state * state) list) list) 
+  (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): (state * state) list = 
+  let rec loop ls acc = 
+    match ls with [] -> List.rev acc 
+    | (st_pair', raw_trans_ls') :: tl -> 
+      let curr_sym_and_rhs_state_pairs = sym_and_rhs_state_pairs raw_trans_ls' in
+      if (same_sym_and_rhs_state_pairs curr_sym_and_rhs_state_pairs sym_rhs_raw_states)
+      then loop tl (st_pair'::acc)
+      else loop tl acc
+  in loop trans_blocks_ls []
+
+
 
 (** Intersection of tree automata *)
 let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms: symbol list) 
@@ -221,11 +243,10 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 4 - Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) *)
   let rec collect_all_raw_trans (states_reachable_left: (state * state) list) 
-    (states_reachabe_acc: (state * state) list)
-    (trans_acc: (((state * state) * symbol) * (sigma * sigma) list list) list): 
-    (((state * state) * symbol) * (sigma * sigma) list list) list = 
+    (states_reachabe_acc: (state * state) list) (trans_acc: (((state * state) * symbol) * (sigma * sigma) list list) list): 
+    (((state * state) * symbol) * (sigma * sigma) list list) list * (state * state) list = 
     match states_reachable_left with 
-    | [] -> List.rev trans_acc
+    | [] -> List.rev trans_acc, states_reachabe_acc
     | (st_hd1, st_hd2) :: reachable_states_tl -> 
       if debug_print then (printf "\n\t (current) looking for raw trans ");
       (* --- find transitions from the curr states pair --- *)
@@ -248,13 +269,9 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
           (reachable_states_tl @ new_states_reachable_to_add) 
           (states_reachabe_acc @ new_states_reachable_to_add)
           (curr_raw_trans_from_states_pair @ trans_acc)
-  in let all_raw_trans_from_all_reachables = collect_all_raw_trans init_reachable_states init_reachable_states [] 
-  in let all_raw_trans = raw_init_trans_ls @ all_raw_trans_from_all_reachables in 
-  (* (if debug_print then pp_upline_new (); printf "##### Step 4 - Found all the raw trasitions from all the reachable states  : \n\t"; 
-    Pp.pp_raw_transitions_new all_raw_trans; pp_loline_new ());
-   *)
-    
-  let raw_trans_simplified = 
+  in let all_raw_trans_from_all_reachables, all_raw_states_reachable = collect_all_raw_trans init_reachable_states init_reachable_states [] 
+  in let all_raw_trans = raw_init_trans_ls @ all_raw_trans_from_all_reachables 
+  in let raw_trans_simplified: (((state * state) * symbol) * (sigma * sigma) list) list = 
     all_raw_trans |> List.map (fun (((st1, st2), sym), sig_sig_lsls) -> 
       let sig_sig_ls = sig_sig_lsls |> List.flatten in ((st1, st2), sym), sig_sig_ls) 
   in
@@ -262,19 +279,22 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
     Pp.pp_raw_trans_simplified raw_trans_simplified; pp_loline_new ());
   
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 5 - Write the 'raw_trans_from_reachables' in blocks for better comparison *)
+  (* Step 5 - Write the 'raw_trans_from_reachables' in blocks and sort them for better comparison *)
+  let raw_trans_in_blocks_sorted: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+    (start_states_raw @ all_raw_states_reachable) |> List.fold_left (fun acc (s1, s2) -> 
+      let block: ((state * state) * (symbol * (sigma * sigma) list)) list = 
+        collect_existing_raw_trans_for_states_pair (s1, s2) raw_trans_simplified 
+      in acc @ [(s1, s2), block]) []
+      |> List.stable_sort (fun (_, trans_ls1) (_, trans_ls2) -> 
+      Int.compare (List.length trans_ls2) (List.length trans_ls1))
+  in
+  (if debug_print then printf "\n*** Step 5 Putting raw transitions in blocks of transitions : \n";
+    Pp.pp_raw_trans_blocks raw_trans_in_blocks_sorted); 
+  
+  (* 
+    if debug_print then raw_trans_in_blocks_sorted |> Pp.pp_raw_trans_blocks; *)
 
   (* 
-  let raw_trans_in_blocks_sorted: ((state * state) * ((state * state)  * (symbol * (state * state) list)) list) list = 
-    (if debug_print then printf "\n*** Putting raw transitions in blocks of transitions : \n");
-    (start_states :: reachable_states) |> List.fold_left (fun acc (s1, s2) -> 
-      let block = collect_raw_trans_for_states_pair (s1, s2) init_trans_reachable_trans in acc @ [(s1, s2), block]) []
-      |> List.stable_sort (fun (_, trans_ls1) (_, trans_ls2) -> 
-        Int.compare (List.length trans_ls2) (List.length trans_ls1))
-  in 
-  if debug_print then raw_trans_in_blocks_sorted |> Pp.pp_raw_trans_blocks;
-
-
   
   (* Find a list of duplicate states pairs *)
   let dup_states_pair_ls: ((state * state) * (state * state)) list = 
@@ -327,20 +347,8 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
 
 
 
-
 (*
 
-(* helper for 'find_duplicate_state_pairs_in_trans_blocks' *)
-let find_state_pair_w_same_raw_rhs (sym_rhs_raw_states: (symbol * (state * state) list) list) 
-  (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): (state * state) list = 
-  let rec loop ls acc = 
-    match ls with [] -> List.rev acc 
-    | (st_pair', raw_trans_ls') :: tl -> 
-      let curr_sym_and_rhs_state_pairs = sym_and_rhs_state_pairs raw_trans_ls' in
-      if (same_sym_and_rhs_state_pairs curr_sym_and_rhs_state_pairs sym_rhs_raw_states)
-      then loop tl (st_pair'::acc)
-      else loop tl acc
-  in loop trans_blocks_ls []
 
 let find_duplicate_state_pairs_in_trans_blocks 
   (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 

@@ -607,6 +607,7 @@ let find_renamed_state (st_pair: state * state)
       if (state_pairs_equal st_pair epsilon_st_pair) then epsilon_st_pair else raise No_state_in_renaming_map 
     | Some matched_sts -> matched_sts
 
+(* 
 let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)) list)
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list)
   (debug: bool): ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
@@ -716,6 +717,8 @@ let raw_trans_in_blocks_to_trans (trans_blocks: ((state * state) * ((state * sta
   in let res_trans = convert_loop trans_blocks [] in 
   if debug then (Printf.printf "\n\t >> Result of converting raw trans to transitions : \n"; res_trans |> Pp.pp_transitions);
   res_trans
+
+ *)
 
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename

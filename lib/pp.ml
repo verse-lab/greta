@@ -101,9 +101,12 @@ let pp_raw_trans_simplified (ts: (((T.state * T.state) * T.symbol) * (C.sigma * 
     printf "\t\t\t(%s, %s)  ->_{<%s, %i>}  " st1 st2 (fst sym) (snd sym); 
     sig_pairs_ls |> pp_sigma_sigma_list; printf "\n") ; printf " \t\t      }\n"
 
-let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) * (T.symbol * (T.state * T.state) list)) list) list) =
-  ts_blocks |> List.iter (fun ((st1, st2), raw_trans) -> Printf.printf "\n\tFor states (%s, %s), blocks of transitions : \n" st1 st2;
-  pp_raw_transitions raw_trans)
+let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) list) list) =
+  let open List in
+  ts_blocks |> iter (fun (((st1, st2), blocks_ls): (T.state * T.state) * ((T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) list) -> 
+    Printf.printf "\n\tRaw blocks for state pairs : \t(%s, %s) =>  \n" st1 st2;
+    blocks_ls |> iter (fun (((st1', st2'), (sym, sig_sig_ls)): (T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) ->
+      printf "\t\t\t\t\t  (%s, %s)  ->_{<%s, %i>}  " st1' st2' (fst sym) (snd sym); pp_sigma_sigma_list sig_sig_ls))
 
 let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) = 
   printf "\n  >> O_p table: \n";
