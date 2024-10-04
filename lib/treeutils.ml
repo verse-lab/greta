@@ -9,6 +9,7 @@ exception No_sig_ls_in_sig_lsls
 exception No_cross_product_sigls_possible
 exception Reachable_states_not_matching
 exception No_terminal_possible
+exception Not_possible
 
 (** is_cond_expr : check if state is representing boolean state *)
 let is_cond_expr (s: state): bool =
@@ -604,25 +605,32 @@ let same_sym_and_rhs_sigma_pairs (sym_rhs_stat_pairs1: (symbol * (sigma * sigma)
            else false)
         in traverse sym_rhs_stat_pairs1)
 
-(* 
 let find_renamed_state (st_pair: state * state) 
   (renaming_map: ((state * state) * (state * state)) list): state * state = 
   match (List.assoc_opt st_pair renaming_map) with 
     | None -> 
-      Printf.printf "\nWhich one?\n\t"; Pp.pp_raw_state st_pair;
+      (* Printf.printf "\nWhich one?\n\t"; Pp.pp_raw_state st_pair; *)
+      ((fst st_pair), "")
+      (* 
       let epsilon_st_pair = (epsilon_state, epsilon_state) in
       if (state_pairs_equal st_pair epsilon_st_pair) then epsilon_st_pair else raise No_state_in_renaming_map 
+      *)
     | Some matched_sts -> matched_sts
 
 let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)) list)
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list)
-  (debug: bool): ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
+  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
   let rec rename_raw_trans ls' acc' =
     match ls' with [] -> List.rev acc'
-    | (lhs_st_pair, (sym, rhs_st_pair_ls)) :: tl' -> 
+    | (lhs_st_pair, (sym, rhs_sig_pair_ls)) :: tl' -> 
       let lhs_renamed = find_renamed_state lhs_st_pair states_renaming_map in 
-      let rhs_renamed: (state * state) list = 
-        rhs_st_pair_ls |> List.map (fun st_pr -> find_renamed_state st_pr states_renaming_map) in
+      let rhs_renamed: (sigma * sigma) list = 
+        rhs_sig_pair_ls |> List.map (fun sig_pr -> 
+          match sig_pr with 
+          | Nt s1, Nt s2 -> let (new_st1, new_st2) = find_renamed_state (s1, s2) states_renaming_map in 
+            (Nt new_st1, Nt new_st2)
+          | T t1, T _t2 -> (T t1, T "")
+          | _, _ -> raise Not_possible) in
       let renamed_tran = (lhs_renamed, (sym, rhs_renamed)) in 
       rename_raw_trans tl' (renamed_tran :: acc')
   in
@@ -663,6 +671,7 @@ let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair
   in if debug then (Printf.printf "\t %b" res_bool); 
   res_bool
 
+(* 
 let simplify_trans_blocks_with_epsilon_transitions 
   (input_trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
   (st_pair_ls: (state * state) list) (debug: bool): 

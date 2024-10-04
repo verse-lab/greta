@@ -255,6 +255,28 @@ let replace_dup_state_names (dup_states_ls: ((state * state) * (state * state)) 
   res_trans_blocks
 
 
+let collect_unique_states_and_map_to_new_states 
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
+  (start_states: (state * state) list) (debug: bool): ((state * state) * (state * state)) list =
+  let unique_states_ls: (state * state) list = 
+    trans_blocks |> List.map (fun (st_pair, _) -> st_pair) in
+  let rec map_loop ls cnt start_cnt acc: ((state * state) * (state * state)) list =
+    match ls with [] -> List.rev acc 
+    | st_pair_hd :: tl -> 
+      if (List.mem st_pair_hd start_states)
+      then
+        (let mapped_pair: (state * state) = "e" ^ (string_of_int start_cnt), "" in 
+         let to_acc: (state * state) * (state * state) = (st_pair_hd, mapped_pair) in
+         map_loop tl cnt (start_cnt+1) (to_acc::acc)) 
+      else
+        (let mapped_pair: (state * state) = "x" ^ (string_of_int cnt), "" in 
+        let to_acc: (state * state) * (state * state) = (st_pair_hd, mapped_pair) in 
+        map_loop tl (cnt+1) start_cnt (to_acc::acc))
+  in let res_map = map_loop unique_states_ls 1 1 [] in 
+  if debug then (Printf.printf "\n\t >> Results of unique states to new states mapping : \n\t";
+  res_map |> List.iter Pp.pp_raw_pair_of_state_pairs; Printf.printf "\n");
+  res_map
+
 
 (** Intersection of tree automata *)
 let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms: symbol list) 
@@ -384,18 +406,24 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
   (if debug_print then pp_upline_new (); printf "##### Step 8 Replace state names wrt duplicate states pairs : \n";
     Pp.pp_raw_trans_blocks trans_in_blocks_replaced; pp_loline_new ());
 
-  (* 
-  (* Rename states and populate Q, \Delta *)
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 9 - Rename states and populate Q, \Delta and raw trans blocks *)  
   let states_renaming_map: ((state * state) * (state * state)) list =
     (if debug_print then printf "\n*** Collecting unique states and map to new states : \n");
-    collect_unique_states_and_map_to_new_states trans_in_blocks_replaced debug_print in
-  let start_renamed: state = 
-    (find_renamed_state start_states states_renaming_map) |> state_pair_append in
+    collect_unique_states_and_map_to_new_states trans_in_blocks_replaced start_states_raw debug_print in
+  let start_states_renamed: state list = 
+    start_states_raw |> List.fold_left (fun acc start_state -> 
+      let new_start_state = (find_renamed_state start_state states_renaming_map) |> state_pair_append
+      in new_start_state :: acc) [] in
   let state_pairs_renamed: (state * state) list = states_renaming_map |> List.map snd in 
-  let res_states: state list = state_pairs_renamed |> List.map state_pair_append in
-  let trans_in_blocks_renamed: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+  let res_states: state list = state_pairs_renamed |> List.map state_pair_append in 
+  let raw_trans_blocks_renamed: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
     rename_trans_blocks states_renaming_map trans_in_blocks_replaced debug_print
-  in
+  in 
+  (if debug_print then pp_upline_new (); printf "##### Step 9 Rename states in Q and raw trans blocks : \n";
+    Pp.pp_raw_trans_blocks raw_trans_blocks_renamed; pp_loline_new ());
+
+  (* 
   (* Introduce epsilon transitions to simplify \Delta *)
   let trans_in_blocks_simplified_with_epsilon_trans: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
     (if debug_print then printf "\n*** Simplifying transition blocks with epsilon transitions : \n");
@@ -409,38 +437,12 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
                  start_state = start_renamed ; transitions = res_trans; trivial_sym_nts = [] } in
   *)
   
-  let starts: state list = start_states_raw |> List.map (fun (s1, s2) -> s1 ^ "_" ^ s2) in 
-  let res_ta: ta2 = { states = [] ; alphabet = syms ; 
-                    start_states = starts ; transitions = Hashtbl.create 0 ; trivial_sym_nts = [] } in
+  (* let starts: state list = start_states_raw |> List.map (fun (s1, s2) -> s1 ^ "_" ^ s2) in  *)
+  let res_ta: ta2 = { states = res_states ; alphabet = syms ; 
+                    start_states = start_states_renamed ; transitions = Hashtbl.create 0 ; trivial_sym_nts = [] } in
   printf "\nResult of TA intersection: \n"; Pp.pp_ta2 res_ta; 
   res_ta (*|> rename_w_parser_friendly_states_in_ta debug_print *)
 
-
-
-
-
-
-  (*
-let collect_unique_states_and_map_to_new_states 
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
-  (debug: bool): ((state * state) * (state * state)) list =
-  let unique_states_ls: (state * state) list = 
-    trans_blocks |> List.map (fun (st_pair, _) -> st_pair) in
-  let rec map_loop ls cnt cond_cnt acc: ((state * state) * (state * state)) list =
-    match ls with [] -> List.rev acc 
-    | st_pair_hd :: tl -> 
-      if (is_cond_state (fst st_pair_hd)) || (is_cond_state (snd st_pair_hd)) 
-      then (let mapped_pair: (state * state) = "C" ^ (string_of_int cond_cnt), "" in 
-            let to_acc: (state * state) * (state * state) = (st_pair_hd, mapped_pair)
-            in map_loop tl cnt (cond_cnt+1) (to_acc::acc)) 
-      else (let mapped_pair: (state * state) = "X" ^ (string_of_int cnt), "" in 
-            let to_acc: (state * state) * (state * state) = (st_pair_hd, mapped_pair)
-            in map_loop tl (cnt+1) cond_cnt (to_acc::acc))
-  in let res_map = map_loop unique_states_ls 1 1 [] in 
-  if debug then (Printf.printf "\n\t >> Results of unique states to new states mapping : \n\t";
-  res_map |> List.iter Pp.pp_raw_pair_of_state_pairs; Printf.printf "\n");
-  res_map
- *)
 
 
 
