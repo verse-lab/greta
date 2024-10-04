@@ -175,7 +175,6 @@ let collect_existing_raw_trans_for_states_pair (from_states: state * state) (raw
       then ((st1, st2), (sym, sig_sig_ls)) :: acc
       else acc) []
 
-(* To resume from here! *)
 (* helper for 'find_duplicate_state_pairs_in_trans_blocks' *)
 let find_state_pair_w_same_raw_rhs (sym_rhs_raw_states: (symbol * (sigma * sigma) list) list) 
   (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): (state * state) list = 
@@ -187,7 +186,6 @@ let find_state_pair_w_same_raw_rhs (sym_rhs_raw_states: (symbol * (sigma * sigma
       then loop tl (st_pair'::acc)
       else loop tl acc
   in loop trans_blocks_ls []
-
 
 let find_duplicate_state_pairs_in_trans_blocks 
   (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
@@ -205,7 +203,56 @@ let find_duplicate_state_pairs_in_trans_blocks
     res_state_pairs |> List.iter (fun pair_of_stats_pair ->  Pp.pp_raw_pair_of_state_pairs pair_of_stats_pair)); 
   res_state_pairs
 
+let remove_transitions_of_duplicate_states (dup_states_ls: ((state * state) * (state * state)) list) 
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
+  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let trans_blocks = ref trans_blocks in
+    dup_states_ls |> List.iter (fun (_, sts_pair2) ->   
+      trans_blocks := !trans_blocks |> List.filter (fun ((st_pair, _ (* block *)): 
+      (state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) -> 
+        (* if there is sts_pair1 in trans_blocks, then remove sts_pair2's block *)
+        not (state_pairs_equal st_pair sts_pair2))); 
+  if debug then (Printf.printf "\n\t >> Results of removing : \n"; !trans_blocks |> Pp.pp_raw_trans_blocks);
+  !trans_blocks
 
+
+let replace_dups_in_block (dup_states_ls: ((state * state) * (state * state)) list) 
+  (trans_block: ((state * state) * (symbol * (sigma * sigma) list)) list): 
+  ((state * state) * (symbol * (sigma * sigma) list)) list =
+  let rec replace_dup_pair_loop ((dup_sts_pair1, dup_sts_pair2): (state * state) * (state * state)) 
+    (ls: ((state * state) * (symbol * (sigma * sigma) list)) list) acc = 
+    match ls with [] -> List.rev acc
+    | (st_pair, (sym, rhs_sig_pair_ls)) :: tl -> 
+      let new_rhs_sig_pair_ls: (sigma * sigma) list = rhs_sig_pair_ls |> 
+        List.map (fun sig_pair -> 
+          if (sig_pair_equals_state_pair sig_pair dup_sts_pair2) 
+          then 
+            (let st1, st2 = (fst dup_sts_pair1), (snd dup_sts_pair1) 
+             in (Nt st1, Nt st2)) 
+          else sig_pair) 
+      in 
+      let new_raw_trans: (state * state) * (symbol * (sigma * sigma) list) = (st_pair, (sym, new_rhs_sig_pair_ls)) in 
+      replace_dup_pair_loop (dup_sts_pair1, dup_sts_pair2) tl (new_raw_trans::acc)
+  and 
+  traverse_dups dups_ls trans_blck_acc =
+    match dups_ls with [] -> trans_blck_acc 
+    | (dup_st1, dup_st2) :: dup_tl -> 
+      let new_trans_block = replace_dup_pair_loop (dup_st1, dup_st2) trans_blck_acc []
+      in traverse_dups dup_tl new_trans_block
+  in traverse_dups dup_states_ls trans_block
+
+let replace_dup_state_names (dup_states_ls: ((state * state) * (state * state)) list) 
+(trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
+(debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let rec traverse_blocks ls acc =
+    match ls with [] -> List.rev acc
+    | (st_pr1, trans_lst_block) :: tl ->
+      let replaced_dups_block: ((state * state) * (symbol * (sigma * sigma) list)) list = 
+        replace_dups_in_block dup_states_ls trans_lst_block in 
+      traverse_blocks tl ((st_pr1, replaced_dups_block)::acc)
+  in let res_trans_blocks = traverse_blocks trans_blocks [] in 
+  if debug then (Printf.printf "\n\t >> Results of replacing : \n"; res_trans_blocks |> Pp.pp_raw_trans_blocks);
+  res_trans_blocks
 
 
 
@@ -319,18 +366,25 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
   (if debug_print then pp_upline_new (); printf "##### Step 6 Found a list of duplicate states pairs : \n";
     dup_states_pair_ls |> List.iter (fun ls -> printf "\n\t"; Pp.pp_raw_pair_of_state_pairs ls); pp_loline_new ()); 
 
-
-  (* 
-  (* Remove transitions based on 'dup_states_pair_ls' *)
-  let trans_in_blocks_cleaned: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 7 - Remove transitions based on 'dup_states_pair_ls' *)  
+  let raw_trans_blocks_cleaned: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
     (if debug_print then printf "\n*** Removing transition blocks baesd on duplicate states : \n");
     remove_transitions_of_duplicate_states dup_states_pair_ls raw_trans_in_blocks_sorted debug_print
   in
-  (* Replace state names based on 'dup_states_pair_ls'  *)
-  let trans_in_blocks_replaced: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
+  (if debug_print then pp_upline_new (); printf "##### Step 7 Removed raw transitions wrt duplicate states pairs : \n";
+    Pp.pp_raw_trans_blocks raw_trans_blocks_cleaned; pp_loline_new ());
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 8 - Replace state names based on 'dup_states_pair_ls' *)  
+  let trans_in_blocks_replaced: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
     (if debug_print then printf "\n*** Replacing duplicate state names in transition blocks : \n");
-    replace_dup_state_names dup_states_pair_ls trans_in_blocks_cleaned debug_print
+    replace_dup_state_names dup_states_pair_ls raw_trans_blocks_cleaned debug_print
   in
+  (if debug_print then pp_upline_new (); printf "##### Step 8 Replace state names wrt duplicate states pairs : \n";
+    Pp.pp_raw_trans_blocks trans_in_blocks_replaced; pp_loline_new ());
+
+  (* 
   (* Rename states and populate Q, \Delta *)
   let states_renaming_map: ((state * state) * (state * state)) list =
     (if debug_print then printf "\n*** Collecting unique states and map to new states : \n");
@@ -367,51 +421,6 @@ let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms
 
 
   (*
-
-
-let remove_transitions_of_duplicate_states (dup_states_ls: ((state * state) * (state * state)) list) 
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
-  (debug: bool): ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
-  let trans_blocks = ref trans_blocks in
-    dup_states_ls |> List.iter (fun (_, sts_pair2) -> 
-      trans_blocks := !trans_blocks |> List.filter (fun ((st_pair, _ (* block *)): 
-        (state * state) * ((state * state) * (symbol * (state * state) list)) list) -> 
-        (* if there is sts_pair1 in trans_blocks, then remove sts_pair2's block *)
-        not (state_pairs_equal st_pair sts_pair2))); 
-  if debug then (Printf.printf "\n\t >> Results of removing : \n"; !trans_blocks |> Pp.pp_raw_trans_blocks);
-  !trans_blocks
-
-let replace_dups_in_block (dup_states_ls: ((state * state) * (state * state)) list) 
-  (trans_block: ((state * state) * (symbol * (state * state) list)) list): 
-  ((state * state) * (symbol * (state * state) list)) list =
-  let rec replace_dup_pair_loop ((dup_sts_pair1, dup_sts_pair2): (state * state) * (state * state)) ls acc = 
-    match ls with [] -> List.rev acc
-    | (st_pair, (sym, rhs_st_pair_ls)) :: tl -> 
-      let new_rhs_st_pair_ls: (state * state) list = rhs_st_pair_ls |> 
-        List.map (fun st_pair -> if (state_pairs_equal st_pair dup_sts_pair2) then dup_sts_pair1 else st_pair) in 
-      let new_raw_trans: (state * state) * (symbol * (state * state) list) = (st_pair, (sym, new_rhs_st_pair_ls)) in 
-      replace_dup_pair_loop (dup_sts_pair1, dup_sts_pair2) tl (new_raw_trans::acc)
-  and 
-  traverse_dups dups_ls trans_blck_acc =
-    match dups_ls with [] -> trans_blck_acc 
-    | (dup_st1, dup_st2) :: dup_tl -> 
-      let new_trans_block = replace_dup_pair_loop (dup_st1, dup_st2) trans_blck_acc []
-      in traverse_dups dup_tl new_trans_block
-  in traverse_dups dup_states_ls trans_block
-
-let replace_dup_state_names (dup_states_ls: ((state * state) * (state * state)) list) 
-(trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
-(debug: bool): ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
-  let rec traverse_blocks ls acc =
-    match ls with [] -> List.rev acc
-    | (st_pr1, trans_lst_block) :: tl ->
-      let replaced_dups_block: ((state * state) * (symbol * (state * state) list)) list = 
-        replace_dups_in_block dup_states_ls trans_lst_block in 
-      traverse_blocks tl ((st_pr1, replaced_dups_block)::acc)
-  in let res_trans_blocks = traverse_blocks trans_blocks [] in 
-  if debug then (Printf.printf "\n\t >> Results of replacing : \n"; res_trans_blocks |> Pp.pp_raw_trans_blocks);
-  res_trans_blocks
-
 let collect_unique_states_and_map_to_new_states 
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
   (debug: bool): ((state * state) * (state * state)) list =

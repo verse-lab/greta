@@ -546,6 +546,12 @@ let state_pair_append (st_pair: state * state): state =
 let state_pairs_equal (st_pair1: state * state) (st_pair2: state * state): bool = 
   (fst st_pair1) = (fst st_pair2) && (snd st_pair1) = (snd st_pair2)
 
+let sig_pair_equals_state_pair (sig_pair: sigma * sigma) (st_pair: state * state): bool = 
+  let st1, st2 = (fst st_pair), (snd st_pair) 
+  in match sig_pair with 
+    | Nt sig1, Nt sig2 -> (String.equal sig1 st1) && (String.equal sig2 st2)
+    | _, _ -> false
+
 let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) list): bool =
   let comp_st1, comp_st2 = (fst st_pair), (snd st_pair) in
   let rec traverse_pairs ls =
