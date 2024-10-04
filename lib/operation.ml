@@ -46,21 +46,29 @@ let accessible_symbols_for_state (init_st: state) (trans_tbl: ((state * symbol),
 
 (* --- helper to traverse alphabet and find transitions --- *)
 let rec find_rhs_in_tbl (sym: symbol) (st: state) (interm_sts: state list) 
-  (tbl: ((state * symbol), sigma list list) Hashtbl.t) (debug: bool)
-  : sigma list list = 
+  (tbl: ((state * symbol), sigma list list) Hashtbl.t) 
+  (acc: (sigma list list) list)
+  (debug: bool)
+  : (sigma list list) list = 
   let open Printf in
-  let res = match Hashtbl.find_opt tbl (st, sym) with 
+  let res: (sigma list list) list = match Hashtbl.find_opt tbl (st, sym) with 
     | None -> 
       (match interm_sts with 
       | [] -> 
-        if debug then printf "\n\t\t ===> Interm states empty!\n"; []
+        if debug then printf "\n\t\t ===> Interm states empty\n"; acc
       | ist_hd :: ist_tl -> 
-        if debug then printf "\n\t\t ===>!! Interm states not empty!\n";
-        find_rhs_in_tbl sym ist_hd ist_tl tbl debug)
-    | Some sig_ls -> sig_ls 
+        if debug then printf "\n\t\t ===> Interm states not empty\n";
+        find_rhs_in_tbl sym ist_hd ist_tl tbl acc debug)
+    | Some sig_ls -> 
+        (match interm_sts with 
+        | [] -> sig_ls :: acc
+        | ist_hd :: ist_tl -> 
+          if debug then printf "\n\t ===>>!!! Interm states not empty!\n";
+          find_rhs_in_tbl sym ist_hd ist_tl tbl (sig_ls :: acc) debug
+        )
   in
   if debug then (printf "\n\t\t  Found rhs in tbl for ( State %s, symbol " st; 
-    Pp.pp_symbol sym; printf ")\n\t\t"; res |> List.iter Pp.pp_sigma_list2); 
+    Pp.pp_symbol sym; printf ")\n\t\t"; res |> List.iter (fun lsls -> lsls |> List.iter Pp.pp_sigma_list2)); 
     res
 
 let find_intermediate_states (from_st: state) (tbl: ((state * symbol), sigma list list) Hashtbl.t) 
@@ -94,8 +102,8 @@ let cartesian_product_trans_from (starting_states: (state * state) list)
       | (hd_sym: symbol) :: tl -> 
         let interm_sts1 = find_intermediate_states st1 trans_tbl1 triv_states debug in 
         let interm_sts2 = find_intermediate_states st2 trans_tbl2 triv_states debug in  
-        let rsig_lsls1: sigma list list = find_rhs_in_tbl hd_sym st1 interm_sts1 trans_tbl1 debug in
-        let rsig_lsls2: sigma list list = find_rhs_in_tbl hd_sym st2 interm_sts2 trans_tbl2 debug in
+        let rsig_lsls1: (sigma list list) list = find_rhs_in_tbl hd_sym st1 interm_sts1 trans_tbl1 [] debug in
+        let rsig_lsls2: (sigma list list) list = find_rhs_in_tbl hd_sym st2 interm_sts2 trans_tbl2 [] debug in
         let new_rht_sts_ls: (sigma * sigma) list list = cross_product_raw_sigma_lsls rsig_lsls1 rsig_lsls2 triv_states debug in
         if (List.is_empty new_rht_sts_ls) 
         then traverse_alphabet tl acc

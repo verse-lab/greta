@@ -466,33 +466,73 @@ let find_corresponding_sigls (sig_ls: sigma list) (sig_lsls: sigma list list) (t
       else traverse tl
   in traverse sig_lsls
 
-let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (acc: (sigma * sigma) list): 
+let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_states: state list) (acc: (sigma * sigma) list): 
   (sigma * sigma) list = 
+  let open String in
   match sig_ls1, sig_ls2 with [], [] -> List.rev acc
-  | T t1 :: stl1, T t2 :: stl2 -> cross_product_siglsls stl1 stl2 ((T t1, T t2)::acc)
-  | Nt nt1 :: stl1, Nt nt2 :: stl2 -> cross_product_siglsls stl1 stl2 ((Nt nt1, Nt nt2)::acc)
+  | T t1 :: stl1, T t2 :: stl2 -> cross_product_siglsls stl1 stl2 triv_states ((T t1, T t2)::acc)
+  | Nt nt1 :: stl1, Nt nt2 :: stl2 -> 
+    if (equal nt1 epsilon_state) || (equal nt2 epsilon_state)
+    then cross_product_siglsls stl1 stl2 triv_states ((Nt epsilon_state, Nt epsilon_state)::acc) 
+    else 
+      if ((List.mem nt1 triv_states) && not (List.mem nt2 triv_states)) || ((List.mem nt2 triv_states) && not (List.mem nt1 triv_states))
+      then cross_product_siglsls stl1 stl2 triv_states acc
+      else cross_product_siglsls stl1 stl2 triv_states ((Nt nt1, Nt nt2)::acc)
   | (T _)::_, (Nt _)::_ | (Nt _)::_, (T _)::_ | _, [] | [], _ -> raise No_cross_product_sigls_possible
 
-let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma list list) 
+let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsls_ls2: (sigma list list) list) 
   (triv_states: state list) (debug: bool): (sigma * sigma) list list =
   let open List in
   let open Printf in 
-  if debug then (printf "\n\tFinding cross product of sigma_lsls : \n"; 
-    sig_lsls1 |> Pp.pp_sigma_listlist; sig_lsls2 |> Pp.pp_sigma_listlist);
-  let len1, len2 = length (sig_lsls1), length (sig_lsls2) in
-  if (len1 != len2) then [[]] 
-  else 
-    let rec cross_loop lsls1 acc = 
-      match lsls1 with [] -> acc
-      | sig_ls_hd1 :: tl1 -> 
-        let sig_ls2: sigma list = find_corresponding_sigls sig_ls_hd1 sig_lsls2 triv_states in
-        (if debug then printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
-        if (is_empty sig_ls2) then cross_loop tl1 acc
-        else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 [] in
-              cross_loop tl1 (cross_product_siglsls::acc))
-    in let reslsls: (sigma * sigma) list list = cross_loop sig_lsls1 [] in 
-    if debug then (printf "\n\n\n  >> Result of cross product:\n\t"; reslsls |> iter Pp.pp_sigma_sigma_list; printf "\n\n\n"); 
-    reslsls
+  if debug then (printf "\n\tFinding cross product of sigma_lsls's first sig_lsls : \n"; 
+    sig_lsls_ls1 |> List.iter Pp.pp_sigma_listlist; printf "\n\tThen second sig_lsls : \n"; sig_lsls_ls2 |> List.iter Pp.pp_sigma_listlist);
+  (* --- helper --- *)
+  let rec cross_loop lsls1 lsls2 (acc: (sigma * sigma) list list) = 
+    match lsls1 with [] -> acc
+    | sig_ls_hd1 :: tl1 -> 
+      let sig_ls2: sigma list = find_corresponding_sigls sig_ls_hd1 lsls2 triv_states in
+      (if debug then printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
+      if (is_empty sig_ls2) then cross_loop tl1 lsls2 acc
+      else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 triv_states [] in
+            if (mem cross_product_siglsls acc)
+            then cross_loop tl1 lsls2 acc
+            else cross_loop tl1 lsls2 (cross_product_siglsls::acc))
+  in
+  let len1, len2 = length (sig_lsls_ls1), length (sig_lsls_ls2) in
+  let reslsls: (sigma * sigma) list list =
+    if (is_empty sig_lsls_ls1) || (is_empty sig_lsls_ls2) then (printf "\n\nIS THIS IT?!?!\n\n"; [[]] )
+    else 
+      begin
+        if (len1 = 1) && (len2 = 1) 
+        then 
+          (let sig_lsls1, sig_lsls2 = hd sig_lsls_ls1, hd sig_lsls_ls2 
+           in cross_loop sig_lsls1 sig_lsls2 [])
+        else 
+          (if (len1 < len2) 
+           then 
+            (* assume sig_lsls_ls2 is longer *)
+            (printf "\n\nHOHOHO\n\n";
+              let sig_lsls1 = hd sig_lsls_ls1 in 
+              sig_lsls_ls2 |> fold_left (fun acc lsls2 -> 
+                (cross_loop sig_lsls1 lsls2 []) @ acc
+                ) [] 
+                |> Utils.remove_dups)
+           else 
+            if (len2 > len1) 
+            then 
+              (printf "\n\nHAHAHA\n\n";
+                let sig_lsls2 = hd sig_lsls_ls2 in 
+                sig_lsls_ls1 |> fold_left (fun acc lsls1 -> 
+                  (cross_loop sig_lsls2 lsls1 []) @ acc
+                  ) [] 
+                  |> Utils.remove_dups)
+              else 
+                raise No_cross_product_sigls_possible)
+      end
+    in 
+    let reslsls_refined = reslsls |> filter (fun ls -> not (is_empty ls)) in 
+    if debug then (printf "\n\n\n  >> Result of cross product:\n\t"; reslsls_refined |> iter Pp.pp_sigma_sigma_list; printf "\n\n\n"); 
+      reslsls_refined
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
   match Hashtbl.find_opt tbl (st, sym) with None -> false
