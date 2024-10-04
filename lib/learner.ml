@@ -28,6 +28,9 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let trivial_syms = a |> List.filter (fun (_, rnk) -> (rnk = 0) ) in
   let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) )
   in
+
+  (* *** *)
+  printf "\nRIGHT UPFRONT OBP TABLE\n"; Pp.pp_obp_tbl o_bp_tbl;
   (if debug then 
     printf "\nTrivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
     printf "\nNontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s)); printf "\n";
@@ -139,16 +142,20 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       begin  
         if debug then printf "\n\n\t >> Now considering level %i >> \n" (lvl+1);
         (* Collect nontrivial symbols per level [note: lvl starts from 0 to max-1] *)
-        let sym_ls : symbol list = 
+        let sym_ls_ls : symbol list list = 
+          (* 
           List.fold_left (fun acc ((sym, o), _sigls) -> 
             if (o = lvl) then (if (List.mem sym acc) then acc else sym :: acc) else acc
             ) [] sym_ord_rhs_ls |> remove_dup_symbols
+           *)
           (* 
           sym_ls_ls : symbol list list (* and change below List.length (List.hd sym_ls_ls)*)
-          find_all new_op_tbl lvl    (* *** (debugging)o_bp_tbl *)
           *)
+          find_all o_bp_tbl lvl    (* *** (debugging) o_bp_tbl *)
+          
+          
         in
-          printf "\n\t >> Length of syms --> %i" (List.length sym_ls);
+          printf "\n\t >> Length of syms --> %i" (List.length (List.hd sym_ls_ls));
           let curr_st = "e" ^ (string_of_int (lvl+1)) in
           let run_for_sym_ls ls = 
             ls |> List.iter (fun sym -> 
@@ -192,7 +199,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
               else
                 (add trans_tbl (curr_st, sym) sym_rhs_lsls_learned)) 
           in 
-            sym_ls |> run_for_sym_ls; (* earlier ver - sym_ls_ls |> List.iter run_for_sym_ls *)
+            sym_ls_ls |> List.iter run_for_sym_ls; (* earlier ver - sym_ls_ls |> List.iter run_for_sym_ls *)
             run_for_each_level (lvl+1)
       end
       else 

@@ -438,22 +438,30 @@ let cross_product_raw_state_lists (st_ls1: state list) (st_ls2: state list): (st
     | _, [] | [], _ -> raise Invalid_state_lists
   in cross_loop st_ls1 st_ls2 []
 
-let find_corresponding_sigls (sig_ls: sigma list) (sig_lsls: sigma list list): sigma list = 
-  let rec corresponding_sig_lists (sig_ls1: sigma list) (sig_ls2: sigma list) (acc: bool): bool = 
+let find_corresponding_sigls (sig_ls: sigma list) (sig_lsls: sigma list list) (triv_states: state list): sigma list = 
+  (* --- helper --- *)
+  let are_same_triv_states (s1: sigma) (s2: sigma): bool = 
+    match s1, s2 with 
+    | Nt s1', Nt s2' -> if ((List.mem s1' triv_states) && (List.mem s2' triv_states)) then (String.equal s1' s2') else true
+    | _, _ -> false
+  in
+  let rec corresponding_sig_lists (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_states: state list) (acc: bool): bool = 
     match sig_ls1, sig_ls2 with 
     | _, [] | [], _ -> acc
     | sh1 :: stl1, sh2 :: stl2 -> 
       if (is_terminal sh1) && (is_terminal sh2)
       then (if sigmas_equal sh1 sh2
-            then corresponding_sig_lists stl1 stl2 (true && acc)
-            else corresponding_sig_lists stl1 stl2 (false && acc))
+            then corresponding_sig_lists stl1 stl2 triv_states (true && acc)
+            else corresponding_sig_lists stl1 stl2 triv_states (false && acc))
       else if (not (is_terminal sh1)) && (not (is_terminal sh2))
-      then corresponding_sig_lists stl1 stl2 (true && acc)
+      then (if (are_same_triv_states sh1 sh2) 
+            then corresponding_sig_lists stl1 stl2 triv_states (true && acc)
+            else corresponding_sig_lists stl1 stl2 triv_states (false && acc))
       else false in
   let rec traverse lsls = 
     match lsls with [] -> []
     | hd_sig_ls :: tl -> 
-      if (corresponding_sig_lists sig_ls hd_sig_ls true)
+      if (corresponding_sig_lists sig_ls hd_sig_ls triv_states true)
       then hd_sig_ls
       else traverse tl
   in traverse sig_lsls
@@ -465,8 +473,8 @@ let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (acc: 
   | Nt nt1 :: stl1, Nt nt2 :: stl2 -> cross_product_siglsls stl1 stl2 ((Nt nt1, Nt nt2)::acc)
   | (T _)::_, (Nt _)::_ | (Nt _)::_, (T _)::_ | _, [] | [], _ -> raise No_cross_product_sigls_possible
 
-let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma list list) (debug: bool): 
-  (sigma * sigma) list list =
+let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma list list) 
+  (triv_states: state list) (debug: bool): (sigma * sigma) list list =
   let open List in
   let open Printf in 
   if debug then (printf "\n\tFinding cross product of sigma_lsls : \n"; 
@@ -477,7 +485,7 @@ let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma 
     let rec cross_loop lsls1 acc = 
       match lsls1 with [] -> acc
       | sig_ls_hd1 :: tl1 -> 
-        let sig_ls2 = find_corresponding_sigls sig_ls_hd1 sig_lsls2 in
+        let sig_ls2: sigma list = find_corresponding_sigls sig_ls_hd1 sig_lsls2 triv_states in
         (if debug then printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
         if (is_empty sig_ls2) then cross_loop tl1 acc
         else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 [] in

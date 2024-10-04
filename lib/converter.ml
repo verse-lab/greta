@@ -298,7 +298,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       in
       (* Only add non-trivial symbols to o_bp_tbl *)
       match s with (_, rnk) -> 
-        let is_trivial_rhs rhs_ls = 
+        let _is_trivial_rhs rhs_ls = 
           let first_elem = 
             if (List.is_empty rhs_ls) then ""
             else begin 
@@ -306,7 +306,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
               | T _ -> "" end 
           in (List.mem first_elem trivial_nts) && ((List.length rhs_ls) = 1)
         in
-        if ((rnk != 0) && (not (is_trivial_rhs rhss)))
+        if ((rnk != 0) ) (* && (not (is_trivial_rhs rhss)) *)
         then begin 
           (* If key already exists, then simply add to existing ones *)
           let exist_val = Hashtbl.find_opt o_bp_tbl o in
