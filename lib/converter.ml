@@ -459,7 +459,7 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (to_write: string) (
     match (read_line inp) with
     | None -> List.rev ("" :: acc_keep)
     | Some s ->
-      (* collect 'prog_id' and pass in to divide_lines *)
+      (* collect 'prog_ids' and pass in to divide_lines *)
       if (starts "%start" s) 
       then (let name = List.nth (s |> String.split_on_char ' ') 1 
             in divide_lines inp before_prod (s::acc_keep) (name::prog_ids))
