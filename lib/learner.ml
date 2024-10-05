@@ -28,9 +28,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let trivial_syms = a |> List.filter (fun (_, rnk) -> (rnk = 0) ) in
   let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) )
   in
-
-  (* *** *)
-  printf "\nRIGHT UPFRONT OBP TABLE\n"; Pp.pp_obp_tbl o_bp_tbl;
+  (* printf "\nO_bp Table\n"; Pp.pp_obp_tbl o_bp_tbl; *)
   (if debug then 
     printf "\nTrivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
     printf "\nNontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s)); printf "\n";

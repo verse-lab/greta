@@ -512,21 +512,17 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
           (if (len1 < len2) 
            then 
             (* assume sig_lsls_ls2 is longer *)
-            (printf "\n\nHOHOHO\n\n";
-              let sig_lsls1 = hd sig_lsls_ls1 in 
-              sig_lsls_ls2 |> fold_left (fun acc lsls2 -> 
-                (cross_loop sig_lsls1 lsls2 []) @ acc
-                ) [] 
-                |> Utils.remove_dups)
+            (let sig_lsls1 = hd sig_lsls_ls1 in 
+             sig_lsls_ls2 |> fold_left (fun acc lsls2 -> 
+              (cross_loop sig_lsls1 lsls2 []) @ acc) [] 
+              |> Utils.remove_dups)
            else 
             if (len2 > len1) 
             then 
-              (printf "\n\nHAHAHA\n\n";
-                let sig_lsls2 = hd sig_lsls_ls2 in 
-                sig_lsls_ls1 |> fold_left (fun acc lsls1 -> 
-                  (cross_loop sig_lsls2 lsls1 []) @ acc
-                  ) [] 
-                  |> Utils.remove_dups)
+              (let sig_lsls2 = hd sig_lsls_ls2 in 
+               sig_lsls_ls1 |> fold_left (fun acc lsls1 -> 
+                (cross_loop sig_lsls2 lsls1 []) @ acc) [] 
+                |> Utils.remove_dups)
               else 
                 raise No_cross_product_sigls_possible)
       end

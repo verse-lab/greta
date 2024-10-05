@@ -409,26 +409,30 @@ let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 =
     List.fold_right unique_cons ls [] in
   let nonterms_excl_eps: nonterminal list = a.states |> List.filter (fun x -> not (x = "ϵ")) in
   let unranked_terminals: terminal list = a.alphabet |> List.filter (fun s -> not (sym_equals s "ε"))
-    |> List.fold_left (fun acc (name, rank) -> match name with
-    | "IF" -> if (rank = 3) then acc @ ["IF"; "THEN"; "ELSE"] else if (rank = 2) 
-      then acc @ ["IF"; "THEN"] else raise (Failure "Rank of IF is neither 2 nor 3")
+    |> List.fold_left (fun acc (name, _rnk) -> match name with
     | "LPARENRPAREN" -> acc @ ["LPAREN"; "RPAREN"]
+    | "LBRACERBRACE" -> acc @ ["LBRACE"; "RBRACE"]
+    | "LBRACKETRBRACKET" -> acc @ ["LBRACKET"; "RBRACKET"]
     | s -> acc @ [s] ) [] |> remove_dups in
-  let _prods: production list = []
-    (* a.transitions |> List.map (fun (st, (sym, st_ls)) ->
-    if (sym_equals sym "N" || sym_equals sym "B") then (st, ("ε", [fst sym])) 
-    else (st, (fst sym, st_ls)))  *)
+  let prods: p list = 
+    Hashtbl.fold (fun (st, _sym) sig_lsls acc -> 
+      (* printf "\n\t For state %s and symbol " st; Pp.pp_symbol sym; printf "\n"; *)
+      if (List.length sig_lsls) > 1
+      then raise Invalid_sigma_list
+      else 
+        (let sig_ls = List.hd sig_lsls in
+         (st, -1, sig_ls) :: acc) (* Temp number since it does not matter at this point *)
+      ) a.transitions []
   in
   let cfg_res: cfg2 = 
     { nonterms = nonterms_excl_eps ; terms = unranked_terminals
-    ; starts = a.start_states; productions = [] } in
-  printf "\nCFG resulted from the TA : \n"; 
-  (* Pp.pp_cfg cfg_res; *)
+    ; starts = a.start_states; productions = prods } in
+  if debug_print then (printf "\nCFG (cfg2) resulted from the TA : \n"; Pp.pp_cfg2 cfg_res);
   cfg_res
 
 
 (** cfg_to_parser : once convert to grammar, write it on the parser.mly file *)
-let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
+let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg) : unit =
   let open Printf in
   printf "\nWrite the grammar on parser file %s\n" parser_file;
   if debug_print then (printf "\n  Input grammar:\n"; Pp.pp_cfg g);
@@ -544,7 +548,7 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
   close_out oc
 
 (** convertToGrammar : *)
-let convertToGrammar (ta_inp: ta2) (debug: bool) (_file: string) =
+let convertToGrammar (ta_inp: ta2) (_file: string) (debug: bool) =
   let _g = ta_inp |> ta_to_cfg debug in ()
   (* |> cfg_to_parser file debug *)
 
