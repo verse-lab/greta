@@ -70,7 +70,8 @@ let () =
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let ta_intersected: T.ta2 = 
       O.intersect ta_initial ta_learned triv_syms triv_syms_states debug in 
-    C.convertToGrammar ta_intersected parser_file debug;
+    let file_written = "./lib/result-test.txt" in
+    C.convertToGrammar ta_intersected parser_file file_written debug;
     (* 
     U.run_again parser_file
     *)

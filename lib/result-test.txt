@@ -1,0 +1,39 @@
+%{
+open Ast;;
+
+let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
+  { elt ; loc=Range.mk_lex_range startpos endpos }
+
+%}
+
+%token EOF
+%token <int64>  INT
+%token <string> IDENT
+%token <string> STRING
+%token ELSE     /* else */
+%token IF       /* if */
+%token TINT     /* int */
+%token RETURN   /* return */
+%token WHILE    /* while */
+%token SEMI     /* ; */
+%token LBRACE   /* { */
+%token RBRACE   /* } */
+%token PLUS     /* + */
+%token DASH     /* - */
+%token STAR     /* * */
+%token EQ       /* = */
+%token LPAREN   /* ( */
+%token RPAREN   /* ) */
+
+%left PLUS DASH
+%left STAR                           
+                         
+/* ---------------------------------------------------------------------- */
+%start toplevel
+%type <Ast.prog> toplevel
+%type <Ast.exp> exp
+%type <Ast.const> const
+%%
+
+
+

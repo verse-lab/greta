@@ -432,51 +432,60 @@ let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 =
 
 
 (** cfg_to_parser : once convert to grammar, write it on the parser.mly file *)
-let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg) : unit =
+let cfg_to_parser (parser_file: string) (debug_print: bool) (to_write: string) (g: cfg2) : unit =
   let open Printf in
   printf "\nWrite the grammar on parser file %s\n" parser_file;
-  if debug_print then (printf "\n  Input grammar:\n"; Pp.pp_cfg g);
+  if debug_print then (printf "\n  Input grammar:\n"; Pp.pp_cfg2 g);
   (* helpers *)
-  let append_strs ls = ls |> List.fold_left (fun acc x -> 
-    if (acc = "") then x else acc ^ " " ^ x) "" in
-  let replace_wgstart (lst: string list): string = 
+
+  (* let append_strs ls = ls |> List.fold_left (fun acc x -> 
+    if (acc = "") then x else acc ^ " " ^ x) "" in *)
+
+  let replace_wgstart (_lst: string list): string list = 
+    []
+    (* 
     let rec loop (ls: string list) (after_colon: bool) (acc_ls: string list): string =
       match ls with [] -> List.rev acc_ls |> append_strs
-      | h :: tl -> let start_new = g.start in
-        if (after_colon) then loop tl false (start_new :: acc_ls) 
+      | h :: tl -> let starts_new: string list = g.starts in
+        if (after_colon) then loop tl false (starts_new @ acc_ls) 
         else if (h = ":") then loop tl true (h :: acc_ls) 
         else  loop tl after_colon (h :: acc_ls)
     in loop lst false []
+    *)
   in
   (* Store lines_to_keep until the beginning of productions *)
   let ic = open_in parser_file in
-  let rec divide_lines inp before_prod acc_keep prog_id: string list =
+  let rec divide_lines inp before_prod acc_keep prog_ids: string list =
     match (read_line inp) with
     | None -> List.rev ("" :: acc_keep)
     | Some s ->
       (* collect 'prog_id' and pass in to divide_lines *)
-      if (starts "%start" s) then (let name = List.nth (s |> String.split_on_char ' ') 1 
-      in divide_lines inp before_prod (s::acc_keep) name)
-      else if (starts prog_id s) 
+      if (starts "%start" s) 
+      then (let name = List.nth (s |> String.split_on_char ' ') 1 
+            in divide_lines inp before_prod (s::acc_keep) (name::prog_ids))
+      else if (starts_with_any_of prog_ids s) 
       (* if starts with 'prog_id', replace with 'start_new' and pass in 'str_new' *)
-      then let str_new = replace_wgstart (String.split_on_char ' ' s) 
-      in divide_lines inp false (str_new :: acc_keep) prog_id
-      else if (before_prod) then divide_lines inp before_prod (s :: acc_keep) prog_id
+      then (let strs_new = replace_wgstart (String.split_on_char ' ' s) 
+            in divide_lines inp false (strs_new @ acc_keep) prog_ids)
+      else if (before_prod) 
+      then divide_lines inp before_prod (s :: acc_keep) prog_ids
       else List.rev ("" :: acc_keep)
-  in let lines_to_keep = divide_lines ic true [] "%dummy_id" in
+  in let lines_to_keep = divide_lines ic true [] [] 
+  in
   (* collect production list in blocks *)
-  let collect_blocks (lst: production list): (production list) list =
-    let rec blocks_loop ls curr_nont acc_prods (acc_res: (production list) list) =
+  let collect_blocks (lst: p list): (p list) list =
+    let rec blocks_loop ls curr_nont acc_prods (acc_res: (p list) list) =
       match ls with [] -> List.rev (acc_prods :: acc_res)
-      | (nont, _) as prod_h :: prods_tl -> 
+      | (nont, _, _) as prod_h :: prods_tl -> 
         if (curr_nont = "") then blocks_loop prods_tl nont (prod_h :: acc_prods) acc_res else
         if (curr_nont = nont) then blocks_loop prods_tl curr_nont (prod_h :: acc_prods) acc_res else
         (* if not (curr_not = nont), change 'curr_nont' to 'nont' and pass 'acc_prods' to 'acc_res' *)
         let block = List.rev acc_prods in blocks_loop prods_tl nont (prod_h :: []) (block :: acc_res)
     in blocks_loop lst "" [] []
-  in 
+  in
+   (* 
   (* specify rules on writing a corresponding line per production on parser.mly *)
-  let corr_line (lhs: nonterminal) (op: terminal) (sls: string list): string list = 
+  let _corr_line (lhs: nonterminal) (op: terminal) (sls: string list): string list = 
     let beginning = "  | " in 
     if (is_cond_expr lhs && (List.hd sls = "B") && op = "ε") 
       then (beginning ^ "TRUE { Bool true }") :: (beginning ^ "FALSE { Bool false }") :: [] 
@@ -497,60 +506,68 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg) : unit =
       let op_new = op |> String.lowercase_ascii |> String.capitalize_ascii in
       (beginning ^ List.nth sls 0 ^ " " ^ op ^ " " ^ List.nth sls 1 ^ " { " ^ op_new ^ " ($1, $3) }") :: []
   in
-  let write_block (prods_blocks: production list): string list = 
+  *)
+  let write_block (_prods_blocks: p list): string list = 
+    []
+    (* 
     let rec write_loop ls curr_nont acc = 
       match ls with [] -> acc @ ["  ;"; ""]
-      | (nont, (t, sls)) :: b_tl ->
+      | (nont, _, sig_ls) :: b_tl ->
         if (curr_nont = "") then 
           let str_fst = (nont ^ ":") :: [] in
-          let str_snd = corr_line nont t sls in 
+          let str_snd = corr_line nont t sig_ls in 
           write_loop b_tl nont (acc @ str_fst @ str_snd) 
         else if (curr_nont = nont) then 
-          let str = corr_line nont t sls in
+          let str = corr_line nont t sig_ls in
           write_loop b_tl nont (acc @ str)
         else raise (Failure "Block should have the same nonterminal on LHS.")
     in write_loop prods_blocks "" []
+     *)
   in
   (* regroup production list so that all the ones with the same lhs *)
-  let regroup_blocks (blks: production list list): production list list = 
+  let regroup_blocks (blks: p list list): p list list = 
     (* helper to remove any duplicate productions in the production list *)
-    let rec remove_dup_prods (prods_acc: production list) (prods: production list): production list = 
+    let rec remove_dup_prods (prods_acc: p list) (prods: p list): p list = 
       let prods_equal p1 p2: bool = match p1, p2 with 
-      | (nont1, (t1, sls1)), (nont2, (t2, sls2)) -> 
-        if (List.length sls1 = List.length sls2) then (nont1 = nont2) && (t1 = t2) 
-          && (List.fold_left2 (fun ac s1 s2 -> (s1 = s2) && ac) true sls1 sls2) else false in
+      | (nont1, _, sig_ls1), (nont2, _, sig_ls2) -> 
+        if (List.length sig_ls1 = List.length sig_ls2) 
+        then (String.equal nont1 nont2) 
+          (* && (List.fold_left2 (fun ac sig1 sig2 -> 
+          (sigmas_equal sig1 = sig2) && ac) true sig_ls1 sig_ls2)  *)
+        else false 
+    in
       match prods with [] -> prods_acc
       | prod_h :: prods_tl -> 
         if (List.exists (fun x -> prods_equal x prod_h) prods_acc) 
-        then remove_dup_prods prods_acc prods_tl else remove_dup_prods (prod_h::prods_acc) prods_tl
+        then remove_dup_prods prods_acc prods_tl 
+        else remove_dup_prods (prod_h::prods_acc) prods_tl
     in
     (* helper to traverse all productions and collection productions with the same (lhs) nonterminal *)
-    let traverse_blks (nont_to_match: nonterminal): production list = 
-      (List.flatten blks) |> List.fold_left (fun acc ((nont, _) as prod) ->
+    let traverse_blks (nont_to_match: nonterminal): p list = 
+      (List.flatten blks) |> List.fold_left (fun acc ((nont, _, _) as prod) ->
         if (nont = nont_to_match) then prod :: acc else acc) [] in
-    let rec loop blk_lst nonts_so_far (res_acc: production list list) =
+    let rec loop blk_lst nonts_so_far (res_acc: p list list) =
      match blk_lst with [] -> res_acc
-      | (nont, _) :: blk_tl -> 
+      | (nont, _, _) :: blk_tl -> 
          if (List.mem nont nonts_so_far) then loop blk_tl nonts_so_far res_acc else 
           (let res_blk = traverse_blks nont |> remove_dup_prods [] 
            in loop blk_tl (nont::nonts_so_far) (res_blk::res_acc))
     in loop (List.flatten blks) [] []
   in
   let lines_added: string list = 
-    let prods_blocks: production list list = collect_blocks g.productions |> regroup_blocks in 
+    let prods_blocks: p list list = collect_blocks g.productions |> regroup_blocks in 
     if debug_print then (printf "\n  >> Collected blocks:\n\n"; prods_blocks |> List.iter (fun b -> 
-      Pp.pp_productions b; printf "\n\n")); 
+      Pp.pp_ps b; printf "\n\n")); 
     List.fold_left (fun acc blks -> (write_block blks) @ acc) [] prods_blocks in
   if debug_print then (printf "\n  >> Lines added:\n\n"; lines_added |> List.iter (fun l ->
     printf "\t%s\n" l); printf "\n\n");
-  let oc = open_out parser_file in
+  let oc = open_out to_write in (* parser_file *)
   lines_to_keep @ lines_added |> List.iter (fun ln -> fprintf oc "%s\n" ln);
   close_out oc
 
 (** convertToGrammar : *)
-let convertToGrammar (ta_inp: ta2) (_file: string) (debug: bool) =
-  let _g = ta_inp |> ta_to_cfg debug in ()
-  (* |> cfg_to_parser file debug *)
+let convertToGrammar (ta_inp: ta2) (file: string) (to_write: string) (debug: bool) =
+  ta_inp |> ta_to_cfg debug |> cfg_to_parser file debug to_write
 
 (* Below: currently not taken into consideration  *)
 (* ******************** Specify associativity > parser.mly ******************** *)
