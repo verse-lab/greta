@@ -53,7 +53,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
   assert (Hashtbl.mem sectionToLine "t");
   assert (Hashtbl.mem sectionToLine "p");
   (* extract cfg *)
-  let start = List.hd (clean $ Hashtbl.find sectionToLine "s") in
+  let starts = clean $ Hashtbl.find sectionToLine "s" in
   let nonterms = ref (clean $ Hashtbl.find sectionToLine "nt") in
   let terms= clean $ Hashtbl.find sectionToLine "t" in
   let t_prods = clean $ Hashtbl.find sectionToLine "p" in
@@ -80,18 +80,18 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
   let nonterms = !nonterms in
   if debug_print then
     Printf.printf "CFG extracted from %s:\n" filename;
-    Printf.printf "Start: %s\n" start;
+    Printf.printf "Start nonterminals: %s\n" (String.concat " " starts);
     Printf.printf "Nonterminals: %s\n" (String.concat " " nonterms);
     Printf.printf "Terminals: %s\n" (String.concat " " terms);
     Printf.printf "Productions:\n";
     List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function T x -> x | Nt x -> x) rhs))) productions;
-  { nonterms; terms; start; productions }
+  { nonterms; terms; starts; productions }
 
 let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
   { 
     nonterms = cfg2.nonterms; 
     terms = cfg2.terms; 
-    start = cfg2.start; 
+    starts = cfg2.starts; 
     productions = cfg2.productions
       |> List.map (fun (lhs, _, rhs) ->
         let rec remove_first_t = function
@@ -173,7 +173,7 @@ let optimize_cfg_starts (g: cfg3) (level: int) =
         h new_nts new_starts new_prods (level - 1)
       in
       (rec_nts, start_to_keep @ rec_starts, rec_prods)
-  in h g.nonterms [g.start] g.productions level
+  in h g.nonterms g.starts g.productions level
 
 let cfg_to_ta (debug_print: bool) (g: cfg3): 
   ta2 * restriction list * ((symbol * int) * sigma list) list * 
@@ -400,30 +400,30 @@ let undo_enhancement (a: ta): ta =
   { states = a.states ; alphabet = alph_updated
   ; start_state = a.start_state ; transitions = trans_updated ; trivial_sym_nts = a.trivial_sym_nts }
 
-let ta_to_cfg (versatileTerminals: (terminal * int list) list) (debug_print: bool) (a: ta): cfg = 
+let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 = 
   let open Printf in
-  let a' = undo_enhancement a in
-  printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta a';
-  if debug_print then (printf "\n  >> Versatile sybol list: [ ";
-  versatileTerminals |> List.map fst |> List.iter (fun x -> printf "%s " x); printf "]\n");
+  if debug_print then printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta2 a;
   (* helpers *)
   let remove_dups ls =
-    let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
+  let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
     List.fold_right unique_cons ls [] in
-  let nonterms_excl_eps: nonterminal list = a'.states |> List.filter (fun x -> not (x = "ϵ")) in
-  let unranked_terminals: terminal list = a'.alphabet |> List.filter (fun s -> not (sym_equals s "ε"))
+  let nonterms_excl_eps: nonterminal list = a.states |> List.filter (fun x -> not (x = "ϵ")) in
+  let unranked_terminals: terminal list = a.alphabet |> List.filter (fun s -> not (sym_equals s "ε"))
     |> List.fold_left (fun acc (name, rank) -> match name with
     | "IF" -> if (rank = 3) then acc @ ["IF"; "THEN"; "ELSE"] else if (rank = 2) 
       then acc @ ["IF"; "THEN"] else raise (Failure "Rank of IF is neither 2 nor 3")
     | "LPARENRPAREN" -> acc @ ["LPAREN"; "RPAREN"]
     | s -> acc @ [s] ) [] |> remove_dups in
-  let prods: production list = a'.transitions |> List.map (fun (st, (sym, st_ls)) ->
+  let _prods: production list = []
+    (* a.transitions |> List.map (fun (st, (sym, st_ls)) ->
     if (sym_equals sym "N" || sym_equals sym "B") then (st, ("ε", [fst sym])) 
-    else (st, (fst sym, st_ls))) in
-  let cfg_res: cfg = 
+    else (st, (fst sym, st_ls)))  *)
+  in
+  let cfg_res: cfg2 = 
     { nonterms = nonterms_excl_eps ; terms = unranked_terminals
-    ; start = a'.start_state; productions = prods } in
-  printf "\nCFG resulted from the TA : \n"; Pp.pp_cfg cfg_res;
+    ; starts = a.start_states; productions = [] } in
+  printf "\nCFG resulted from the TA : \n"; 
+  (* Pp.pp_cfg cfg_res; *)
   cfg_res
 
 
@@ -544,8 +544,9 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (g: cfg): unit =
   close_out oc
 
 (** convertToGrammar : *)
-let convertToGrammar (ta_inp: ta) (versatiles: (terminal * int list) list) (debug: bool) (file: string) =
-  ta_inp |> ta_to_cfg versatiles debug |> cfg_to_parser file debug
+let convertToGrammar (ta_inp: ta2) (debug: bool) (_file: string) =
+  let _g = ta_inp |> ta_to_cfg debug in ()
+  (* |> cfg_to_parser file debug *)
 
 (* Below: currently not taken into consideration  *)
 (* ******************** Specify associativity > parser.mly ******************** *)

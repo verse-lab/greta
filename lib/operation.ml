@@ -279,8 +279,7 @@ let collect_unique_states_and_map_to_new_states
 
 
 (** Intersection of tree automata *)
-let intersect (a1: ta2) (a2: ta2) (_verSyms: (string * int list) list) (trivSyms: symbol list) 
-  (triv_sym_state_ls: (symbol * state) list) (debug_print: bool): ta2 =
+let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (symbol * state) list) (debug_print: bool): ta2 =
   let open Printf in 
   let pp_loline_new () = 
     let loleft, mid, loright = "\t╘══════════", "═══════════", "══════════╛" 

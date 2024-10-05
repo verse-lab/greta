@@ -29,7 +29,6 @@ module T = Ta
 let () =
   (** Step 1: Initial inputs provided by the user *)
   let parser_file = "./lib/parser.mly" in
-  (* let _versatile_syms = [("IF", [2; 3])] in *)
   let conflicts_file = "./_build/default/lib/parser.conflicts" in
   let cfg_file = "./_build/default/lib/parser.cfg" in
   (* Learn TA and O_bp wrt 'parser_file' *)
@@ -69,14 +68,13 @@ let () =
       L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states debug 
     in 
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
-    let versatile_syms = [] in
-    let _ta_intersected: T.ta2 = 
-      O.intersect ta_initial ta_learned versatile_syms triv_syms triv_syms_states debug in 
-    ()
+    let ta_intersected: T.ta2 = 
+      O.intersect ta_initial ta_learned triv_syms triv_syms_states debug in 
+    C.convertToGrammar ta_intersected debug parser_file;
     (* 
-    C.convertToGrammar ta_intersected versatile_syms debug parser_file;
     U.run_again parser_file
-     *)
+    *)
+    
     (* if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file *)
 end
 else U.no_conflicts_message parser_file
