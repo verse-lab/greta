@@ -463,13 +463,15 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (to_write: string) (
       if (starts "%start" s) 
       then (let name = List.nth (s |> String.split_on_char ' ') 1 
             in divide_lines inp before_prod (s::acc_keep) (name::prog_ids))
-      else if (starts_with_any_of prog_ids s) 
-      (* if starts with 'prog_id', replace with 'start_new' and pass in 'str_new' *)
-      then (let strs_new = replace_wgstart (String.split_on_char ' ' s) 
-            in divide_lines inp false (strs_new @ acc_keep) prog_ids)
-      else if (before_prod) 
-      then divide_lines inp before_prod (s :: acc_keep) prog_ids
-      else List.rev ("" :: acc_keep)
+      else 
+        if (starts_with_any_of prog_ids s) 
+        (* if starts with 'prog_id', replace with 'start_new' and pass in 'str_new' *)
+        then (let strs_new = replace_wgstart (String.split_on_char ' ' s) 
+              in divide_lines inp false (strs_new @ acc_keep) prog_ids)
+        else 
+          if (before_prod) 
+          then divide_lines inp before_prod (s :: acc_keep) prog_ids
+          else List.rev ("" :: acc_keep)
   in let lines_to_keep = divide_lines ic true [] [] 
   in
   (* collect production list in blocks *)
