@@ -30,3 +30,4 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
                          
 /* ---------------------------------------------------------------------- */
 
+%start prog0
