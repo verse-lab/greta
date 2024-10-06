@@ -29,11 +29,4 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %left STAR                           
                          
 /* ---------------------------------------------------------------------- */
-%start prog0
-%type <Ast.prog> prog0
-%type <Ast.exp> x2
-%type <Ast.const> const
-%%
-
-
 

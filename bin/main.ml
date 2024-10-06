@@ -68,10 +68,10 @@ let () =
       L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states debug 
     in 
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
-    let ta_intersected: T.ta2 = 
+    let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
       O.intersect ta_initial ta_learned triv_syms triv_syms_states debug in 
     let file_written = "./lib/result-test.txt" in
-    C.convertToGrammar ta_intersected parser_file file_written debug;
+    C.convertToGrammar ta_intersected states_rename_map parser_file file_written debug;
     (* 
     U.run_again parser_file
     *)

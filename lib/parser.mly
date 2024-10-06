@@ -29,45 +29,44 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %left STAR                           
                          
 /* ---------------------------------------------------------------------- */
-%start prog0
-%type <Ast.prog> prog0
-%type <Ast.exp> x2
+%start toplevel
+%type <Ast.prog> toplevel
+%type <Ast.exp> exp
 %type <Ast.const> const
 %%
 
 
-prog0:
-  | p=e1 EOF  { p }
+toplevel:
+  | p=stmts EOF  { p }
 
 ident:
   | id=IDENT  { loc $startpos $endpos id }
 
-x5:
-  | TINT id=ident EQ init=x2 { loc $startpos $endpos @@ {id; init} }
+decl:
+  | TINT id=ident EQ init=exp { loc $startpos $endpos @@ {id; init} }
 
 const:
-  | k=INT { loc $startpos $endpos @@ CInt k }
+  | i=INT { loc $startpos $endpos @@ CInt i }
 
-x2:
-  | e1=x2 PLUS e2=x2  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | e1=x2 DASH e2=x2  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | e1=x2 STAR e2=x2  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+exp:
+  | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | e1=exp DASH e2=exp  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  | e1=exp STAR e2=exp  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
-  | LPAREN e=x2 RPAREN { e }
+  | LPAREN e=exp RPAREN { e }
 
 
-x1: 
-  | d=x5 SEMI                      { loc $startpos $endpos @@ Decl(d) }
-  | id=ident EQ e=x2 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
-  | IF LPAREN e=x2 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
-  | IF LPAREN e=x2 RPAREN s1=x1 ELSE s2=x1
+stmt: 
+  | d=decl SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | id=ident EQ e=exp SEMI           { loc $startpos $endpos @@ Assn(id, e) }
+  | IF LPAREN e=exp RPAREN s1=stmt   { loc $startpos $endpos @@ If(e, [s1], []) }
+  | IF LPAREN e=exp RPAREN s1=stmt ELSE s2=stmt
                                      { loc $startpos $endpos @@ If(e, [s1], [s2]) }
-  | RETURN e=x2 SEMI                { loc $startpos $endpos @@ Ret(e) }
-  | WHILE LPAREN e=x2 RPAREN s=x1 { loc $startpos $endpos @@ While(e, [s]) }
-  | LBRACE ss=e1 RBRACE           { loc $startpos $endpos @@ Block(ss) }
+  | RETURN e=exp SEMI                { loc $startpos $endpos @@ Ret(e) }
+  | WHILE LPAREN e=exp RPAREN s=stmt { loc $startpos $endpos @@ While(e, [s]) }
+  | LBRACE ss=stmts RBRACE           { loc $startpos $endpos @@ Block(ss) }
 
-e1:
+stmts:
   |   /* empty */   { [] }
-  | s=x1 ss=e1   { s::ss }
-  
+  | s=stmt ss=stmts   { s::ss }

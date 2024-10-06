@@ -432,7 +432,7 @@ let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 =
 
 
 (** cfg_to_parser : once convert to grammar, write it on the parser.mly file *)
-let cfg_to_parser (parser_file: string) (debug_print: bool) (to_write: string) (g: cfg2) : unit =
+let cfg_to_parser (parser_file: string) (_sts_rename_map: (state * state) list) (debug_print: bool) (to_write: string) (g: cfg2) : unit =
   let open Printf in
   printf "\nWrite the grammar on parser file %s\n" parser_file;
   if debug_print then (printf "\n  Input grammar:\n"; Pp.pp_cfg2 g);
@@ -441,7 +441,8 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (to_write: string) (
   (* let append_strs ls = ls |> List.fold_left (fun acc x -> 
     if (acc = "") then x else acc ^ " " ^ x) "" in *)
 
-  let replace_wgstart (_lst: string list): string list = 
+  let replace_wgstarts (_start_lines: string list) (_start_ids: string list): string list = 
+    
     []
     (* 
     let rec loop (ls: string list) (after_colon: bool) (acc_ls: string list): string =
@@ -452,27 +453,43 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (to_write: string) (
         else  loop tl after_colon (h :: acc_ls)
     in loop lst false []
     *)
+
+    (* 
+      (let name = List.nth (s |> String.split_on_char ' ') 1 
+            in divide_lines inp before_prod acc_keep (s::acc_starts) (name::prog_ids))
+        
+
+      (* if starts with 'prog_id', replace with 'start_new' and pass in 'str_new' *)
+
+        let strs_new = replace_wgstart (String.split_on_char ' ' s) 
+    *)
+
   in
   (* Store lines_to_keep until the beginning of productions *)
   let ic = open_in parser_file in
-  let rec divide_lines inp before_prod acc_keep prog_ids: string list =
+  let rec divide_lines inp before_prod acc_keep acc_starts start_ids acc_types: 
+    string list * string list * string list * string list =
     match (read_line inp) with
-    | None -> List.rev ("" :: acc_keep)
+    | None -> List.rev ("" :: acc_keep), acc_starts, start_ids, acc_types
     | Some s ->
-      (* collect 'prog_ids' and pass in to divide_lines *)
+      (* collect lines starting with '%start' and accumulate start_id's *)
       if (starts "%start" s) 
-      then (let name = List.nth (s |> String.split_on_char ' ') 1 
-            in divide_lines inp before_prod (s::acc_keep) (name::prog_ids))
+      then (let new_start_id = List.nth (s |> String.split_on_char ' ') 1 in
+            divide_lines inp before_prod acc_keep (s::acc_starts) (new_start_id::start_ids) acc_types)
       else 
-        if (starts_with_any_of prog_ids s) 
-        (* if starts with 'prog_id', replace with 'start_new' and pass in 'str_new' *)
-        then (let strs_new = replace_wgstart (String.split_on_char ' ' s) 
-              in divide_lines inp false (strs_new @ acc_keep) prog_ids)
+        (* collect lines starting with '%type' *)
+        if (starts "%type" s)
+        then divide_lines inp before_prod acc_keep acc_starts start_ids (s::acc_types)
         else 
-          if (before_prod) 
-          then divide_lines inp before_prod (s :: acc_keep) prog_ids
-          else List.rev ("" :: acc_keep)
-  in let lines_to_keep = divide_lines ic true [] [] 
+          (* productions starting from '%%' so mark before_prod 'false' *)
+          if (starts "%%" s) 
+          then divide_lines inp false acc_keep acc_starts start_ids acc_types
+          else 
+            if (before_prod) 
+            then divide_lines inp before_prod (s::acc_keep) acc_starts start_ids acc_types
+            else List.rev ("" :: acc_keep), acc_starts, start_ids, acc_types
+  in let lines_to_keep, start_lines, start_ids, _type_lines = divide_lines ic true [] [] [] []
+  in let start_lines = replace_wgstarts start_lines start_ids
   in
   (* collect production list in blocks *)
   let collect_blocks (lst: p list): (p list) list =
@@ -564,12 +581,12 @@ let cfg_to_parser (parser_file: string) (debug_print: bool) (to_write: string) (
   if debug_print then (printf "\n  >> Lines added:\n\n"; lines_added |> List.iter (fun l ->
     printf "\t%s\n" l); printf "\n\n");
   let oc = open_out to_write in (* parser_file *)
-  lines_to_keep @ lines_added |> List.iter (fun ln -> fprintf oc "%s\n" ln);
+  lines_to_keep @ start_lines @ lines_added |> List.iter (fun ln -> fprintf oc "%s\n" ln);
   close_out oc
 
 (** convertToGrammar : *)
-let convertToGrammar (ta_inp: ta2) (file: string) (to_write: string) (debug: bool) =
-  ta_inp |> ta_to_cfg debug |> cfg_to_parser file debug to_write
+let convertToGrammar (ta_inp: ta2) (states_rename_map: (state * state) list) (file: string) (to_write: string) (debug: bool) =
+  ta_inp |> ta_to_cfg debug |> cfg_to_parser file states_rename_map debug to_write
 
 (* Below: currently not taken into consideration  *)
 (* ******************** Specify associativity > parser.mly ******************** *)

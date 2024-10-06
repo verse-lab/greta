@@ -279,7 +279,8 @@ let collect_unique_states_and_map_to_new_states
 
 
 (** Intersection of tree automata *)
-let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (symbol * state) list) (debug_print: bool): ta2 =
+let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (symbol * state) list) 
+  (debug_print: bool): ta2 * (state * state) list =
   let open Printf in 
   let pp_loline_new () = 
     let loleft, mid, loright = "\t╘══════════", "═══════════", "══════════╛" 
@@ -452,8 +453,11 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   let res_ta: ta2 = 
     { states = res_states @ [epsilon_state] ; alphabet = syms ; start_states = start_states_renamed ; 
       transitions = res_trans_tbl ; trivial_sym_nts = [] } in
+  let states_rename_map: (state * state) list = 
+    states_renaming_map |> List.map (fun ((orig_st, _), (new_st, _)) -> (orig_st, new_st))
+  in 
   printf "\nResult of TA intersection: \n"; Pp.pp_ta2 res_ta; 
-  res_ta (*|> rename_w_parser_friendly_states_in_ta debug_print *)
+  res_ta, states_rename_map (*|> rename_w_parser_friendly_states_in_ta debug_print *)
 
 
 
