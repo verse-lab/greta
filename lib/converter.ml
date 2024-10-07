@@ -464,7 +464,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   let replace_wgstarts (start_id_lines: (string * string) list) (states_map: (state * state) list): 
     string list * (state * state) list = 
     let rec start_loop ls lins_acc stats_map_acc cnt = 
-      match ls with [] -> lins_acc, stats_map_acc
+      match ls with [] -> List.rev lins_acc, stats_map_acc
       | (hd_id, hd_line) :: ltl -> 
         let new_start_state = "prog" ^ (string_of_int cnt) in
         let to_replace = Str.regexp hd_id in
@@ -523,7 +523,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
           else 
             if (before_prod) 
             then divide_lines inp before_prod (s::acc_keep) acc_starts acc_types starts_first types_first
-            else List.rev ("" :: acc_keep), acc_starts, acc_types, (starts_first, types_first)
+            else List.rev ("" :: acc_keep), List.rev acc_starts, acc_types, (starts_first, types_first)
   in 
   let lines_to_keep, start_id_lines, type_id_lines, (starts_fst, types_fst) = 
     divide_lines ic true [] [] [] false false
@@ -536,8 +536,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   let res_start_lines, after_starts_states_mapping = replace_wgstarts start_id_lines states_mapping
   in 
   let res_states_mapping = 
-    let triv_states_mapping = g.triv_term_nonterm_list |> List.map (fun (_term, nt) -> (nt, nt)) in
-    after_starts_states_mapping @ triv_states_mapping
+    let triv_states_mapping = g.triv_term_nonterm_list |> List.map (fun (_term, nt) -> (nt, nt)) 
+    in after_starts_states_mapping @ triv_states_mapping
   in
   (* find corresponding lines wrt %type's *)
   let res_type_lines = replace_wgtypes type_id_lines res_states_mapping 
