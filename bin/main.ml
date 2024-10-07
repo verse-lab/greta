@@ -28,11 +28,21 @@ module T = Ta
 
 let () =
   (** Step 1: Initial inputs provided by the user *)
-  let parser_file = "./lib/parser.mly" in
+  let parser_file = Array.get Sys.argv 1 in
   (* let _versatile_syms = [("IF", [2; 3])] in *)
-  let conflicts_file = "./_build/default/lib/parser.conflicts" in
-  let cfg_file = "./_build/default/lib/parser.cfg" in
+  let conflicts_file = Array.get Sys.argv 2 in
+  let cfg_file = Array.get Sys.argv 3 in
   (* Learn TA and O_bp wrt 'parser_file' *)
+
+  (* Check that the path exists *)
+  if (not (Sys.file_exists parser_file)) then 
+    (print_endline "Error: Parser file does not exist. Exiting."; exit 1)
+  else if (not (Sys.file_exists conflicts_file)) then 
+    (print_endline "Error: Conflicts file does not exist. Exiting."; exit 1)
+  else if (not (Sys.file_exists cfg_file)) then 
+    (print_endline "Error: CFG file does not exist. Exiting."; exit 1)
+  else
+
   let debug = true in
   if (Utils.check_conflicts conflicts_file debug) then
   begin
