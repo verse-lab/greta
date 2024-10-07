@@ -41,8 +41,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 toplevel:
   | p=stmts EOF  { p }
 
-test:
-  | p=stmts EOF { p }
+test: p=stmts EOF { p }
 
 ident:
   | id=IDENT  { loc $startpos $endpos id }
