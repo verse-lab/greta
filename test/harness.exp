@@ -3,10 +3,12 @@
 # Set timeout for expect commands (adjust as needed)
 set timeout 30
 
+set base_grammar_file [lindex $argv 0]
+
 # CLI application command (replace with actual command)
 proc get_cli_command {path} {
     set binary_exec "dune exec -- ../bin/main.exe"
-    set base_grammar_file "grammars/G3/G3s/G3a"
+    global base_grammar_file
     set grammar_extension ".mly"
     set conflicts_extension ".conflicts"
     set config_extension ".cfg"
@@ -24,15 +26,6 @@ proc get_cli_command {path} {
 
 # File to store results
 set results_file "test_results.csv"
-
-# Debugging: Check if files exist
-foreach file {"grammars/G3/G3s/G3a.mly" "grammars/G3/G3s/G3a.conflicts" "grammars/G3/G3s/G3a.cfg"} {
-    if {[file exists $file]} {
-        puts "File exists: $file"
-    } else {
-        puts "File does not exist: $file"
-    }
-}
 
 # Function to rerun the CLI application with a given path
 proc rerun_path {path spawn_id} {
