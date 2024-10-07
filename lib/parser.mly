@@ -30,7 +30,9 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
                          
 /* ---------------------------------------------------------------------- */
 %start toplevel
+%start test
 %type <Ast.prog> toplevel
+%type <Ast.prog> test
 %type <Ast.exp> exp
 %type <Ast.const> const
 %%
@@ -38,6 +40,9 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 
 toplevel:
   | p=stmts EOF  { p }
+
+test:
+  | p=stmts EOF { p }
 
 ident:
   | id=IDENT  { loc $startpos $endpos id }

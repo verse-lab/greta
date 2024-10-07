@@ -5,6 +5,9 @@ open Treeutils
 
 exception State_with_no_matching_order
 exception Trivial_symbols_not_found_in_prods
+exception Either_starts_or_types_first
+exception State_no_match_in_states_map
+exception Type_spec_line_last_should_be_nonterminal
 
 (* ******************** Part I. Conversion of parser.mly > CFG > TA ******************** *)
 let read_file filename = 
@@ -85,7 +88,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
     Printf.printf "Terminals: %s\n" (String.concat " " terms);
     Printf.printf "Productions:\n";
     List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function T x -> x | Nt x -> x) rhs))) productions;
-  { nonterms; terms; starts; productions }
+  { nonterms; terms; starts; productions; triv_term_nonterm_list = [] }
 
 let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
   { 
@@ -112,7 +115,8 @@ let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
           T _ -> acc | Nt x -> x :: acc) rhs' []
         in
         (lhs, (first_t, proj), rhs)
-      )
+      );
+      triv_term_nonterm_list = cfg2.triv_term_nonterm_list;
   }
 
 (** enhance_appearance : helper to enhance the symbol representation *)
@@ -424,9 +428,11 @@ let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 =
          (st, -1, sig_ls) :: acc) (* Temp number since it does not matter at this point *)
       ) a.transitions []
   in
+  let triv_term_nonterm_ls = 
+    a.trivial_sym_nts |> List.map (fun (sym, nts) -> ((fst sym), nts)) in
   let cfg_res: cfg2 = 
     { nonterms = nonterms_excl_eps ; terms = unranked_terminals
-    ; starts = a.start_states; productions = prods } in
+    ; starts = a.start_states; productions = prods ; triv_term_nonterm_list = triv_term_nonterm_ls } in
   if debug_print then (printf "\nCFG (cfg2) resulted from the TA : \n"; Pp.pp_cfg2 cfg_res);
   cfg_res
 
@@ -436,23 +442,50 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   let open Printf in
   printf "\nWrite the grammar on parser file %s\n" parser_file;
   if debug_print then (printf "\n  Input grammar:\n"; Pp.pp_cfg2 g);
-  (* helpers *)
-  (* let append_strs ls = ls |> List.fold_left (fun acc x -> 
-    if (acc = "") then x else acc ^ " " ^ x) "" in *)
-  
+  (* --- helpers --- *)
+  let append_strs ls = ls |> List.fold_left (fun acc x -> 
+    if (acc = "") then x else acc ^ " " ^ x) "" 
+  in
+  let find_mapped_state_of (st: state) (sts_map: (state * state) list) = 
+    if debug_print then printf "\n\t Looking for mapped state of State %s\n" st;
+    match List.assoc_opt st sts_map with Some st -> st
+    | None -> raise State_no_match_in_states_map
+  in 
+  let replace_last (old_id: string) (new_id: string) (type_line: string): string = 
+    let str_ls = String.split_on_char ' ' type_line in 
+    let len = List.length (str_ls) in 
+    let replaced_ls = 
+      let last_elem = List.nth str_ls (len-1) in
+      if (String.equal old_id last_elem)
+      then str_ls |> List.mapi (fun i s -> if (i = (len-1)) then new_id else s) 
+      else raise Type_spec_line_last_should_be_nonterminal
+    in append_strs replaced_ls
+  in
   let replace_wgstarts (start_id_lines: (string * string) list) (states_map: (state * state) list): 
     string list * (state * state) list = 
-    let rec replace_loop ls lins_acc stats_map_acc cnt = 
+    let rec start_loop ls lins_acc stats_map_acc cnt = 
       match ls with [] -> lins_acc, stats_map_acc
       | (hd_id, hd_line) :: ltl -> 
         let new_start_state = "prog" ^ (string_of_int cnt) in
         let to_replace = Str.regexp hd_id in
         let new_line = Str.global_replace to_replace new_start_state hd_line in
         let new_stats_map = (hd_id, new_start_state) in
-        replace_loop ltl (new_line::lins_acc) (new_stats_map::stats_map_acc) (cnt+1) 
+        start_loop ltl (new_line::lins_acc) (new_stats_map::stats_map_acc) (cnt+1) 
     in 
-    let res_start_lines, start_states_map = replace_loop start_id_lines [] [] 0 in
+    let res_start_lines, start_states_map = start_loop start_id_lines [] [] 0 in
     res_start_lines, (start_states_map @ states_map)
+  in
+  let replace_wgtypes (type_lines: (string * string) list) (states_map: (state * state) list):
+    string list = 
+    let rec type_loop ls lins_acc = 
+      match ls with [] -> lins_acc
+      | (hd_id, hd_line) :: ltl -> 
+        let mapped_id = find_mapped_state_of hd_id states_map in
+        let new_line = replace_last hd_id mapped_id hd_line in 
+        type_loop ltl (new_line::lins_acc)
+    in type_loop type_lines []
+  in
+
     (* 
     let rec loop (ls: string list) (after_colon: bool) (acc_ls: string list): string =
       match ls with [] -> List.rev acc_ls |> append_strs
@@ -462,53 +495,61 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
         else  loop tl after_colon (h :: acc_ls)
     in loop lst false []
     *)
-
-    (* 
-      (let name = List.nth (s |> String.split_on_char ' ') 1 
-            in divide_lines inp before_prod acc_keep (s::acc_starts) (name::prog_ids))
-        
-
-      (* if starts with 'prog_id', replace with 'start_new' and pass in 'str_new' *)
-
-        let strs_new = replace_wgstart (String.split_on_char ' ' s) 
-    *)
-
-  in
+  
   (* Store lines_to_keep until the beginning of productions *)
   let ic = open_in parser_file in
-  let rec divide_lines inp before_prod acc_keep acc_starts acc_types: 
-    string list * (string * string) list * string list =
+  let rec divide_lines inp before_prod acc_keep acc_starts acc_types starts_first types_first: 
+    string list * (string * string) list * (string * string) list * (bool * bool) =
     match (read_line inp) with
-    | None -> List.rev ("" :: acc_keep), acc_starts, acc_types
+    | None -> List.rev ("" :: acc_keep), acc_starts, acc_types, (starts_first, types_first)
     | Some s ->
       (* collect lines starting with '%start' and accumulate start_id's *)
       if (starts "%start" s) 
-      then (let new_start_id = List.nth (s |> String.split_on_char ' ') 1 in
-            divide_lines inp before_prod acc_keep ((new_start_id, s)::acc_starts) acc_types)
+      then (let start_id = List.nth (s |> String.split_on_char ' ') 1 in
+            if types_first 
+            then divide_lines inp before_prod acc_keep ((start_id, s)::acc_starts) acc_types starts_first types_first
+            else divide_lines inp before_prod acc_keep ((start_id, s)::acc_starts) acc_types true types_first)
       else 
         (* collect lines starting with '%type' *)
         if (starts "%type" s)
-        then divide_lines inp before_prod acc_keep acc_starts (s::acc_types)
+        then (let type_id = List.nth (s |> String.split_on_char ' ') 2 in
+              if starts_first 
+              then divide_lines inp before_prod acc_keep acc_starts ((type_id, s)::acc_types) starts_first types_first
+              else divide_lines inp before_prod acc_keep acc_starts ((type_id, s)::acc_types) starts_first true)
         else 
           (* productions starting from '%%' so mark before_prod 'false' *)
           if (starts "%%" s) 
-          then divide_lines inp false acc_keep acc_starts acc_types
+          then divide_lines inp false acc_keep acc_starts acc_types starts_first types_first
           else 
             if (before_prod) 
-            then divide_lines inp before_prod (s::acc_keep) acc_starts acc_types
-            else List.rev ("" :: acc_keep), acc_starts, acc_types
+            then divide_lines inp before_prod (s::acc_keep) acc_starts acc_types starts_first types_first
+            else List.rev ("" :: acc_keep), acc_starts, acc_types, (starts_first, types_first)
   in 
-  let lines_to_keep, start_id_lines, _type_lines = 
-    divide_lines ic true [] [] []
+  let lines_to_keep, start_id_lines, type_id_lines, (starts_fst, types_fst) = 
+    divide_lines ic true [] [] [] false false
   in 
   let states_mapping = 
     let start_states_map: (state * state) list = [] in
      start_states_map @ sts_rename_map
+  in 
+  (* find corresponding lines wrt %start's *)
+  let res_start_lines, after_starts_states_mapping = replace_wgstarts start_id_lines states_mapping
+  in 
+  let res_states_mapping = 
+    let triv_states_mapping = g.triv_term_nonterm_list |> List.map (fun (_term, nt) -> (nt, nt)) in
+    after_starts_states_mapping @ triv_states_mapping
   in
+  (* find corresponding lines wrt %type's *)
+  let res_type_lines = replace_wgtypes type_id_lines res_states_mapping 
+  in
+  let before_prod_lines = 
+    match starts_fst, types_fst with 
+    | true, false -> res_start_lines @ res_type_lines
+    | false, true -> res_type_lines @ res_start_lines
+    | true, true | false, false -> raise Either_starts_or_types_first
+  in
+  if debug_print then printf "\n\t States mapping : \n\t"; Pp.pp_raw_states res_states_mapping;
 
-  let start_lines, new_states_mapping = replace_wgstarts start_id_lines states_mapping
-  in
-  if debug_print then printf "\n\t New States mapping : \n\t"; Pp.pp_raw_states new_states_mapping;
   (* collect production list in blocks *)
   let collect_blocks (lst: p list): (p list) list =
     let rec blocks_loop ls curr_nont acc_prods (acc_res: (p list) list) =
@@ -599,7 +640,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   if debug_print then (printf "\n  >> Lines added:\n\n"; lines_added |> List.iter (fun l ->
     printf "\t%s\n" l); printf "\n\n");
   let oc = open_out to_write in (* parser_file *)
-  lines_to_keep @ start_lines @ lines_added |> List.iter (fun ln -> fprintf oc "%s\n" ln);
+  lines_to_keep @ before_prod_lines @ lines_added |> List.iter (fun ln -> fprintf oc "%s\n" ln);
   close_out oc
 
 (** convertToGrammar : *)

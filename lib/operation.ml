@@ -452,7 +452,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
 
   let res_ta: ta2 = 
     { states = res_states @ [epsilon_state] ; alphabet = syms ; start_states = start_states_renamed ; 
-      transitions = res_trans_tbl ; trivial_sym_nts = [] } in
+      transitions = res_trans_tbl ; trivial_sym_nts = triv_sym_state_ls } in
   let states_rename_map: (state * state) list = 
     states_renaming_map |> List.map (fun ((orig_st, _), (new_st, _)) -> (orig_st, new_st))
   in 

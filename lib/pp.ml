@@ -55,9 +55,13 @@ let pp_ps (ps: C.p list) =
   printf "\tSet of productions : { \n"; ps |> iter (fun (nt, _i, sig_ls) -> 
     printf "\t\t\t\t%s  ->  " nt; sig_ls |> pp_sigma_list2; printf "\n"); printf "\t\t\t     }\n"
 
+let pp_triv_tnts (tns: (C.t * C.nt) list) =
+  printf "\tSet of trivial (terminal * nonterminal) pairs : { "; tns |> iter (fun (t, nt) -> 
+    printf "\n\t\t\t\t\t\t\t   %s   ->   %s" t nt); printf "\n\t\t\t\t\t\t\t}\n"
+
 let pp_cfg2 (c: C.cfg2) = 
-  pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms);
-  pp_starts (c.starts); pp_ps (c.productions); pp_loline ()
+  pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms); pp_starts (c.starts); 
+  pp_ps (c.productions); pp_triv_tnts (c.triv_term_nonterm_list); pp_loline ()
 
 let pp_states (ss: T.state list) =
   printf "\tStates : { "; ss |> iter (printf "%s "); printf "}\n"
@@ -141,9 +145,16 @@ let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
   pp_root (a.start_state); pp_transitions (a.transitions); pp_loline ()
 
+let pp_sym_nts (sn: (T.symbol * T.state)) = 
+  printf "( "; pp_symbol (fst sn); printf "  --->  State %s )" (snd sn) 
+
+let pp_sym_nts_ls (sns: (T.symbol * T.state) list) =
+  printf "\n\t(Trivial symbol, Trivial state) list: {";
+  sns |> List.iter (fun sn -> printf "\n\t  "; pp_sym_nts sn); printf "   }\n"
+
 let pp_ta2 (a: T.ta2) =
-  pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
-  pp_roots (a.start_states); pp_transitions_tbl (a.transitions); pp_loline ()
+  pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); pp_roots (a.start_states); 
+  pp_transitions_tbl (a.transitions); pp_sym_nts_ls (a.trivial_sym_nts); pp_loline ()
 
 let pp_tree (e: T.tree) =
   let rec loop (e: T.tree) =
