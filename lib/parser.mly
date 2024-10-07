@@ -30,7 +30,9 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
                          
 /* ---------------------------------------------------------------------- */
 %start toplevel
+%start test
 %type <Ast.prog> toplevel
+%type <Ast.prog> test
 %type <Ast.exp> exp
 %type <Ast.const> const
 %%
@@ -39,6 +41,8 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 toplevel:
   | p=stmts EOF  { p }
 
+test: p=stmts EOF { p }
+
 ident:
   | id=IDENT  { loc $startpos $endpos id }
 
@@ -46,7 +50,7 @@ decl:
   | TINT id=ident EQ init=exp { loc $startpos $endpos @@ {id; init} }
 
 const:
-  | k=INT { loc $startpos $endpos @@ CInt k }
+  | i=INT { loc $startpos $endpos @@ CInt i }
 
 exp:
   | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }

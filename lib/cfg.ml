@@ -21,8 +21,9 @@ type cfg = (* CFG := (V, \Sigma, S, P) *)
 type cfg3 = (* CFG := (V, \Sigma, S, P) *)
   { mutable nonterms : nonterminal list;   (* V - a set of nonterminals/variables, eg, E, +  *)
     mutable terms : terminal list;         (* \Sigma - a set of terminals, eg, N             *)
-    mutable start : nonterminal;           (* S - start symbol, \in V, eg, E                 *)
+    mutable starts : nonterminal list;           (* S - start symbol, \in V, eg, E                 *)
     mutable productions : production2 list; (* P - a set of productions, eg, E -> E + E       *)
+    mutable triv_term_nonterm_list : (terminal * nonterminal) list;
   }
 
 let null_cfg = { nonterms = []; terms = []; start = ""; productions = [] }
@@ -34,11 +35,12 @@ type p = nt * int * sigma list
 type cfg2 = {
   mutable nonterms : nt list;
   mutable terms : t list;
-  mutable start : nt;
+  mutable starts : nt list;
   mutable productions : p list;
+  mutable triv_term_nonterm_list : (t * nt) list;
 }
 
-let null_cfg2 = { nonterms = []; terms = []; start = ""; productions = [] }
+let null_cfg2 = { nonterms = []; terms = []; starts = []; productions = []; triv_term_nonterm_list = [] }
 
 let sigmas_equal (a: sigma) (b: sigma): bool = 
   match a, b with 

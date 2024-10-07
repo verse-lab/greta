@@ -9,6 +9,7 @@ exception No_sig_ls_in_sig_lsls
 exception No_cross_product_sigls_possible
 exception Reachable_states_not_matching
 exception No_terminal_possible
+exception Not_possible
 
 (** is_cond_expr : check if state is representing boolean state *)
 let is_cond_expr (s: state): bool =
@@ -438,53 +439,97 @@ let cross_product_raw_state_lists (st_ls1: state list) (st_ls2: state list): (st
     | _, [] | [], _ -> raise Invalid_state_lists
   in cross_loop st_ls1 st_ls2 []
 
-let find_corresponding_sigls (sig_ls: sigma list) (sig_lsls: sigma list list): sigma list = 
-  let rec corresponding_sig_lists (sig_ls1: sigma list) (sig_ls2: sigma list) (acc: bool): bool = 
+let find_corresponding_sigls (sig_ls: sigma list) (sig_lsls: sigma list list) (triv_states: state list): sigma list = 
+  (* --- helper --- *)
+  let are_same_triv_states (s1: sigma) (s2: sigma): bool = 
+    match s1, s2 with 
+    | Nt s1', Nt s2' -> if ((List.mem s1' triv_states) && (List.mem s2' triv_states)) then (String.equal s1' s2') else true
+    | _, _ -> false
+  in
+  let rec corresponding_sig_lists (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_states: state list) (acc: bool): bool = 
     match sig_ls1, sig_ls2 with 
     | _, [] | [], _ -> acc
     | sh1 :: stl1, sh2 :: stl2 -> 
       if (is_terminal sh1) && (is_terminal sh2)
       then (if sigmas_equal sh1 sh2
-            then corresponding_sig_lists stl1 stl2 (true && acc)
-            else corresponding_sig_lists stl1 stl2 (false && acc))
+            then corresponding_sig_lists stl1 stl2 triv_states (true && acc)
+            else corresponding_sig_lists stl1 stl2 triv_states (false && acc))
       else if (not (is_terminal sh1)) && (not (is_terminal sh2))
-      then corresponding_sig_lists stl1 stl2 (true && acc)
+      then (if (are_same_triv_states sh1 sh2) 
+            then corresponding_sig_lists stl1 stl2 triv_states (true && acc)
+            else corresponding_sig_lists stl1 stl2 triv_states (false && acc))
       else false in
   let rec traverse lsls = 
     match lsls with [] -> []
     | hd_sig_ls :: tl -> 
-      if (corresponding_sig_lists sig_ls hd_sig_ls true)
+      if (corresponding_sig_lists sig_ls hd_sig_ls triv_states true)
       then hd_sig_ls
       else traverse tl
   in traverse sig_lsls
 
-let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (acc: (sigma * sigma) list): 
+let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_states: state list) (acc: (sigma * sigma) list): 
   (sigma * sigma) list = 
-  match sig_ls1, sig_ls2 with [], [] -> acc
-  | T t1 :: stl1, T t2 :: stl2 -> cross_product_siglsls stl1 stl2 ((T t1, T t2)::acc)
-  | Nt nt1 :: stl1, Nt nt2 :: stl2 -> cross_product_siglsls stl1 stl2 ((Nt nt1, Nt nt2)::acc)
+  let open String in
+  match sig_ls1, sig_ls2 with [], [] -> List.rev acc
+  | T t1 :: stl1, T t2 :: stl2 -> cross_product_siglsls stl1 stl2 triv_states ((T t1, T t2)::acc)
+  | Nt nt1 :: stl1, Nt nt2 :: stl2 -> 
+    if (equal nt1 epsilon_state) || (equal nt2 epsilon_state)
+    then cross_product_siglsls stl1 stl2 triv_states ((Nt epsilon_state, Nt epsilon_state)::acc) 
+    else 
+      if ((List.mem nt1 triv_states) && not (List.mem nt2 triv_states)) || ((List.mem nt2 triv_states) && not (List.mem nt1 triv_states))
+      then cross_product_siglsls stl1 stl2 triv_states acc
+      else cross_product_siglsls stl1 stl2 triv_states ((Nt nt1, Nt nt2)::acc)
   | (T _)::_, (Nt _)::_ | (Nt _)::_, (T _)::_ | _, [] | [], _ -> raise No_cross_product_sigls_possible
 
-let cross_product_raw_sigma_lsls (sig_lsls1: sigma list list) (sig_lsls2: sigma list list) (debug: bool): 
-  (sigma * sigma) list list =
+let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsls_ls2: (sigma list list) list) 
+  (triv_states: state list) (debug: bool): (sigma * sigma) list list =
   let open List in
   let open Printf in 
-  if debug then (printf "\n\tFinding cross product of sigma_lsls : \n"; 
-    sig_lsls1 |> Pp.pp_sigma_listlist; sig_lsls2 |> Pp.pp_sigma_listlist);
-  let len1, len2 = length (sig_lsls1), length (sig_lsls2) in
-  if (len1 != len2) then [[]] 
-  else 
-    let rec cross_loop lsls1 acc = 
-      match lsls1 with [] -> acc
-      | sig_ls_hd1 :: tl1 -> 
-        let sig_ls2 = find_corresponding_sigls sig_ls_hd1 sig_lsls2 in
-        (if debug then printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
-        if (is_empty sig_ls2) then cross_loop tl1 acc
-        else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 [] in
-              cross_loop tl1 (cross_product_siglsls::acc))
-    in let reslsls: (sigma * sigma) list list = cross_loop sig_lsls1 [] in 
-    if debug then (printf "\n Result of cross product:\n\t"; reslsls |> iter Pp.pp_sigma_sigma_list); 
-    reslsls
+  if debug then (printf "\n\tFinding cross product of sigma_lsls's first sig_lsls : \n"; 
+    sig_lsls_ls1 |> List.iter Pp.pp_sigma_listlist; printf "\n\tThen second sig_lsls : \n"; sig_lsls_ls2 |> List.iter Pp.pp_sigma_listlist);
+  (* --- helper --- *)
+  let rec cross_loop lsls1 lsls2 (acc: (sigma * sigma) list list) = 
+    match lsls1 with [] -> acc
+    | sig_ls_hd1 :: tl1 -> 
+      let sig_ls2: sigma list = find_corresponding_sigls sig_ls_hd1 lsls2 triv_states in
+      (if debug then printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
+      if (is_empty sig_ls2) then cross_loop tl1 lsls2 acc
+      else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 triv_states [] in
+            if (mem cross_product_siglsls acc)
+            then cross_loop tl1 lsls2 acc
+            else cross_loop tl1 lsls2 (cross_product_siglsls::acc))
+  in
+  let len1, len2 = length (sig_lsls_ls1), length (sig_lsls_ls2) in
+  let reslsls: (sigma * sigma) list list =
+    if (is_empty sig_lsls_ls1) || (is_empty sig_lsls_ls2) then [[]]
+    else 
+      begin
+        if (len1 = 1) && (len2 = 1) 
+        then 
+          (let sig_lsls1, sig_lsls2 = hd sig_lsls_ls1, hd sig_lsls_ls2 
+           in cross_loop sig_lsls1 sig_lsls2 [])
+        else 
+          (if (len1 < len2) 
+           then 
+            (* assume sig_lsls_ls2 is longer *)
+            (let sig_lsls1 = hd sig_lsls_ls1 in 
+             sig_lsls_ls2 |> fold_left (fun acc lsls2 -> 
+              (cross_loop sig_lsls1 lsls2 []) @ acc) [] 
+              |> Utils.remove_dups)
+           else 
+            if (len2 > len1) 
+            then 
+              (let sig_lsls2 = hd sig_lsls_ls2 in 
+               sig_lsls_ls1 |> fold_left (fun acc lsls1 -> 
+                (cross_loop sig_lsls2 lsls1 []) @ acc) [] 
+                |> Utils.remove_dups)
+              else 
+                raise No_cross_product_sigls_possible)
+      end
+    in 
+    let reslsls_refined = reslsls |> filter (fun ls -> not (is_empty ls)) in 
+    if debug then (printf "\n\n\n  >> Result of cross product:\n\t"; reslsls_refined |> iter Pp.pp_sigma_sigma_list; printf "\n\n\n"); 
+      reslsls_refined
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
   match Hashtbl.find_opt tbl (st, sym) with None -> false
@@ -497,6 +542,12 @@ let state_pair_append (st_pair: state * state): state =
 
 let state_pairs_equal (st_pair1: state * state) (st_pair2: state * state): bool = 
   (fst st_pair1) = (fst st_pair2) && (snd st_pair1) = (snd st_pair2)
+
+let sig_pair_equals_state_pair (sig_pair: sigma * sigma) (st_pair: state * state): bool = 
+  let st1, st2 = (fst st_pair), (snd st_pair) 
+  in match sig_pair with 
+    | Nt sig1, Nt sig2 -> (String.equal sig1 st1) && (String.equal sig2 st2)
+    | _, _ -> false
 
 let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) list): bool =
   let comp_st1, comp_st2 = (fst st_pair), (snd st_pair) in
@@ -514,9 +565,11 @@ let remove_dup_symbols (sym_ls: symbol list): symbol list =
 let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list = 
   let check_subset_of_fst_in_snd (syms1: symbol list) (syms2: symbol list): symbol list = 
     let rec loop ls acc = 
-      match ls with [] -> List.rev acc
+      match ls with [] -> acc
       | hsym :: tl -> 
-        if List.mem hsym syms1 then loop tl (hsym::acc) else raise Invalid_symbol_list
+        if List.mem hsym syms1 then loop tl (hsym::acc) 
+        else loop tl acc
+          (* (Pp.pp_symbol hsym; raise Invalid_symbol_list) *)
     in loop syms2 []
   in 
   let a1_len, a2_len = List.length a1, List.length a2 in 
@@ -533,12 +586,12 @@ let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls
   in loop raw_trans_ls [] 
 
 (* helper to collect RHS of raw transition list, ie, (sym, state pairs list) *)
-let sym_and_rhs_state_pairs (raw_trans: ((state * state) * (symbol * (state * state) list)) list): 
-  (symbol * (state * state) list) list =
-  raw_trans |> List.map (fun (_, (s, rhs_st_pair_ls)) -> (s, rhs_st_pair_ls))
+let sym_and_rhs_sigma_pairs (raw_trans: ((state * state) * (symbol * (sigma * sigma) list)) list): 
+  (symbol * (sigma * sigma) list) list =
+  raw_trans |> List.map (fun (_, (s, rhs_sg_pair_ls)) -> (s, rhs_sg_pair_ls))
 
-let same_sym_and_rhs_state_pairs (sym_rhs_stat_pairs1: (symbol * (state * state) list) list) 
-  (sym_rhs_stat_pairs2: (symbol * (state * state) list) list): bool =
+let same_sym_and_rhs_sigma_pairs (sym_rhs_stat_pairs1: (symbol * (sigma * sigma) list) list) 
+  (sym_rhs_stat_pairs2: (symbol * (sigma * sigma) list) list): bool =
   if not ((List.length sym_rhs_stat_pairs1) = (List.length sym_rhs_stat_pairs2))
   then false
   else (let rec traverse ls = match ls with [] -> true 
@@ -552,20 +605,23 @@ let find_renamed_state (st_pair: state * state)
   (renaming_map: ((state * state) * (state * state)) list): state * state = 
   match (List.assoc_opt st_pair renaming_map) with 
     | None -> 
-      Printf.printf "\nWhich one?\n\t"; Pp.pp_raw_state st_pair;
-      let epsilon_st_pair = (epsilon_state, epsilon_state) in
-      if (state_pairs_equal st_pair epsilon_st_pair) then epsilon_st_pair else raise No_state_in_renaming_map 
+      ((fst st_pair), "")
     | Some matched_sts -> matched_sts
 
 let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)) list)
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list)
-  (debug: bool): ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
+  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
   let rec rename_raw_trans ls' acc' =
     match ls' with [] -> List.rev acc'
-    | (lhs_st_pair, (sym, rhs_st_pair_ls)) :: tl' -> 
+    | (lhs_st_pair, (sym, rhs_sig_pair_ls)) :: tl' -> 
       let lhs_renamed = find_renamed_state lhs_st_pair states_renaming_map in 
-      let rhs_renamed: (state * state) list = 
-        rhs_st_pair_ls |> List.map (fun st_pr -> find_renamed_state st_pr states_renaming_map) in
+      let rhs_renamed: (sigma * sigma) list = 
+        rhs_sig_pair_ls |> List.map (fun sig_pr -> 
+          match sig_pr with 
+          | Nt s1, Nt s2 -> let (new_st1, new_st2) = find_renamed_state (s1, s2) states_renaming_map in 
+            (Nt new_st1, Nt new_st2)
+          | T t1, T _t2 -> (T t1, T "")
+          | _, _ -> raise Not_possible) in
       let renamed_tran = (lhs_renamed, (sym, rhs_renamed)) in 
       rename_raw_trans tl' (renamed_tran :: acc')
   in
@@ -580,23 +636,24 @@ let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)
   res_trans_blocks |> Pp.pp_raw_trans_blocks);
   res_trans_blocks
  
-let find_trans_block_for_states_pair (st_pair: (state * state)) (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list):
-  ((state * state) * (symbol * (state * state) list)) list =
+let find_trans_block_for_states_pair (st_pair: (state * state)) 
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list):
+  ((state * state) * (symbol * (sigma * sigma) list)) list =
   match List.assoc_opt st_pair trans_blocks with None -> raise Invalid_transitions
   | Some ls -> ls
   
 let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair2: (state * state))
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list)
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
   (debug: bool): bool = 
   if debug then Printf.printf "\n\tIs (%s, %s) subset of (%s, %s)?\n" (fst st_pair1) (snd st_pair1) (fst st_pair2) (snd st_pair2);
-  let st1_trans_rhs_lst: (symbol * (state * state) list) list =
+  let st1_trans_rhs_lst: (symbol * (sigma * sigma) list) list =
     find_trans_block_for_states_pair st_pair1 trans_blocks |> List.map (fun (_, rhs_lst) -> rhs_lst) in
-  let st2_trans_rhs_lst: (symbol * (state * state) list) list =
+  let st2_trans_rhs_lst: (symbol * (sigma * sigma) list) list =
     find_trans_block_for_states_pair st_pair2 trans_blocks |> List.map (fun (_, rhs_lst) -> rhs_lst) in 
   let res_bool = 
     if (List.length st1_trans_rhs_lst) > (List.length st2_trans_rhs_lst)
     then false else 
-    let rec traverse_rhs (ls: (symbol * (state * state) list) list): bool = 
+    let rec traverse_rhs (ls: (symbol * (sigma * sigma) list) list): bool = 
       match ls with [] -> true
       | hsym_rhs_sts :: tl -> 
         if (List.mem hsym_rhs_sts st2_trans_rhs_lst)
@@ -607,27 +664,29 @@ let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair
   res_bool
 
 let simplify_trans_blocks_with_epsilon_transitions 
-  (input_trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
+  (input_trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
   (st_pair_ls: (state * state) list) (debug: bool): 
-  ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
+  ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
   let replace_st1_transkblock_in_st2_transblock_with_eps (st1: state * state) (st2: state * state) 
-    (blocks_ls: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): 
-    ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list = 
-    let st1_sym_rhs_ls: (symbol * (state * state) list) list = 
+    (blocks_ls: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
+    ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
+    let st1_sym_rhs_ls: (symbol * (sigma * sigma) list) list = 
       blocks_ls |> List.filter (fun (ss, _) -> (state_pairs_equal ss st1)) 
       |> List.hd |> snd |> List.map snd 
     in 
-      blocks_ls |> List.map (fun (st_pair, st_block) -> 
+      blocks_ls |> List.map (fun ((st_pair, st_raw_trans_block): (state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) -> 
         if (state_pairs_equal st_pair st2)
-        then (let new_st_block = st_block |> List.filter 
-                (fun (_, (sym_rhs_ls: symbol * (state * state) list)) -> not (List.mem sym_rhs_ls st1_sym_rhs_ls))
-                |> List.append [(st2, (epsilon_symb, [st1]))] |> List.rev
-              in (st_pair, new_st_block))
-        else (st_pair, st_block))
+        then 
+          let new_st_raw_trans_block: ((state * state) * (symbol * (sigma * sigma) list)) list = 
+            st_raw_trans_block |> List.filter (fun (_st_pair, sym_sig_sig_ls) -> not (List.mem sym_sig_sig_ls st1_sym_rhs_ls))
+            |> List.append [(st2, (epsilon_symb, [(Nt (fst st1), Nt (snd st1))]))]
+          in (st_pair, new_st_raw_trans_block)
+        else 
+          (st_pair, st_raw_trans_block))
   in 
   let rec simplify_trans_blocks (st_pair: state * state) (other_states_ls: (state * state) list) 
-    (blocks_acc: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list): 
-    ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list =
+    (blocks_acc: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
+    ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
     match other_states_ls with [] -> blocks_acc
     | comp_st_pair :: tl -> 
       if (st1_transblock_subset_of_st2_transblock st_pair comp_st_pair input_trans_blocks debug)
@@ -645,27 +704,6 @@ let simplify_trans_blocks_with_epsilon_transitions
   in let simplified_res = traverse_states st_pair_ls input_trans_blocks in 
   if debug then (Printf.printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
   simplified_res
-
-
-let raw_trans_in_blocks_to_trans (trans_blocks: ((state * state) * ((state * state) * (symbol * (state * state) list)) list) list) 
-  (debug: bool): transition list =
-  let convert_trans_block (block: ((state * state) * (symbol * (state * state) list)) list): transition list = 
-    let rec convert_block_loop ls' acc' = 
-      match ls' with [] -> acc'
-      | (st_pr, (sym, rhs_ls)) :: tl' ->
-        let lft_st_appnd = state_pair_append st_pr in
-        let rhs_sts_appnd = rhs_ls |> List.map state_pair_append in 
-        convert_block_loop tl' ((lft_st_appnd, (sym, rhs_sts_appnd))::acc')
-    in convert_block_loop block []
-  in 
-  let rec convert_loop ls acc = 
-    match ls with [] -> List.rev acc 
-    | (_, st_block) :: tl -> 
-      let converted_trans = convert_trans_block st_block 
-      in convert_loop tl (converted_trans@acc)
-  in let res_trans = convert_loop trans_blocks [] in 
-  if debug then (Printf.printf "\n\t >> Result of converting raw trans to transitions : \n"; res_trans |> Pp.pp_transitions);
-  res_trans
 
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
