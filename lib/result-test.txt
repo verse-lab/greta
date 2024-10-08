@@ -31,9 +31,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 /* ---------------------------------------------------------------------- */
 
 %start prog0
-%start prog1
 %type <Ast.prog> prog0
-%type <Ast.prog> prog1
 %type <Ast.exp> x2
 %type <Ast.const> const
 %%
@@ -42,11 +40,12 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 
 prog0:
   | p=stmts EOF  { p }
-
-prog1: p=stmts EOF { p }
+  ;
 
 ident:
   | id=IDENT  { loc $startpos $endpos id }
+  ;
 
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }
+  ;
