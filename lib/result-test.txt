@@ -39,3 +39,14 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %%
 
 
+
+prog0:
+  | p=stmts EOF  { p }
+
+prog1: p=stmts EOF { p }
+
+ident:
+  | id=IDENT  { loc $startpos $endpos id }
+
+const:
+  | i=INT { loc $startpos $endpos @@ CInt i }
