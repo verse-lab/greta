@@ -614,19 +614,22 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   let orig_start_nonterms = start_id_lines |> List.map fst 
   in
   let start_triv_prods: string list = 
-    prods_blocks |> List.fold_left (fun acc (nt, prods) -> 
+    List.append 
+    (prods_blocks |> List.fold_left (fun acc (nt, prods) -> 
       if (List.mem nt orig_start_nonterms) 
       then 
         (let mapped_st = find_mapped_state_of nt res_states_mapping in
         let old_st = Str.regexp nt in
         let new_prods = prods |> List.map (fun s -> Str.global_replace old_st mapped_st s)
         in acc@[""]@(new_prods@["  ;"]))
-      else if (List.mem nt triv_nonterms) then acc@[""]@(prods@["  ;"]) else acc) []
+      else if (List.mem nt triv_nonterms) then acc@[""]@(prods@["  ;"]) else acc) [])
+    [""]
   in
   if debug_print then (printf "\n\t *** Start and trivial productions : \n"; 
     start_triv_prods |> List.iter (printf "%s\n"));
-  let _nontriv_prods: (string * string list) list = 
-    prods_blocks |> List.filter (fun (nt, _prods) -> not (List.mem nt orig_start_nonterms) && not (List.mem nt triv_nonterms))     
+  let nontriv_prods: (string * string list) list = 
+    prods_blocks |> List.filter (fun (nt, _prods) -> 
+      not (List.mem nt orig_start_nonterms) && not (List.mem nt triv_nonterms) && not (String.equal nt ""))
   in
   (* Find out there is no exact 1-to-1 mapping *)
   let (inconsistent_states, consistent_states): state list * state list = 
@@ -649,8 +652,17 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
     Pp.pp_states inconsistent_states; printf "\n *** Single mapped states: \t";
     Pp.pp_states consistent_states);
   (* Keep the productions as they are except for replacing with right states names *)
-  let unchanged_nontriv_prods: string list = []
-
+  (* TODO: Not doing it properly
+     Need to change the lines to account for other nonterminals that appear in the middle of line *)
+  let unchanged_nontriv_prods: string list = 
+    nontriv_prods |> List.fold_left (fun acc (old_nt, prods) -> 
+      (printf "\n ** Which state?! %s" old_nt);
+      let old_st = Str.regexp old_nt in
+      let new_st = List.assoc old_nt res_states_mapping in
+      let new_prods = prods |> List.map (fun ln -> 
+        Str.global_replace old_st new_st ln
+        ) in acc @ (new_prods@["  ;"; ""])
+      ) []
   in
   
   (* let create_nontriv_prods_mapping ls acc: (string list * string list) =
