@@ -46,16 +46,15 @@ let () =
   let debug = true in
   if (Utils.check_conflicts conflicts_file debug) then
   begin
+    let convert_start = Sys.time () in
     let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms): 
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
       ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
       C.convertToTa cfg_file debug in
+    let convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet in
-    let interact_counter = ref 0 
-    in
-      let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
-      E.gen_examples conflicts_file ranked_symbols debug 
-    in
+    let interact_counter = ref 0 in
+    let tree_pairs_lst = E.gen_examples conflicts_file ranked_symbols debug in
     (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)
     let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list):
       (string list * T.tree * (bool * bool) * T.restriction list) list = 
@@ -75,16 +74,25 @@ let () =
     let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug in 
     let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
     let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug in 
+    (* Time output *)
+    let learn_start = Sys.time () in
     let ta_learned: T.ta2 = 
       L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states debug 
     in 
+    let learn_ta_elapsed = Sys.time () -. learn_start in
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
+    let intersect_start = Sys.time () in
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
       O.intersect ta_initial ta_learned triv_syms triv_syms_states debug in 
+    let intersect_elapsed = Sys.time () -. intersect_start in
     let file_written = "./lib/result-test.txt" in
     Printf.printf "\n\t\tLOOK!\n";
     ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st);
     C.convertToGrammar ta_intersected states_rename_map parser_file file_written debug;
+    Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_written;
+    Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" convert_elapsed;
+    Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" learn_ta_elapsed;
+    Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed;
     (* 
     U.run_again parser_file
     *)
