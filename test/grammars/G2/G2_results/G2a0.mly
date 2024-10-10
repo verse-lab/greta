@@ -39,7 +39,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 
 
 prog0:
-  | p=stmts EOF  { p }
+  | p=e1 EOF  { p }
   ;
 
 ident:
@@ -51,7 +51,7 @@ const:
   ;
 
 x5:
-  | TINT id=ident EQ init=exp { loc $startpos $endpos @@ {id; init} }
+  | TINT id=ident EQ init=x2 { loc $startpos $endpos @@ {id; init} }
   ;
 
 x2:
@@ -64,18 +64,18 @@ x2:
   ;
 
 x1: 
-  | d=decl SEMI                      { loc $startpos $endpos @@ Decl(d) }
-  | id=ident EQ e=exp SEMI           { loc $startpos $endpos @@ Assn(id, e) }
-  | IF LPAREN e=exp RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
-  | IF LPAREN e=exp RPAREN s1=x1 ELSE s2=x1
+  | d=x5 SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | id=ident EQ e=x2 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
+  | IF LPAREN e=x2 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
+  | IF LPAREN e=x2 RPAREN s1=x1 ELSE s2=x1
                                      { loc $startpos $endpos @@ If(e, [s1], [s2]) }
-  | RETURN e=exp SEMI                { loc $startpos $endpos @@ Ret(e) }
-  | WHILE LPAREN e=exp RPAREN s=x1 { loc $startpos $endpos @@ While(e, [s]) }
-  | LBRACE ss=x1s RBRACE           { loc $startpos $endpos @@ Block(ss) }
+  | RETURN e=x2 SEMI                { loc $startpos $endpos @@ Ret(e) }
+  | WHILE LPAREN e=x2 RPAREN s=x1 { loc $startpos $endpos @@ While(e, [s]) }
+  | LBRACE ss=e1 RBRACE           { loc $startpos $endpos @@ Block(ss) }
   ;
 
 e1:
   |   /* empty */   { [] }
-  | s=stmt ss=e1   { s::ss }
+  | s=x1 ss=e1   { s::ss }
   ;
 

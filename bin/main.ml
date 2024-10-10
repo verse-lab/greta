@@ -69,10 +69,11 @@ let () =
     in 
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
-      O.intersect ta_initial ta_learned triv_syms triv_syms_states debug in 
-    let file_written = "./lib/result-test.txt" in
-    Printf.printf "\n\t\tLOOK!\n";
-    ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st);
+      O.intersect ta_initial ta_learned triv_syms triv_syms_states debug 
+    in 
+    let file_written = "./test/grammars/G2/G2_results/G2a0.mly" in
+    Printf.printf "\n\tLOOK!\n\n";
+    ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf " ---> State %s\n" st);
     C.convertToGrammar ta_intersected states_rename_map parser_file file_written debug;
     (* 
     U.run_again parser_file

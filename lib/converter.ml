@@ -546,10 +546,34 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   in 
   (* find corresponding lines wrt %start's *)
   let res_start_lines, after_starts_states_mapping = replace_wgstarts start_id_lines states_mapping
+  in
+  let triv_states_mapping = 
+    g.triv_term_nonterm_list |> List.map (fun (_term, nt) -> (nt, nt)) 
   in 
   let res_states_mapping = 
-    let triv_states_mapping = g.triv_term_nonterm_list |> List.map (fun (_term, nt) -> (nt, nt)) 
-    in after_starts_states_mapping @ triv_states_mapping
+    after_starts_states_mapping @ triv_states_mapping
+  in
+  let res_states_mapping_primary = 
+    let mapped_prods_in_new_cfg st = 
+      g.productions |> List.filter (fun (nt, _i, _sigls) -> nt = st) |> List.length
+    in
+    let rec remove_less_dominant_dup_state (ls: (state * state) list) (acc: (state * state) list) =
+      match ls with [] -> List.rev acc 
+      | (curr_st_old, curr_st_new) :: tl -> 
+        let old_states = acc |> List.map fst in
+        if (List.mem curr_st_old old_states)
+        then 
+          (let other_st_new = List.assoc curr_st_old acc in
+            if (mapped_prods_in_new_cfg curr_st_new) > (mapped_prods_in_new_cfg other_st_new)
+            then 
+              (let acc_wo_other_pair = acc |> List.filter (fun (s, _) -> not (String.equal s curr_st_old)) in
+               let acc_new = (curr_st_old, curr_st_new) :: acc_wo_other_pair in 
+               remove_less_dominant_dup_state tl acc_new)
+            else 
+              remove_less_dominant_dup_state tl acc)
+        else remove_less_dominant_dup_state tl ((curr_st_old, curr_st_new)::acc)
+    in let res_states_mapping_prim_res = remove_less_dominant_dup_state after_starts_states_mapping []
+    in res_states_mapping_prim_res |> List.sort compare |> List.rev (* @ triv_states_mappingeeee *)
   in
   (* find corresponding lines wrt %type's *)
   let res_type_lines = replace_wgtypes type_id_lines res_states_mapping 
@@ -560,7 +584,9 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
     | false, true -> res_type_lines @ res_start_lines @ ["%%";"";""]
     | true, true | false, false -> raise Either_starts_or_types_first
   in
-  if debug_print then printf "\n\t States mapping : \n\t"; Pp.pp_raw_states res_states_mapping;
+  if debug_print then 
+    (printf "\n\t States mapping : \n\t"; Pp.pp_raw_states res_states_mapping;
+    printf "\n\t States mapping (primary) : \n\t"; Pp.pp_raw_states res_states_mapping_primary);
   (* collection of start nonterms, triv nonterms for easy access *)
   let _start_nonterms, triv_nonterms = 
     let start_nts = 
@@ -610,6 +636,16 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   if debug_print then (printf "\n\tCollected production blocks: \n"; 
     prods_blocks |> List.iter (fun (nt, prods) -> printf "\t ** Nonterminal %s   mapped to \n\n" nt; 
     prods |> List.iter (printf "\t%s\n"); printf "\n\n"));
+  (* --- helper --- *)
+  let replace_str_wrt_primary_mapped_state (s: string) (states_map: (state * state) list): string = 
+    let rec replace_str_loop ls str_acc = 
+      match ls with [] -> str_acc 
+      | (old_st_hd, mapped_st_hd) :: tl -> 
+        let old_st = Str.regexp old_st_hd in
+        let new_acc = Str.global_replace old_st mapped_st_hd str_acc in
+        replace_str_loop tl new_acc
+    in replace_str_loop states_map s
+  in
   (* Collect start and trivial nonterminals' productions *)
   let orig_start_nonterms = start_id_lines |> List.map fst 
   in
@@ -618,9 +654,10 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
     (prods_blocks |> List.fold_left (fun acc (nt, prods) -> 
       if (List.mem nt orig_start_nonterms) 
       then 
-        (let mapped_st = find_mapped_state_of nt res_states_mapping in
-        let old_st = Str.regexp nt in
-        let new_prods = prods |> List.map (fun s -> Str.global_replace old_st mapped_st s)
+        (let _mapped_st = find_mapped_state_of nt res_states_mapping_primary in
+        let _old_st = Str.regexp nt in
+        let new_prods = prods |> List.map (fun s -> 
+          replace_str_wrt_primary_mapped_state s res_states_mapping_primary) (* Str.global_replace old_st mapped_st s *)
         in acc@[""]@(new_prods@["  ;"]))
       else if (List.mem nt triv_nonterms) then acc@[""]@(prods@["  ;"]) else acc) [])
     [""]
@@ -657,10 +694,11 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   let unchanged_nontriv_prods: string list = 
     nontriv_prods |> List.fold_left (fun acc (old_nt, prods) -> 
       (printf "\n ** Which state?! %s" old_nt);
-      let old_st = Str.regexp old_nt in
-      let new_st = List.assoc old_nt res_states_mapping in
+      let _old_st = Str.regexp old_nt in
+      let _new_st = List.assoc old_nt res_states_mapping in
       let new_prods = prods |> List.map (fun ln -> 
-        Str.global_replace old_st new_st ln
+        replace_str_wrt_primary_mapped_state ln res_states_mapping_primary
+        (* Str.global_replace old_st new_st ln *)
         ) in acc @ (new_prods@["  ;"; ""])
       ) []
   in
