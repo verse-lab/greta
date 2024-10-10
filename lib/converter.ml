@@ -692,18 +692,15 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
     Pp.pp_states inconsistent_states; printf "\n *** Single mapped states: \t";
     Pp.pp_states consistent_states);
   (* Keep the productions as they are except for replacing with right states names *)
-  (* TODO: Not doing it properly
-     Need to change the lines to account for other nonterminals that appear in the middle of line *)
   let unchanged_nontriv_prods: string list = 
     nontriv_prods |> List.filter (fun (nt, _prods) -> (List.mem nt consistent_states)) 
       |> List.fold_left (fun acc (old_nt, prods) -> 
-      (printf "\n ** Which state?! %s" old_nt);
-      let _old_st = Str.regexp old_nt in
-      let _new_st = List.assoc old_nt res_states_mapping in
-      let new_prods = prods |> List.map (fun ln -> 
-        replace_str_wrt_primary_mapped_state ln res_states_mapping_primary
-        (* Str.global_replace old_st new_st ln *)
-        ) in acc @ (new_prods@["  ;"; ""])
+        (printf "\n ** Which state?! %s" old_nt);
+        let _old_st = Str.regexp old_nt in
+        let _new_st = List.assoc old_nt res_states_mapping in
+        let new_prods = prods |> List.map (fun ln -> 
+          replace_str_wrt_primary_mapped_state ln res_states_mapping_primary
+          ) in acc @ (new_prods@["  ;"; ""])
       ) []
   in
   (* Create mappings for correct formatting and mapping of the string *)
@@ -718,7 +715,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
     let rec loop ls terms_acc nonterm_cnt =
       match ls with [] -> List.rev terms_acc, nonterm_cnt 
       | str_hd :: str_tl -> 
-        if (String.equal str_hd "{")
+        if ((String.equal str_hd "{") || (String.equal str_hd "/*"))
         then List.rev terms_acc, nonterm_cnt
         else if (is_terminal_string str_hd)
           then loop str_tl (str_hd::terms_acc) nonterm_cnt
@@ -728,22 +725,28 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   let rec prods_map_loop (ls: string list) (acc: ((string list * int) * string) list) = 
     match ls with [] -> List.rev acc
     | curr_prod :: stl -> 
-      (* let nt_cnt = ref 0 in *)
       let sls = String.split_on_char ' ' curr_prod in
-      let (sterms, nt_cnt): string list * int = sls |> List.filter (fun s -> (not (String.equal "|" s) && (not (String.equal "" s)))) 
+      let (sterms, nt_cnt): string list * int = sls |> List.filter (fun s -> 
+        (not (String.equal "|" s) && (not (String.equal "" s)))) 
         |> collect_terms_and_number_of_nonterms
-        (* |> List.fold_left (fun acc s -> 
-            if (is_terminal_string s) then (s::acc) 
-            else (nt_cnt := !nt_cnt + 1; acc)) [] *)
       in prods_map_loop stl (((sterms, nt_cnt), curr_prod)::acc)
-  in let nontriv_prods_mapping: ((string list * int) * string) list = 
+  in 
+  let nontriv_prods_mapping: ((string list * int) * string) list = 
     prods_map_loop prods_in_question [] 
   in
-  if debug_print then (printf "Nontrivial productions mapping \n"; Pp.pp_prods_mapping nontriv_prods_mapping);
-  (* let create_nontriv_prods_mapping ls acc: (string list * string list) =
-
-  in *)
-  
+  if debug_print then (printf "Nontrivial productions mapping \n"; 
+    Pp.pp_prods_mapping nontriv_prods_mapping);
+  (* 
+  let changed_nontriv_prods: string list =
+    nontriv_prods |> List.filter (fun (nt, _prods) -> (List.mem nt inconsistent_states))
+      |> List.fold_left (fun acc (old_nt, prods) -> 
+        (printf "\n >> Which state?!? %s" old_nt);
+        let new_prods = prods |> List.map (fun ln -> )
+        in
+        acc @ (new_prods@["  ;"; ""])
+        ) []
+  in
+   *)
   (* collect production list in blocks *)
   let collect_blocks (lst: p list): (p list) list =
     let rec blocks_loop ls curr_nont acc_prods (acc_res: (p list) list) =
@@ -756,42 +759,24 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
           let block = List.rev acc_prods in blocks_loop prods_tl nont (prod_h :: []) (block :: acc_res)
     in blocks_loop lst "" [] []
   in
+  let _changed_nontriv_prods_blocks: p list list = 
+    (* To resume from here! Need to check membership w.r.t. new states associated with inconsistent nontriv states *)
+    let nontriv_prods_raw = 
+      g.productions |> collect_blocks 
+      |> List.filter (fun prods -> 
+        let (fst_nt, _n, _sigls) = List.hd prods in
+        (List.mem fst_nt inconsistent_states))
+    in 
+    if debug_print then (printf "\n  >> Collected blocks:\n\n"; 
+      nontriv_prods_raw |> List.iter (fun b -> Pp.pp_ps b; printf "\n\n"));
+    nontriv_prods_raw
+  in  
   let write_block (_prods_blocks: p list): string list = []
   in
-  (* regroup production list so that all the ones with the same lhs *)
-  let regroup_blocks (blks: p list list): p list list = 
-    (* helper to remove any duplicate productions in the production list *)
-    let rec remove_dup_prods (prods_acc: p list) (prods: p list): p list = 
-      let prods_equal p1 p2: bool = match p1, p2 with 
-      | (nont1, _, sig_ls1), (nont2, _, sig_ls2) -> 
-        if (List.length sig_ls1 = List.length sig_ls2) 
-        then (String.equal nont1 nont2) 
-          (* && (List.fold_left2 (fun ac sig1 sig2 -> 
-          (sigmas_equal sig1 = sig2) && ac) true sig_ls1 sig_ls2)  *)
-        else false 
-    in
-      match prods with [] -> prods_acc
-      | prod_h :: prods_tl -> 
-        if (List.exists (fun x -> prods_equal x prod_h) prods_acc) 
-        then remove_dup_prods prods_acc prods_tl 
-        else remove_dup_prods (prod_h::prods_acc) prods_tl
-    in
-    (* helper to traverse all productions and collection productions with the same (lhs) nonterminal *)
-    let traverse_blks (nont_to_match: nonterminal): p list = 
-      (List.flatten blks) |> List.fold_left (fun acc ((nont, _, _) as prod) ->
-        if (nont = nont_to_match) then prod :: acc else acc) [] in
-    let rec loop blk_lst nonts_so_far (res_acc: p list list) =
-     match blk_lst with [] -> res_acc
-      | (nont, _, _) :: blk_tl -> 
-         if (List.mem nont nonts_so_far) then loop blk_tl nonts_so_far res_acc else 
-          (let res_blk = traverse_blks nont |> remove_dup_prods [] 
-           in loop blk_tl (nont::nonts_so_far) (res_blk::res_acc))
-    in loop (List.flatten blks) [] []
-  in
   let lines_added: string list = 
-    let prods_blocks: p list list = g.productions |> collect_blocks |> regroup_blocks in 
-    if debug_print then (printf "\n  >> Collected blocks:\n\n"; prods_blocks |> List.iter (fun b -> 
-      Pp.pp_ps b; printf "\n\n")); 
+    let prods_blocks: p list list = 
+      g.productions |> collect_blocks 
+    in 
     List.fold_left (fun acc blks -> (write_block blks) @ acc) [] prods_blocks in
   if debug_print then (printf "\n  >> Lines added:\n\n"; lines_added |> List.iter (fun l ->
     printf "\t%s\n" l); printf "\n\n");
