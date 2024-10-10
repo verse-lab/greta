@@ -63,6 +63,12 @@ let pp_cfg2 (c: C.cfg2) =
   pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms); pp_starts (c.starts); 
   pp_ps (c.productions); pp_triv_tnts (c.triv_term_nonterm_list); pp_loline ()
 
+let pp_prods_mapping (pms: ((string list * int) * string) list) = 
+  printf "\t (changed) Nontrivial productions mapping \n"; 
+  pms |> iter (fun ((ts, nt_cnt), prod) -> 
+    printf "\n\tTerminals : "; ts |> iter (fun s -> printf "%s " s); 
+    printf "\n\t\t with %i number of nonterminals mapped to ===> \n\t\t %s\n" nt_cnt prod)
+
 let pp_states (ss: T.state list) =
   printf "\tStates : { "; ss |> iter (printf "%s "); printf "}\n"
 

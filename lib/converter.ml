@@ -573,7 +573,10 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
               remove_less_dominant_dup_state tl acc)
         else remove_less_dominant_dup_state tl ((curr_st_old, curr_st_new)::acc)
     in let res_states_mapping_prim_res = remove_less_dominant_dup_state after_starts_states_mapping []
-    in res_states_mapping_prim_res |> List.sort compare |> List.rev (* @ triv_states_mappingeeee *)
+    in res_states_mapping_prim_res 
+    (* Sort so that states are ordered from the longer one to shorter one
+     - This way, you can replace 'stmts' before replacing 'stmt' *)
+    |> List.sort compare |> List.rev (* @ triv_states_mappingeeee *)
   in
   (* find corresponding lines wrt %type's *)
   let res_type_lines = replace_wgtypes type_id_lines res_states_mapping 
@@ -692,7 +695,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   (* TODO: Not doing it properly
      Need to change the lines to account for other nonterminals that appear in the middle of line *)
   let unchanged_nontriv_prods: string list = 
-    nontriv_prods |> List.fold_left (fun acc (old_nt, prods) -> 
+    nontriv_prods |> List.filter (fun (nt, _prods) -> (List.mem nt consistent_states)) 
+      |> List.fold_left (fun acc (old_nt, prods) -> 
       (printf "\n ** Which state?! %s" old_nt);
       let _old_st = Str.regexp old_nt in
       let _new_st = List.assoc old_nt res_states_mapping in
@@ -702,7 +706,40 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
         ) in acc @ (new_prods@["  ;"; ""])
       ) []
   in
-  
+  (* Create mappings for correct formatting and mapping of the string *)
+  let prods_in_question: string list = 
+    nontriv_prods |> List.filter (fun (nt, _prods) -> (List.mem nt inconsistent_states)) 
+    |> List.map snd |> List.map (fun prod_blk -> List.tl prod_blk)
+    |> List.flatten
+  in  
+  let is_terminal_string (s:string): bool = List.mem s (g.terms)
+  in 
+  let collect_terms_and_number_of_nonterms (sls: string list): string list * int = 
+    let rec loop ls terms_acc nonterm_cnt =
+      match ls with [] -> List.rev terms_acc, nonterm_cnt 
+      | str_hd :: str_tl -> 
+        if (String.equal str_hd "{")
+        then List.rev terms_acc, nonterm_cnt
+        else if (is_terminal_string str_hd)
+          then loop str_tl (str_hd::terms_acc) nonterm_cnt
+          else loop str_tl terms_acc (nonterm_cnt+1)
+    in loop sls [] 0
+  in
+  let rec prods_map_loop (ls: string list) (acc: ((string list * int) * string) list) = 
+    match ls with [] -> List.rev acc
+    | curr_prod :: stl -> 
+      (* let nt_cnt = ref 0 in *)
+      let sls = String.split_on_char ' ' curr_prod in
+      let (sterms, nt_cnt): string list * int = sls |> List.filter (fun s -> (not (String.equal "|" s) && (not (String.equal "" s)))) 
+        |> collect_terms_and_number_of_nonterms
+        (* |> List.fold_left (fun acc s -> 
+            if (is_terminal_string s) then (s::acc) 
+            else (nt_cnt := !nt_cnt + 1; acc)) [] *)
+      in prods_map_loop stl (((sterms, nt_cnt), curr_prod)::acc)
+  in let nontriv_prods_mapping: ((string list * int) * string) list = 
+    prods_map_loop prods_in_question [] 
+  in
+  if debug_print then (printf "Nontrivial productions mapping \n"; Pp.pp_prods_mapping nontriv_prods_mapping);
   (* let create_nontriv_prods_mapping ls acc: (string list * string list) =
 
   in *)
@@ -719,23 +756,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
           let block = List.rev acc_prods in blocks_loop prods_tl nont (prod_h :: []) (block :: acc_res)
     in blocks_loop lst "" [] []
   in
-
-  let write_block (_prods_blocks: p list): string list = 
-    []
-    (* 
-    let rec write_loop ls curr_nont acc = 
-      match ls with [] -> acc @ ["  ;"; ""]
-      | (nont, _, sig_ls) :: b_tl ->
-        if (curr_nont = "") then 
-          let str_fst = (nont ^ ":") :: [] in
-          let str_snd = corr_line nont t sig_ls in 
-          write_loop b_tl nont (acc @ str_fst @ str_snd) 
-        else if (curr_nont = nont) then 
-          let str = corr_line nont t sig_ls in
-          write_loop b_tl nont (acc @ str)
-        else raise (Failure "Block should have the same nonterminal on LHS.")
-    in write_loop prods_blocks "" []
-     *)
+  let write_block (_prods_blocks: p list): string list = []
   in
   (* regroup production list so that all the ones with the same lhs *)
   let regroup_blocks (blks: p list list): p list list = 

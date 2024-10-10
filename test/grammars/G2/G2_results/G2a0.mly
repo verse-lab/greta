@@ -63,19 +63,3 @@ x2:
   | LPAREN e=x2 RPAREN { e }
   ;
 
-x1: 
-  | d=x5 SEMI                      { loc $startpos $endpos @@ Decl(d) }
-  | id=ident EQ e=x2 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
-  | IF LPAREN e=x2 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
-  | IF LPAREN e=x2 RPAREN s1=x1 ELSE s2=x1
-                                     { loc $startpos $endpos @@ If(e, [s1], [s2]) }
-  | RETURN e=x2 SEMI                { loc $startpos $endpos @@ Ret(e) }
-  | WHILE LPAREN e=x2 RPAREN s=x1 { loc $startpos $endpos @@ While(e, [s]) }
-  | LBRACE ss=e1 RBRACE           { loc $startpos $endpos @@ Block(ss) }
-  ;
-
-e1:
-  |   /* empty */   { [] }
-  | s=x1 ss=e1   { s::ss }
-  ;
-
