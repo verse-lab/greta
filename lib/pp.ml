@@ -51,9 +51,13 @@ let pp_cfg (c: C.cfg) =
   pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms);
   pp_start (c.start); pp_productions (c.productions); pp_loline ()
 
+let pp_p (p: C.p) = 
+  match p with 
+  | (nt, _i, sig_ls) -> printf "%s  ->  " nt; sig_ls |> pp_sigma_list2
+
 let pp_ps (ps: C.p list) = 
-  printf "\tSet of productions : { \n"; ps |> iter (fun (nt, _i, sig_ls) -> 
-    printf "\t\t\t\t%s  ->  " nt; sig_ls |> pp_sigma_list2; printf "\n"); printf "\t\t\t     }\n"
+  printf "\tSet of productions : { \n"; ps |> iter (fun (nt, i, sig_ls) -> 
+    printf "\t\t\t\t"; pp_p (nt, i, sig_ls); printf "\n"); printf "\t\t\t     }\n"
 
 let pp_triv_tnts (tns: (C.t * C.nt) list) =
   printf "\tSet of trivial (terminal * nonterminal) pairs : { "; tns |> iter (fun (t, nt) -> 
@@ -63,11 +67,19 @@ let pp_cfg2 (c: C.cfg2) =
   pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms); pp_starts (c.starts); 
   pp_ps (c.productions); pp_triv_tnts (c.triv_term_nonterm_list); pp_loline ()
 
-let pp_prods_mapping (pms: ((string list * int) * string) list) = 
+(* let pp_prods_mapping1 (pms: ((string list * string) * string list) list) = 
   printf "\n\t (changed) Nontrivial productions mapping \n"; 
-  pms |> iter (fun ((ts, nt_cnt), prod) -> 
+  pms |> iter (fun ((ts, prod), nts) -> 
     printf "\n\tTerminals : "; ts |> iter (fun s -> printf "%s " s); 
-    printf "\t with %i number of nonterminals mapped to ===> \n\t\t %s\n" nt_cnt prod)
+    printf "\t with production %s " prod;
+    printf " mapped to ===> \n\t\t Nonterminals : "; nts |> List.iter (fun s -> printf " %s  " s); printf "\n") *)
+
+let pp_prods_mapping (pms: ((string list * int) * (string * string list)) list) = 
+  printf "\n\t (changed) Nontrivial productions mapping \n"; 
+  pms |> iter (fun ((ts, nts_num), (prod, nts)) -> 
+    printf "\n\tTerminals : "; ts |> iter (fun s -> printf "%s " s); 
+    printf "\t with %d number of Nonterminals mapped to ===> \n\t\t %s\n" nts_num prod; 
+    printf "And Nonterminals : "; nts |> List.iter (printf "%s "); printf "\n")
 
 let pp_states (ss: T.state list) =
   printf "\tStates : { "; ss |> iter (printf "%s "); printf "}\n"
