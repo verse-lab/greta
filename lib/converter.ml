@@ -793,8 +793,14 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
         Pp.pp_p p; printf "\n")); printf "\n");
   (* --- helper to find (prod string, nonterms) from 'nontriv_prods_terms_ntnum_mapping' --- *)
   let find_nontriv_prod_from_prods_mapping (terms: string list) (nt_num: int): string * string list = 
-    match List.assoc_opt (terms, nt_num) nontriv_prods_terms_ntnum_mapping with Some (p, nts) -> (p, nts)
-    | None -> "", []
+    if debug_print then (printf "\n\t Find nontriv production from prods mapping from terminal list "; 
+      terms |> Pp.pp_terminals; printf "\n\t AND nt_num %d \n" nt_num);
+    match List.assoc_opt (terms, nt_num) nontriv_prods_terms_ntnum_mapping with 
+    | Some (p, nts) -> 
+      if debug_print then (printf "\n\t FOUND production %s " p; 
+        printf " with nonterms "; nts |> Pp.pp_nonterminals); (p, nts)
+    | None -> 
+      if debug_print then (printf "\n\t NOT FOUND\n"); ("", [])
   in
   let change_str_per_nts (old_nts: string list) (new_nts : string list) (ln: string): string =
     if (List.length old_nts) != (List.length new_nts) then raise Nonterms_length_must_equal;
@@ -818,32 +824,17 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
     inconsistent_nonterm_prods_blocks |> List.fold_left (fun acc (nt, ts_nts_p_ls) -> 
       let new_prods = ts_nts_p_ls |> List.fold_left (fun acc (ts, new_nts, prod) -> 
         if debug_print then (printf "\nNow looking at prod "; Pp.pp_p prod; printf "\n");
-        let old_prod_line, old_nts_ls = find_nontriv_prod_from_prods_mapping ts (List.length new_nts) in
+        let new_nts' = new_nts |> List.filter (fun nt -> not (String.equal nt epsilon_state)) in
+        let old_prod_line, old_nts_ls = find_nontriv_prod_from_prods_mapping ts (List.length new_nts') in
         if (String.equal "" old_prod_line) && (List.is_empty old_nts_ls) 
         then 
           (let new_str = match prod with (_nt, _i, sig_ls) -> create_epsilon_prod_rhs sig_ls
            in new_str :: acc) 
         else 
-          (let changed_str = change_str_per_nts old_nts_ls new_nts old_prod_line 
+          (let changed_str = change_str_per_nts old_nts_ls new_nts' old_prod_line 
            in changed_str :: acc)) [] in 
       (nt ^ ":") :: new_prods @ ["  ;";""] @ acc) []
   in
-  (* 
-  let _learned_blocks_in_right_format: (nt * string list) list = 
-    let formatted_prods: (nt * string list) list = 
-      prods_blocks |> List.map (fun (nt, terms_ntnum_pls) -> 
-        let prods_formatted: string list = terms_ntnum_pls 
-          |> List.map (fun (terms, nonterms, p_ls) -> 
-            let _old_prod_ln = find_nontriv_prod_from_prods_mapping terms (List.length nonterms) in 
-          ) 
-        in 
-        (nt, prods_formatted)
-        )
-    in 
-    if debug_print then (printf ""; 
-    formatted_prods); formatted_prods
-  in
-   *)
   let oc = open_out to_write in (* parser_file *)
   lines_bef_prods @ starts_types_lines @ start_triv_prods @ unchanged_nontriv_prods @ changed_nonterm_prods
   |> List.iter (fun ln -> fprintf oc "%s\n" ln);

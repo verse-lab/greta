@@ -67,8 +67,7 @@ stmt:
   | d=decl SEMI                      { loc $startpos $endpos @@ Decl(d) }
   | id=ident EQ e=exp SEMI           { loc $startpos $endpos @@ Assn(id, e) }
   | IF LPAREN e=exp RPAREN s1=stmt   { loc $startpos $endpos @@ If(e, [s1], []) }
-  | IF LPAREN e=exp RPAREN s1=stmt ELSE s2=stmt
-                                     { loc $startpos $endpos @@ If(e, [s1], [s2]) }
+  | IF LPAREN e=exp RPAREN s1=stmt ELSE s2=stmt { loc $startpos $endpos @@ If(e, [s1], [s2]) }
   | RETURN e=exp SEMI                { loc $startpos $endpos @@ Ret(e) }
   | WHILE LPAREN e=exp RPAREN s=stmt { loc $startpos $endpos @@ While(e, [s]) }
   | LBRACE ss=stmts RBRACE           { loc $startpos $endpos @@ Block(ss) }

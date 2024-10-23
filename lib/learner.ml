@@ -117,7 +117,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   in
   (* ------------- TODO: later can simplify below ------------- *)
   (* Something needs to be done here!  *)
-  let new_op_tbl: (int, symbol list) Hashtbl.t = Hashtbl.copy o_bp_tbl in (* *** (debugging) Hashtbl.copy *)
+  let new_op_tbl: (int, symbol list) Hashtbl.t = Hashtbl.copy o_bp_tbl in 
   (* update op_tbl based on op_ls *)  
   sym_ord_ls_wrt_op |> List.iter (fun (s, o) -> 
     (* first remove the symbol from the existing hashtbl *)
@@ -126,7 +126,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       (let new_sls' = List.filter (fun x -> not (syms_equals s x)) sls' 
       in Hashtbl.replace new_op_tbl i new_sls'));
     (* then add the symbol corresponding to the new order *)
-    let existing = Hashtbl.find new_op_tbl o in
+    let existing = match Hashtbl.find_opt new_op_tbl o with Some ls -> ls | None -> [] in
     let new_sym_ls = s :: existing in
     Hashtbl.replace new_op_tbl o new_sym_ls);
   (* ---------------------------------------------------------- *)
@@ -149,7 +149,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
           (* 
           sym_ls_ls : symbol list list (* and change below List.length (List.hd sym_ls_ls)*)
           *)
-          find_all o_bp_tbl lvl    (* *** (debugging) o_bp_tbl *)
+          find_all new_op_tbl lvl    (* *** (debugging) o_bp_tbl *)
           
           
         in
