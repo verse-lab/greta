@@ -54,6 +54,7 @@ const:
 
 exp:
   | e1=exp PLUS e2=exp2  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | e=exp2 { e }
 
 exp2: 
   | e1=exp2 DASH e2=exp2  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }

@@ -44,6 +44,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     | Some st -> st in 
   let max_lvl = 
     lvl_state_pairs |> List.map fst |> List.fold_left max 1 in
+  (* printf "\n\nMAX LEVEL IS >> %d\n\n" max_lvl; *)
   let last_state: state = 
     match (List.assoc_opt max_lvl lvl_state_pairs) with 
     None -> raise Max_level_state | Some st -> st in 
@@ -53,9 +54,11 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   |> List.iter (fun ((s, i), sigls) -> Pp.pp_symbol s; printf "order %d --> " i; sigls |> Pp.pp_sigma_list2; printf "\n");
   *)
   let find_rhs_lst_lst (s: symbol) (o: int): sigma list list = Utils.assoc_all s o sym_ord_rhs_ls debug in
+  (*   
   let is_terminal (x: sigma) = 
     match x with T _ -> true | Nt _ -> false
-  in
+  in *)
+  
   (* --------------- *)
   (* Step 1 - add last state ->_{<(), 1>} start state to 'trans_tbl' *)
   add trans_tbl (last_state, ("LPARENRPAREN", 1)) [[(Nt start)]];
@@ -71,6 +74,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   if debug then printf "\n  >> After adding trivial transitions \n"; 
     Pp.pp_transitions_tbl trans_tbl;
   (* Step 4 - add transitions for nontrivial symbols level by level *)
+  
   (* --- helpers for this step --- *)
   let is_trivial_nonterm (x: sigma) = 
     let trivial_nonterms = 
@@ -82,6 +86,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       match x with T _ -> false 
       | Nt x' -> (List.mem x' trivial_nonterms)
   in
+  
   let rec match_collect (sym: symbol) (ls: sigma list) (curr_st: state) (acc: sigma list): sigma list =
     let syms_wrt_oa = oa_ls |> List.map (fun x -> match x with 
       Assoc (s, _) -> s | Prec _ -> raise No_prec_possible) in 
@@ -102,8 +107,10 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
         else
           match_collect sym tl curr_st ((Nt curr_st)::acc))
   in
+ 
   let sym_ord_ls_wrt_op: (symbol * int) list = op_ls |> List.map (fun x -> match x with 
     Assoc _ -> raise No_assoc_possible | Prec (s, o) -> (s, o)) in
+  
   let syms_op = sym_ord_ls_wrt_op |> List.map fst in
   let original_order s: int = 
     let sym_ord_ls = sym_ord_rhs_ls |> List.map (fun ((s, o), _sls) -> (s, o)) in
@@ -115,98 +122,155 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     o_bp_tbl |> iter (fun o sym_ls -> if (List.mem s sym_ls) then ord_in_bp := o); 
     !ord_in_bp != o'
   in
-  (* ------------- TODO: later can simplify below ------------- *)
+  
+
+  (* --- helper --- *)
+  let _find_levels_in_op_tbl (sym: symbol) (tbl: (int, symbol list) Hashtbl.t): int list = 
+    let lvls = ref [] in
+    Hashtbl.iter (fun lvl sls -> if (List.mem sym sls) then lvls := (lvl::!lvls)) tbl;
+    printf "\n\t  --- For symbol "; Pp.pp_symbol sym; printf " found "; List.iter (fun d -> printf "%d " d) !lvls ;
+    !lvls
+  in
+
+  (*  **********************************************************************  *)
+  (* 
   (* Something needs to be done here!  *)
   let new_op_tbl: (int, symbol list) Hashtbl.t = Hashtbl.copy o_bp_tbl in 
   (* update op_tbl based on op_ls *)  
-  sym_ord_ls_wrt_op |> List.iter (fun (s, o) -> 
-    (* first remove the symbol from the existing hashtbl *)
+  sym_ord_ls_wrt_op |> List.iter (fun (s, ord) -> 
     printf "\n\t *** (debugging) For symbol!"; Pp.pp_symbol s;
-    new_op_tbl |> Hashtbl.iter (fun i sls' -> if (List.mem s sls') then 
-      (let new_sls' = List.filter (fun x -> not (syms_equals s x)) sls' 
-      in Hashtbl.replace new_op_tbl i new_sls'));
-    (* then add the symbol corresponding to the new order *)
-    let existing = match Hashtbl.find_opt new_op_tbl o with Some ls -> ls | None -> [] in
-    let new_sym_ls = s :: existing in
-    Hashtbl.replace new_op_tbl o new_sym_ls);
+    (* 
+    
+    let sym_lvls = find_levels_in_op_tbl s new_op_tbl in
+    if (List.length sym_lvls) = 1 
+    then 
+      (let lvl = List.hd sym_lvls 
+       in if (lvl != ord) 
+        then ())
+    else ();
+     *)
+    (* quick fix for below *)
+    let _epsilon_sym (sym: symbol) = match sym with (s, _) -> s = (fst epsilon_symb)
+    in 
+    (* first remove the symbol from the existing hashtbl if ord != lvl *)
+    new_op_tbl |> Hashtbl.iter (fun lvl sls' -> 
+      if (List.mem s sls') && (lvl != ord) 
+      then 
+        (let new_sls' = List.filter (fun x -> not (syms_equals s x)) sls' 
+        in Hashtbl.replace new_op_tbl lvl new_sls';
+        (* then add the symbol corresponding to the new order *)
+        let existing = match Hashtbl.find_opt new_op_tbl ord with Some ls -> ls | None -> [] in
+        let new_sym_ls = s :: existing in
+        Hashtbl.replace new_op_tbl ord new_sym_ls)
+      else 
+        (printf "\n\t --- For the symbol "; Pp.pp_symbol s; 
+        printf "\n\t --- not (a member of syms for order %d) || (level %d == order %d)" ord lvl ord)
+    ));
+ *)
+  (*  **********************************************************************  *)
+  (* *** simpler and correct version of updated o_bp_table *** *)
+  let updated_op_tbl: (int, symbol list) Hashtbl.t = Hashtbl.create (Hashtbl.length o_bp_tbl) in
+  sym_ord_ls_wrt_op |> List.iter (fun (s, o) -> 
+    match Hashtbl.find_opt updated_op_tbl o with 
+    | Some exist_syms -> 
+      if (not (List.mem s exist_syms)) 
+      then Hashtbl.replace updated_op_tbl o (s::exist_syms)
+    | None -> Hashtbl.add updated_op_tbl o (s::[]) 
+  );
   (* ---------------------------------------------------------- *)
   (* *** debug *** *)
   if debug then (printf "\n *** Before updating o_bp_tbl \n"; Pp.pp_obp_tbl o_bp_tbl;
-  printf "\n *** After updating new_op_tbl \n"; Pp.pp_obp_tbl new_op_tbl);
+  (* printf "\n *** After updating new_op_tbl \n"; Pp.pp_obp_tbl new_op_tbl; *)
+  printf "\n >>> WHat about this?! \n"; Pp.pp_obp_tbl updated_op_tbl);
+
+  (* --- helper --- *)
+  let run_for_sym_ls lvl curr_st sym_ls: ((state * symbol) * sigma list list) list = 
+    sym_ls |> List.fold_left (fun acc sym -> 
+      let sym_rhs_ls_ls : sigma list list = 
+        if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
+        then 
+          (let original_lvl = original_order sym in
+          find_rhs_lst_lst sym original_lvl)
+        else 
+          find_rhs_lst_lst sym lvl
+      in
+      let sym_rhs_lsls_learned: sigma list list = 
+        if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
+        then 
+          (printf "\n Different? *** Part of Syms_O_p \t"; Pp.pp_symbol sym;
+          sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls ->
+          let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
+          let new_st = "e" ^ (string_of_int (new_lvl+1)) in
+          let sym_rhs_ls_learned = match_collect sym rhs_ls new_st []
+          in 
+          sym_rhs_ls_learned :: acc) [])
+        else 
+          (sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
+          let sym_rhs_ls_learned = match_collect sym rhs_ls curr_st []
+          in sym_rhs_ls_learned :: acc ) [])
+      in
+      (printf "\n\t\t Rhs sigma lsls learned\n\t\t";
+      sym_rhs_lsls_learned |> List.iter (fun sym_rhs_ls -> Pp.pp_sigma_list2 sym_rhs_ls); printf "\n");
+      ((curr_st, sym), sym_rhs_lsls_learned):: acc
+      (* if debug then printf "\n\tAdding transition for (State %s, " curr_st; Pp.pp_symbol sym; printf ")";
+      if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
+      then 
+        (let _old_st = curr_st in
+        let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
+        let new_st = "e" ^ (string_of_int (new_lvl+1)) in
+        add trans_tbl (new_st, sym) sym_rhs_lsls_learned)
+      else
+        (add trans_tbl (curr_st, sym) sym_rhs_lsls_learned) *)      
+    ) []
+  in
   (* ---------------------------------------------------------- *)
-  let rec run_for_each_level lvl: unit =
-    if (lvl <= max_lvl-1)
-    then
-      begin  
+  let rec run_for_each_level lvl (acc: ((state * symbol) * sigma list list) list): 
+    ((state * symbol) * sigma list list) list =
+    if (lvl = max_lvl) then acc
+    else 
+      begin 
         if debug then printf "\n\n\t >> Now considering level %i >> \n" (lvl+1);
         (* Collect nontrivial symbols per level [note: lvl starts from 0 to max-1] *)
-        let sym_ls_ls : symbol list list = 
-          (* 
-          List.fold_left (fun acc ((sym, o), _sigls) -> 
-            if (o = lvl) then (if (List.mem sym acc) then acc else sym :: acc) else acc
-            ) [] sym_ord_rhs_ls |> remove_dup_symbols
-           *)
-          (* 
-          sym_ls_ls : symbol list list (* and change below List.length (List.hd sym_ls_ls)*)
-          *)
-          find_all new_op_tbl lvl    (* *** (debugging) o_bp_tbl *)
-          
-          
+        let sym_ls : symbol list = 
+          List.flatten (find_all updated_op_tbl lvl)    (* *** (debugging) new_op_tbl *)
         in
-          printf "\n\t >> Length of syms --> %i" (List.length (List.hd sym_ls_ls));
-          let curr_st = "e" ^ (string_of_int (lvl+1)) in
-          let run_for_sym_ls ls = 
-            ls |> List.iter (fun sym -> 
-            (* (recent fix) !!! phew... sequence was not exactly right...  *)
-            let sym_rhs_ls_ls : sigma list list = 
-              if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
-              then
-                let original_lvl = original_order sym in
-                find_rhs_lst_lst sym original_lvl 
-              else 
-                find_rhs_lst_lst sym lvl
-          in
-          let sym_rhs_lsls_learned = 
-            if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
-            then 
-              (printf "\n Different? *** Part of Syms_O_p \t"; Pp.pp_symbol sym;
-              sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls ->
-                let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
-                let new_st = "e" ^ (string_of_int (new_lvl+1)) in
-                let sym_rhs_ls_learned = match_collect sym rhs_ls new_st []
-                in 
-                (* (printf "\noriginal rhs_ls_ls"; sym_rhs_ls_ls |> List.flatten |> Pp.pp_sigma_list2); *)
-                sym_rhs_ls_learned :: acc) [])
-            else 
-              (sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
-              let sym_rhs_ls_learned = match_collect sym rhs_ls curr_st []
-              in sym_rhs_ls_learned :: acc ) [])
-            in
-              if debug then printf "\n\tAdding transition for (State %s, " curr_st; Pp.pp_symbol sym; printf ")";
-              if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
-              then 
-                (let _old_st = curr_st in
-                let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
-                let new_st = "e" ^ (string_of_int (new_lvl+1)) in
-                (* [fixed] remove transition (old_st, sym) -> ... *)
-                (* [fixed] remove trans_tbl (old_st, sym); *)
-                (* add transition (new_st, sym) -> rhs_lsls_learned *)
-                (* [fixed] (printf "\tNew state! %s" new_st; 
-                sym_rhs_lsls_learned |> List.flatten |> Pp.pp_sigma_list2); *)
-                add trans_tbl (new_st, sym) sym_rhs_lsls_learned)
-              else
-                (add trans_tbl (curr_st, sym) sym_rhs_lsls_learned)) 
-          in 
-            sym_ls_ls |> List.iter run_for_sym_ls; (* earlier ver - sym_ls_ls |> List.iter run_for_sym_ls *)
-            run_for_each_level (lvl+1)
+          (printf "\n\t >> For level %d Length of syms is %i ---> " (lvl+1) (List.length sym_ls);
+          sym_ls |> List.iter Pp.pp_symbol);
+          let curr_st = "e" ^ (string_of_int (lvl+1)) in 
+            let to_acc = sym_ls |> run_for_sym_ls lvl curr_st in 
+            run_for_each_level (lvl+1) (to_acc @ acc)
       end
-      else 
-        (if debug then printf "\n Running for each level done!\n")
-  in run_for_each_level 0;
+  in let learned_lhsst_sym_siglsls = run_for_each_level 0 [] 
+  in printf "\n\t\t HERE! \n\n"; learned_lhsst_sym_siglsls |> List.iter (fun ((lhs, sym), siglsls) -> 
+    printf "\n\tFor LHS %s " lhs; Pp.pp_symbol sym; siglsls |> List.iter (fun sigls -> Pp.pp_sigma_list2 sigls));
+    printf "\n\n";
+    printf "\n\t\t LENGTH IS %d\n\n" (List.length learned_lhsst_sym_siglsls);
+  let rec triv_eps_trans i (acc: ((state * symbol) * sigma list list) list) = 
+    if i > max_lvl - 1 then acc
+    else 
+      (let (left_st, right_st) = "e" ^ (string_of_int i), "e" ^ (string_of_int (i+1)) in
+       let to_acc = (left_st, epsilon_symb), [[(Nt right_st)]] 
+       in triv_eps_trans (i+1) (to_acc::acc))
+  in 
+  let triv_eps_trans = triv_eps_trans 1 [] in 
+  printf "\n\n\t\tTRIVIAL STATE TRANSITIONS\n\n";
+  triv_eps_trans |> List.iter (fun ((lhs, sym), siglsls) -> printf "LHS state %s " lhs; 
+  Pp.pp_symbol sym; siglsls |> List.iter (fun sigls -> Pp.pp_sigma_list2 sigls));
+  let new_trans_tbl = Hashtbl.create 100 in 
+    learned_lhsst_sym_siglsls |> List.iter (fun ((lhs, sym), siglsls) -> 
+      add new_trans_tbl (lhs, sym) siglsls);
+  (* NOTE: 
+   *       Merge trans_tbl and new_trans_tbl so that both trvi transitions and nontriv transitions
+   *       are combined. If I just work with only one trans_tbl and try adding everything there, 
+   *       it gets stuck in some inifinite loop. This is a work around. 
+   *)
+  let final_trans = Utils.merge ~into:new_trans_tbl trans_tbl in
+    (* triv_eps_trans |> List.iter (fun ((lhs, sym), siglsls) -> 
+      add new_trans_tbl (lhs, sym) siglsls); *)
   (* Now go through sym_ord_ls_wrt_op and update trans_tbl *)
   if debug then printf "\n  >> After adding nontrivial transitions \n"; 
-    Pp.pp_transitions_tbl trans_tbl;
-  trans_tbl
+    Pp.pp_transitions_tbl final_trans;
+  final_trans
 
 let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
   (sym_state_ls: (symbol * state) list) (a: symbol list) 

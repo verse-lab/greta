@@ -60,3 +60,8 @@ let assoc_all (a: Ta.symbol) (ord: int) (ab_ls: ((Ta.symbol * int) * Cfg.sigma l
   if debug_print then (printf "\n\n\t   For symbol "; pp_symbol a; printf " collected:\t"; 
   res |> List.iter (fun s_ls -> printf " [ "; s_ls |> List.iter pp_sigma; printf "] "));
   res
+
+
+let merge ~into:tab1 tab2 =
+  Hashtbl.fold (fun key elt () -> Hashtbl.replace tab1 key elt) tab2 ();
+  tab1

@@ -75,15 +75,13 @@ stmt:
   | id=ident EQ e=exp SEMI  { loc $startpos $endpos @@ Assn(id, e) }
   | ifs=if_stmt             { ifs }
   | RETURN e=exp SEMI       { loc $startpos $endpos @@ Ret(e) }
-  | WHILE LPAREN e=exp RPAREN b=block
-                            { loc $startpos $endpos @@ While(e, b) }
+  | WHILE LPAREN e=exp RPAREN b=block { loc $startpos $endpos @@ While(e, b) }
 
 block:
   | LBRACE stmts=list(stmt) RBRACE { stmts }
 
 if_stmt:
-  | IF LPAREN e=exp RPAREN b1=block b2=else_stmt
-       { loc $startpos $endpos @@ If(e,b1,b2) }
+  | IF LPAREN e=exp RPAREN b1=block b2=else_stmt { loc $startpos $endpos @@ If(e,b1,b2) }
 
 else_stmt:
   | (* empty *)       { [] }
