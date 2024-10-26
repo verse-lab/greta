@@ -9,7 +9,6 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token EOF
 %token <int64>  INT
 %token <string> IDENT
-%token <string> STRING
 %token ELSE     /* else */
 %token IF       /* if */
 %token TINT     /* int */
