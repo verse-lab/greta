@@ -263,8 +263,7 @@ That is, $O_{bp}$ is order $\to$ symbols mapping
     x4 $\to_{(\texttt{STAR}, 2)}$ x4 STAR x4 \
     x4 $\to_{(\varepsilon, 1)}$ ident \
     x4 $\to_{(\varepsilon, 1)}$ const \
-    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN \
-    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN
+    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN 
 
     x2 $\to_{(\texttt{SEMI}, 1)}$ x3 SEMI \
     x2 $\to_{(\texttt{EQ}, 3)}$ ident EQ x4 SEMI \

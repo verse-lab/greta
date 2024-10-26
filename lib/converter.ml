@@ -188,7 +188,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   let open Printf in
   let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
   if debug_print then 
-    (printf "\n\t *** (debugging) Nonterminals\n\t"; nonterms |> Pp.pp_nonterminals; printf "\n");
+    (printf "\n\t Extracted following nonterminals\n\t"; nonterms |> Pp.pp_nonterminals; printf "\n");
   let ranked_alphabet = map 
     (fun (_, (a, _), _) -> a)
     prods

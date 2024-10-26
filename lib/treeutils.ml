@@ -299,7 +299,9 @@ let collect_op_restrictions (example_trees: (string list * tree * (bool * bool) 
   (debug_print: bool): restriction list = 
   let res = example_trees 
     |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls @ acc else acc) [] 
-  in if debug_print then (Printf.printf "\n  Collected O_p : "; Pp.pp_restriction_lst res); res
+    |> List.map (fun r -> match r with Prec (sym, o) -> Prec (sym, (o-1)) | Assoc _ -> raise No_assoc_possible)
+  in 
+  if debug_print then (Printf.printf "\n  Collected O_p : "; Pp.pp_restriction_lst res); res
 
 (* helper for 'combine_op_restrictions'
  - find all occurrences of (s, o) for sym 's' in o_tmp and combine all the matching o's *)
