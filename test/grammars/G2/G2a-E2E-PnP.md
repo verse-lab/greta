@@ -168,7 +168,6 @@ That is, $O_{bp}$ is order $\to$ symbols mapping
 
     **stmt_e2** $\to_{(\texttt{SEMI}, 1)}$ decl_e2 SEMI \
     stmt_e2 $\to_{(\texttt{EQ}, 3)}$ ident_ident EQ exp_e2 SEMI \
-    stmt_e2 $\to_{(\texttt{IF}, 4)}$ IF LPAREN exp_e1 RPAREN stmt_e1 \
     stmt_e2 $\to_{(\texttt{IF}, 6)}$ IF LPAREN exp_e2 RPAREN stmt_e2 ELSE stmt_e2 \
     stmt_e2 $\to_{(\texttt{RET}, 2)}$ RET exp_e2 SEMI \
     stmt_e2 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN exp_e2 RPAREN stmt_e2 \
@@ -192,7 +191,7 @@ That is, $O_{bp}$ is order $\to$ symbols mapping
 
 ### Step 8: Identify a list of duplicate state pairs
 
-* { (stmt_e1, stmt_e2), (exp_e2, exp_e1), (exp_e2, exp_e3) }
+* { (exp_e2, exp_e1), (exp_e2, exp_e3) }
 
 ### Step 9: Remove duplicate states and rename states
 
@@ -200,9 +199,10 @@ That is, $O_{bp}$ is order $\to$ symbols mapping
   - Rename maps:
     + stmts_e1 $\to$ e1
     + stmt_e1 $\to$ x1
-    + decl_e2 $\to$ x2
-    + exp_e2 $\to$ x3
-    + stmts_e2 $\to$ x4
+    + stmt_e2 $\to$ x2
+    + decl_e2 $\to$ x3
+    + exp_e2 $\to$ x4
+    + stmts_e2 $\to$ x5
 
 * $I$ = { stmts_e1 }
 
@@ -210,26 +210,33 @@ That is, $O_{bp}$ is order $\to$ symbols mapping
     e1 $\to_{(\varepsilon, 1)}$ $\epsilon$ \
     e1 $\to_{(\varepsilon, 2)}$ x1 e1 
 
-    x1 $\to_{(\texttt{SEMI}, 1)}$ x2 SEMI \
-    x1 $\to_{(\texttt{EQ}, 3)}$ ident EQ x3 SEMI \
-    x1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN x3 RPAREN x1 \
-    x1 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x3 RPAREN x1 ELSE x1 \
-    x1 $\to_{(\texttt{RET}, 2)}$ RET x3 SEMI \
-    x1 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x3 RPAREN x1 \
-    x1 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE x4 RBRACE
+    x1 $\to_{(\texttt{SEMI}, 1)}$ x3 SEMI \
+    x1 $\to_{(\texttt{EQ}, 3)}$ ident EQ x4 SEMI \
+    x1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN x4 RPAREN x1 \
+    x1 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x4 RPAREN x2 ELSE x2 \
+    x1 $\to_{(\texttt{RET}, 2)}$ RET x4 SEMI \
+    x1 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x4 RPAREN x2 \
+    x1 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE x5 RBRACE
 
-    x2 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ x3
+    x3 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ x4
 
-    x3 $\to_{(\texttt{PLUS}, 2)}$ x3 PLUS x3 \
-    x3 $\to_{(\texttt{DASH}, 2)}$ x3 DASH x3 \
-    x3 $\to_{(\texttt{STAR}, 2)}$ x3 STAR x3 \
-    x3 $\to_{(\varepsilon, 1)}$ ident \
-    x3 $\to_{(\varepsilon, 1)}$ const \
-    x3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x3 RPAREN \
-    x3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x3 RPAREN
+    x4 $\to_{(\texttt{PLUS}, 2)}$ x4 PLUS x4 \
+    x4 $\to_{(\texttt{DASH}, 2)}$ x4 DASH x4 \
+    x4 $\to_{(\texttt{STAR}, 2)}$ x4 STAR x4 \
+    x4 $\to_{(\varepsilon, 1)}$ ident \
+    x4 $\to_{(\varepsilon, 1)}$ const \
+    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN \
+    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN
 
-    x4 $\to_{(\varepsilon, 1)}$ $\epsilon$
+    x2 $\to_{(\texttt{SEMI}, 1)}$ x3 SEMI \
+    x2 $\to_{(\texttt{EQ}, 3)}$ ident EQ x4 SEMI \
+    x2 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x4 RPAREN x2 ELSE x2 \
+    x2 $\to_{(\texttt{RET}, 2)}$ RET x4 SEMI \
+    x2 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x4 RPAREN x2 \
+    x2 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE stmts_e2 RBRACE
 
+    x5 $\to_{(\varepsilon, 1)}$ $\epsilon$
+    
     _ident $\to_{(\texttt{IDENT}, 0)}$ $\epsilon$_ \
     _const $\to_{(\texttt{INT}, 0)}$ $\epsilon$_
     
@@ -238,37 +245,40 @@ That is, $O_{bp}$ is order $\to$ symbols mapping
 
 ### Step 10: Introduce epsilon transitions to simplify the transitions
 
-* $Q$ = { e1, x1, x2, x3, x4, ident, const, $\epsilon$ }
+* $Q$ = { e1, x1, x2, x3, x4, x5, ident, const, $\epsilon$ }
 
 * $I$ = { e1 }
 
-* $\Delta$ = {\
-    e1 $\to_{(\varepsilon, 1)}$ x4 \
+ $\Delta$ = {\
+    e1 $\to_{(\varepsilon, 1)}$ x5 \
     e1 $\to_{(\varepsilon, 2)}$ x1 e1 
 
-    x1 $\to_{(\texttt{SEMI}, 1)}$ x2 SEMI \
-    x1 $\to_{(\texttt{EQ}, 3)}$ ident EQ x3 SEMI \
-    x1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN x3 RPAREN x1 \
-    x1 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x3 RPAREN x1 ELSE x1 \
-    x1 $\to_{(\texttt{RET}, 2)}$ RET x3 SEMI \
-    x1 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x3 RPAREN x1 \
-    x1 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE x4 RBRACE
+    x1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN x4 RPAREN x1 \
+    x1 $\to_{(\varepsilon, 1)}$ x2
 
-    x2 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ x3
+    x3 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ x4
 
-    x3 $\to_{(\texttt{PLUS}, 2)}$ x3 PLUS x3 \
-    x3 $\to_{(\texttt{DASH}, 2)}$ x3 DASH x3 \
-    x3 $\to_{(\texttt{STAR}, 2)}$ x3 STAR x3 \
-    x3 $\to_{(\varepsilon, 1)}$ ident \
-    x3 $\to_{(\varepsilon, 1)}$ const \
-    x3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x3 RPAREN \
-    x3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x3 RPAREN
+    x4 $\to_{(\texttt{PLUS}, 2)}$ x4 PLUS x4 \
+    x4 $\to_{(\texttt{DASH}, 2)}$ x4 DASH x4 \
+    x4 $\to_{(\texttt{STAR}, 2)}$ x4 STAR x4 \
+    x4 $\to_{(\varepsilon, 1)}$ ident \
+    x4 $\to_{(\varepsilon, 1)}$ const \
+    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN \
+    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN
 
-    x4 $\to_{(\varepsilon, 1)}$ $\epsilon$
+    x2 $\to_{(\texttt{SEMI}, 1)}$ x3 SEMI \
+    x2 $\to_{(\texttt{EQ}, 3)}$ ident EQ x4 SEMI \
+    x2 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x4 RPAREN x2 ELSE x2 \
+    x2 $\to_{(\texttt{RET}, 2)}$ RET x4 SEMI \
+    x2 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x4 RPAREN x2 \
+    x2 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE stmts_e2 RBRACE
 
+    x5 $\to_{(\varepsilon, 1)}$ $\epsilon$
+    
     _ident $\to_{(\texttt{IDENT}, 0)}$ $\epsilon$_ \
     _const $\to_{(\texttt{INT}, 0)}$ $\epsilon$_
     
     }
+
 
 
