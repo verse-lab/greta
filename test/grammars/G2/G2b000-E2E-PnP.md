@@ -312,20 +312,20 @@ That is, $O_{bp}$ is order $\to$ symbols mapping
 Intermediate : 
 
 * $\Delta$ = {\
-    e1 $\to_{(\varepsilon, 1)}$ $\epsilon$ \
+    e1 $\to_{(\varepsilon, 1)}$ x5 \
     e1 $\to_{(\varepsilon, 2)}$ x1 e1 
 
     x1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN x3 RPAREN x1 \
     x1 $\to_{(\varepsilon, 1)}$ x4
 
-    x2 $\to_{(\texttt{TINT}, 3)}$ TINT ident_ident EQ x6 
+    x2 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ x6 
     
     x3 $\to_{(\texttt{PLUS}, 2)}$ x6 PLUS x7 \
     x3 $\to_{(\texttt{DASH}, 2)}$ x8 DASH x8 \
     x3 $\to_{(\varepsilon, 1)}$ x7
     
     x4 $\to_{(\texttt{SEMI}, 1)}$ x2 SEMI \
-    x4 $\to_{(\texttt{EQ}, 3)}$ ident_ident EQ x3 SEMI \
+    x4 $\to_{(\texttt{EQ}, 3)}$ ident EQ x3 SEMI \
     x4 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x3 RPAREN x4 ELSE x4 \
     x4 $\to_{(\texttt{RET}, 2)}$ RET x3 SEMI \
     x4 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x3 RPAREN x4 \
@@ -356,19 +356,19 @@ Can be simplified to (1) or (2)
 
 (1) 
 * $\Delta$ = {\
-    e1 $\to_{(\varepsilon, 1)}$ $\epsilon$ \
+    e1 $\to_{(\varepsilon, 1)}$ x5 \
     e1 $\to_{(\varepsilon, 2)}$ x1 e1 
 
     x1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN x3 RPAREN x1 \
     x1 $\to_{(\varepsilon, 1)}$ x4
 
-    x2 $\to_{(\texttt{TINT}, 3)}$ TINT ident_ident EQ x6 
+    x2 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ x6 
     
     x3 $\to_{(\texttt{PLUS}, 2)}$ x6 PLUS x7 \
     x3 $\to_{(\varepsilon, 1)}$ x8
     
     x4 $\to_{(\texttt{SEMI}, 1)}$ x2 SEMI \
-    x4 $\to_{(\texttt{EQ}, 3)}$ ident_ident EQ x3 SEMI \
+    x4 $\to_{(\texttt{EQ}, 3)}$ ident EQ x3 SEMI \
     x4 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x3 RPAREN x4 ELSE x4 \
     x4 $\to_{(\texttt{RET}, 2)}$ RET x3 SEMI \
     x4 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x3 RPAREN x4 \
@@ -397,19 +397,19 @@ Can be simplified to (1) or (2)
 
 (2) 
 * $\Delta$ = {\
-    e1 $\to_{(\varepsilon, 1)}$ $\epsilon$ \
+    e1 $\to_{(\varepsilon, 1)}$ x5 \
     e1 $\to_{(\varepsilon, 2)}$ x1 e1 
 
     x1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN x3 RPAREN x1 \
     x1 $\to_{(\varepsilon, 1)}$ x4
 
-    x2 $\to_{(\texttt{TINT}, 3)}$ TINT ident_ident EQ x6 
+    x2 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ x6 
     
     x3 $\to_{(\texttt{DASH}, 2)}$ x8 DASH x8 \
     x3 $\to_{(\varepsilon, 1)}$ x6
     
     x4 $\to_{(\texttt{SEMI}, 1)}$ x2 SEMI \
-    x4 $\to_{(\texttt{EQ}, 3)}$ ident_ident EQ x3 SEMI \
+    x4 $\to_{(\texttt{EQ}, 3)}$ ident EQ x3 SEMI \
     x4 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x3 RPAREN x4 ELSE x4 \
     x4 $\to_{(\texttt{RET}, 2)}$ RET x3 SEMI \
     x4 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x3 RPAREN x4 \
