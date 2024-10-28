@@ -269,17 +269,32 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       |> for_all (fun (_, ((_, a), _), _) -> a = 0) 
     ) |> filter (fun x -> (not (String.equal epsilon_state x)))
   in
-  let find_symbol_from_productions (nt: nonterminal) (p: production2 list): symbol = 
+  let _find_symbol_from_productions (nt: nonterminal) (p: production2 list): symbol = 
     let rec loop prods =
       match prods with [] -> raise Trivial_symbols_not_found_in_prods
       | (n, ((term, i), _), _) :: tl -> 
         if nt = n then (term, i)
         else loop tl
     in loop p
+  in 
+  let find_nonterm_from_prods (sym: symbol) (p: production2 list): nonterminal = 
+    let rec loop prods = 
+      match prods with [] -> raise Trivial_symbols_not_found_in_prods
+      | (nt, ((term, i), _), _) :: tl -> 
+        if (Ta.syms_equals sym (term, i)) then nt 
+        else loop tl
+    in loop p
   in
-  let trivial_syms_nts : (symbol * nonterminal) list = trivial_nts |> map (fun nt -> 
+  let trivial_syms_nts : (symbol * nonterminal) list = 
+    (* new version: to take all the trivial symbols into account *)
+    ranked_alphabet |> List.filter (fun a -> snd a = 0) |> List.map (fun sym -> 
+      (sym, (find_nonterm_from_prods sym g.productions))
+      )
+    (* 
+    trivial_nts |> map (fun nt -> 
     if (nt = epsilon_state) then (epsilon_symb, nt) else ((find_symbol_from_productions nt g.productions), nt)) 
     |> List.filter (fun (s, _) -> not (syms_equals epsilon_symb s))
+     *)
   in 
   (* *** debug *** *)
   if debug_print then (printf "\n\t *** (debugging) Check trivial symbols and nonterminals\n"; 
