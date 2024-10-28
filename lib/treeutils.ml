@@ -201,12 +201,8 @@ let tree_to_expr (t: tree) : string list =
       | "LBRACERBRACE", 1 -> 
         ["("; "LBRACE"] @ tree_loop (nth subts 1) @ ["RBRACE"; ")"]
         (* TODO: Make the rank below to be generalizable *)
-      | "IF", 2 -> 
-        ["("; s'] @ tree_loop (nth subts 0) @ ["THEN"] @ tree_loop (nth subts 1) @ [")"]
       | _, 2 -> 
         ["("] @ tree_loop (nth subts 0) @ [s'] @ tree_loop (nth subts 1) @ [")"]
-      | "IF", 3 -> 
-        ["("; s'] @ tree_loop (nth subts 0) @ ["THEN"] @ tree_loop (nth subts 1) @ ["ELSE"] @ tree_loop (nth subts 2) @ [")"]
       | s, _ -> 
         let treeexprs_for_subts = subts |> fold_left (fun acc t -> acc @ tree_loop t) [] in 
         ["("; s] @ treeexprs_for_subts @ [")"] 
