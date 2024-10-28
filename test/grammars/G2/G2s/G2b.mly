@@ -1,10 +1,9 @@
 /* *** G2b *** */
-// 5 conflicts - 3 po's 2 assoc's
+// 4 conflicts - 3 po's 1 assoc
 // if1 vs. if2
 // - vs. *
 // * vs. -
 // * assoc
-// - assoc
 
 %{
 open Ast;;
