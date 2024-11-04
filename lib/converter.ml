@@ -188,7 +188,8 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   let open Printf in
   let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
   if debug_print then 
-    (printf "\n\t Extracted following nonterminals\n\t"; nonterms |> Pp.pp_nonterminals; printf "\n");
+    (printf "\n\t Extracted following nonterminals\n\t"; nonterms |> Pp.pp_nonterminals; printf "\n";
+    printf "\n\t Extracted following prods\n\t"; prods |> Pp.pp_productions2);
   let ranked_alphabet = map 
     (fun (_, (a, _), _) -> a)
     prods
@@ -215,7 +216,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
           iter 
             (fun s ->
                 (* *** debugging *** *)
-                (* if debug_print then printf "\n\t *** (debugging) Getting order for nonterminal %s" s; *)
+                (* if debug_print then printf "\n\t *** Getting order for nonterminal %s" s; *)
                 if (String.equal s "ϵ") then 
                   (* Temporary fix *)
                   (Hashtbl.replace !table s (-1);
@@ -342,10 +343,15 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
         end;
         (if debug_print then printf "\n\t ****** Add (State %s, " lhs; Pp.pp_symbol s;
         printf ") ---> RHS list "; rhss |> List.iter Pp.pp_sigma);
-      let exist_in_trantbl = Hashtbl.find_opt transitions_tbl (lhs, s) 
-      in match exist_in_trantbl with None -> add transitions_tbl (lhs, s) rhss
-          | Some ls' -> 
-            Hashtbl.replace transitions_tbl (lhs, s) (rhss::ls')
+      let exist_in_trantbl = Hashtbl.find_opt transitions_tbl (lhs, s) in
+      let triv_syms = trivial_syms_nts |> List.map fst 
+      in match exist_in_trantbl with 
+          | None -> if (List.mem s triv_syms) 
+                    then add transitions_tbl (lhs, s) [(Nt epsilon_state)]
+                    else add transitions_tbl (lhs, s) rhss
+          | Some ls' -> if (List.mem s triv_syms)
+                        then Hashtbl.replace transitions_tbl (lhs, s) ([(Nt epsilon_state)]::ls')
+                        else Hashtbl.replace transitions_tbl (lhs, s) (rhss::ls')
     ) restrictions);
     Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl; 
   (* ********************************************** *)

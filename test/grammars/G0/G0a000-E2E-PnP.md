@@ -2,41 +2,29 @@
 
 ### Step 1: Extract CFG $G$
 
-* V = { ident, decl, const, exp, stmt, stmts }
-* $\Sigma$ = { INT, IDENT, STRING, ELSE, IF, TINT, RET, WHILE, SEMI, LBRACE, RBRACE, PLUS, DASH, STAR, EQ, LPAREN, RPAREN }
-* S = { stmts }
+* V = { cond_expr, expr1, expr2 }
+* $\Sigma$ = { INT, TRUE, FALSE, IF, THEN, ELSE, PLUS, MUL, LPAREN, RPAREN }
+* S = { expr1 }
 * P = {\
-    ident $\to$ IDENT 
+    cond_expr $\to$ TRUE \
+    cond_expr $\to$ FALSE
     
-    decl $\to$ TINT ident EQ exp
+    expr1 $\to$ exp1 PLUS exp1 \
+    expr1 $\to$ expr2
     
-    const $\to$ INT
-
-    exp $\to$ exp PLUS exp \
-    exp $\to$ exp DASH exp \
-    exp $\to$ exp STAR exp \
-    exp $\to$ ident \
-    exp $\to$ const \
-    exp $\to$ LPAREN exp RPAREN 
-
-    stmt $\to$ decl SEMI \
-    stmt $\to$ ident EQ exp SEMI \
-    stmt $\to$ IF LPAREN exp RPAREN stmt \
-    stmt $\to$ IF LPAREN exp RPAREN stmt ELSE stmt \
-    stmt $\to$ RET exp SEMI \
-    stmt $\to$ WHILE LPAREN exp RPAREN stmt \
-    stmt $\to$ LBRACE stmts RBRACE
-
-    stmts $\to$ $\epsilon$ \
-    stmts $\to$ stmt stmts
+    expr2 $\to$ expr2 MUL expr2 \
+    expr2 $\to$ IF cond_expr THEN expr2 \
+    expr2 $\to$ IF cond_expr THEN expr2 ELSE expr2 \
+    expr2 $\to$ INT \
+    expr2 $\to$ LPAREN expr1 RPAREN
 
     }
 
 
 ### Step 2: Convert CFG to TA $A_{g}$
 
-* $Q_{g}$ = { ident, decl, const, exp, stmt, stmts, $\epsilon$ }
-* $F$ = { (INT, 0), (IDENT, 0), (IF, 4), (IF, 6), (TINT, 3), (RET, 2), (WHILE, 4), (SEMI, 1), (LBRACE, 2), (PLUS, 2), (DASH, 2), (STAR, 2), (EQ, 3), (LPARENRPAREN, 1) }
+* $Q_{g}$ = { cond_expr, expr1, expr2, $\epsilon$ }
+* $F$ = { (INT, 0), (TRUE, 0), (FALSE, 0), (IF, 3), (IF, 5), (PLUS, 2), (MUL, 2), (LPARENRPAREN, 1), ($\varepsilon$, 1) }
 * $I_{g}$ = { stmts }
 * $\Delta_{g}$ = {\
     stmts $\to_{(\varepsilon, 1)}$ $\epsilon$ \

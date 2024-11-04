@@ -102,6 +102,11 @@ let pp_sigma_sigma_list (ssls: (C.sigma * C.sigma) list) =
 let pp_sigma_listlist slsls = 
   printf "\t\t\t\t\t  [     "; slsls |> iter pp_sigma_list2; printf "     ]\n"
 
+let pp_productions2 (ps: C.production2 list) =
+  printf "\tSet of productions2 : { \n"; ps |> iter (fun (nt, (sym, nt_ls), sig_ls) -> 
+    printf "\t\t\t\t%s -> " nt; pp_symbol sym; pp_nonterminals nt_ls; 
+    pp_sigma_list ("", sig_ls); printf " \n"); printf "\t\t\t     }\n"
+
 let pp_alphabet (a: T.symbol list) =
   printf "\tAlphabet : { "; a |> iter (fun x -> pp_symbol x); printf "}\n"
 
