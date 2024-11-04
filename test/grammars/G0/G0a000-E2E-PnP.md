@@ -25,246 +25,291 @@
 
 * $Q_{g}$ = { cond_expr, expr1, expr2, $\epsilon$ }
 * $F$ = { (INT, 0), (TRUE, 0), (FALSE, 0), (IF, 3), (IF, 5), (PLUS, 2), (MUL, 2), (LPARENRPAREN, 1), ($\varepsilon$, 1) }
-* $I_{g}$ = { stmts }
+* $I_{g}$ = { expr1 }
 * $\Delta_{g}$ = {\
-    stmts $\to_{(\varepsilon, 1)}$ $\epsilon$ \
-    stmts $\to_{(\varepsilon, 2)}$ stmt stmts
-
-    stmt $\to_{(\texttt{SEMI}, 1)}$ decl SEMI \
-    stmt $\to_{(\texttt{EQ}, 3)}$ ident EQ exp SEMI \
-    stmt $\to_{(\texttt{IF}, 4)}$ IF LPAREN exp RPAREN stmt \
-    stmt $\to_{(\texttt{IF}, 6)}$ IF LPAREN exp RPAREN stmt ELSE stmt \
-    stmt $\to_{(\texttt{RET}, 2)}$ RET exp SEMI \
-    stmt $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN exp RPAREN stmt \
-    stmt $\to_{(\texttt{LBRACE}, 2)}$ LBRACE stmts RBRACE
-
-    decl $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ exp
+    expr1 $\to_{(\texttt{PLUS}, 2)}$ expr1 PLUS expr1 \
+    expr1 $\to_{(\varepsilon, 1)}$ expr2
     
-    ident $\to_{(\texttt{IDENT}, 0)}$ $\epsilon$ 
+    expr2 $\to_{(\texttt{MUL}, 2)}$ expr2 MUL expr2 \
+    expr2 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN expr2 \
+    expr2 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN expr2 ELSE expr2 \
+    expr2 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    expr2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1 RPAREN
     
-    exp $\to_{(\texttt{PLUS}, 2)}$ exp PLUS exp \
-    exp $\to_{(\texttt{DASH}, 2)}$ exp DASH exp \
-    exp $\to_{(\texttt{STAR}, 2)}$ exp STAR exp \
-    exp $\to_{(\varepsilon, 1)}$ ident \
-    exp $\to_{(\varepsilon, 1)}$ const \
-    exp $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN exp RPAREN 
-
-    const $\to_{(\texttt{INT}, 0)}$ $\epsilon$
+    cond_expr $\to_{(\texttt{TRUE}, 0)}$ $\epsilon$ \
+    cond_expr $\to_{(\texttt{FALSE}, 0)}$ $\epsilon$ 
     
     }
 
-
-Note that following terminals are _not_ included in function symbols: ELSE, STRING (unused)
+Note that following terminals are _not_ included in function symbols: ELSE
 
 
 ### Step 3: Find $O_{bp}$
 
+* Trivial symbols : { (TRUE, 0), (FALSE, 0) }
+
 * Traverse $\Delta$ to get $L_{Q}$: 
-  { (stmts, 0), (stmt, 1), (decl, 2), (ident, 2), (exp, 2), (const, 3) }
+  { (expr1, 0), (expr2, 1), (cond_expr, 2) }
 
 * Based on $\Delta$ and $L_{Q}$, get $O_{bp}$: 
-  { <($\varepsilon$, 1), 0>,  <($\varepsilon$, 2), 0>,  <(SEMI, 1), 1>,  <(EQ, 3), 1>,  <(IF, 4), 1>,  <(IF, 6), 1>,  <(RET, 2), 1>,  <(WHILE, 4), 1>,  <(LBRACE, 2), 1>,  <(TINT, 3), 2>,  <(IDENT, 0), 2>,  <(PLUS, 2), 2>,  <(DASH, 2), 2>,  <(STAR, 2), 2>,  <($\varepsilon$, 1), 2>,  <(LPARENRPAREN, 1), 2>,  <(INT, 0), 3> }
+  { <(PLUS, 2), 0>,  <($\varepsilon$, 1), 0>,  <(MUL, 2), 1>,  <(IF, 3), 1>,  <(IF, 5), 1>,  <(INT, 0), 1>,  <(LPARENRPAREN, 1), 1>,  <(TRUE, 0), 2>,  <(FALSE, 0), 2> }
 
-That is, $O_{bp}$ is order $\to$ symbols mapping
-- 0 $\to$ [ ($\varepsilon$, 1), ($\varepsilon$, 2) ]
-- 1 $\to$ [ (SEMI, 1), (EQ, 3), (IF, 4), (IF, 6), (RET, 2), (WHILE, 4), (LBRACE, 2) ]
-- 2 $\to$ [ (TINT, 3), (PLUS, 2), (DASH, 2), (STAR, 2), ($\varepsilon$, 1), (LPARENRPAREN, 1) ]
-  
+* That is, $O_{bp}$ is order $\to$ symbols mapping
+  - 0 $\to$ [ (PLUS, 2), ($\varepsilon$, 1) ]
+  - 1 $\to$ [ (MUL, 2), (IF, 3), (IF, 5), (INT, 0), (LPARENRPAREN, 1) ]
+* Trivial symbols: { (TRUE, 0), (FALSE, 0), (INT, 0) }
+* Trivial states: { cond_expr }
+
 
 ### Step 4: Interact with user to collect preferences 
 
 * Based on the user preference, collect $O_{tmp}$:
-  { <(IF, 4), -1>, <(IF, 6), 0> }
+  { <(MUL, 2), -1>, <(IF, 5), 0>, <(MUL, 2), -1>, <(IF, 3), 0> }
+* $O_{a}$ := <(MUL, 2), "l"> 
+* Trivial symbols: { (TRUE, 0), (FALSE, 0), (INT, 0) }
+* Trivial states: { cond_expr }
 
 
 ### Step 5: Based on Step 4 and $O_{bp}$, learn $O_{p}$
 
 * Based on Step 4 and $O_{bp}$, compute $O_{p}$: 
-- 0 $\to$ [ ($\varepsilon$, 1), ($\varepsilon$, 2), (IF, 4) ]
-- 1 $\to$ [ (SEMI, 1), (EQ, 3), (IF, 6), (RET, 2), (WHILE, 4), (LBRACE, 2) ]
-- 2 $\to$ [ (TINT, 3), (PLUS, 2), (DASH, 2), (STAR, 2), ($\varepsilon$, 1), (LPARENRPAREN, 1) ]
+  - Intermediate: 
+    + -1 $\to$ [ (MUL, 2) ]
+    + 0 $\to$ [ (PLUS, 2), ($\varepsilon$, 1) ]
+    + 1 $\to$ [ (IF, 3), (IF, 5), (INT, 0), (LPARENRPAREN, 1) ]
+  - Final: 
+    + 0 $\to$ [ (MUL, 2) ]
+    + 1 $\to$ [ (PLUS, 2), ($\varepsilon$, 1) ]
+    + 2 $\to$ [ (IF, 3), (IF, 5), (INT, 0), (LPARENRPAREN, 1) ]
+* $O_{a}$ := <(MUL, 2), "l"> 
+* Trivial symbols: { (TRUE, 0), (FALSE, 0), (INT, 0) }
+* Trivial states: { cond_expr }
 
 
 ### Step 6: Learn $A_{r}$
 
-* $Q_{r}$ = { e1, e2, e3, ident, const, $\epsilon$ }
-* $F$ = { (INT, 0), (IDENT, 0), (IF, 4), (IF, 6), (TINT, 3), (RET, 2), (WHILE, 4), (SEMI, 1), (LBRACE, 2), (PLUS, 2), (DASH, 2), (STAR, 2), (EQ, 3), (LPARENRPAREN, 1) }
-* $I_{r}$ = { stmts }
+* $Q_{r}$ = { e1, e2, e3, cond_expr, $\epsilon$ }
+* $F$ = { (INT, 0), (TRUE, 0), (FALSE, 0), (IF, 3), (IF, 5), (PLUS, 2), (MUL, 2), (LPARENRPAREN, 1), ($\varepsilon$, 1) }
+* $I_{r}$ = { e1 }
 * $\Delta_{r}$ = {\
-    e1 $\to_{(\varepsilon, 1)}$ $\epsilon$ \
-    e1 $\to_{(\varepsilon, 2)}$ e1 e1 \
-    e1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN e1 RPAREN e1 \
+    e1 $\to_{(\texttt{MUL}, 2)}$ e2 MUL e1 \
     _e1 $\to_{(\varepsilon, 1)}$ e2_
 
-    e2 $\to_{(\texttt{SEMI}, 1)}$ e2 SEMI \
-    e2 $\to_{(\texttt{EQ}, 3)}$ ident EQ e2 SEMI \
-    e2 $\to_{(\texttt{IF}, 6)}$ IF LPAREN e2 RPAREN e2 ELSE e2 \
-    e2 $\to_{(\texttt{RET}, 2)}$ RET e2 SEMI \
-    e2 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN e2 RPAREN e2 \
-    e2 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE e2 RBRACE
+    e2 $\to_{(\texttt{PLUS}, 2)}$ e2 PLUS e2 \
+    e2 $\to_{(\varepsilon, 1)}$ e2 \
     _e2 $\to_{(\varepsilon, 1)}$ e3_
 
-    e3 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ e3 \
-    e3 $\to_{(\texttt{PLUS}, 2)}$ e3 PLUS e3 \
-    e3 $\to_{(\texttt{DASH}, 2)}$ e3 DASH e3 \
-    e3 $\to_{(\texttt{STAR}, 2)}$ e3 STAR e3 \
-    e3 $\to_{(\varepsilon, 1)}$ ident \
-    e3 $\to_{(\varepsilon, 1)}$ const \
+    e3 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN e3 \
+    e3 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN e3 ELSE e3 \ 
+    e3 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
     e3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e3 RPAREN \
     _e3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e1 RPAREN_
     
-    _ident $\to_{(\texttt{IDENT}, 0)}$ $\epsilon$_ \
-    _const $\to_{(\texttt{INT}, 0)}$ $\epsilon$_
+    _cond\_expr $\to_{(\texttt{TRUE}, 0)}$ $\epsilon$_ \
+    _cond\_expr $\to_{(\texttt{FALSE}, 0)}$ $\epsilon$_ 
     
     }
 
 
 ### Step 7: Take intersection of the tree automata ($A_{g} \cap A_{r}$)
 
-* $Q$ = { stmts_e1, stmt_e1, decl_e2, exp_e2, exp_e1, stmt_e2, stmts_e2, exp_e3, ident_ident, const_const }
-* $I$ = { stmts_e1 }
+* $Q$ = { expr1_e1, expr1_e2, expr2_e2, expr2_e1, expr2_e3, expr1_e3, cond_expr_cond_expr }
+* $I$ = { expr1_e1 }
 * $\Delta$ = {\
-    **stmts_e1** $\to_{(\varepsilon, 1)}$ $\epsilon$ \
-    stmts_e1 $\to_{(\varepsilon, 2)}$ **stmt_e1** stmts_e1 
+    **expr1_e1** $\to_{(\texttt{PLUS}, 2)}$ **expr1_e2** PLUS expr1_e2 \
+    expr1_e1 $\to_{(\texttt{MUL}, 2)}$ **expr2_e2** MUL **expr2_e1** \
+    expr1_e1 $\to_{(\varepsilon, 1)}$ expr2_e2 \
+    expr1_e1 $\to_{(\texttt{IF}, 3)}$ IF cond_expr_cond_expr THEN **expr2_e3** \
+    expr1_e1 $\to_{(\texttt{IF}, 5)}$ IF cond_expr_cond_expr THEN expr2_e3 ELSE expr2_e3 \
+    expr1_e1 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    expr1_e1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN **expr1_e3** RPAREN \
+    expr1_e1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e1 RPAREN 
 
-    **stmt_e1** $\to_{(\texttt{SEMI}, 1)}$ **decl_e2** SEMI \
-    stmt_e1 $\to_{(\texttt{EQ}, 3)}$ ident_ident EQ **exp_e2** SEMI \
-    stmt_e1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN **exp_e1** RPAREN stmt_e1 \
-    stmt_e1 $\to_{(\texttt{IF}, 6)}$ IF LPAREN exp_e2 RPAREN **stmt_e2** ELSE stmt_e2 \
-    stmt_e1 $\to_{(\texttt{RET}, 2)}$ RET exp_e2 SEMI \
-    stmt_e1 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN exp_e2 RPAREN stmt_e2 \
-    stmt_e1 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE **stmts_e2** RBRACE
-
-    **decl_e2** $\to_{(\texttt{TINT}, 3)}$ TINT ident_ident EQ **exp_e3** 
-
-    **exp_e2** $\to_{(\texttt{PLUS}, 2)}$ exp_e3 PLUS exp_e3 \
-    exp_e2 $\to_{(\texttt{DASH}, 2)}$ exp_e3 DASH exp_e3 \
-    exp_e2 $\to_{(\texttt{STAR}, 2)}$ exp_e3 STAR exp_e3 \
-    exp_e2 $\to_{(\varepsilon, 1)}$ ident_ident \
-    exp_e2 $\to_{(\varepsilon, 1)}$ const_const \
-    exp_e2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN exp_e3 RPAREN \
-    exp_e2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN exp_e1 RPAREN
-
-    **exp_e1** $\to_{(\texttt{PLUS}, 2)}$ exp_e3 PLUS exp_e3 \
-    exp_e1 $\to_{(\texttt{DASH}, 2)}$ exp_e3 DASH exp_e3 \
-    exp_e1 $\to_{(\texttt{STAR}, 2)}$ exp_e3 STAR exp_e3 \
-    exp_e1 $\to_{(\varepsilon, 1)}$ ident_ident \
-    exp_e1 $\to_{(\varepsilon, 1)}$ const_const \
-    exp_e1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN exp_e3 RPAREN \
-    exp_e1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN exp_e1 RPAREN
-
-    **stmt_e2** $\to_{(\texttt{SEMI}, 1)}$ decl_e2 SEMI \
-    stmt_e2 $\to_{(\texttt{EQ}, 3)}$ ident_ident EQ exp_e2 SEMI \
-    stmt_e2 $\to_{(\texttt{IF}, 6)}$ IF LPAREN exp_e2 RPAREN stmt_e2 ELSE stmt_e2 \
-    stmt_e2 $\to_{(\texttt{RET}, 2)}$ RET exp_e2 SEMI \
-    stmt_e2 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN exp_e2 RPAREN stmt_e2 \
-    stmt_e2 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE stmts_e2 RBRACE
-
-    **stmts_e2** $\to_{(\varepsilon, 1)}$ $\epsilon$
-
-    **exp_e3** $\to_{(\texttt{PLUS}, 2)}$ exp_e3 PLUS exp_e3 \
-    exp_e3 $\to_{(\texttt{DASH}, 2)}$ exp_e3 DASH exp_e3 \
-    exp_e3 $\to_{(\texttt{STAR}, 2)}$ exp_e3 STAR exp_e3 \
-    exp_e3 $\to_{(\varepsilon, 1)}$ ident_ident \
-    exp_e3 $\to_{(\varepsilon, 1)}$ const_const \
-    exp_e3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN exp_e3 RPAREN \
-    exp_e3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN exp_e1 RPAREN
+    **expr1_e2** $\to_{(\texttt{PLUS}, 2)}$ expr1_e2 PLUS expr1_e2 \
+    expr1_e2 $\to_{(\varepsilon, 1)}$ expr2_e2 \
+    expr1_e2 $\to_{(\texttt{IF}, 3)}$ IF cond_expr_cond_expr THEN expr2_e3 \
+    expr1_e2 $\to_{(\texttt{IF}, 5)}$ IF cond_expr_cond_expr THEN expr2_e3 ELSE expr2_e3 \
+    expr1_e2 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    expr1_e2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e3 RPAREN \
+    expr1_e2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e1 RPAREN 
     
-    _ident_ident $\to_{(\texttt{IDENT}, 0)}$ $\epsilon$_ \
-    _const_const $\to_{(\texttt{INT}, 0)}$ $\epsilon$_
+    **expr2_e2** $\to_{(\texttt{IF}, 3)}$ IF cond_expr_cond_expr THEN expr2_e3 \
+    expr2_e2 $\to_{(\texttt{IF}, 5)}$ IF cond_expr_cond_expr THEN expr2_e3 ELSE expr2_e3 \
+    expr2_e2 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    expr2_e2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e3 RPAREN \
+    expr2_e2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e1 RPAREN 
+    
+    **expr2_e1** $\to_{(\texttt{MUL}, 2)}$ expr2_e2 MUL expr2_e1 \
+    expr2_e1 $\to_{(\varepsilon, 1)}$ expr2_e2 \
+    expr2_e1 $\to_{(\texttt{IF}, 3)}$ IF cond_expr_cond_expr THEN expr2_e3 \
+    expr2_e1 $\to_{(\texttt{IF}, 5)}$ IF cond_expr_cond_expr THEN expr2_e3 ELSE expr2_e3 \
+    expr2_e1 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    expr2_e1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e3 RPAREN \
+    expr2_e1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e1 RPAREN 
+
+    **expr2_e3** $\to_{(\texttt{IF}, 3)}$ IF cond_expr_cond_expr THEN expr2_e3 \
+    expr2_e3 $\to_{(\texttt{IF}, 5)}$ IF cond_expr_cond_expr THEN expr2_e3 ELSE expr2_e3 \
+    expr2_e3 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    expr2_e3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e3 RPAREN \
+    expr2_e3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e1 RPAREN 
+    
+    **expr1_e3** $\to_{(\texttt{IF}, 3)}$ IF cond_expr_cond_expr THEN expr2_e3 \
+    expr1_e3 $\to_{(\texttt{IF}, 5)}$ IF cond_expr_cond_expr THEN expr2_e3 ELSE expr2_e3 \
+    expr1_e3 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    expr1_e3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e3 RPAREN \
+    expr1_e3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN expr1_e1 RPAREN 
+
+    _cond\_expr\_cond\_expr $\to_{(\texttt{TRUE}, 0)}$ $\epsilon$_ \
+    _cond\_expr\_cond\_expr $\to_{(\texttt{FALSE}, 0)}$ $\epsilon$_
     
     }
 
 
 ### Step 8: Identify a list of duplicate state pairs
 
-* { (exp_e2, exp_e1), (exp_e2, exp_e3) }
+* { (expr2_e2, expr2_e3), (expr2_e2, expr1_e3) }
 
 ### Step 9: Remove duplicate states and rename states
 
-* $Q$ = { stmts_e1, stmt_e1, decl_e2, exp_e2, stmts_e2, ident, const }
+* $Q$ = { expr1_e1, expr1_e2, expr2_e2, expr2_e1, cond_expr }
   - Rename maps:
-    + stmts_e1 $\to$ e1
-    + stmt_e1 $\to$ x1
-    + stmt_e2 $\to$ x2
-    + decl_e2 $\to$ x3
-    + exp_e2 $\to$ x4
-    + stmts_e2 $\to$ x5
+    + expr1_e1 $\to$ e1
+    + expr1_e2 $\to$ x1
+    + expr2_e2 $\to$ x2
+    + expr2_e1 $\to$ x3
 
-* $I$ = { stmts_e1 }
+* $I$ = { e1 }
 
 * $\Delta$ = {\
-    e1 $\to_{(\varepsilon, 1)}$ $\epsilon$ \
-    e1 $\to_{(\varepsilon, 2)}$ x1 e1 
+    e1 $\to_{(\texttt{PLUS}, 2)}$ x1 PLUS x1 \
+    e1 $\to_{(\texttt{MUL}, 2)}$ x2 MUL x3 \
+    e1 $\to_{(\varepsilon, 1)}$ x2 \
+    e1 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN x2 \
+    e1 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN x2 ELSE x2 \
+    e1 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    e1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x2 RPAREN \
+    e1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e1 RPAREN 
 
-    x1 $\to_{(\texttt{SEMI}, 1)}$ x3 SEMI \
-    x1 $\to_{(\texttt{EQ}, 3)}$ ident EQ x4 SEMI \
-    x1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN x4 RPAREN x1 \
-    x1 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x4 RPAREN x2 ELSE x2 \
-    x1 $\to_{(\texttt{RET}, 2)}$ RET x4 SEMI \
-    x1 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x4 RPAREN x2 \
-    x1 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE x5 RBRACE
-
-    x3 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ x4
-
-    x4 $\to_{(\texttt{PLUS}, 2)}$ x4 PLUS x4 \
-    x4 $\to_{(\texttt{DASH}, 2)}$ x4 DASH x4 \
-    x4 $\to_{(\texttt{STAR}, 2)}$ x4 STAR x4 \
-    x4 $\to_{(\varepsilon, 1)}$ ident \
-    x4 $\to_{(\varepsilon, 1)}$ const \
-    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN \
-    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN
-
-    x2 $\to_{(\texttt{SEMI}, 1)}$ x3 SEMI \
-    x2 $\to_{(\texttt{EQ}, 3)}$ ident EQ x4 SEMI \
-    x2 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x4 RPAREN x2 ELSE x2 \
-    x2 $\to_{(\texttt{RET}, 2)}$ RET x4 SEMI \
-    x2 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x4 RPAREN x2 \
-    x2 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE stmts_e2 RBRACE
-
-    x5 $\to_{(\varepsilon, 1)}$ $\epsilon$
+    x1 $\to_{(\texttt{PLUS}, 2)}$ x1 PLUS x1 \
+    x1 $\to_{(\varepsilon, 1)}$ x2 \
+    x1 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN x2 \
+    x1 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN x2 ELSE x2 \
+    x1 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    x1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x2 RPAREN \
+    x1 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e1 RPAREN 
     
-    _ident $\to_{(\texttt{IDENT}, 0)}$ $\epsilon$_ \
-    _const $\to_{(\texttt{INT}, 0)}$ $\epsilon$_
+    x2 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN x2 \
+    x2 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN x2 ELSE x2 \
+    x2 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    x2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x2 RPAREN \
+    x2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e1 RPAREN 
     
+    x3 $\to_{(\texttt{MUL}, 2)}$ x2 MUL x3 \
+    x3 $\to_{(\varepsilon, 1)}$ x2 \
+    x3 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN x2 \
+    x3 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN x2 ELSE x2 \
+    x3 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    x3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x2 RPAREN \
+    x3 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e1 RPAREN 
+
+    _cond\_expr $\to_{(\texttt{TRUE}, 0)}$ $\epsilon$_ \
+    _cond\_expr $\to_{(\texttt{FALSE}, 0)}$ $\epsilon$_
+
     }
 
 
 ### Step 10: Introduce epsilon transitions to simplify the transitions
 
-* $Q$ = { e1, x1, x2, x3, x4, x5, ident, const, $\epsilon$ }
+* $Q$ = { e1, x1, x2, x3, cond_expr, $\epsilon$ }
 
 * $I$ = { e1 }
 
- $\Delta$ = {\
-    e1 $\to_{(\varepsilon, 1)}$ x5 \
-    e1 $\to_{(\varepsilon, 2)}$ x1 e1 
+* Intermediate (Step 1) $\Delta$ = {\
+    e1 $\to_{(\texttt{PLUS}, 2)}$ x1 PLUS x1 \
+    e1 $\to_{(\texttt{MUL}, 2)}$ x2 MUL x3 \
+    e1 $\to_{(\varepsilon, 1)}$ x2 \
+    e1 $\to_{(\varepsilon, 1)}$ x2
 
-    x1 $\to_{(\texttt{IF}, 4)}$ IF LPAREN x4 RPAREN x1 \
+    x1 $\to_{(\texttt{PLUS}, 2)}$ x1 PLUS x1 \
+    x1 $\to_{(\varepsilon, 1)}$ x2 \
     x1 $\to_{(\varepsilon, 1)}$ x2
-
-    x3 $\to_{(\texttt{TINT}, 3)}$ TINT ident EQ x4
-
-    x4 $\to_{(\texttt{PLUS}, 2)}$ x4 PLUS x4 \
-    x4 $\to_{(\texttt{DASH}, 2)}$ x4 DASH x4 \
-    x4 $\to_{(\texttt{STAR}, 2)}$ x4 STAR x4 \
-    x4 $\to_{(\varepsilon, 1)}$ ident \
-    x4 $\to_{(\varepsilon, 1)}$ const \
-    x4 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x4 RPAREN 
-
-    x2 $\to_{(\texttt{SEMI}, 1)}$ x3 SEMI \
-    x2 $\to_{(\texttt{EQ}, 3)}$ ident EQ x4 SEMI \
-    x2 $\to_{(\texttt{IF}, 6)}$ IF LPAREN x4 RPAREN x2 ELSE x2 \
-    x2 $\to_{(\texttt{RET}, 2)}$ RET x4 SEMI \
-    x2 $\to_{(\texttt{WHILE}, 4)}$ WHILE LPAREN x4 RPAREN x2 \
-    x2 $\to_{(\texttt{LBRACE}, 2)}$ LBRACE stmts_e2 RBRACE
-
-    x5 $\to_{(\varepsilon, 1)}$ $\epsilon$
     
-    _ident $\to_{(\texttt{IDENT}, 0)}$ $\epsilon$_ \
-    _const $\to_{(\texttt{INT}, 0)}$ $\epsilon$_
-    
+    x3 $\to_{(\texttt{MUL}, 2)}$ x2 MUL x3 \
+    x3 $\to_{(\varepsilon, 1)}$ x2 \
+    x3 $\to_{(\varepsilon, 1)}$ x2
+
+    x2 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN x2 \
+    x2 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN x2 ELSE x2 \
+    x2 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    x2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN x2 RPAREN \
+    x2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e1 RPAREN 
+
+    _cond\_expr $\to_{(\texttt{TRUE}, 0)}$ $\epsilon$_ \
+    _cond\_expr $\to_{(\texttt{FALSE}, 0)}$ $\epsilon$_
+
     }
+
+* Intermediate (Step2) $\Delta$ = {\
+    e1 $\to_{(\texttt{PLUS}, 2)}$ x1 PLUS x1 \
+    e1 $\to_{(\texttt{MUL}, 2)}$ x2 MUL x3 \
+    e1 $\to_{(\varepsilon, 1)}$ x2
+
+    x1 $\to_{(\texttt{PLUS}, 2)}$ x1 PLUS x1 \
+    x1 $\to_{(\varepsilon, 1)}$ x2
+    
+    x3 $\to_{(\texttt{MUL}, 2)}$ x2 MUL x3 \
+    x3 $\to_{(\varepsilon, 1)}$ x2
+
+    x2 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN x2 \
+    x2 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN x2 ELSE x2 \
+    x2 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    x2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e1 RPAREN 
+
+    _cond\_expr $\to_{(\texttt{TRUE}, 0)}$ $\epsilon$_ \
+    _cond\_expr $\to_{(\texttt{FALSE}, 0)}$ $\epsilon$_
+
+    }
+
+* Final (Ver 1) $\Delta$ = {\
+    e1 $\to_{(\texttt{PLUS}, 2)}$ x1 PLUS x1 \
+    e1 $\to_{(\varepsilon, 1)}$ x3
+
+    x1 $\to_{(\texttt{PLUS}, 2)}$ x1 PLUS x1 \
+    x1 $\to_{(\varepsilon, 1)}$ x2
+    
+    x3 $\to_{(\texttt{MUL}, 2)}$ x2 MUL x3 \
+    x3 $\to_{(\varepsilon, 1)}$ x2
+
+    x2 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN x2 \
+    x2 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN x2 ELSE x2 \
+    x2 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    x2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e1 RPAREN 
+
+    _cond\_expr $\to_{(\texttt{TRUE}, 0)}$ $\epsilon$_ \
+    _cond\_expr $\to_{(\texttt{FALSE}, 0)}$ $\epsilon$_
+
+    }
+
+* Final (Ver 2) $\Delta$ = {\
+    e1 $\to_{(\texttt{MUL}, 2)}$ x2 MUL x3 \
+    e1 $\to_{(\varepsilon, 1)}$ x1
+
+    x1 $\to_{(\texttt{PLUS}, 2)}$ x1 PLUS x1 \
+    x1 $\to_{(\varepsilon, 1)}$ x2
+    
+    x3 $\to_{(\texttt{MUL}, 2)}$ x2 MUL x3 \
+    x3 $\to_{(\varepsilon, 1)}$ x2
+
+    x2 $\to_{(\texttt{IF}, 3)}$ IF cond_expr THEN x2 \
+    x2 $\to_{(\texttt{IF}, 5)}$ IF cond_expr THEN x2 ELSE x2 \
+    x2 $\to_{(\texttt{INT}, 0)}$ $\epsilon$ \
+    x2 $\to_{(\texttt{LPARENRPAREN}, 1)}$ LPAREN e1 RPAREN 
+
+    _cond\_expr $\to_{(\texttt{TRUE}, 0)}$ $\epsilon$_ \
+    _cond\_expr $\to_{(\texttt{FALSE}, 0)}$ $\epsilon$_
+
+    }
+
 
 
 

@@ -46,6 +46,7 @@ let () =
       E.gen_examples conflicts_file ranked_symbols debug 
     in
     (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)
+    (* (TODO) To resume from here! *)
     let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list):
       (string list * T.tree * (bool * bool) * T.restriction list) list = 
         let rec loop lst acc = 
