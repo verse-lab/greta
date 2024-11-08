@@ -1,6 +1,8 @@
-## G2a E2E Illustration 
+# G2a E2E Illustration 
 
-### Step 1: Extract CFG $G$
+## User Interaction 1
+
+### UI 1 - Step 1: Extract CFG $G$
 
 * V = { cond_expr, expr1, expr2 }
 * $\Sigma$ = { INT, TRUE, FALSE, IF, THEN, ELSE, PLUS, MUL, LPAREN, RPAREN }
@@ -21,7 +23,7 @@
     }
 
 
-### Step 2: Convert CFG to TA $A_{g}$
+### UI 1 - Step 2: Convert CFG to TA $A_{g}$
 
 * $Q_{g}$ = { cond_expr, expr1, expr2, $\epsilon$ }
 * $F$ = { (INT, 0), (TRUE, 0), (FALSE, 0), (IF, 3), (IF, 5), (PLUS, 2), (MUL, 2), (LPARENRPAREN, 1), ($\varepsilon$, 1) }
@@ -44,7 +46,7 @@
 Note that following terminals are _not_ included in function symbols: ELSE
 
 
-### Step 3: Find $O_{bp}$
+### UI 1 - Step 3: Find $O_{bp}$
 
 * Trivial symbols : { (TRUE, 0), (FALSE, 0) }
 
@@ -61,7 +63,7 @@ Note that following terminals are _not_ included in function symbols: ELSE
 * Trivial states: { cond_expr }
 
 
-### Step 4: Interact with user to collect preferences 
+### UI 1 - Step 4: Interact with user to collect preferences 
 
 * Based on the user preference, collect $O_{tmp}$:
   { <(MUL, 2), -1>, <(IF, 5), 0>, <(MUL, 2), -1>, <(IF, 3), 0> }
@@ -70,7 +72,7 @@ Note that following terminals are _not_ included in function symbols: ELSE
 * Trivial states: { cond_expr }
 
 
-### Step 5: Based on Step 4 and $O_{bp}$, learn $O_{p}$
+### UI 1 - Step 5: Based on Step 4 and $O_{bp}$, learn $O_{p}$
 
 * Based on Step 4 and $O_{bp}$, compute $O_{p}$: 
   - Intermediate: 
@@ -86,7 +88,7 @@ Note that following terminals are _not_ included in function symbols: ELSE
 * Trivial states: { cond_expr }
 
 
-### Step 6: Learn $A_{r}$
+### UI 1 - Step 6: Learn $A_{r}$
 
 * $Q_{r}$ = { e1, e2, e3, cond_expr, $\epsilon$ }
 * $F$ = { (INT, 0), (TRUE, 0), (FALSE, 0), (IF, 3), (IF, 5), (PLUS, 2), (MUL, 2), (LPARENRPAREN, 1), ($\varepsilon$, 1) }
@@ -111,7 +113,7 @@ Note that following terminals are _not_ included in function symbols: ELSE
     }
 
 
-### Step 7: Take intersection of the tree automata ($A_{g} \cap A_{r}$)
+### UI 1 - Step 7: Take intersection of the tree automata ($A_{g} \cap A_{r}$)
 
 * $Q$ = { expr1_e1, expr1_e2, expr2_e2, expr2_e1, expr2_e3, expr1_e3, cond_expr_cond_expr }
 * $I$ = { expr1_e1 }
@@ -165,11 +167,11 @@ Note that following terminals are _not_ included in function symbols: ELSE
     }
 
 
-### Step 8: Identify a list of duplicate state pairs
+### UI 1 - Step 8: Identify a list of duplicate state pairs
 
 * { (expr2_e2, expr2_e3), (expr2_e2, expr1_e3) }
 
-### Step 9: Remove duplicate states and rename states
+### UI 1 - Step 9: Remove duplicate states and rename states
 
 * $Q$ = { expr1_e1, expr1_e2, expr2_e2, expr2_e1, cond_expr }
   - Rename maps:
@@ -218,7 +220,7 @@ Note that following terminals are _not_ included in function symbols: ELSE
     }
 
 
-### Step 10: Introduce epsilon transitions to simplify the transitions
+### UI 1 - Step 10: Introduce epsilon transitions to simplify the transitions
 
 * $Q$ = { e1, x1, x2, x3, cond_expr, $\epsilon$ }
 
@@ -310,6 +312,33 @@ Note that following terminals are _not_ included in function symbols: ELSE
 
     }
 
+After writing the above TA as a correctly formatted CFG on the parser file, running Greta on the grammar results in following.
 
+### UI 2 - Step 1: Extract CFG $G$
+
+* V = { cond_expr, e1, x1, x2, x3 }
+* $\Sigma$ = { INT, TRUE, FALSE, IF, THEN, ELSE, PLUS, MUL, LPAREN, RPAREN }
+* S = { e1 }
+* P = {\
+    e1 $\to$ x1 PLUS x1 \
+    e1 $\to$ x3
+
+    x1 $\to$ x1 PLUS x1 \
+    x1 $\to$ x2
+    
+    x3 $\to$ x2 MUL x3 \
+    x3 $\to$ x2
+    
+    x2 $\to$ IF cond_expr THEN x2 \
+    x2 $\to$ IF cond_expr THEN x2 ELSE x2 \
+    x2 $\to$ $\epsilon$ \
+    x2 $\to$ LPAREN e1 RPAREN 
+
+    cond_expr $\to$ TRUE \
+    cond_expr $\to$ FALSE
+
+    }
+
+### UI 2 - Step 2: Convert CFG $G$ to TA $A_{g}$
 
 
