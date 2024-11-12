@@ -42,10 +42,12 @@ let () =
     let ranked_symbols = ta_initial.alphabet in
     let interact_counter = ref 0 
     in
+    (* (TODO) Generate trees in <base>.trees instead *)
       let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
       E.gen_examples conflicts_file ranked_symbols debug 
     in
     (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)
+    let file_postfix = ref "" in
     (* (TODO) To resume from here! *)
     let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list):
       (string list * T.tree * (bool * bool) * T.restriction list) list = 
@@ -54,6 +56,7 @@ let () =
           | ((texpr_ls1, t1, (oa1, op1), rls1), (texpr_ls2, t2, (oa2, op2), rls2)) :: tl -> 
            (U.present_tree_pair (t1, t2);
             let chosen_index = read_int () in
+            file_postfix := !file_postfix ^ (string_of_int chosen_index);
             if (chosen_index = 0) 
             then loop tl ((texpr_ls1, t1, (oa1, op1), rls1)::acc)
             (* if user selects 1 or any other number, 2nd tree gets selected *)
@@ -62,6 +65,8 @@ let () =
     in (interact_counter := !interact_counter + 1);
     let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
         interact_with_user tree_pairs_lst in 
+        
+    (* *** *)
     let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug in 
     let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
     let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug in 
@@ -72,12 +77,14 @@ let () =
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
       O.intersect ta_initial ta_learned triv_syms triv_syms_states debug 
     in 
-    let file_written = "./test/grammars/G2/G2_results/G2b000.mly" in
+    let grammar = "G0a" in
+    let file_written = U.test_results_filepath grammar !file_postfix in 
     ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf " ---> State %s\n" st);
     C.convertToGrammar ta_intersected states_rename_map parser_file file_written debug;
     (* 
     U.run_again parser_file
     *)
+    (* *** *)
     
     (* if (Utils.check_conflicts conflicts_file debug) then U.ask_again parser_file *)
 end
