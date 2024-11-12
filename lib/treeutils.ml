@@ -717,3 +717,13 @@ let success_message (cnt: int): unit =
 
 let run_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s. Run 'make' again.\n\n" filename
+
+  (* "./test/grammars/G0/G0_results/G0a000.mly" in *)
+let test_results_filepath (grammar: string) (postfix: string): string = 
+  let except_for_last g = 
+    let len = String.length grammar 
+    in Str.string_before g (len-1) 
+  in
+  let grammar_type: string = except_for_last grammar in
+  let path = "./test/grammars/" ^ grammar_type ^ "/" ^ grammar_type ^ "_results/" in 
+  path ^ grammar ^ postfix ^ ".mly"

@@ -684,8 +684,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
         let _old_st = Str.regexp nt in
         let new_prods = prods |> List.map (fun s -> 
           replace_str_wrt_primary_mapped_state s res_states_mapping_primary) (* Str.global_replace old_st mapped_st s *)
-        in acc@[""]@(new_prods@["  ;"]))
-      else if (List.mem nt triv_nonterms) then acc@[""]@(prods@["  ;"]) else acc) [])
+        in acc@[""]@(new_prods@["  "]))
+      else if (List.mem nt triv_nonterms) then acc@[""]@(prods@["  "]) else acc) [])
     [""]
   in
   if debug_print then (printf "\n\t *** Start and trivial productions : \n"; 
@@ -723,7 +723,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
         let _new_st = List.assoc old_nt res_states_mapping in
         let new_prods = prods |> List.map (fun ln -> 
           replace_str_wrt_primary_mapped_state ln res_states_mapping_primary
-          ) in acc @ (new_prods@["  ;"; ""])
+          ) in acc @ (new_prods@[""])
       ) []
   in
   (* Create mappings for correct formatting and mapping of the string *)
@@ -854,7 +854,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
         else 
           (let changed_str = change_str_per_nts old_nts_ls new_nts' old_prod_line 
            in changed_str :: acc)) [] in 
-      (nt ^ ":") :: new_prods @ ["  ;";""] @ acc) []
+      (nt ^ ":") :: new_prods @ ["  ";""] @ acc) []
   in
   let oc = open_out to_write in (* parser_file *)
   lines_bef_prods @ starts_types_lines @ start_triv_prods @ unchanged_nontriv_prods @ changed_nonterm_prods

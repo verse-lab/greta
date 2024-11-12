@@ -7,5 +7,5 @@
 
 (menhir
  (modules parser)
- (flags --table --inspection --dump --explain --reference-graph))
+ (flags --table --inspection --dump --explain --reference-graph --greta))
 
