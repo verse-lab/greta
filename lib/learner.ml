@@ -21,11 +21,11 @@ let get_states (op_ls: restriction list): ((int * state) list) * state =
 let get_transitions (oa_ls: restriction list) (op_ls: restriction list) 
   (o_bp_tbl: (int, symbol list) Hashtbl.t) (sym_lhs_ls: (symbol * state) list)
   (a: symbol list) (lvl_state_pairs: (int * state) list) (start: state) 
-  (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_nonterms: (symbol * state) list) (debug: bool): 
+  (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_syms_nonterms: (symbol * state) list) (debug: bool): 
   ((state * symbol), sigma list list) Hashtbl.t =
   let open Printf in
   let open Hashtbl in
-  let trivial_syms = a |> List.filter (fun (_, rnk) -> (rnk = 0) ) in
+  let trivial_syms = triv_syms_nonterms |> List.map fst in
   let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) )
   in
   (* printf "\nO_bp Table\n"; Pp.pp_obp_tbl o_bp_tbl; *)
@@ -79,7 +79,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let is_trivial_nonterm (x: sigma) = 
     let trivial_nonterms = 
       (* *** (debugging) *** recent fix! *)
-      triv_nonterms |> List.map snd |> List.append [epsilon_state] in  
+      triv_syms_nonterms |> List.map snd |> List.append [epsilon_state] in  
       (* 
       printf "\nWHAT ARE TRIV NONTERMS??\n"; trivial_nonterms |> Pp.pp_states; 
       *)
@@ -274,7 +274,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
 
 let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
   (sym_state_ls: (symbol * state) list) (a: symbol list) 
-  (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_nonterms: (symbol * state) list) (debug_print: bool): ta2 = 
+  (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_syms_nonterms: (symbol * state) list) (debug_print: bool): ta2 = 
   let open Printf in 
   if debug_print then (printf "\n\nLearn a tree automaton based on:\n\tO_a: ";
   Pp.pp_restriction_lst oa_ls; printf "\n\tO_p: "; Pp.pp_restriction_lst op_ls; 
@@ -282,7 +282,7 @@ let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int
   let (lvl_state_pairs, init_state): (int * state) list * state = get_states op_ls in
   let state_ls: state list = lvl_state_pairs |> List.map snd in
   let raw_trans_ls: ((state * symbol), sigma list list) Hashtbl.t = 
-    get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_ord_rhs_ls triv_nonterms debug_print in
+    get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_ord_rhs_ls triv_syms_nonterms debug_print in
   (* let ordered_trans_ls = order_trans_ls state_ls raw_trans_ls in *)
   let ta_res: ta2 = { states = state_ls; alphabet = a; start_states = [init_state]; 
   transitions = raw_trans_ls; trivial_sym_nts=[] } in 

@@ -286,16 +286,29 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
         else loop tl
     in loop p
   in
-  let trivial_syms_nts : (symbol * nonterminal) list = 
+  let raw_trivial_syms_nts : (symbol * nonterminal) list = 
     (* new version: to take all the trivial symbols into account *)
     ranked_alphabet |> List.filter (fun a -> snd a = 0) |> List.map (fun sym -> 
       (sym, (find_nonterm_from_prods sym g.productions))
-      )
-    (* 
-    trivial_nts |> map (fun nt -> 
-    if (nt = epsilon_state) then (epsilon_symb, nt) else ((find_symbol_from_productions nt g.productions), nt)) 
-    |> List.filter (fun (s, _) -> not (syms_equals epsilon_symb s))
-     *)
+      ) 
+  in 
+  let only_consists_of_trivial_trans (sym: symbol) (nt: nonterminal) (raw_triv_syms: symbol list) 
+    (p: production2 list): bool = 
+    let rec loop prods acc = 
+      match prods with [] -> acc 
+      | (lhs_n, ((term, i), _rhs_nts), _rhs_sigs) :: tl -> 
+        if (lhs_n = nt) 
+        then 
+          (if (syms_equals (term, i) sym) || (List.mem (term, i) raw_triv_syms)
+           then loop tl (true && acc)
+           else false)
+        else loop tl acc
+    in loop p true
+  in 
+  let trivial_syms_nts : (symbol * nonterminal) list = 
+    let init_triv_syms = raw_trivial_syms_nts |> List.map fst 
+    in raw_trivial_syms_nts |> List.filter (fun (sym, nt) -> 
+        only_consists_of_trivial_trans sym nt init_triv_syms g.productions)
   in 
   (* *** debug *** *)
   if debug_print then (printf "\n\t *** (debugging) Check trivial symbols and nonterminals\n"; 
