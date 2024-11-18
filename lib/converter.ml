@@ -500,7 +500,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   in
   let get_prod_nonterm (s: string): string =
     let idx = String.index s ':' 
-    in String.sub s 0 idx
+    in String.sub s 0 idx |> strip_string
   in 
   let get_nonterm_prod (s: string): string = 
     let idx = String.index s ':' in
@@ -523,7 +523,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
     let rec start_loop ls lins_acc stats_map_acc cnt = 
       match ls with [] -> List.rev lins_acc, stats_map_acc
       | (hd_id, hd_line) :: ltl -> 
-        let new_start_state = "prog" ^ (string_of_int cnt) in
+        let new_start_state = hd_id in
         let to_replace = Str.regexp hd_id in
         let new_line = Str.global_replace to_replace new_start_state hd_line in
         let new_stats_map = (hd_id, new_start_state) in
@@ -619,8 +619,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   in
   let starts_types_lines = 
     match starts_fst, types_fst with 
-    | true, false -> res_start_lines @ res_type_lines @ ["%%";"";""]
-    | false, true -> res_type_lines @ res_start_lines @ ["%%";"";""]
+    | true, false -> res_start_lines @ res_type_lines @ ["%%"]
+    | false, true -> res_type_lines @ res_start_lines @ ["%%"]
     | true, true | false, false -> raise Either_starts_or_types_first
   in
   if debug_print then 
@@ -672,8 +672,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
             else collect_prods_loop stl prod_id (shd::prod_lines) prods_acc
     in collect_prods_loop prods_ls "" [] [] 
   in let prods_blocks = collect_prod_blocks lines_prods in 
-  if debug_print then (printf "\n\tCollected production blocks: \n"; 
-    prods_blocks |> List.iter (fun (nt, prods) -> printf "\t ** Nonterminal %s   mapped to \n\n" nt; 
+  if debug_print then (printf "\n >> Collected production blocks: \n"; 
+    prods_blocks |> List.iter (fun (nt, prods) -> printf "\t ** Nonterminal %s mapped to \n\n" nt; 
     prods |> List.iter (printf "\t%s\n"); printf "\n\n"));
   (* --- helper --- *)
   let replace_str_wrt_primary_mapped_state (s: string) (states_map: (state * state) list): string = 
@@ -687,18 +687,21 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   in
   (* Collect start and trivial nonterminals' productions *)
   let orig_start_nonterms = start_id_lines |> List.map fst 
-  in
+  in if debug_print then 
+    (printf "\nOriginal start nonterminals: "; List.iter (fun s -> printf  "\n\t %s" s) orig_start_nonterms; printf "\n");
   let start_triv_prods: string list = 
     List.append 
     (prods_blocks |> List.fold_left (fun acc (nt, prods) -> 
+      printf "\n\t\t\tNonterminal is %s\n" nt;
       if (List.mem nt orig_start_nonterms) 
       then 
         (let _mapped_st = find_mapped_state_of nt res_states_mapping_primary in
         let _old_st = Str.regexp nt in
         let new_prods = prods |> List.map (fun s -> 
-          replace_str_wrt_primary_mapped_state s res_states_mapping_primary) (* Str.global_replace old_st mapped_st s *)
-        in acc@[""]@(new_prods@["  "]))
-      else if (List.mem nt triv_nonterms) then acc@[""]@(prods@["  "]) else acc) [])
+          let replaced_str = replace_str_wrt_primary_mapped_state s res_states_mapping_primary
+          in if debug_print then (printf "\n\t  Original string %s\n\t  Replaced string %s\n" s replaced_str); replaced_str) (* Str.global_replace old_st mapped_st s *)
+        in acc@[""]@(new_prods))
+      else if (List.mem nt triv_nonterms) then acc@[""]@(prods) else acc) [])
     [""]
   in
   if debug_print then (printf "\n\t *** Start and trivial productions : \n"; 
@@ -867,7 +870,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
         else 
           (let changed_str = change_str_per_nts old_nts_ls new_nts' old_prod_line 
            in changed_str :: acc)) [] in 
-      (nt ^ ":") :: new_prods @ ["  ";""] @ acc) []
+      (nt ^ ":") :: new_prods @ ["  ;";""] @ acc) []
   in
   let oc = open_out to_write in (* parser_file *)
   lines_bef_prods @ starts_types_lines @ start_triv_prods @ unchanged_nontriv_prods @ changed_nonterm_prods

@@ -39,8 +39,7 @@ let () =
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
       ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
       C.convertToTa cfg_file debug in
-    let ranked_symbols = ta_initial.alphabet in
-    let interact_counter = ref 0 
+    let ranked_symbols = ta_initial.alphabet 
     in
     (* (TODO) Generate trees in <base>.trees instead *)
       let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
@@ -62,17 +61,17 @@ let () =
             (* if user selects 1 or any other number, 2nd tree gets selected *)
             else loop tl ((texpr_ls2, t2, (oa2, op2), rls2)::acc))
         in loop inp_lst []
-    in (interact_counter := !interact_counter + 1);
-    let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
+    in let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
         interact_with_user tree_pairs_lst in 
         
     (* *** *)
     let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug in 
     let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
     let o_p: T.restriction list = U.combine_op_restrictions o_bp o_tmp debug in 
-    let ta_learned: T.ta2 = 
+    let _ta_learned: T.ta2 = 
       L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states debug 
-    in 
+    in ()
+    (* 
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
       O.intersect ta_initial ta_learned triv_syms triv_syms_states debug 
@@ -83,6 +82,7 @@ let () =
     let file_written = U.test_results_filepath grammar !file_postfix in 
     ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf " ---> State %s\n" st);
     C.convertToGrammar ta_intersected states_rename_map parser_file file_written debug;
+     *)
     (* 
     U.run_again parser_file
     *)

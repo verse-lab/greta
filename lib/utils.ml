@@ -75,3 +75,6 @@ let sig_sig_assoc_all (sym: Ta.symbol) (trans: (Ta.symbol * (Cfg.sigma * Cfg.sig
       then accumulate tl (sig_sig_ls @ acc)
       else accumulate tl acc
   in accumulate trans []
+
+let strip_string s =
+  Str.global_replace (Str.regexp "[\r\n\t ]") "" s
