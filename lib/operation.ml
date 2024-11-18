@@ -51,20 +51,20 @@ let rec find_rhs_in_tbl (sym: symbol) (st: state) (interm_sts: state list)
   (debug: bool)
   : (sigma list list) list = 
   let open Printf in
-  let res: (sigma list list) list = match Hashtbl.find_opt tbl (st, sym) with 
-    | None -> 
+  let res: (sigma list list) list = match Hashtbl.find_all tbl (st, sym) with 
+    | [] -> 
       (match interm_sts with 
       | [] -> 
-        if debug then printf "\n\t\t ===> Interm states empty\n"; acc
+        if debug then printf "\n\t\t => Interm states empty\n"; acc
       | ist_hd :: ist_tl -> 
-        if debug then printf "\n\t\t ===> Interm states not empty\n";
+        if debug then printf "\n\t\t => Interm states not empty\n";
         find_rhs_in_tbl sym ist_hd ist_tl tbl acc debug)
-    | Some sig_ls -> 
+    | sig_ls -> 
         (match interm_sts with 
-        | [] -> sig_ls :: acc
+        | [] -> sig_ls @ acc
         | ist_hd :: ist_tl -> 
-          if debug then printf "\n\t ===>>!!! Interm states not empty!\n";
-          find_rhs_in_tbl sym ist_hd ist_tl tbl (sig_ls :: acc) debug
+          if debug then printf "\n\t => Interm states not empty\n";
+          find_rhs_in_tbl sym ist_hd ist_tl tbl (sig_ls @ acc) debug
         )
   in
   if debug then (printf "\n\t\t  Found rhs in tbl for ( State %s, symbol " st; 
@@ -86,7 +86,7 @@ let find_intermediate_states (from_st: state) (tbl: ((state * symbol), sigma lis
       then loop from_st_tl res_acc
       else loop (from_st_tl @ to_acc) (to_acc @ res_acc)
   in let res = loop [from_st] [] in 
-  if debug then (Printf.printf "\n\t\t   >==> Found intermediate states for State %s \n\t\t" from_st; 
+  if debug then (Printf.printf "\n\t\t   ==> Found intermediate states for State %s \n\t\t" from_st; 
   Pp.pp_states res); res
 
 
@@ -132,7 +132,7 @@ let cartesian_product_trans_from (starting_states: (state * state) list)
 
 
 let find_reachable_states (from_sts: (state * state) list) (trans_ls: (((state * state) * symbol) * (sigma * sigma) list list) list) 
-  (triv_states: state list) (debug: bool): (state * state) list = 
+  (triv_states: state list) (start_sts_raw: (state * state) list) (debug: bool): (state * state) list = 
   let rec get_state_pairs (sig_pairs_ls: (sigma * sigma) list) (stp_acc: (state * state) list): (state * state) list = 
     match sig_pairs_ls with [] -> stp_acc
     | (T _, T _) :: tl -> get_state_pairs tl stp_acc 
@@ -162,7 +162,7 @@ let find_reachable_states (from_sts: (state * state) list) (trans_ls: (((state *
         |> List.filter (fun (s1, s2) -> (not (String.equal s1 st1)) || (not (String.equal s2 st2))) in
       traverse_from_states tl (state_pairs_wo_itself @ acc)
   in let res = traverse_from_states from_sts [] in
-  let res_wo_dups = Utils.remove_dups res in
+  let res_wo_dups = Utils.remove_dups res |> List.filter (fun sts -> not (List.mem sts start_sts_raw)) in
   let open Printf in 
   (if debug then printf "\n  >> Reachable states from init state_pairs"; 
   Pp.pp_raw_states from_sts; Pp.pp_raw_states res_wo_dups); res_wo_dups
@@ -323,7 +323,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 3 - Find reachable states based on I-starting transitions *)
   let init_reachable_states: (state * state) list = 
-    find_reachable_states start_states_raw raw_init_trans_ls triv_states debug_print 
+    find_reachable_states start_states_raw raw_init_trans_ls triv_states start_states_raw debug_print 
   in
   (if debug_print then pp_upline_new (); printf "##### Step 3 - Found reachable states based on intial states-starting transitions\n\t"; 
     Pp.pp_raw_states init_reachable_states; pp_loline_new ());
@@ -347,7 +347,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
       in
       (* --- collect reachable states from the curr states pair --- *)
       let curr_reachable_states = 
-        find_reachable_states [(st_hd1, st_hd2)] curr_raw_trans_from_states_pair triv_states debug_print 
+        find_reachable_states [(st_hd1, st_hd2)] curr_raw_trans_from_states_pair triv_states start_states_raw debug_print 
       in
       (* --- pass in as new 'states_reachable', the ones that do not already appeared --- *)
       let new_states_reachable_to_add: (state * state) list = 
@@ -424,17 +424,27 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
     Pp.pp_raw_trans_blocks trans_blocks_renamed; pp_loline_new ());
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 10 - Introduce epsilon transitions to simplify raw trans blocks *)
+  (* Step 10 - Remove duplicate transitions in each raw trans block *)  
+  let trans_blocks_wo_dup_trans = remove_dup_trans_for_each_block trans_blocks_renamed debug_print
+  in 
+  (if debug_print then pp_upline_new (); printf "##### Step 10 - Removed dup trans in raw trans blocks : \n";
+    Pp.pp_raw_trans_blocks trans_blocks_wo_dup_trans; pp_loline_new ());
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 11 - Introduce epsilon transitions to simplify raw trans blocks *)
   let trans_blocks_simplified_eps_trans: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
     simplify_trans_blocks_with_epsilon_transitions trans_blocks_renamed (List.rev state_pairs_renamed) debug_print
   in 
-  (if debug_print then pp_upline_new (); printf "##### Step 10 - Introduced epsilon transitions to simplify raw trans blocks : \n";
-    Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new ());
+  let trans_blocks_simplified_eps_trans_trimmed: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
+    remove_meaningless_transitions trans_blocks_simplified_eps_trans
+  in
+  (if debug_print then pp_upline_new (); printf "##### Step 11 - Introduced epsilon transitions to simplify raw trans blocks : \n";
+    Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans_trimmed; pp_loline_new ());
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 11 - Convert raw trans blocks to transitions format ((state, symbol), sigma list list) Hashtbl.t *)
+  (* Step 12 - Convert raw trans blocks to transitions format ((state, symbol), sigma list list) Hashtbl.t *)
   let res_raw_trans: (((state * state) * symbol) * (sigma * sigma) list) list = 
-    trans_blocks_simplified_eps_trans |> List.fold_left (fun res_acc (_, trans_block) -> 
+    trans_blocks_simplified_eps_trans_trimmed |> List.fold_left (fun res_acc (_, trans_block) -> 
       let transformed = trans_block |> List.fold_left (fun acc (st_pair, (sym, sig_sig_ls)) -> 
         let trans_new = ((st_pair, sym), sig_sig_ls) in trans_new :: acc) []
       in transformed @ res_acc) []
@@ -447,7 +457,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   let res_trans_tbl: ((state * symbol), sigma list list) Hashtbl.t = Hashtbl.create (Hashtbl.length a2.transitions) in
     res_trans_ls |> List.iter (fun ((st, sym), sig_ls) -> 
       Hashtbl.add res_trans_tbl (st, sym) [sig_ls]);
-  (if debug_print then pp_upline_new (); printf "##### Step 11 - Converted trans blocks to transitions hashtbl : \n";
+  (if debug_print then pp_upline_new (); printf "##### Step 12 - Converted trans blocks to transitions hashtbl : \n";
     Pp.pp_transitions_tbl res_trans_tbl; pp_loline_new ());
 
   let res_ta: ta2 = 

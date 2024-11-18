@@ -633,13 +633,52 @@ let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)
   if debug then (Printf.printf "\n\t >> Results of renaming in trans in blocks : \n"; 
   res_trans_blocks |> Pp.pp_raw_trans_blocks);
   res_trans_blocks
- 
+
+let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
+  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let rec remove_dup_trans ls' acc' = 
+    match ls' with [] -> List.rev acc'
+    | tran :: tl' -> 
+      if (List.mem tran acc')
+      then remove_dup_trans tl' acc'
+      else remove_dup_trans tl' (tran::acc')
+  in
+  let rec remove_dups_blocks ls acc = 
+    match ls with [] -> List.rev acc 
+    | (st_pair, trans_ls) :: tl -> 
+      let removed_dups_trans = remove_dup_trans trans_ls [] in 
+      remove_dups_blocks tl ((st_pair, removed_dups_trans) :: acc)
+  in let res_trans_blocks = remove_dups_blocks trans_blocks [] in 
+  if debug then (Printf.printf "\n\t >> Results of removing duplicates in trans in blocks : \n"; 
+  res_trans_blocks |> Pp.pp_raw_trans_blocks);
+  res_trans_blocks
+
 let find_trans_block_for_states_pair (st_pair: (state * state)) 
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list):
   ((state * state) * (symbol * (sigma * sigma) list)) list =
   match List.assoc_opt st_pair trans_blocks with None -> raise Invalid_transitions
-  | Some ls -> ls
+  | Some ls -> (Printf.printf "\n--- debug ----\n"; 
+  ls |> List.iter (fun ((st1, st2), (sym, sig_sig_ls)) -> 
+    Printf.printf "\n\t Sts %s %s ->_" st1 st2; Pp.pp_symbol sym; Pp.pp_sigma_sigma_list sig_sig_ls); ls)
   
+let trans_mem (sym_rhs_sts: symbol * (sigma * sigma) list) (trans_rhs_lst: (symbol * (sigma * sigma) list) list): bool = 
+  let exists_in_sigsigls (sig_pair: sigma * sigma) (sig_sig_ls: (sigma * sigma) list): bool = 
+    let (fst_sig, snd_sig) = (fst sig_pair), (snd sig_pair) in 
+    let rec loop ls ac = 
+      match ls with [] -> ac
+      | (s1, s2) :: tl -> 
+        (if (sigmas_equal s1 fst_sig) && (sigmas_equal s2 snd_sig)
+        then loop tl (true || ac)
+        else loop tl ac)
+    in loop sig_sig_ls false
+  in
+  let (sym, ssls) = (fst sym_rhs_sts), (snd sym_rhs_sts) in
+  match Utils.sig_sig_assoc_all sym trans_rhs_lst with 
+  | [] -> false
+  | sig_sig_ls -> 
+    ssls |> List.for_all (fun sig_pair -> (exists_in_sigsigls sig_pair sig_sig_ls))
+
+
 let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair2: (state * state))
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
   (debug: bool): bool = 
@@ -654,9 +693,10 @@ let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair
     let rec traverse_rhs (ls: (symbol * (sigma * sigma) list) list): bool = 
       match ls with [] -> true
       | hsym_rhs_sts :: tl -> 
-        if (List.mem hsym_rhs_sts st2_trans_rhs_lst)
-        then traverse_rhs tl
-        else false
+        Printf.printf "\n\t symbol %s and rhs \n" (fst (fst hsym_rhs_sts)); Pp.pp_sigma_sigma_list (snd hsym_rhs_sts);
+        if (trans_mem hsym_rhs_sts st2_trans_rhs_lst) (*(List.mem hsym_rhs_sts st2_trans_rhs_lst)*)
+        then (Printf.printf "\n\tYES MEM\n";traverse_rhs tl)
+        else (Printf.printf "\n\tNO, NOT MEM\n"; false)
     in traverse_rhs st1_trans_rhs_lst 
   in if debug then (Printf.printf "\t %b" res_bool); 
   res_bool
@@ -687,9 +727,12 @@ let simplify_trans_blocks_with_epsilon_transitions
     ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
     match other_states_ls with [] -> blocks_acc
     | comp_st_pair :: tl -> 
-      if (st1_transblock_subset_of_st2_transblock st_pair comp_st_pair input_trans_blocks debug)
-      then (let new_trans_blocks = (replace_st1_transkblock_in_st2_transblock_with_eps st_pair comp_st_pair blocks_acc)
-            in simplify_trans_blocks st_pair tl new_trans_blocks)
+      if (st1_transblock_subset_of_st2_transblock st_pair comp_st_pair blocks_acc debug)
+      then (let new_trans_blocks = (replace_st1_transkblock_in_st2_transblock_with_eps st_pair comp_st_pair blocks_acc) in 
+            let new_trans_blocks_wo_dups = remove_dup_trans_for_each_block new_trans_blocks false 
+            in if debug then (Printf.printf "\n\tAfter Replacing State %s trans with State %s trans\n" (fst comp_st_pair) (fst st_pair);
+            Pp.pp_raw_trans_blocks new_trans_blocks_wo_dups);
+            simplify_trans_blocks st_pair tl new_trans_blocks_wo_dups)
       else (simplify_trans_blocks st_pair tl blocks_acc)
   in 
   let rec traverse_states (ls: (state * state) list) blocks_acc =
@@ -702,6 +745,22 @@ let simplify_trans_blocks_with_epsilon_transitions
   in let simplified_res = traverse_states st_pair_ls input_trans_blocks in 
   if debug then (Printf.printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
   simplified_res
+
+let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
+  ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
+  let parenthesis_trans_to_itself (sym_sigsigls: (symbol * (sigma * sigma) list)) (st_pr: (state * state)) =
+    let paren_to_sts (siglsls: (sigma * sigma) list) (sts: (state * state)) = match siglsls with 
+    | ((T "LPAREN"), _) :: ((Nt sts'), _) :: ((T "RPAREN"), _) :: [] -> String.equal (fst sts) sts'
+    | _ -> false in
+    match sym_sigsigls with 
+    | sym, siglsls -> 
+      (syms_equals sym ("LPARENRPAREN", 1)) && (paren_to_sts siglsls st_pr)
+  in
+  let remove_meaningless_trans (blocks: ((state * state) * (symbol * (sigma * sigma) list)) list) =
+    blocks |> List.filter (fun (sts, sym_sig_sig_ls) -> 
+      not (parenthesis_trans_to_itself sym_sig_sig_ls sts))
+  in
+  trans_blocks |> List.map (fun (st_pair, blocks) -> st_pair, (remove_meaningless_trans blocks))
 
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename

@@ -63,5 +63,15 @@ let assoc_all (a: Ta.symbol) (ord: int) (ab_ls: ((Ta.symbol * int) * Cfg.sigma l
 
 
 let merge ~into:tab1 tab2 =
-  Hashtbl.fold (fun key elt () -> Hashtbl.replace tab1 key elt) tab2 ();
+  Hashtbl.fold (fun key elt () -> Hashtbl.add tab1 key elt) tab2 ();
   tab1
+
+let sig_sig_assoc_all (sym: Ta.symbol) (trans: (Ta.symbol * (Cfg.sigma * Cfg.sigma) list) list)
+  : (Cfg.sigma * Cfg.sigma) list = 
+  let rec accumulate ls acc = 
+    match ls with [] -> List.rev acc 
+    | (s, sig_sig_ls) :: tl ->
+      if Ta.syms_equals s sym 
+      then accumulate tl (sig_sig_ls @ acc)
+      else accumulate tl acc
+  in accumulate trans []

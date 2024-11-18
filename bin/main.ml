@@ -77,6 +77,8 @@ let () =
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
       O.intersect ta_initial ta_learned triv_syms triv_syms_states debug 
     in 
+    (* let file_written = "./test/grammars/G0/G0_results/G0a"
+    in  *)
     let grammar = "G0a" in
     let file_written = U.test_results_filepath grammar !file_postfix in 
     ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf " ---> State %s\n" st);
