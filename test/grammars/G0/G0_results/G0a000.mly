@@ -26,9 +26,19 @@
 
 program : e1 EOF { $1 } ;
 
-cond_expr:
-  | TRUE { Bool true }
-  | FALSE { Bool false } 
+e1:
+  | x1 PLUS x3 { Plus ($1, $3) }
+  | x2  { $1 }
+  ;
+
+x1:
+  | x1 PLUS x3 { Plus ($1, $3) }
+  | x3  { $1 }
+  ;
+
+x2:
+  | x3 MUL x2 { Mul ($1, $3) }
+  | x3  { $1 }
   ;
 
 x3:
@@ -38,18 +48,8 @@ x3:
   | LPAREN e1 RPAREN { Paren $2 }
   ;
 
-x2:
-  | x3 MUL x2 { Mul ($1, $3) }
-  | x3  { $1 }
-  ;
-
-x1:
-  | x3  { $1 }
-  | x1 PLUS x3 { Plus ($1, $3) }
-  ;
-
-e1:
-  | x2  { $1 }
-  | x1 PLUS x3 { Plus ($1, $3) }
+cond_expr:
+  | TRUE { Bool true }
+  | FALSE { Bool false } 
   ;
 

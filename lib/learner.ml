@@ -46,7 +46,8 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let last_state: state = 
     match (List.assoc_opt max_lvl lvl_state_pairs) with 
     None -> raise Max_level_state | Some st -> st in 
-  let find_rhs_lst_lst (s: symbol) (o: int): sigma list list = Utils.assoc_all s o sym_ord_rhs_ls debug in
+  let find_rhs_lst_lst (s: symbol) (o: int): sigma list list = 
+    if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug in
   
   (* Step 1 - add last state ->_{<(), 1>} start state to 'trans_tbl' *)
   add trans_tbl (last_state, ("LPARENRPAREN", 1)) [[(T "LPAREN"); (Nt start); (T "RPAREN")]];
@@ -94,17 +95,20 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
  
   let sym_ord_ls_wrt_op: (symbol * int) list = op_ls |> List.map (fun x -> match x with 
     Assoc _ -> raise No_assoc_possible | Prec (s, o) -> (s, o)) in
+  if debug then printf "\n\t Symbols' orders "; sym_ord_ls_wrt_op |> List.iter (fun (s, o) -> 
+    Pp.pp_symbol s; printf " Ord %d  " o); printf "\n\n";
   
   let syms_op = sym_ord_ls_wrt_op |> List.map fst in
+  if debug then printf "\n\t Syms_op is \t"; List.iter Pp.pp_symbol syms_op; printf "\n\n";
   let original_order s: int = 
     let sym_ord_ls = sym_ord_rhs_ls |> List.map (fun ((s, o), _sls) -> (s, o)) in
     List.assoc s sym_ord_ls in
   let order_of_sym s = List.assoc s sym_ord_ls_wrt_op in 
   let different_order_in_obp (s: symbol) (o': int): bool = 
     if (syms_equals s epsilon_symb) then false else
-    let ord_in_bp: int ref = ref 999 in (* some random initial number *)
-    o_bp_tbl |> iter (fun o sym_ls -> if (List.mem s sym_ls) then ord_in_bp := o); 
-    !ord_in_bp != o'
+    let ords_in_bp: int list ref = ref [] in (* some random initial number *)
+    o_bp_tbl |> iter (fun o sym_ls -> if (List.mem s sym_ls) then ords_in_bp := o::!ords_in_bp); 
+    not (List.mem o' !ords_in_bp)
   in
   
   (* --- helper --- *)
@@ -143,15 +147,18 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       let sym_rhs_lsls_learned: sigma list list = 
         if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
         then 
-          (printf "\n Different? *** Part of Syms_O_p \t"; Pp.pp_symbol sym;
-          sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls ->
-          let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
-          let new_st = "e" ^ (string_of_int (new_lvl+1)) in
-          let sym_rhs_ls_learned = match_collect sym rhs_ls new_st []
-          in 
-          sym_rhs_ls_learned :: acc) [])
+          (if debug then (printf "\n Different? *** Part of Syms_O_p \t"; Pp.pp_symbol sym;
+            printf "\n Found rhs sigma ls ls "; Pp.pp_sigma_listlist sym_rhs_ls_ls);
+           sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls ->
+           let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
+           let new_st = "e" ^ (string_of_int (new_lvl+1)) in
+           let sym_rhs_ls_learned = match_collect sym rhs_ls new_st []
+            in 
+           sym_rhs_ls_learned :: acc) [])
         else 
-          (sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
+          (if debug then (printf "\n Not different OR not part of Syms_op OR epsilon symb\t"; Pp.pp_symbol sym;
+            printf "\n Rhs sigma ls ls "; Pp.pp_sigma_listlist sym_rhs_ls_ls);
+            sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
           let sym_rhs_ls_learned = match_collect sym rhs_ls curr_st []
           in sym_rhs_ls_learned :: acc ) [])
       in
