@@ -106,7 +106,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let order_of_sym s = List.assoc s sym_ord_ls_wrt_op in 
   let different_order_in_obp (s: symbol) (o': int): bool = 
     if (syms_equals s epsilon_symb) then false else
-    let ords_in_bp: int list ref = ref [] in (* some random initial number *)
+    let ords_in_bp: int list ref = ref [] in 
     o_bp_tbl |> iter (fun o sym_ls -> if (List.mem s sym_ls) then ords_in_bp := o::!ords_in_bp); 
     not (List.mem o' !ords_in_bp)
   in
@@ -186,12 +186,14 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       end
   in let learned_lhsst_sym_siglsls = run_for_each_level 0 [] 
   in learned_lhsst_sym_siglsls |> List.iter (fun ((lhs, sym), siglsls) -> 
-    printf "\n\tFor LHS %s " lhs; Pp.pp_symbol sym; siglsls |> List.iter (fun sigls -> Pp.pp_sigma_list2 sigls));
+    printf "\n\tFor LHS %s " lhs; Pp.pp_symbol sym; 
+    (* if List.is_empty siglsls then printf "\n\tEMPTY!\n"; *)
+    siglsls |> List.iter (fun sigls -> Pp.pp_sigma_list2 sigls));
     printf "\n\n";
     printf "\n\t\t Length is %d\n\n" (List.length learned_lhsst_sym_siglsls);
   let new_trans_tbl = Hashtbl.create 100 in 
     learned_lhsst_sym_siglsls |> List.iter (fun ((lhs, sym), siglsls) -> 
-      add new_trans_tbl (lhs, sym) siglsls);
+      if not (List.is_empty siglsls) then add new_trans_tbl (lhs, sym) siglsls);
   (* NOTE: 
    *       Merge trans_tbl and new_trans_tbl so that both trvi transitions and nontriv transitions
    *       are combined. If I just work with only one trans_tbl and try adding everything there, 

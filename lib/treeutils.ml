@@ -515,14 +515,15 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
               (cross_loop sig_lsls1 lsls2 []) @ acc) [] 
               |> Utils.remove_dups)
            else 
-            if (len2 > len1) 
+            if (len1 > len2) 
             then 
               (let sig_lsls2 = hd sig_lsls_ls2 in 
                sig_lsls_ls1 |> fold_left (fun acc lsls1 -> 
                 (cross_loop sig_lsls2 lsls1 []) @ acc) [] 
                 |> Utils.remove_dups)
               else 
-                raise No_cross_product_sigls_possible)
+                (Printf.printf"\n\tCross product bug position!\n";
+                raise No_cross_product_sigls_possible))
       end
     in 
     let reslsls_refined = reslsls |> filter (fun ls -> not (is_empty ls)) in 
@@ -530,8 +531,9 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
       reslsls_refined
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
-  match Hashtbl.find_opt tbl (st, sym) with None -> false
-  | Some _ -> true
+  Printf.printf "\n Is Symbol %s in tbl? \n" (fst sym);
+  match Hashtbl.find_opt tbl (st, sym) with None -> Printf.printf "\tNO\n";false
+  | Some _ -> Printf.printf "\tYES\n";true
 
 let state_pair_append (st_pair: state * state): state = 
   let st1, st2 = (fst st_pair), (snd st_pair) in 
