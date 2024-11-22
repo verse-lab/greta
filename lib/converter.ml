@@ -744,7 +744,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   in
   (* Create mappings for correct formatting and mapping of the string *)
   let prods_in_question: string list = 
-    nontriv_prods |> List.filter (fun (nt, _prods) -> (List.mem nt inconsistent_states)) 
+    nontriv_prods 
+    (* |> List.filter (fun (nt, _prods) -> (List.mem nt inconsistent_states))  *)
     |> List.map snd |> List.map (fun prod_blk -> List.tl prod_blk)
     |> List.flatten
   in  
@@ -834,11 +835,11 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
       terms |> Pp.pp_terminals; printf "\n\t AND nt_num %d \n" nt_num);
     match List.assoc_opt (terms, nt_num) nontriv_prods_terms_ntnum_mapping with 
     | Some (p, nts) -> 
-      if debug_print then (printf "\n\t FOUND production %s " p; 
+      if debug_print then (printf "\n\t FOUND production %s \n" p; 
         printf " with nonterms "; nts |> Pp.pp_nonterminals); (p, nts)
     | None -> 
       (* TODO: To resume from this case! *)
-      if debug_print then (printf "\n\t NOT FOUND\n"); ("", [])
+      if debug_print then (printf "\n\t NOT FOUND so look for prod elsewhere \n"); ("", [])
   in
   let change_str_per_nts (old_nts: string list) (new_nts : string list) (ln: string): string =
     if (List.length old_nts) != (List.length new_nts) then raise Nonterms_length_must_equal;

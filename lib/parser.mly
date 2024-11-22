@@ -26,13 +26,8 @@
 program : expr0 EOF { $1 } ;
 
 expr0:
-  | expr1 PLUS expr3 { Plus ($1, $3) }
+  | expr0 PLUS expr3 { Plus ($1, $3) }
   | expr2  { $1 }
-  ;
-
-expr1:
-  | expr1 PLUS expr3 { Plus ($1, $3) }
-  | expr3  { $1 }
   ;
 
 expr2:
@@ -51,5 +46,3 @@ cond_expr:
   | TRUE { Bool true }
   | FALSE { Bool false } 
   ;
-
-
