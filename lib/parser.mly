@@ -23,28 +23,28 @@
 %start program
 %%
 
-program : e1 EOF { $1 } ;
+program : expr0 EOF { $1 } ;
 
-e1:
-  | x1 PLUS x3 { Plus ($1, $3) }
-  | x2  { $1 }
+expr0:
+  | expr1 PLUS expr3 { Plus ($1, $3) }
+  | expr2  { $1 }
   ;
 
-x1:
-  | x1 PLUS x3 { Plus ($1, $3) }
-  | x3  { $1 }
+expr1:
+  | expr1 PLUS expr3 { Plus ($1, $3) }
+  | expr3  { $1 }
   ;
 
-x2:
-  | x3 MUL x2 { Mul ($1, $3) }
-  | x3  { $1 }
+expr2:
+  | expr3 MUL expr2 { Mul ($1, $3) }
+  | expr3  { $1 }
   ;
 
-x3:
-  | IF cond_expr THEN x3 { If ($2, Then ($4, Else Na)) }
-  | IF cond_expr THEN x3 ELSE x3 { If ($2, Then ($4, Else $6)) }
+expr3:
+  | IF cond_expr THEN expr3 { If ($2, Then ($4, Else Na)) }
+  | IF cond_expr THEN expr3 ELSE expr3 { If ($2, Then ($4, Else $6)) }
   | INT  { Int $1 }
-  | LPAREN e1 RPAREN { Paren $2 }
+  | LPAREN expr0 RPAREN { Paren $2 }
   ;
 
 cond_expr:

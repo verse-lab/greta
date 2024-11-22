@@ -512,14 +512,14 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
             (* assume sig_lsls_ls2 is longer *)
             (let sig_lsls1 = hd sig_lsls_ls1 in 
              sig_lsls_ls2 |> fold_left (fun acc lsls2 -> 
-              (cross_loop sig_lsls1 lsls2 []) @ acc) [] 
+              acc @ (cross_loop sig_lsls1 lsls2 [])) [] 
               |> Utils.remove_dups)
            else 
             if (len1 > len2) 
             then 
               (let sig_lsls2 = hd sig_lsls_ls2 in 
                sig_lsls_ls1 |> fold_left (fun acc lsls1 -> 
-                (cross_loop sig_lsls2 lsls1 []) @ acc) [] 
+                acc @ (cross_loop lsls1 sig_lsls2 [])) [] 
                 |> Utils.remove_dups)
               else 
                 (Printf.printf"\n\tCross product bug position!\n";

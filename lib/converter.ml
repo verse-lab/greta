@@ -584,7 +584,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   let res_start_lines, after_starts_states_mapping = replace_wgstarts start_id_lines states_mapping
   in
   let triv_states_mapping = 
-    g.triv_term_nonterm_list |> List.map (fun (_term, nt) -> (nt, nt)) 
+    g.triv_term_nonterm_list |> List.map (fun (_term, nt) -> (nt, nt)) |> remove_dups
   in 
   let res_states_mapping = 
     after_starts_states_mapping @ triv_states_mapping
@@ -734,7 +734,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   let unchanged_nontriv_prods: string list = 
     nontriv_prods |> List.filter (fun (nt, _prods) -> (List.mem nt consistent_states)) 
       |> List.fold_left (fun acc (old_nt, prods) -> 
-        (printf "\n ** Which state?! %s" old_nt);
+        (printf "\n ** Which state?! %s\n" old_nt);
         let _old_st = Str.regexp old_nt in
         let _new_st = List.assoc old_nt res_states_mapping in
         let new_prods = prods |> List.map (fun ln -> 
@@ -837,6 +837,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
       if debug_print then (printf "\n\t FOUND production %s " p; 
         printf " with nonterms "; nts |> Pp.pp_nonterminals); (p, nts)
     | None -> 
+      (* TODO: To resume from this case! *)
       if debug_print then (printf "\n\t NOT FOUND\n"); ("", [])
   in
   let change_str_per_nts (old_nts: string list) (new_nts : string list) (ln: string): string =
