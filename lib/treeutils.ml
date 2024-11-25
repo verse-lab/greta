@@ -655,6 +655,11 @@ let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * 
   res_trans_blocks |> Pp.pp_raw_trans_blocks);
   res_trans_blocks
 
+(* let remove_dup_trans_after_eps_intro (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
+  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let rec *)
+
+
 let find_trans_block_for_states_pair (st_pair: (state * state)) 
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list):
   ((state * state) * (symbol * (sigma * sigma) list)) list =
