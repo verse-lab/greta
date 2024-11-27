@@ -206,10 +206,12 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
     iter
       (fun st -> Hashtbl.add !nt_to_order st (num_nt + 1))
       nt_ls;
+    (* *** debugging *** *)
     iter (fun st -> Hashtbl.replace !nt_to_order st 0) init_sts;
     (* 
     Hashtbl.add !nt_to_order "ϵ" (num_nt + 1); (* pseudo nt *)
      *)
+    Hashtbl.iter (fun s ord -> printf "\n\t\t Nonterm %s Order %i" s ord) !nt_to_order;
     let get_order table =
       fold_left (fun acc (st, (_, rhs), _) ->
           let changed = ref false in
@@ -223,8 +225,11 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
                   changed := false)
                 else 
                   (let ord = Hashtbl.find !table s in
+                  printf "\n\t  For %s found ord %d \n" s ord;
                   let ord' = Hashtbl.find !table st in
+                  printf "\n\t  For %s found ord' %d \n" st ord';
                   if ord > (ord' + 1) then (
+                    printf "\n\t  !! ord %d > ord' %d + 1\n" ord ord';
                     Hashtbl.replace !table s (ord' + 1);
                     changed := true))
             ) rhs;
@@ -234,6 +239,8 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
         trans_ls
     in
     let nt_to_order' = fixpoint get_order nt_to_order in
+    (* *** debugging *** *)
+    Hashtbl.iter (fun s ord -> printf "\n\t\t  Nonterm %s Order %i" s ord) !nt_to_order';
     let states_ordered = Hashtbl.fold
       (fun k v acc -> (k, v) :: acc) 
       !nt_to_order' [] 

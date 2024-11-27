@@ -769,6 +769,14 @@ let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * s
   in
   trans_blocks |> List.map (fun (st_pair, blocks) -> st_pair, (remove_meaningless_trans blocks))
 
+let optimize_sym_list (syms: symbol list) (eps_optimize: bool) (paren_optimize: bool) (debug: bool): symbol list = 
+  let syms_opt1 = 
+    if eps_optimize then syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms in 
+  let syms_opt2 = 
+    if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPARENRPAREN", 1))) else syms_opt1 in 
+  if debug then (Printf.printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
+    syms_opt2
+
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
 
