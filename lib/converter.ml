@@ -206,7 +206,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
     iter
       (fun st -> Hashtbl.add !nt_to_order st (num_nt + 1))
       nt_ls;
-    (* *** debugging *** *)
+    (* *** debugging (TODO) Below logic of updating 'nt_to_order' can be improved *** *)
     iter (fun st -> Hashtbl.replace !nt_to_order st 0) init_sts;
     (* 
     Hashtbl.add !nt_to_order "ϵ" (num_nt + 1); (* pseudo nt *)
@@ -245,17 +245,53 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       (fun k v acc -> (k, v) :: acc) 
       !nt_to_order' [] 
     in
+    (* *** [Tentative fix] to optimize the process later *** *)
+    (* *** not very efficient so can do better *** *)
+    let state_order st st_ord_ls = 
+      match List.assoc_opt st st_ord_ls with Some o -> o | None -> raise Not_possible
+    in 
+    let replace_st_and_upper st_ord_ls covered rhs_st ord = 
+      st_ord_ls |> List.map (fun (s, o) -> 
+        if (List.mem s covered) then (s, o) else
+        if (String.equal s rhs_st) then (s, (o+1)) else 
+        if (o >= ord) then (s, (o+1)) else (s, o))
+    in 
+    let rec fix_sts_order ls sts_orders covered =
+      match ls with [] -> sts_orders
+      | (lhs_st, ((ter, rnk), rhs_ntls), _) :: tl -> 
+        if (String.equal ter (fst epsilon_symb)) && (rnk = 1)
+        then
+          begin 
+            if (List.mem lhs_st init_sts)
+            then fix_sts_order tl sts_orders covered
+            else 
+              (let lhs_ord = state_order lhs_st sts_orders in 
+              let rhs_st = List.hd rhs_ntls in
+              let covered' = lhs_st::covered in
+              let new_sts_orders = replace_st_and_upper sts_orders covered' rhs_st lhs_ord in 
+              fix_sts_order tl new_sts_orders (lhs_st::rhs_st::covered))
+          end
+        else 
+          fix_sts_order tl sts_orders covered 
+    in let new_states_ordered = fix_sts_order trans_ls states_ordered [] in 
+    (runIf debug_print (fun _ -> 
+      printf "\nNew Order of states : \n";
+      iter
+        (fun (st, lvl) -> printf "(%s, %i)\n" st lvl) 
+        new_states_ordered)
+    );
+
     (runIf debug_print (fun _ -> 
       printf "\nOrder of states : \n";
       iter
         (fun (st, lvl) -> printf "(%s, %i)\n" st lvl) 
-        states_ordered)
+        new_states_ordered) (* fixed based on 'fix_sts_order' *)
     );
     let rec get_o_base_precedence trans acc_res =
       match trans with
       | [] -> List.rev acc_res
       | (lhs_st, (sym, _), rhs) :: tl ->
-        let ord = match (assoc_opt lhs_st states_ordered) with
+        let ord = match (assoc_opt lhs_st new_states_ordered) with (* fixed based on 'fix_sts_order' *)
           | None ->
             (runIf debug_print (fun _ -> 
               printf "\n\nState %s has no matching order.\n" lhs_st));
@@ -717,6 +753,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
     prods_blocks |> List.filter (fun (nt, _prods) -> 
       not (List.mem nt orig_start_nonterms) && not (List.mem nt triv_nonterms) && not (String.equal nt ""))
   in
+  if debug_print then (printf "\n\t *** Nontrivial productions : \n"; 
+    nontriv_prods |> List.iter (fun (s, ss) -> printf "%s\n" s; ss |> List.iter (printf "\t%s\n")));
   (* Find out there is no exact 1-to-1 mapping *)
   let (inconsistent_states, consistent_states): state list * state list = 
     let all_states_cnt_tbl: (state, int) Hashtbl.t = 
@@ -737,16 +775,95 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   if debug_print then (printf "\n *** Multiple mapped states: \t "; 
     Pp.pp_states inconsistent_states; printf "\n *** Single mapped states: \t";
     Pp.pp_states consistent_states);
+
+  (*  --- New Helper to correclty replace nonterminals b/c it's not always replaced with primary state --- *)
+  let before_curly (sls: string list): string list = 
+    let hit_curly = ref false in 
+    sls |> List.fold_left (fun acc x -> 
+      if !hit_curly then acc else if (String.equal x "{") then (hit_curly := true; acc) else acc@[x] ) []
+  in 
+  let correct_str_lst (s: string): string list = 
+    Str.split (Str.regexp "[ \n\r\x0c\t]+") s |> List.filter (fun x -> 
+      not ((String.equal x "|") || (String.equal x ";"))) |> before_curly 
+  in 
+  let extract_terminal (s: string): string = 
+    let sls = correct_str_lst s in
+    let res = sls |> List.filter (fun s -> String.equal s (String.uppercase_ascii s)) in
+      if List.is_empty res then "" else List.hd res
+  in
+  let extract_nonterms (s: string): string list = 
+    let sls = correct_str_lst s in
+      sls |> List.filter (fun s -> String.equal s (String.lowercase_ascii s)) 
+  in
+  let extract_terminal_sigls (ls: sigma list): string = 
+    let res = ls |> List.fold_left (fun acc sg -> match sg with T ter -> acc @ [ter] | Nt _ -> acc) [] in 
+      if (List.is_empty res) then (printf "\n\tempty!\n";"") else 
+        (let fst_term = List.hd res in if (String.equal fst_term "LPAREN") then "LPARENRPAREN" else fst_term)
+  in 
+  let extract_nonterms_sigls (ls: sigma list): string list = 
+    ls |> List.fold_left (fun acc sg -> match sg with Nt nt -> acc @ [nt] | T _ -> acc) []
+  in 
+  let find_nonterms_for (nt: string) (term: string): string list =
+    let nt_p_lst: p list = g.productions |> List.filter (fun (nt', _i, _sigls) -> (String.equal nt nt')) in
+    nt_p_lst |> List.iter (fun x -> Pp.pp_p x);
+    let sig_lst: sigma list = nt_p_lst |> List.fold_left (fun acc (_nt, _i, sigls) -> 
+      if (String.equal (extract_terminal_sigls sigls) term) then acc @ sigls else acc) [] in
+      extract_nonterms_sigls sig_lst
+  in 
+  let new_replace_str_wrt_mapped_states (nt: string) (ln: string): string = 
+    let term = extract_terminal ln in 
+    if debug_print then printf "\n\t\t term %s " term;
+    let nonts = extract_nonterms ln in 
+    if debug_print then (printf "\n\t\t old nonterms -->"; nonts |> List.iter (fun x -> printf "%s " x); printf "\n");
+    let correct_nonts = find_nonterms_for nt term in 
+    if debug_print then (printf "\n\t\t finding correct nonterms for nt %s and term %s -->" nt term; correct_nonts |> List.iter (fun x -> printf "%s " x)); 
+    if (String.equal term "") && (List.length nonts) = 1 && (List.length correct_nonts) = 1 
+    then (let old_st = Str.regexp (List.hd nonts) in 
+          Str.global_replace old_st (List.hd correct_nonts) ln)
+    else 
+      begin  
+        (* Need to enhance this loop so it works in any directions! *)
+        let rec replace_loop old_sts new_sts str_acc = 
+          match old_sts with [] -> 
+            if (List.is_empty new_sts) then str_acc else raise Nonterms_length_must_equal
+          | old_st_hd :: old_sts_tl -> 
+            let old_st = Str.regexp old_st_hd in 
+            let new_st = List.hd new_sts in 
+            let new_acc = Str.global_replace old_st new_st str_acc in 
+            printf "\n\t --- replacing %s with %s \n" old_st_hd new_st;
+            replace_loop old_sts_tl (List.tl new_sts) new_acc
+            (* Tentative fix is to traverse in reverse direction. ref: G0a-000->0 scenario *)
+        in replace_loop (List.rev nonts) (List.rev correct_nonts) ln
+      end
+  in 
+  let no_terms_or_nonterms (ln: string): bool = 
+    if debug_print then printf "\n\t Does %s involve NO terms or nonterms?\n" ln;
+    let res = 
+      if (contains_only_one_colon ln) then true 
+      else
+        let t = extract_terminal ln in 
+        let nts = extract_nonterms ln in 
+        (String.equal t "") && (List.is_empty nts) 
+    in if debug_print then (if res then printf "\t\t YES\n" else printf "\t\t NO\n"); res
+  in 
   (* Keep the productions as they are except for replacing with right states names *)
   let unchanged_nontriv_prods: string list = 
-    nontriv_prods |> List.filter (fun (nt, _prods) -> (List.mem nt consistent_states)) 
-      |> List.fold_left (fun acc (old_nt, prods) -> 
-        (printf "\n ** Which state?! %s\n" old_nt);
+  let nonterm = ref "" in 
+    nontriv_prods 
+    |> List.filter (fun (nt, _prods) -> (List.mem nt consistent_states)) 
+    |> List.fold_left (fun acc (old_nt, prods) -> 
+        let new_st = List.assoc old_nt res_states_mapping in
+        (printf "\n ** Which state?! %s\n" new_st);
+        nonterm := new_st;
         let _old_st = Str.regexp old_nt in
-        let _new_st = List.assoc old_nt res_states_mapping in
         let new_prods = prods |> List.map (fun ln -> 
-          replace_str_wrt_primary_mapped_state ln res_states_mapping_primary
-          ) in acc @ (new_prods@[""])
+          (* [fixed] b/c not always replaced with primary state *)
+          (* replace_str_wrt_primary_mapped_state ln res_states_mapping_primary *)
+          if (no_terms_or_nonterms ln) 
+          then replace_str_wrt_primary_mapped_state ln res_states_mapping_primary
+          else new_replace_str_wrt_mapped_states !nonterm ln
+          ) in (new_prods |> List.iter (fun s -> printf "\n\t  *** Production accumulated  %s" s));
+          acc @ (new_prods@[""])
       ) []
   in
   (* Create mappings for correct formatting and mapping of the string *)

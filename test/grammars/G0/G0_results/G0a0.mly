@@ -31,14 +31,14 @@ cond_expr:
   | FALSE { Bool false } 
   ;
 
-x1:
-  | x3 MUL x1 { Mul ($1, $3) }
-  | x3  { $1 }
-  ;
-
 e1:
   | x1  { $1 }
-  | e1 PLUS x3 { Plus ($1, $3) }
+  | e1 PLUS x2 { Plus ($1, $3) }
+  ;
+
+x1:
+  | x2 MUL x1 { Mul ($1, $3) }
+  | x2  { $1 }
   ;
 
 x3:

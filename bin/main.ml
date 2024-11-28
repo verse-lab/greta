@@ -75,7 +75,7 @@ let () =
     in     
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
-      O.intersect ta_initial ta_learned triv_syms triv_syms_states debug 
+      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag debug 
     in 
     (* let file_written = "./test/grammars/G0/G0_results/G0a"
     in  *)

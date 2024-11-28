@@ -373,7 +373,7 @@ let collect_unique_states_and_map_to_new_states
 
 (** Intersection of tree automata *)
 let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (symbol * state) list) 
-  (debug_print: bool): ta2 * (state * state) list =
+  (opt_flag: optimization) (debug_print: bool): ta2 * (state * state) list =
   let open Printf in 
   let pp_loline_new () = 
     let loleft, mid, loright = "\t╘══════════", "═══════════", "══════════╛" 
@@ -389,7 +389,9 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 0 - Consider symbols excluding trivial symbols *)
   let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
-  let syms_nontrivial = syms |> List.filter (fun s -> not (List.mem s trivSyms)) 
+  let syms_nontrivial = 
+    let init_sym_ls = syms |> List.filter (fun s -> not (List.mem s trivSyms)) 
+    in optimize_sym_list init_sym_ls opt_flag.eps_opt false debug_print
   in 
   (if debug_print then pp_upline_new (); printf "##### Step 0 - Found nontrivial symbols\n\t"; 
     syms_nontrivial |> List.iter Pp.pp_symbol; printf "\n"; pp_loline_new ());
@@ -431,9 +433,10 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
     | (st_hd1, st_hd2) :: reachable_states_tl -> 
       if debug_print then (printf "\n\t (current) looking for raw trans ");
       (* --- find transitions from the curr states pair --- *)
-      let alph1: symbol list = accessible_symbols_for_state st_hd1 a1.transitions syms_nontrivial triv_states debug_print in 
-      let alph2: symbol list = accessible_symbols_for_state st_hd2 a2.transitions syms_nontrivial triv_states debug_print in 
-      let alph_overlapped: symbol list = take_smaller_symbols_list alph1 alph2 debug_print 
+      let alph1: symbol list = accessible_symbols_for_state st_hd1 a1.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 
+      let alph2: symbol list = accessible_symbols_for_state st_hd2 a2.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 
+      let alph_overlapped: symbol list = 
+        take_smaller_symbols_list alph1 alph2 debug_print |> List.filter (fun s -> not (syms_equals s epsilon_symb))
       in 
       let curr_raw_trans_from_states_pair = 
         cartesian_product_trans_from [(st_hd1, st_hd2)] a1.transitions a2.transitions alph_overlapped triv_states debug_print
