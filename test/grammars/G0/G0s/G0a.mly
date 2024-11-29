@@ -1,8 +1,9 @@
 /* *** G0a *** */
 // 3 po's 1 assoc
 // if2 vs. *
-// if1 vs. *
 // * assoc
+// if1 vs. *
+/* ---------- */
 // if1 vs. if2
 
 %{

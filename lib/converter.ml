@@ -788,8 +788,11 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   in 
   let extract_terminal (s: string): string = 
     let sls = correct_str_lst s in
-    let res = sls |> List.filter (fun s -> String.equal s (String.uppercase_ascii s)) in
-      if List.is_empty res then "" else List.hd res
+    let res = 
+      let res_ls = sls |> List.filter (fun s -> String.equal s (String.uppercase_ascii s)) in
+      if List.is_empty res_ls then "" else List.hd res_ls 
+    in 
+      if (String.equal res "LPAREN") then "LPARENRPAREN" else res
   in
   let extract_nonterms (s: string): string list = 
     let sls = correct_str_lst s in
@@ -810,6 +813,20 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
       if (String.equal (extract_terminal_sigls sigls) term) then acc @ sigls else acc) [] in
       extract_nonterms_sigls sig_lst
   in 
+  (* --- helper to set traversal direction --- *)
+  let to_scan_forward (prev_nonts: string list) (new_nonts: string list): bool = 
+    let rec traverse_both prevs news matched_covered acc = 
+      match prevs with 
+      | [] -> 
+        if (List.is_empty news) then acc 
+        else raise (Failure "to_scan_forward: prev_nonts and new_nonts with diff length")
+      | prev_nt_hd :: prev_nt_tl -> 
+        let new_nt_matched = List.hd news in 
+        if (List.mem prev_nt_hd matched_covered) then false 
+        else 
+          traverse_both prev_nt_tl (List.tl news) (new_nt_matched::matched_covered) acc
+    in traverse_both prev_nonts new_nonts [] true 
+  in
   let new_replace_str_wrt_mapped_states (nt: string) (ln: string): string = 
     let term = extract_terminal ln in 
     if debug_print then printf "\n\t\t term %s " term;
@@ -822,6 +839,10 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
           Str.global_replace old_st (List.hd correct_nonts) ln)
     else 
       begin  
+        let (nonts_init, correct_nonts_init) = 
+          let scan_forward = to_scan_forward nonts correct_nonts in 
+          if scan_forward then (nonts, correct_nonts) else (List.rev nonts, List.rev correct_nonts) 
+        in 
         (* Need to enhance this loop so it works in any directions! *)
         let rec replace_loop old_sts new_sts str_acc = 
           match old_sts with [] -> 
@@ -833,7 +854,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
             printf "\n\t --- replacing %s with %s \n" old_st_hd new_st;
             replace_loop old_sts_tl (List.tl new_sts) new_acc
             (* Tentative fix is to traverse in reverse direction. ref: G0a-000->0 scenario *)
-        in replace_loop (List.rev nonts) (List.rev correct_nonts) ln
+        in replace_loop nonts_init correct_nonts_init ln
       end
   in 
   let no_terms_or_nonterms (ln: string): bool = 

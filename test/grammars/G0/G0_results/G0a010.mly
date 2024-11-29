@@ -20,6 +20,7 @@
 
 
 
+
 %type <Ast.t> program
 %start program
 %%
@@ -39,8 +40,8 @@ x3:
   ;
 
 x2:
-  | x3 MUL x2 { Mul ($1, $3) }
   | x3  { $1 }
+  | x2 MUL x3 { Mul ($1, $3) }
   ;
 
 e1:

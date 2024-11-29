@@ -20,6 +20,9 @@
 
 
 
+
+
+
 %type <Ast.t> program
 %start program
 %%
@@ -31,20 +34,20 @@ cond_expr:
   | FALSE { Bool false } 
   ;
 
-x3:
-  | IF cond_expr THEN x3 { If ($2, Then ($4, Else Na)) }
-  | IF cond_expr THEN x3 ELSE x3 { If ($2, Then ($4, Else $6)) }
+e1:
+  | e1 PLUS x1 { Plus ($1, $3) }
+  | x1  { $1 }
+  ;
+
+x2:
+  | IF cond_expr THEN x2 { If ($2, Then ($4, Else Na)) }
   | INT  { Int $1 }
   | LPAREN e1 RPAREN { Paren $2 }
   ;
 
-x2:
-  | x3 MUL x2 { Mul ($1, $3) }
-  | x3  { $1 }
-  ;
-
-e1:
+x1:
+  | x2 MUL x1 { Mul ($1, $3) }
   | x2  { $1 }
-  | e1 PLUS x3 { Plus ($1, $3) }
+  | IF cond_expr THEN x1 ELSE x1 { If ($2, Then ($4, Else $6)) }
   ;
 
