@@ -42,15 +42,71 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       let correct_sym = if (sym_equals sym "LBRACE") then ("LBRACERBRACE", 1) else sym in
       sym_lhs_ls |> List.assoc_opt correct_sym in
     match sym_sigma with None -> raise No_lhs_state
-    | Some st -> st in 
-  let max_lvl = 
-    lvl_state_pairs |> List.map fst |> List.fold_left max 1 in
-  let last_state: state = 
-    match (List.assoc_opt max_lvl lvl_state_pairs) with 
-    None -> raise Max_level_state | Some st -> st in 
+    | Some st -> st 
+  in 
+  (* --- helper --- *)
+  (* if sym specified in oas happens to have the max ord (o_m), *)
+  (* then increase all other sym's of this level to (o_m + 1)   *)
+  let update_orders_wrt_oa_if_necessary (sym_ord_ls: (symbol * int) list) (oas: restriction list): 
+    (symbol * int) list = 
+    if (List.is_empty oas) then sym_ord_ls else 
+    begin 
+      let syms_oa = 
+        oas |> List.map (fun r -> match r with Assoc (s, _) -> s | Prec _ -> raise No_prec_possible) in
+      let max_ord = 
+        sym_ord_ls |> List.map snd |> List.fold_left max 0 in 
+      let to_update = ref false in
+        sym_ord_ls |> List.iter (fun (s', o') -> 
+          if (List.mem s' syms_oa) && (o' = max_ord) then to_update := true);
+      if !to_update 
+      then (sym_ord_ls |> List.map (fun (sym, ord) -> 
+            if (List.mem sym syms_oa) then (sym, ord) else 
+            if (ord = max_ord) then (sym, (ord + 1)) else (sym, ord)) )
+      else sym_ord_ls
+    end
+  in
+
+  let sym_ord_ls_wrt_op: (symbol * int) list = 
+    op_ls |> List.map (fun x -> match x with Assoc _ -> raise No_assoc_possible | Prec (s, o) -> (s, o)) 
+  in
+  let sym_ord_ls_wrt_op_new: (symbol * int) list = 
+    update_orders_wrt_oa_if_necessary sym_ord_ls_wrt_op oa_ls
+  in
+    if debug then printf "\n\t Symbols' orders "; sym_ord_ls_wrt_op_new |> List.iter (fun (s, o) -> 
+      Pp.pp_symbol s; printf " Ord %d  " o); printf "\n\n";
+  
+  let syms_op = sym_ord_ls_wrt_op_new |> List.map fst 
+  in
+    if debug then printf "\n\t Syms_op is \t"; List.iter Pp.pp_symbol syms_op; printf "\n\n";
+
   let find_rhs_lst_lst (s: symbol) (o: int): sigma list list = 
     if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug in
   
+  let max_lvl = 
+    let max_starting_from_zero = sym_ord_ls_wrt_op_new |> List.map snd |> List.fold_left max 0 
+    in max_starting_from_zero + 1
+  in
+  (* printf "\n\n\t\t\t MAX IS %d\n\n" max_lvl; *)
+  let lvl_state_pairs_new = 
+    let update_lvl_state_pairs (lvl_st_pairs: (int * nonterminal) list) (old_max: int) (new_max: int): 
+      (int * nonterminal) list = 
+      let rec loop (curr: int) (upto: int) acc =
+        if (curr > upto) then List.rev acc
+        else (let state_new = "e" ^ (string_of_int curr) in 
+              let to_add = (curr, state_new) in 
+              loop (curr+1) upto (to_add::acc))
+      in let lvl_stats_to_add = loop (old_max+1) new_max []
+      in lvl_st_pairs @ lvl_stats_to_add
+    in 
+    let old_max = lvl_state_pairs |> List.map fst |> List.fold_left max 0 in 
+    if (max_lvl > old_max) 
+    then update_lvl_state_pairs lvl_state_pairs old_max max_lvl
+    else lvl_state_pairs
+  in 
+  let last_state: state = 
+    match (List.assoc_opt max_lvl lvl_state_pairs_new) with 
+    None -> raise Max_level_state | Some st -> st 
+  in 
   (* Step 1 - add last state ->_{<(), 1>} start state to 'trans_tbl' *)
   add trans_tbl (last_state, ("LPARENRPAREN", 1)) [[(T "LPAREN"); (Nt start); (T "RPAREN")]];
   (* Step 2 - add epsilon transitions *)
@@ -94,18 +150,11 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
         else
           match_collect sym tl curr_st ((Nt curr_st)::acc))
   in
- 
-  let sym_ord_ls_wrt_op: (symbol * int) list = op_ls |> List.map (fun x -> match x with 
-    Assoc _ -> raise No_assoc_possible | Prec (s, o) -> (s, o)) in
-  if debug then printf "\n\t Symbols' orders "; sym_ord_ls_wrt_op |> List.iter (fun (s, o) -> 
-    Pp.pp_symbol s; printf " Ord %d  " o); printf "\n\n";
-  
-  let syms_op = sym_ord_ls_wrt_op |> List.map fst in
-  if debug then printf "\n\t Syms_op is \t"; List.iter Pp.pp_symbol syms_op; printf "\n\n";
+
   let original_order s: int = 
     let sym_ord_ls = sym_ord_rhs_ls |> List.map (fun ((s, o), _sls) -> (s, o)) in
     List.assoc s sym_ord_ls in
-  let order_of_sym s = List.assoc s sym_ord_ls_wrt_op in 
+  let order_of_sym s = List.assoc s sym_ord_ls_wrt_op_new in 
   let different_order_in_obp (s: symbol) (o': int): bool = 
     if (syms_equals s epsilon_symb) then false else
     let ords_in_bp: int list ref = ref [] in 
@@ -124,7 +173,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   (*  **********************************************************************  *)
   (* *** simpler and correct version of updated o_bp_table *** *)
   let updated_op_tbl: (int, symbol list) Hashtbl.t = Hashtbl.create (Hashtbl.length o_bp_tbl) in
-  sym_ord_ls_wrt_op |> List.iter (fun (s, o) -> 
+  sym_ord_ls_wrt_op_new |> List.iter (fun (s, o) -> 
     match Hashtbl.find_opt updated_op_tbl o with 
     | Some exist_syms -> 
       if (not (List.mem s exist_syms)) 
@@ -152,7 +201,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
           (if debug then (printf "\n Different? *** Part of Syms_O_p \t"; Pp.pp_symbol sym;
             printf "\n Found rhs sigma ls ls "; Pp.pp_sigma_listlist sym_rhs_ls_ls);
            sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls ->
-           let new_lvl = List.assoc sym sym_ord_ls_wrt_op in 
+           let new_lvl = List.assoc sym sym_ord_ls_wrt_op_new in 
            let new_st = "e" ^ (string_of_int (new_lvl+1)) in
            let sym_rhs_ls_learned = match_collect sym rhs_ls new_st []
             in 
@@ -203,7 +252,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
    *       it gets stuck in some inifinite loop. This is a work around. 
    *)
   let final_trans = Utils.merge ~into:new_trans_tbl trans_tbl in
-  (* Now go through sym_ord_ls_wrt_op and update trans_tbl *)
+  (* Now go through 'sym_ord_ls_wrt_op_new' and update trans_tbl *)
   if debug then printf "\n  >> After adding nontrivial transitions \n"; 
     Pp.pp_transitions_tbl final_trans;
   final_trans

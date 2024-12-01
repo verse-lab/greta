@@ -815,17 +815,15 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   in 
   (* --- helper to set traversal direction --- *)
   let to_scan_forward (prev_nonts: string list) (new_nonts: string list): bool = 
-    let rec traverse_both prevs news matched_covered acc = 
+    let rec traverse_both prevs news matched_covered = 
       match prevs with 
-      | [] -> 
-        if (List.is_empty news) then acc 
-        else raise (Failure "to_scan_forward: prev_nonts and new_nonts with diff length")
+      | [] -> if (List.is_empty news) then true 
+              else raise (Failure "to_scan_forward: prev_nts and new_nts to have same length")
       | prev_nt_hd :: prev_nt_tl -> 
         let new_nt_matched = List.hd news in 
         if (List.mem prev_nt_hd matched_covered) then false 
-        else 
-          traverse_both prev_nt_tl (List.tl news) (new_nt_matched::matched_covered) acc
-    in traverse_both prev_nonts new_nonts [] true 
+        else traverse_both prev_nt_tl (List.tl news) (new_nt_matched::matched_covered)
+    in traverse_both prev_nonts new_nonts [] 
   in
   let new_replace_str_wrt_mapped_states (nt: string) (ln: string): string = 
     let term = extract_terminal ln in 

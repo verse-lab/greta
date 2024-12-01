@@ -1,4 +1,3 @@
-
 %{
   open Ast
 %}
@@ -37,11 +36,14 @@ e1:
   | x1  { $1 }
   ;
 
-x2:
+x3:
   | INT  { Int $1 }
   | LPAREN e1 RPAREN { Paren $2 }
-  | x3  { $1 }
+  ;
+
+x2:
   | x3 MUL x2 { Mul ($1, $3) }
+  | x3  { $1 }
   ;
 
 x1:
