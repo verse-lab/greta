@@ -78,3 +78,14 @@ let sig_sig_assoc_all (sym: Ta.symbol) (trans: (Ta.symbol * (Cfg.sigma * Cfg.sig
 
 let strip_string s =
   Str.global_replace (Str.regexp "[\r\n\t ]") "" s
+
+let str_rev x =
+  let len = String.length x in
+  String.init len (fun n -> String.get x (len - n - 1))
+
+let str_replace_last (old_substr: string) (new_substr: string) (str: string): string = 
+  let rev_str = str_rev str in 
+  let old_substr_raw = str_rev old_substr in 
+  let (old_substr', new_substr') = (Str.regexp old_substr_raw, str_rev new_substr) in 
+  let res_rev_str = Str.replace_first old_substr' new_substr' rev_str in 
+  str_rev res_rev_str

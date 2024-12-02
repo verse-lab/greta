@@ -837,9 +837,11 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
           Str.global_replace old_st (List.hd correct_nonts) ln)
     else 
       begin  
+        let scan_forward = to_scan_forward nonts correct_nonts in 
         let (nonts_init, correct_nonts_init) = 
-          let scan_forward = to_scan_forward nonts correct_nonts in 
-          if scan_forward then (nonts, correct_nonts) else (List.rev nonts, List.rev correct_nonts) 
+          if scan_forward 
+          then (printf "\n\t\t\t Scan Forward\n\n"; (nonts, correct_nonts)) 
+          else (printf "\n\t\t\t Scan Backward\n\n"; (List.rev nonts, List.rev correct_nonts)) 
         in 
         (* Need to enhance this loop so it works in any directions! *)
         let rec replace_loop old_sts new_sts str_acc = 
@@ -848,7 +850,11 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
           | old_st_hd :: old_sts_tl -> 
             let old_st = Str.regexp old_st_hd in 
             let new_st = List.hd new_sts in 
-            let new_acc = Str.global_replace old_st new_st str_acc in 
+            let new_acc = 
+              (if scan_forward 
+               then Str.replace_first old_st new_st str_acc 
+               else str_replace_last old_st_hd new_st str_acc) 
+            in 
             printf "\n\t --- replacing %s with %s \n" old_st_hd new_st;
             replace_loop old_sts_tl (List.tl new_sts) new_acc
             (* Tentative fix is to traverse in reverse direction. ref: G0a-000->0 scenario *)
