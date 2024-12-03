@@ -10,6 +10,7 @@ exception State_no_match_in_states_map
 exception Type_spec_line_last_should_be_nonterminal
 exception No_nontrivial_prod_mapping
 exception Nonterms_length_must_equal
+exception Inconsistent_start_states
 
 (* ******************** Part I. Conversion of parser.mly > CFG > TA ******************** *)
 let read_file filename = 
@@ -518,7 +519,8 @@ let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 =
 
 
 (** cfg_to_parser : once convert to grammar, write it on the parser.mly file *)
-let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (debug_print: bool) (to_write: string) (g: cfg2) : unit =
+let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) 
+  (init_states: state list) (debug_print: bool) (to_write: string) (g: cfg2) : unit =
   let open Printf in
   printf "\nWrite the grammar on parser file %s\n" parser_file;
   if debug_print then (printf "\n  Input grammar:\n"; Pp.pp_cfg2 g);
@@ -657,6 +659,18 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
      - This way, you can replace 'stmts' before replacing 'stmt' *)
     |> List.sort compare |> List.rev (* @ triv_states_mappingeeee *)
   in
+  let res_states_mapping_starts: (state * state) list = 
+    let start_states = g.starts in 
+      if (List.length start_states) = 1
+      then 
+        begin 
+          if (List.length init_states) = 1
+          then ((List.hd init_states), (List.hd start_states)) :: []
+          else raise Inconsistent_start_states
+        end
+      else 
+        List.map2 (fun x1 x2 -> (x1, x2)) init_states start_states
+  in
   (* find corresponding lines wrt %type's *)
   let res_type_lines = replace_wgtypes type_id_lines res_states_mapping 
   in
@@ -668,7 +682,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   in
   if debug_print then 
     (printf "\n\t States mapping : \n\t"; Pp.pp_raw_states res_states_mapping;
-    printf "\n\t States mapping (primary) : \n\t"; Pp.pp_raw_states res_states_mapping_primary);
+    printf "\n\t States mapping (primary) : \n\t"; Pp.pp_raw_states res_states_mapping_primary;
+    printf "\n\t States mapping (starts) : \n\t"; Pp.pp_raw_states res_states_mapping_starts);
   (* collection of start nonterms, triv nonterms for easy access *)
   let _start_nonterms, triv_nonterms = 
     let start_nts = 
@@ -736,12 +751,11 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
     List.append 
     (prods_blocks |> List.fold_left (fun acc (nt, prods) -> 
       printf "\n\t\t\tNonterminal is %s\n" nt;
-      if (List.mem nt orig_start_nonterms) 
+      if (List.mem nt orig_start_nonterms) (* e.g., `program` *)
       then 
-        (let _mapped_st = find_mapped_state_of nt res_states_mapping_primary in
-        let _old_st = Str.regexp nt in
-        let new_prods = prods |> List.map (fun s -> 
-          let replaced_str = replace_str_wrt_primary_mapped_state s res_states_mapping_primary
+        (let new_prods = prods |> List.map (fun s -> 
+          let replaced_str = 
+            replace_str_wrt_primary_mapped_state s res_states_mapping_starts
           in if debug_print then (printf "\n\t  Original string %s\n\t  Replaced string %s\n" s replaced_str); replaced_str) (* Str.global_replace old_st mapped_st s *)
         in acc@[""]@(new_prods))
       else if (List.mem nt triv_nonterms) then acc@[""]@(prods) else acc) [])
@@ -1029,8 +1043,9 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) (
   close_out oc
 
 (** convertToGrammar : *)
-let convertToGrammar (ta_inp: ta2) (states_rename_map: (state * state) list) (file: string) (to_write: string) (debug: bool) =
-  ta_inp |> ta_to_cfg debug |> cfg_to_parser file states_rename_map debug to_write
+let convertToGrammar (ta_inp: ta2) (states_rename_map: (state * state) list) 
+  (init_states: state list) (file: string) (to_write: string) (debug: bool) =
+  ta_inp |> ta_to_cfg debug |> cfg_to_parser file states_rename_map init_states debug to_write
 
 (* Below: currently not taken into consideration  *)
 (* ******************** Specify associativity > parser.mly ******************** *)

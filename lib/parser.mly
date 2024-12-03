@@ -18,37 +18,27 @@
 
 %token EOF
 
-
-
 %type <Ast.t> program
+
 %start program
 %%
 
-program : e1 EOF { $1 };
+program : expr1 EOF { $1 };
 
 cond_expr:
   | TRUE { Bool true }
   | FALSE { Bool false } 
   ;
 
-x3:
-  | IF cond_expr THEN x3 ELSE x3 { If ($2, Then ($4, Else $6)) }
+expr1:
+  | expr1 PLUS expr2 { Plus ($1, $3) }
+  | expr1 MUL expr2 { Mul ($1, $3) }
+  | IF cond_expr THEN expr1 { If ($2, Then ($4, Else Na)) }
+  | IF cond_expr THEN expr1 ELSE expr1 { If ($2, Then ($4, Else $6)) }
+  | expr2  { $1 }
+  ;
+
+expr2:
   | INT  { Int $1 }
-  | LPAREN e1 RPAREN { Paren $2 }
+  | LPAREN expr1 RPAREN { Paren $2 }
   ;
-
-x2:
-  | x3  { $1 }
-  | IF cond_expr THEN x2 { If ($2, Then ($4, Else Na)) }
-  ;
-
-x1:
-  | x2  { $1 }
-  | x1 MUL x1 { Mul ($1, $3) }
-  ;
-
-e1:
-  | x1 PLUS e1 { Plus ($1, $3) }
-  | x1  { $1 }
-  ;
-
