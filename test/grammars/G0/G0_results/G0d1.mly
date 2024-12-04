@@ -39,8 +39,8 @@ x4:
   ;
 
 x1:
+  | x2 MUL x1 { Mul ($1, $3) }
   | x2  { $1 }
-  | x4 MUL x1 { Mul ($1, $3) }
   ;
 
 e1:
@@ -50,11 +50,11 @@ e1:
 
 x3:
   | x4  { $1 }
-  | IF cond_expr THEN x3 { If ($2, Then ($4, Else Na)) }
+  | IF cond_expr THEN x3 ELSE x3 { If ($2, Then ($4, Else $6)) }
   ;
 
 x2:
   | x3  { $1 }
-  | IF cond_expr THEN x2 ELSE x2 { If ($2, Then ($4, Else $6)) }
+  | IF cond_expr THEN x2 { If ($2, Then ($4, Else Na)) }
   ;
 

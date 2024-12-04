@@ -89,3 +89,15 @@ let str_replace_last (old_substr: string) (new_substr: string) (str: string): st
   let (old_substr', new_substr') = (Str.regexp old_substr_raw, str_rev new_substr) in 
   let res_rev_str = Str.replace_first old_substr' new_substr' rev_str in 
   str_rev res_rev_str
+
+let rec sublist i j l = 
+  match l with
+    [] -> failwith "sublist"
+  | h :: t -> 
+     let tail = if j=0 then [] else sublist (i-1) (j-1) t in
+     if i>0 then tail else h :: tail
+
+let strip str = 
+  let str = Str.replace_first (Str.regexp "^ +") "" str in
+  Str.replace_first (Str.regexp " +$") "" str
+

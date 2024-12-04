@@ -534,8 +534,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
     | None -> raise State_no_match_in_states_map
   in 
   let replace_last (old_id: string) (new_id: string) (type_line: string): string = 
-    let str_ls = String.split_on_char ' ' type_line in 
-    let len = List.length (str_ls) in 
+    let str_ls = String.split_on_char ' ' (strip type_line) in
+    let len = List.length str_ls in 
     let replaced_ls = 
       let last_elem = List.nth str_ls (len-1) in
       if (String.equal old_id last_elem)
@@ -796,9 +796,18 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
     sls |> List.fold_left (fun acc x -> 
       if !hit_curly then acc else if (String.equal x "{") then (hit_curly := true; acc) else acc@[x] ) []
   in 
+  let after_equal_sign (x: string): string = 
+    if (String.contains x '=') 
+    then 
+      (let from = (String.index x '=') in 
+       let len = String.length x in
+       String.sub x (from+1) (len-from-1))
+    else x
+  in 
   let correct_str_lst (s: string): string list = 
     Str.split (Str.regexp "[ \n\r\x0c\t]+") s |> List.filter (fun x -> 
       not ((String.equal x "|") || (String.equal x ";"))) |> before_curly 
+      |> List.map (fun x -> after_equal_sign x)
   in 
   let extract_terminal (s: string): string = 
     let sls = correct_str_lst s in
@@ -835,6 +844,11 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
               else raise (Failure "to_scan_forward: prev_nts and new_nts to have same length")
       | prev_nt_hd :: prev_nt_tl -> 
         let new_nt_matched = List.hd news in 
+        (* 
+        [Alternative]
+        if (List.mem new_nt_matched matched_covered) then false 
+        else traverse_both prev_nt_tl (List.tl news) (prev_nt_hd::matched_covered)
+        *)
         if (List.mem prev_nt_hd matched_covered) then false 
         else traverse_both prev_nt_tl (List.tl news) (new_nt_matched::matched_covered)
     in traverse_both prev_nonts new_nonts [] 
@@ -857,7 +871,6 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
           then (printf "\n\t\t\t Scan Forward\n\n"; (nonts, correct_nonts)) 
           else (printf "\n\t\t\t Scan Backward\n\n"; (List.rev nonts, List.rev correct_nonts)) 
         in 
-        (* Need to enhance this loop so it works in any directions! *)
         let rec replace_loop old_sts new_sts str_acc = 
           match old_sts with [] -> 
             if (List.is_empty new_sts) then str_acc else raise Nonterms_length_must_equal
@@ -912,18 +925,23 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
     |> List.map snd |> List.map (fun prod_blk -> List.tl prod_blk)
     |> List.flatten
   in  
-  let is_terminal_string (s:string): bool = 
-    (* tentative patch -> assume terminals are capitalized *)
+  let contains_terminal_string (s:string): bool = (* b/c terminals are capitalized *)
+    let s_after_equal = (after_equal_sign s) in 
     let is_capitalized (s': string): bool = (String.equal s' (String.capitalize_ascii s')) 
-    in (List.mem s (g.terms)) || (is_capitalized s)
+    in (List.mem s_after_equal (g.terms)) || (is_capitalized s_after_equal)
   in 
   let extract_nonterminal (s:string): string = 
+    (* --- helper to result in "" nonterminal for line e.g., "| x=VAR { Var (snd x) }" --- *)
+    let terminal_after_equal (ln: string) (eq_idx: int): bool = 
+      let str_after = Str.string_after ln (eq_idx + 1) in 
+      if (contains_terminal_string str_after) then true else false
+    in 
     if (String.contains s '=')
-    then 
+    then
       (let len = String.length s in 
-       let equal_sign = Str.regexp "=" in
-       let idx = Str.search_backward equal_sign s len in 
-       Str.string_after s (idx + 1))
+      let equal_sign = Str.regexp "=" in
+      let idx = Str.search_backward equal_sign s len in 
+      if (terminal_after_equal s idx) then "" else Str.string_after s (idx + 1))
     else s
   in
   let collect_terms_and_nonterms (sls: string list): string list * string list = 
@@ -932,13 +950,17 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
       | str_hd :: str_tl -> 
         if ((String.equal str_hd "{") || (String.equal str_hd "/*"))
         then List.rev terms_acc, List.rev nonterms_acc
-        else if (is_terminal_string str_hd)
-          then loop str_tl (str_hd::terms_acc) nonterms_acc
-          else (let nonterm_shd = extract_nonterminal str_hd in loop str_tl terms_acc (nonterm_shd::nonterms_acc))
+        else if (contains_terminal_string str_hd)
+          then (let terminal_strhd = extract_terminal str_hd
+                in loop str_tl (terminal_strhd::terms_acc) nonterms_acc)
+          else (let nonterm_shd = extract_nonterminal str_hd in 
+                if (String.equal nonterm_shd "") then loop str_tl terms_acc nonterms_acc
+                else loop str_tl terms_acc (nonterm_shd::nonterms_acc))
     in loop sls [] []
   in
   (* Use 2 different mappings for correctly formatting the changed nontrivial nonterminals transitions *)
-  let rec prods_map_loop (ls: string list) (acc: ((string list * int) * (string * string list)) list) = 
+  let rec prods_map_loop (ls: string list) (acc: ((string list * int) * (string * string list)) list): 
+    ((string list * int) * (string * string list)) list = 
     match ls with [] -> List.rev acc
     | curr_prod :: stl -> 
       let sls = String.split_on_char ' ' curr_prod in
@@ -947,12 +969,9 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
         |> collect_terms_and_nonterms
       in prods_map_loop stl (((sterms, (List.length snonterms)), (curr_prod, snonterms))::acc)
   in 
-  let nontriv_prods_terms_ntnum_mapping
-      : ((string list * int) * (string * string list)) list = 
-    prods_map_loop prods_in_question []
-  in
+  let nontriv_prods_terms_ntnum_mapping = prods_map_loop prods_in_question [] in
   if debug_print then 
-    (printf "Nontrivial prods mapping (terms, nonterms_num) -> prod \n"; Pp.pp_prods_mapping nontriv_prods_terms_ntnum_mapping);
+    (printf "\n*** Nontrivial prods mapping (terms, nonterms_num) -> prod \n"; Pp.pp_prods_mapping nontriv_prods_terms_ntnum_mapping);
   
   let collect_terminals_from_sigls (sls: sigma list): string list = 
     sls |> List.fold_left (fun acc s -> match s with T term -> (term::acc) | Nt _ -> acc) [] |> List.rev
@@ -1004,23 +1023,26 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
       (* TODO: To resume from this case! *)
       if debug_print then (printf "\n\t NOT FOUND so look for prod elsewhere \n"); ("", [])
   in
-  let change_str_per_nts (old_nts: string list) (new_nts : string list) (ln: string): string =
+  let change_str_per_nts (old_nts: string list) (new_nts : string list) (ln: string) (scan_forward: bool): string =
     if (List.length old_nts) != (List.length new_nts) then raise Nonterms_length_must_equal;
-    let rec loop ls idx (acc: string) =
-      match ls with [] -> acc
-      | h_nts :: tl ->
-        let to_replace = Str.regexp h_nts in
-        let new_nt = List.nth new_nts idx in
-        let new_acc = Str.replace_first to_replace new_nt acc in
-        loop tl (idx+1) new_acc
-    in loop old_nts 0 ln
+    let rec loop old_sts new_sts (str_acc: string) =
+      match old_sts with [] -> str_acc
+      | old_st_hd :: old_sts_tl ->
+        let old_st = Str.regexp old_st_hd in
+        let new_st = List.hd new_sts in 
+        let new_acc = 
+          (if scan_forward 
+          then Str.replace_first old_st new_st str_acc
+          else str_replace_last old_st_hd new_st str_acc)in
+        loop old_sts_tl (List.tl new_sts) new_acc
+    in loop old_nts new_nts ln
   in
   let create_epsilon_prod_rhs (rhs: sigma list): string = 
     if (List.length rhs) != 1 then raise Not_possible;
     let elem = List.hd rhs in
     match elem with 
     | Nt r  -> (sprintf "  | %s { $1 }" r)
-    | T _ -> raise Not_possible
+    | T x -> (printf "\n\t\t\t Terminal %s" x); raise (Failure "Create epsilon prod rhs - terminal")
   in
   let changed_nonterm_prods: string list = 
     inconsistent_nonterm_prods_blocks |> List.fold_left (fun acc (nt, ts_nts_p_ls) -> 
@@ -1033,9 +1055,20 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
           (let new_str = match prod with (_nt, _i, sig_ls) -> create_epsilon_prod_rhs sig_ls
            in new_str :: acc) 
         else 
+          let scan_forward' = to_scan_forward old_nts_ls new_nts' in
+          let (old_nonts_init', correct_nonts_init') = 
+            if scan_forward' 
+            then (printf "\n\t\t\t Scan Forward\n\n"; (old_nts_ls, new_nts')) 
+            else (printf "\n\t\t\t Scan Backward\n\n"; (List.rev old_nts_ls, List.rev new_nts')) 
+          in
+          (* 
           (let changed_str = change_str_per_nts old_nts_ls new_nts' old_prod_line 
-           in changed_str :: acc)) [] in 
-      (nt ^ ":") :: new_prods @ ["  ;";""] @ acc) []
+           in changed_str :: acc)
+           *)
+          (let changed_str = change_str_per_nts old_nonts_init' correct_nonts_init' old_prod_line scan_forward'
+           in changed_str :: acc)) [] 
+      in 
+        (nt ^ ":") :: new_prods @ ["  ;";""] @ acc) []
   in
   let oc = open_out to_write in (* parser_file *)
   lines_bef_prods @ starts_types_lines @ start_triv_prods @ unchanged_nontriv_prods @ changed_nonterm_prods
