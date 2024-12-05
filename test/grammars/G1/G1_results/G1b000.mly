@@ -13,8 +13,6 @@ open Ast;;
 %token <Range.t> TRUE     /* true */
 %token <Range.t> FALSE    /* false */
 
-/* ---------------------------------------------------------------------- */
-
 
 
 %start toplevel           
@@ -26,16 +24,21 @@ open Ast;;
 toplevel:
   | b=e1 EOF { b }        
 
-x2:
-  | TRUE                  { True }
+x3:
   | FALSE                 { False }
-  | TILDE b=x2         { Not(b) }
   | LPAREN b=e1 RPAREN { b }
+  | TILDE b=x3         { Not(b) }
+  | TRUE                  { True }
+  ;
+
+x2:
+  | l=x3 ARR r=x2   { Imp(l, r) }
+  | x3                 { $1 }
+  ;
 
 x1:
-  | l=x2 AMPER r=x1 { And(l, r) }  
   | x2                 { $1 }
-  | l=x1 ARR r=x2   { Imp(l, r) }
+  | l=x1 AMPER r=x1 { And(l, r) }  
   | x=VAR                 { Var (snd x) }
   ;
 

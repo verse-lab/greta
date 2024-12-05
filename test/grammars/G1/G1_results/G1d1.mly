@@ -17,30 +17,36 @@ open Ast;;
 
 
 
+
+
 %start toplevel           
 %type <Ast.bexp> toplevel
 %type <Ast.bexp> e1
-%type <Ast.bexp> x2
+%type <Ast.bexp> x3
 %%
 
 toplevel:
   | b=e1 EOF { b }        
 
-x2:
+x3:
   | TRUE                  { True }
   | FALSE                 { False }
-  | TILDE b=x2         { Not(b) }
+  | TILDE b=x3         { Not(b) }
   | LPAREN b=e1 RPAREN { b }
 
-x1:
-  | l=x2 AMPER r=x1 { And(l, r) }  
-  | x2                 { $1 }
-  | l=x1 ARR r=x2   { Imp(l, r) }
+x2:
+  | x3                 { $1 }
+  | l=x2 ARR r=x3   { Imp(l, r) }
   | x=VAR                 { Var (snd x) }
+  ;
+
+x1:
+  | x2                 { $1 }
+  | l=x1 BAR r=x2   { Or(l, r) }
   ;
 
 e1:
   | x1                 { $1 }
-  | l=e1 BAR r=x2   { Or(l, r) }
+  | l=e1 AMPER r=x1 { And(l, r) }  
   ;
 

@@ -79,7 +79,7 @@ let () =
     in 
     (* let file_written = "./test/grammars/G0/G0_results/G0a"
     in  *)
-    let grammar = "G1a" in
+    let grammar = "G1e" in
     let file_written = U.test_results_filepath grammar !file_postfix in 
     (* 
     ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> 

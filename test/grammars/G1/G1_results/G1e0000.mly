@@ -14,21 +14,32 @@ open Ast;;
 %token <Range.t> FALSE    /* false */
 
 /* ---------------------------------------------------------------------- */
-%start toplevel           
 
-%type <Ast.bexp> toplevel  
-%type <Ast.bexp> bexp
+
+%start toplevel           
+%type <Ast.bexp> toplevel
+%type <Ast.bexp> e1
 %%
 
 toplevel:
-  | b=bexp EOF { b }        
+  | b=e1 EOF { b }        
 
-bexp:
-  | TRUE                { True }
+x2:
   | FALSE               { False }
+  | LPAREN b=e1 RPAREN { b }
+  | TILDE b=x2        { Not(b) }
+  | TRUE                { True }
   | x=VAR               { Var (snd x) }
-  | l=bexp ARR r=bexp   { Imp(l, r) }
-  | l=bexp BAR r=bexp   { Or(l, r) }
-  | l=bexp AMPER r=bexp { And(l, r) }
-  | TILDE b=bexp        { Not(b) }
-  | LPAREN b=bexp RPAREN { b }
+  | l=x2 AMPER r=x2 { And(l, r) }
+  ;
+
+x1:
+  | x2 { $1 }
+  | l=x1 ARR r=x1   { Imp(l, r) }
+  ;
+
+e1:
+  | l=x1 BAR r=e1   { Or(l, r) }
+  | x1 { $1 }
+  ;
+

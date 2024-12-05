@@ -13,8 +13,6 @@ open Ast;;
 %token <Range.t> TRUE     /* true */
 %token <Range.t> FALSE    /* false */
 
-/* ---------------------------------------------------------------------- */
-
 
 
 %start toplevel           
@@ -33,14 +31,14 @@ x2:
   | LPAREN b=e1 RPAREN { b }
 
 x1:
-  | l=x2 AMPER r=x1 { And(l, r) }  
   | x2                 { $1 }
   | l=x1 ARR r=x2   { Imp(l, r) }
+  | l=x1 AMPER r=x1 { And(l, r) }  
   | x=VAR                 { Var (snd x) }
   ;
 
 e1:
+  | l=x1 BAR r=e1   { Or(l, r) }
   | x1                 { $1 }
-  | l=e1 BAR r=x2   { Or(l, r) }
   ;
 

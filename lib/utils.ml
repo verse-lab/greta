@@ -101,3 +101,7 @@ let strip str =
   let str = Str.replace_first (Str.regexp "^ +") "" str in
   Str.replace_first (Str.regexp " +$") "" str
 
+let are_paren_terminals (ts: string list): bool = 
+  match ts with 
+  | fst :: snd :: [] -> (String.equal fst "LPAREN") && (String.equal snd "RPAREN")
+  | _ -> false

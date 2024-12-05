@@ -815,7 +815,10 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
       let res_ls = sls |> List.filter (fun s -> String.equal s (String.uppercase_ascii s)) in
       if List.is_empty res_ls then "" else List.hd res_ls 
     in 
-      if (String.equal res "LPAREN") then "LPARENRPAREN" else res
+      res
+      (* [fix]
+        if (String.equal res "LPAREN") then "LPARENRPAREN" else res 
+      *)
   in
   let extract_nonterms (s: string): string list = 
     let sls = correct_str_lst s in
@@ -855,12 +858,13 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
   in
   let new_replace_str_wrt_mapped_states (nt: string) (ln: string): string = 
     let term = extract_terminal ln in 
-    if debug_print then printf "\n\t\t term %s " term;
+    let term' = if (String.equal term "LPAREN") then "LPARENRPAREN" else term in 
+    if debug_print then printf "\n\t\t term %s " term';
     let nonts = extract_nonterms ln in 
     if debug_print then (printf "\n\t\t old nonterms -->"; nonts |> List.iter (fun x -> printf "%s " x); printf "\n");
-    let correct_nonts = find_nonterms_for nt term in 
-    if debug_print then (printf "\n\t\t finding correct nonterms for nt %s and term %s -->" nt term; correct_nonts |> List.iter (fun x -> printf "%s " x)); 
-    if (String.equal term "") && (List.length nonts) = 1 && (List.length correct_nonts) = 1 
+    let correct_nonts = find_nonterms_for nt term' in 
+    if debug_print then (printf "\n\t\t finding correct nonterms for nt %s and term %s -->" nt term'; correct_nonts |> List.iter (fun x -> printf "%s " x)); 
+    if (String.equal term' "") && (List.length nonts) = 1 && (List.length correct_nonts) = 1 
     then (let old_st = Str.regexp (List.hd nonts) in 
           Str.global_replace old_st (List.hd correct_nonts) ln)
     else 
