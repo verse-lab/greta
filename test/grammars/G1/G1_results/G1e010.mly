@@ -32,7 +32,7 @@ x1:
 
 e1:
   | x1 { $1 }
-  | l=x1 ARR r=e1   { Imp(l, r) }
+  | l=e1 ARR r=x1   { Imp(l, r) }
   ;
 
 x4:

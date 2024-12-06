@@ -25,30 +25,26 @@ open Ast;;
 toplevel:
   | b=e1 EOF { b }        
 
-x1:
-  | l=x2 BAR r=x1   { Or(l, r) }
-  | x2 { $1 }
-  ;
-
-e1:
-  | x1 { $1 }
-  | l=x1 ARR r=e1   { Imp(l, r) }
-  ;
-
-x4:
+x3:
   | FALSE               { False }
   | LPAREN b=e1 RPAREN { b }
   | TRUE                { True }
   | x=VAR               { Var (snd x) }
   ;
 
-x3:
-  | l=x4 AMPER r=x3 { And(l, r) }
-  | x4 { $1 }
-  ;
-
 x2:
   | x3 { $1 }
-  | TILDE b=x2        { Not(b) }
+  | l=x2 ARR r=x3   { Imp(l, r) }
+  ;
+
+x1:
+  | x2 { $1 }
+  | l=x1 BAR r=x2   { Or(l, r) }
+  ;
+
+e1:
+  | x1 { $1 }
+  | l=e1 AMPER r=e1 { And(l, r) }
+  | TILDE b=e1        { Not(b) }
   ;
 

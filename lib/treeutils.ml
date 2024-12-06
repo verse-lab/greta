@@ -332,6 +332,36 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
   (if debug_print then Printf.printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
+let update_op_w_restrictions (hi_sym: symbol) (lo_sym: symbol) (init_op: restriction list): restriction list = 
+  let find_order (s: symbol): int = 
+    init_op |> List.map (fun op -> match op with Assoc _ -> raise (Failure "update_op - Assoc not possible")
+      | Prec (s', o') -> (s', o')) |> List.find (fun (sym, _o) -> syms_equals s sym) |> snd 
+  in
+  let (hi_o, lo_o) = find_order hi_sym, find_order lo_sym in
+  (* if hi_sym's ord > lo_sym's ord then no need to update *)
+  if (hi_o > lo_o) then init_op else 
+    (* otherwise, push lo_sym below hi_sym *)
+    begin 
+      init_op |> List.map (fun rst -> match rst with Assoc _ -> raise (Failure "update_op - Assoc not possible")
+      | Prec (s, o) -> 
+        if (syms_equals s lo_sym) 
+        then (let corr_lo_o = hi_o - 1 in Prec (s, corr_lo_o)) else Prec (s, o))
+    end 
+
+let combine_op_restrictions_in_pairs (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list =
+  let rec traverse_o_tmp_in_pairs ls op_acc = 
+    match ls with [] -> op_acc 
+    | Prec (sym1, bo1) :: Prec (sym2, bo2) :: tl ->
+      let updated_op = if (bo1 > bo2) 
+        then update_op_w_restrictions sym1 sym2 op_acc 
+        else update_op_w_restrictions sym2 sym1 op_acc 
+      in traverse_o_tmp_in_pairs tl updated_op
+    | _ -> raise (Failure "Op restrictions in pairs")
+  in let combined_op = traverse_o_tmp_in_pairs o_tmp o_bp
+  in let reordered_combined_op = reorder_op combined_op in
+  (if debug_print then Printf.printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
+  reordered_combined_op
+
 let sym_in_oa_lst (s: symbol) (oa_ls: restriction list): bool =
   let rec traverse_oa ls =
     match ls with [] -> false

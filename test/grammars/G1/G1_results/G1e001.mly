@@ -43,8 +43,8 @@ x4:
   ;
 
 x3:
-  | l=x4 AMPER r=x3 { And(l, r) }
   | x4 { $1 }
+  | l=x3 AMPER r=x4 { And(l, r) }
   ;
 
 x2:

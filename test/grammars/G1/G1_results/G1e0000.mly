@@ -34,12 +34,12 @@ x2:
   ;
 
 x1:
+  | l=x2 BAR r=x1   { Or(l, r) }
   | x2 { $1 }
-  | l=x1 ARR r=x1   { Imp(l, r) }
   ;
 
 e1:
-  | l=x1 BAR r=e1   { Or(l, r) }
   | x1 { $1 }
+  | l=e1 ARR r=e1   { Imp(l, r) }
   ;
 

@@ -16,7 +16,6 @@ open Ast;;
 /* ---------------------------------------------------------------------- */
 
 
-
 %start toplevel           
 %type <Ast.bexp> toplevel
 %type <Ast.bexp> e1
@@ -26,29 +25,17 @@ toplevel:
   | b=e1 EOF { b }        
 
 x1:
-  | l=x2 BAR r=x1   { Or(l, r) }
-  | x2 { $1 }
-  ;
-
-e1:
-  | x1 { $1 }
-  | l=x1 ARR r=e1   { Imp(l, r) }
-  ;
-
-x4:
   | FALSE               { False }
   | LPAREN b=e1 RPAREN { b }
   | TRUE                { True }
   | x=VAR               { Var (snd x) }
+  | l=x1 ARR r=x1   { Imp(l, r) }
   ;
 
-x3:
-  | l=x4 AMPER r=x3 { And(l, r) }
-  | x4 { $1 }
-  ;
-
-x2:
-  | x3 { $1 }
-  | TILDE b=x2        { Not(b) }
+e1:
+  | x1 { $1 }
+  | l=e1 BAR r=x1   { Or(l, r) }
+  | l=e1 AMPER r=e1 { And(l, r) }
+  | TILDE b=e1        { Not(b) }
   ;
 
