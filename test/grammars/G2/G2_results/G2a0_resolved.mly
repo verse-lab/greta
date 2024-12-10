@@ -52,24 +52,20 @@ x5:
   ;
 
 x3:
-  | e1=x3 PLUS e2=x3  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | e1=x3 DASH e2=x3  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | e1=x3 STAR e2=x3  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | id=ident            { loc $startpos $endpos @@ Id (id) }
-  | c=const             { loc $startpos $endpos @@ Const (c) }
+  | e1=x3 PLUS e2=x3   { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | e1=x3 DASH e2=x3   { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  | e1=x3 STAR e2=x3   { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+  | id=ident           { loc $startpos $endpos @@ Id (id) }
+  | c=const            { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=x3 RPAREN { e }
   ;
 
-x4:
-  |   /* empty */   { [] }
-  ;
-
 x2:
-  | d=x5 SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | d=x5 SEMI                       { loc $startpos $endpos @@ Decl(d) }
   | id=ident EQ e=x3 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
-  | WHILE LPAREN e=x3 RPAREN s=x2 { loc $startpos $endpos @@ While(e, [s]) }
+  | WHILE LPAREN e=x3 RPAREN s=x2   { loc $startpos $endpos @@ While(e, [s]) }
   | RETURN e=x3 SEMI                { loc $startpos $endpos @@ Ret(e) }
-  | LBRACE ss=x4 RBRACE           { loc $startpos $endpos @@ Block(ss) }
+  | LBRACE ss=e1 RBRACE             { loc $startpos $endpos @@ Block(ss) }
   | IF LPAREN e=x3 RPAREN s1=x2 ELSE s2=x2 { loc $startpos $endpos @@ If(e, [s1], [s2]) }
   ;
 
@@ -79,6 +75,6 @@ x1:
   ;
 
 e1:
-  | x4 { $1 }
+  |   /* empty */   { [] }
   | s=x1 ss=e1   { s::ss }
   ;

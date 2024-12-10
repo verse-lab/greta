@@ -501,7 +501,7 @@ let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_
   match sig_ls1, sig_ls2 with [], [] -> List.rev acc
   | T t1 :: stl1, T t2 :: stl2 -> cross_product_siglsls stl1 stl2 triv_states ((T t1, T t2)::acc)
   | Nt nt1 :: stl1, Nt nt2 :: stl2 -> 
-    if (equal nt1 epsilon_state) || (equal nt2 epsilon_state)
+    if ((equal nt1 epsilon_state) && (not (List.mem nt2 triv_states))) || ((equal nt2 epsilon_state) && (not (List.mem nt1 triv_states)))
     then cross_product_siglsls stl1 stl2 triv_states ((Nt epsilon_state, Nt epsilon_state)::acc) 
     else 
       if ((List.mem nt1 triv_states) && not (List.mem nt2 triv_states)) || ((List.mem nt2 triv_states) && not (List.mem nt1 triv_states))

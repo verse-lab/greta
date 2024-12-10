@@ -80,7 +80,10 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     if debug then printf "\n\t Syms_op is \t"; List.iter Pp.pp_symbol syms_op; printf "\n\n";
 
   let find_rhs_lst_lst (s: symbol) (o: int): sigma list list = 
-    if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug in
+    if (eps_opt = true) 
+    then (if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug)
+    else Utils.assoc_all s o sym_ord_rhs_ls debug
+  in
   
   let max_lvl = 
     let max_starting_from_zero = sym_ord_ls_wrt_op_new |> List.map snd |> List.fold_left max 0 
@@ -122,35 +125,6 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     Pp.pp_transitions_tbl trans_tbl;
   (* Step 4 - add transitions for nontrivial symbols level by level *)
   
-  (* --- helpers for this step --- *)
-  let is_trivial_nonterm (x: sigma) = 
-    let trivial_nonterms = 
-      triv_syms_nonterms |> List.map snd |> List.append [epsilon_state] in  
-      match x with T _ -> false 
-      | Nt x' -> (List.mem x' trivial_nonterms)
-  in
-  
-  let rec match_collect (sym: symbol) (ls: sigma list) (curr_st: state) (acc: sigma list): sigma list =
-    let syms_wrt_oa = oa_ls |> List.map (fun x -> match x with 
-      Assoc (s, _) -> s | Prec _ -> raise No_prec_possible) in 
-    if ((arity sym) = 2) && (List.mem sym syms_wrt_oa) 
-    then 
-      (* TODO: Do this separately *)
-      (* account for associativity *)
-      (let higher_state = get_higher_state curr_st in 
-       if (is_left_assoc sym oa_ls)
-       then [(Nt higher_state); (T (fst sym)); (Nt curr_st)]
-       else [(Nt curr_st); (T (fst sym)); (Nt higher_state)]) 
-    else
-      (match ls with [] -> List.rev acc
-      | h :: tl -> 
-        (* if h is terminal then keep, if nonterminal then replace with curr level state *)
-        if (is_terminal h) then match_collect sym tl curr_st (h::acc) (* [fix!!] condition :  || (sigmas_equal h (Nt epsilon_state)) *)
-        else if (is_trivial_nonterm h) then match_collect sym tl curr_st (h::acc)
-        else
-          match_collect sym tl curr_st ((Nt curr_st)::acc))
-  in
-
   let original_order s: int = 
     let sym_ord_ls = sym_ord_rhs_ls |> List.map (fun ((s, o), _sls) -> (s, o)) in
     List.assoc s sym_ord_ls in
@@ -184,6 +158,47 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   if debug then (printf "\n *** Before updating o_bp_tbl \n"; Pp.pp_obp_tbl o_bp_tbl;
   printf "\n >> Updated O_p table \n"; Pp.pp_obp_tbl updated_op_tbl);
 
+  (* --- helpers for this step --- *)
+  let is_trivial_nonterm (x: sigma) = 
+    let trivial_nonterms = 
+      triv_syms_nonterms |> List.map snd |> List.append [epsilon_state] in  
+      match x with T _ -> false 
+      | Nt x' -> (List.mem x' trivial_nonterms)
+  in
+  let is_lbrace_terminal (x:sigma): bool = 
+    match x with T "LBRACE" ->  true
+    | _ -> false 
+  in
+  let lbrace_order: int = 
+    let lb_ord: int ref = ref 1000 in
+    Hashtbl.iter (fun o sym_ls -> if (List.mem ("LBRACE", 2) sym_ls) 
+      then (lb_ord := o) else ()) updated_op_tbl; !lb_ord
+  in
+  
+  let rec match_collect (sym: symbol) (ls: sigma list) (curr_st: state) (is_lbrace_trans: bool) (acc: sigma list): sigma list =
+    let syms_wrt_oa = oa_ls |> List.map (fun x -> match x with 
+      Assoc (s, _) -> s | Prec _ -> raise No_prec_possible) in 
+    if ((arity sym) = 2) && (List.mem sym syms_wrt_oa) 
+    then 
+      (* TODO: Do this separately *)
+      (* account for associativity *)
+      (let higher_state = get_higher_state curr_st in 
+       if (is_left_assoc sym oa_ls)
+       then [(Nt higher_state); (T (fst sym)); (Nt curr_st)]
+       else [(Nt curr_st); (T (fst sym)); (Nt higher_state)]) 
+    else
+      (match ls with [] -> List.rev acc
+      | h :: tl -> 
+        (* if h is terminal then keep, if nonterminal then replace with curr level state *)
+        if (is_terminal h) then 
+          (if (is_lbrace_terminal h) then match_collect sym tl curr_st true (h::acc) else match_collect sym tl curr_st is_lbrace_trans (h::acc))
+        else if (is_trivial_nonterm h) then match_collect sym tl curr_st is_lbrace_trans (h::acc)
+        else if is_lbrace_trans then 
+          (let corr_st = "e" ^ (string_of_int lbrace_order) in match_collect sym tl curr_st is_lbrace_trans ((Nt corr_st)::acc))
+        else
+          match_collect sym tl curr_st is_lbrace_trans ((Nt curr_st)::acc))
+  in
+
   (* --- helper --- *)
   let run_for_sym_ls lvl curr_st sym_ls: ((state * symbol) * sigma list list) list = 
     sym_ls |> List.fold_left (fun acc sym -> 
@@ -203,14 +218,14 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
            sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls ->
            let new_lvl = List.assoc sym sym_ord_ls_wrt_op_new in 
            let new_st = "e" ^ (string_of_int (new_lvl+1)) in
-           let sym_rhs_ls_learned = match_collect sym rhs_ls new_st []
+           let sym_rhs_ls_learned = match_collect sym rhs_ls new_st false []
             in 
            sym_rhs_ls_learned :: acc) [])
         else 
           (if debug then (printf "\n Not different OR not part of Syms_op OR epsilon symb\t"; Pp.pp_symbol sym;
             printf "\n Rhs sigma ls ls "; Pp.pp_sigma_listlist sym_rhs_ls_ls);
             sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
-          let sym_rhs_ls_learned = match_collect sym rhs_ls curr_st []
+          let sym_rhs_ls_learned = match_collect sym rhs_ls curr_st false []
           in sym_rhs_ls_learned :: acc ) [])
       in
       (printf "\n\t\t Rhs sigma lsls learned\n\t\t";

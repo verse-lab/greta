@@ -386,12 +386,14 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   if debug_print then (printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
   Pp.pp_ta2 a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta2 a2; printf "\n\n");
 
+  let eps_opt, paren_opt = opt_flag.eps_opt, opt_flag.paren_opt 
+  in
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 0 - Consider symbols excluding trivial symbols *)
   let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
   let syms_nontrivial = 
     let init_sym_ls = syms |> List.filter (fun s -> not (List.mem s trivSyms)) 
-    in optimize_sym_list init_sym_ls opt_flag.eps_opt false debug_print
+    in optimize_sym_list init_sym_ls eps_opt false debug_print
   in 
   (if debug_print then pp_upline_new (); printf "##### Step 0 - Found nontrivial symbols\n\t"; 
     syms_nontrivial |> List.iter Pp.pp_symbol; printf "\n"; pp_loline_new ());
@@ -436,7 +438,8 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
       let alph1: symbol list = accessible_symbols_for_state st_hd1 a1.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 
       let alph2: symbol list = accessible_symbols_for_state st_hd2 a2.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 
       let alph_overlapped: symbol list = 
-        take_smaller_symbols_list alph1 alph2 debug_print |> List.filter (fun s -> not (syms_equals s epsilon_symb))
+        let syms_overlapped = take_smaller_symbols_list alph1 alph2 debug_print |> remove_dup_symbols in 
+        if eps_opt then syms_overlapped |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms_overlapped
       in 
       let curr_raw_trans_from_states_pair = 
         cartesian_product_trans_from [(st_hd1, st_hd2)] a1.transitions a2.transitions alph_overlapped triv_states debug_print
@@ -532,7 +535,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
     simplify_trans_blocks_with_epsilon_transitions trans_blocks_renamed (List.rev state_pairs_renamed) debug_print
   in 
   let trans_blocks_simplified_eps_trans_trimmed: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
-    remove_meaningless_transitions trans_blocks_simplified_eps_trans
+    if paren_opt then remove_meaningless_transitions trans_blocks_simplified_eps_trans else trans_blocks_simplified_eps_trans
   in
   (if debug_print then pp_upline_new (); printf "##### Step 11 - Introduced epsilon transitions to simplify raw trans blocks : \n";
     Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans_trimmed; pp_loline_new ());

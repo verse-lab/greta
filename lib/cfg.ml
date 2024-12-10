@@ -19,9 +19,9 @@ type cfg = (* CFG := (V, \Sigma, S, P) *)
   }
 
 type cfg3 = (* CFG := (V, \Sigma, S, P) *)
-  { mutable nonterms : nonterminal list;   (* V - a set of nonterminals/variables, eg, E, +  *)
-    mutable terms : terminal list;         (* \Sigma - a set of terminals, eg, N             *)
-    mutable starts : nonterminal list;           (* S - start symbol, \in V, eg, E                 *)
+  { mutable nonterms : nonterminal list;    (* V - a set of nonterminals/variables, eg, E, +  *)
+    mutable terms : terminal list;          (* \Sigma - a set of terminals, eg, N             *)
+    mutable starts : nonterminal list;      (* S - start symbol, \in V, eg, E                 *)
     mutable productions : production2 list; (* P - a set of productions, eg, E -> E + E       *)
     mutable triv_term_nonterm_list : (terminal * nonterminal) list;
   }
