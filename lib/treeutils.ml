@@ -561,9 +561,9 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
       reslsls_refined
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
-  Printf.printf "\n Is Symbol %s in tbl? \n" (fst sym);
-  match Hashtbl.find_opt tbl (st, sym) with None -> Printf.printf "\tNO\n";false
-  | Some _ -> Printf.printf "\tYES\n";true
+  (* Printf.printf "\n Is Symbol %s in tbl? \n" (fst sym); *)
+  match Hashtbl.find_opt tbl (st, sym) with None -> (* Printf.printf "\tNO\n";*) false
+  | Some _ -> (* Printf.printf "\tYES\n";*) true
 
 let state_pair_append (st_pair: state * state): state = 
   let st1, st2 = (fst st_pair), (snd st_pair) in 

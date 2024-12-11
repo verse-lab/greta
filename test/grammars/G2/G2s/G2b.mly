@@ -48,7 +48,7 @@ ident:
   | id=IDENT  { loc $startpos $endpos id }
 
 decl:
-  | TINT id=ident EQ init=exp2 { loc $startpos $endpos @@ {id; init} }
+  | TINT id=ident EQ init=exp { loc $startpos $endpos @@ {id; init} }
 
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }

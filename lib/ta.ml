@@ -36,8 +36,9 @@ type ta2 =
 
 type optimization = 
  {
-   mutable eps_opt : bool;  (* true if there is no non-trivial <eps, 1> transition *)
-   mutable paren_opt : bool (* true if there is no non-trivial <(), 1> transition *)
+   mutable eps_opt : bool;   (* true if there is no non-trivial <eps, 1> transition               *)
+   mutable paren_opt : bool; (* true if there is no non-trivial <(), 1> transition                *)
+   mutable triv_opt : bool   (* true if there is no non-trivial <eps, 1> to triv_state transition *)
  }
 
 let null_ta : ta2 = 

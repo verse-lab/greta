@@ -226,11 +226,11 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
                   changed := false)
                 else 
                   (let ord = Hashtbl.find !table s in
-                  printf "\n\t  For %s found ord %d \n" s ord;
+                  (* printf "\n\t  For %s found ord %d \n" s ord; *)
                   let ord' = Hashtbl.find !table st in
-                  printf "\n\t  For %s found ord' %d \n" st ord';
+                  (* printf "\n\t  For %s found ord' %d \n" st ord'; *)
                   if ord > (ord' + 1) then (
-                    printf "\n\t  !! ord %d > ord' %d + 1\n" ord ord';
+                    (* printf "\n\t  !! ord %d > ord' %d + 1\n" ord ord'; *)
                     Hashtbl.replace !table s (ord' + 1);
                     changed := true))
             ) rhs;

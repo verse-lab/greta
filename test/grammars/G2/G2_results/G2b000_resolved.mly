@@ -39,54 +39,44 @@ prog0:
   ;
 
 e1:
-  | x5            { $1 }
+  |   /* empty */   { [] }
   | s=x1 ss=e1   { s::ss }
   ;
 
 x1:
   | IF LPAREN e=x3 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
-  | x4 { $1 }
-  ;
-
-x2:
-  | TINT id=ident EQ init=x6 { loc $startpos $endpos @@ {id; init} }
-  ;
-
-x3:
-  | e1=x6 PLUS e2=x7  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | x8 { $1 }
-  ;
-
-x4:
-  | d=x2 SEMI                      { loc $startpos $endpos @@ Decl(d) }
-  | id=ident EQ e=x3 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
-  | IF LPAREN e=x3 RPAREN s1=x4 ELSE s2=x4 { loc $startpos $endpos @@ If(e, [s1], [s2]) }
-  | RETURN e=x3 SEMI                { loc $startpos $endpos @@ Ret(e) }
-  | WHILE LPAREN e=x3 RPAREN s=x4 { loc $startpos $endpos @@ While(e, [s]) }
-  | LBRACE ss=x5 RBRACE           { loc $startpos $endpos @@ Block(ss) }
-  ;
-
-x5:
-  |   /* empty */   { [] }
-  ;
-
-x6:
-  | e1=x6 PLUS e2=x7  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | x7 { $1 }
-  ;
-
-x8:
-  | e1=x8 DASH e2=x8  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | x7 { $1 }
+  | x2 { $1 }
   ;
 
 x7:
-  | e1=x9 STAR e2=x7  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | LPAREN e=x6 RPAREN { e }
-  | x9 { $1 }
+  | TINT id=ident EQ init=x3 { loc $startpos $endpos @@ {id; init} }
   ;
 
-x9:
+x2:
+  | d=x7 SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | id=ident EQ e=x3 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
+  | IF LPAREN e=x3 RPAREN s1=x2 ELSE s2=x2 { loc $startpos $endpos @@ If(e, [s1], [s2]) }
+  | RETURN e=x3 SEMI                { loc $startpos $endpos @@ Ret(e) }
+  | WHILE LPAREN e=x3 RPAREN s=x2 { loc $startpos $endpos @@ While(e, [s]) }
+  | LBRACE ss=e1 RBRACE           { loc $startpos $endpos @@ Block(ss) }
+  ;
+
+x3:
+  | e1=x3 PLUS e2=x4  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | x4 { $1 }
+  ;
+
+x4:
+  | e1=x4 DASH e2=x4  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  | x5 { $1 }
+  ;
+
+x5:
+  | e1=x6 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+  | x6 { $1 }
+  ;
+
+x6:
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=x3 RPAREN { e }

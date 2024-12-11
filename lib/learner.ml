@@ -18,6 +18,10 @@ let get_states (op_ls: restriction list): ((int * state) list) * state =
   in
   (gen_states @ default_states), (List.hd gen_states |> snd)
 
+let more_than_one_transitions (s: symbol) (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) = 
+  let sym_ords = sym_ord_rhs_ls |> List.fold_left (fun acc ((sym, ord), _sig_ls) -> if (syms_equals s sym) then (ord::acc) else acc) [] 
+  in (List.length sym_ords) > 1
+
 let get_transitions (oa_ls: restriction list) (op_ls: restriction list) 
   (o_bp_tbl: (int, symbol list) Hashtbl.t) (sym_lhs_ls: (symbol * state) list)
   (a: symbol list) (lvl_state_pairs: (int * state) list) (start: state) 
@@ -28,11 +32,14 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let open Hashtbl in
   let trivial_syms = triv_syms_nonterms |> List.map fst in
   let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) ) in 
-  let (eps_opt, paren_opt) = opt.eps_opt, opt.paren_opt
+  let versatile_syms = a |> List.filter (fun s -> more_than_one_transitions s sym_ord_rhs_ls) in
+  let (eps_opt, paren_opt, triv_opt) = opt.eps_opt, opt.paren_opt, opt.triv_opt
   in
   (if debug then 
     printf "\nTrivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
-    printf "\nNontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s)); printf "\n";
+    printf "\nNontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
+    printf "\nVersatile symbols :\n\t"; versatile_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
+  ); 
   let trans_tbl : ((state * symbol), sigma list list) Hashtbl.t = 
     create (length o_bp_tbl) (* size guessed wrt. # of transitions in o_bp_tbl *) in
   (* --- helpers --- *)
@@ -80,8 +87,8 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     if debug then printf "\n\t Syms_op is \t"; List.iter Pp.pp_symbol syms_op; printf "\n\n";
 
   let find_rhs_lst_lst (s: symbol) (o: int): sigma list list = 
-    if (eps_opt = true) 
-    then (if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug)
+    if (triv_opt = false) then Utils.assoc_all s o sym_ord_rhs_ls debug else 
+    if (eps_opt = true) then (if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug)
     else Utils.assoc_all s o sym_ord_rhs_ls debug
   in
   
@@ -130,9 +137,11 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     List.assoc s sym_ord_ls in
   let order_of_sym s = List.assoc s sym_ord_ls_wrt_op_new in 
   let different_order_in_obp (s: symbol) (o': int): bool = 
-    if (syms_equals s epsilon_symb) then false else
+    if debug then (printf "\n\t Sym <%s, %d> order %d " (fst s) (snd s) o');
+    if (eps_opt = true) && (syms_equals s epsilon_symb) then false else
     let ords_in_bp: int list ref = ref [] in 
     o_bp_tbl |> iter (fun o sym_ls -> if (List.mem s sym_ls) then ords_in_bp := o::!ords_in_bp); 
+    if debug then (printf " Orders of the sym in O_bp : "; !ords_in_bp |> List.iter (fun x -> printf "%d " x));
     not (List.mem o' !ords_in_bp)
   in
   
