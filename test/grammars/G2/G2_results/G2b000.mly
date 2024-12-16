@@ -43,7 +43,7 @@ ident:
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
-x6:
+x7:
   | TINT id=ident EQ init=x3 { loc $startpos $endpos @@ {id; init} }
 
 x3:
@@ -54,13 +54,15 @@ e1:
   |   /* empty */   { [] }
   | s=x1 ss=e1   { s::ss }
 
-x7:
+x6:
+  | ident { $1 }
+  | const { $1 }
   | LPAREN e=x3 RPAREN { e }
   ;
 
 x5:
-  | e1=x7 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | e=x7 { e }
+  | e1=x6 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+  | e=x6 { e }
   ;
 
 x4:
@@ -69,7 +71,7 @@ x4:
   ;
 
 x2:
-  | d=x6 SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | d=x7 SEMI                      { loc $startpos $endpos @@ Decl(d) }
   | id=ident EQ e=x3 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
   | WHILE LPAREN e=x3 RPAREN s=x2 { loc $startpos $endpos @@ While(e, [s]) }
   | RETURN e=x3 SEMI                { loc $startpos $endpos @@ Ret(e) }

@@ -33,13 +33,13 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let trivial_syms = triv_syms_nonterms |> List.map fst in
   let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) ) in 
   let versatile_syms = a |> List.filter (fun s -> more_than_one_transitions s sym_ord_rhs_ls) in
+  if debug then 
+   (printf "\n Trivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
+    printf "\n Nontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
+    printf "\n Versatile symbols :\n\t"; versatile_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n");
+    
   let (eps_opt, paren_opt, triv_opt) = opt.eps_opt, opt.paren_opt, opt.triv_opt
   in
-  (if debug then 
-    printf "\nTrivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
-    printf "\nNontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
-    printf "\nVersatile symbols :\n\t"; versatile_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
-  ); 
   let trans_tbl : ((state * symbol), sigma list list) Hashtbl.t = 
     create (length o_bp_tbl) (* size guessed wrt. # of transitions in o_bp_tbl *) in
   (* --- helpers --- *)
@@ -58,6 +58,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     (symbol * int) list = 
     if (List.is_empty oas) then sym_ord_ls else 
     begin 
+      printf "\n\t\t O_a not empty!";
       let syms_oa = 
         oas |> List.map (fun r -> match r with Assoc (s, _) -> s | Prec _ -> raise No_prec_possible) in
       let max_ord = 
@@ -74,23 +75,24 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   in
 
   let sym_ord_ls_wrt_op: (symbol * int) list = 
+    (* let sos_op = ref [] in
+    o_bp_tbl |> Hashtbl.iter (fun o syms -> syms |> List.iter (fun s -> sos_op := (s, o) :: !sos_op)); !sos_op  *)
+  
     op_ls |> List.map (fun x -> match x with Assoc _ -> raise No_assoc_possible | Prec (s, o) -> (s, o)) 
+    |> List.fold_left cons_uniq [] |> List.rev (* removing dups here *)
+  
   in
   let sym_ord_ls_wrt_op_new: (symbol * int) list = 
     update_orders_wrt_oa_if_necessary sym_ord_ls_wrt_op oa_ls
   in
-    if debug then printf "\n\t Symbols' orders "; sym_ord_ls_wrt_op_new |> List.iter (fun (s, o) -> 
+    if debug then (printf "\n\t Symbols' orders before update \n\t  "; sym_ord_ls_wrt_op |> List.iter (fun (s, o) -> 
       Pp.pp_symbol s; printf " Ord %d  " o); printf "\n\n";
+      printf "\n\t Symbols' orders after update \n\t  "; sym_ord_ls_wrt_op_new |> List.iter (fun (s, o) -> 
+      Pp.pp_symbol s; printf " Ord %d  " o); printf "\n\n");
   
   let syms_op = sym_ord_ls_wrt_op_new |> List.map fst 
   in
     if debug then printf "\n\t Syms_op is \t"; List.iter Pp.pp_symbol syms_op; printf "\n\n";
-
-  let find_rhs_lst_lst (s: symbol) (o: int): sigma list list = 
-    if (triv_opt = false) then Utils.assoc_all s o sym_ord_rhs_ls debug else 
-    if (eps_opt = true) then (if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug)
-    else Utils.assoc_all s o sym_ord_rhs_ls debug
-  in
   
   let max_lvl = 
     let max_starting_from_zero = sym_ord_ls_wrt_op_new |> List.map snd |> List.fold_left max 0 
@@ -208,16 +210,29 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
           match_collect sym tl curr_st is_lbrace_trans ((Nt curr_st)::acc))
   in
 
+  let find_rhs_lst_lst (s: symbol) (o: int) (o_versatile: int): sigma list list = 
+    if (List.mem s versatile_syms) then Utils.assoc_all s o_versatile sym_ord_rhs_ls debug else 
+    if (triv_opt = false) then Utils.assoc_all s o sym_ord_rhs_ls debug else 
+    if (eps_opt = true) then (if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug)
+    else Utils.assoc_all s o sym_ord_rhs_ls debug
+  in
+
   (* --- helper --- *)
   let run_for_sym_ls lvl curr_st sym_ls: ((state * symbol) * sigma list list) list = 
+    let ver_sym_corr_ord_pairs = ref [] in
     sym_ls |> List.fold_left (fun acc sym -> 
       let sym_rhs_ls_ls : sigma list list = 
         if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
         then 
           (let original_lvl = original_order sym in
-          find_rhs_lst_lst sym original_lvl)
+          if (List.mem sym versatile_syms) then (ver_sym_corr_ord_pairs := (sym, (lvl-1))::!ver_sym_corr_ord_pairs);
+          let corr_ord = 
+            if (List.mem sym versatile_syms) 
+            then (match List.assoc_opt sym !ver_sym_corr_ord_pairs with None -> (lvl-1) | Some o -> o) else (lvl-1) 
+          in
+          find_rhs_lst_lst sym original_lvl corr_ord)
         else 
-          find_rhs_lst_lst sym lvl
+          find_rhs_lst_lst sym lvl (lvl+1)
       in
       let sym_rhs_lsls_learned: sigma list list = 
         if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
@@ -281,14 +296,27 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     Pp.pp_transitions_tbl final_trans;
   final_trans
 
-let learn_ta (oa_ls: restriction list) (op_ls: restriction list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
+let learn_ta (example_trees: (string list * tree * (bool * bool) * restriction list) list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
   (sym_state_ls: (symbol * state) list) (a: symbol list) 
   (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_syms_nonterms: (symbol * state) list) 
   (opt: optimization) (debug_print: bool): ta2 = 
+  let o_bp: restriction list = Hashtbl.fold (fun o syms acc -> 
+    let to_add = syms |> List.fold_left (fun acc' s -> (Prec (s, o))::acc') [] in to_add @ acc) o_bp_tbl [] 
+  in
+  let oa_ls: restriction list = collect_oa_restrictions example_trees debug_print in 
+  let o_tmp: restriction list = collect_op_restrictions example_trees debug_print in 
+  let op_ls: restriction list = combine_op_restrictions_in_pairs o_bp o_tmp debug_print in 
+    
   let open Printf in 
-  if debug_print then (printf "\n\nLearn a tree automaton based on:\n\tO_a: ";
-  Pp.pp_restriction_lst oa_ls; printf "\n\tO_p: "; Pp.pp_restriction_lst op_ls; 
-  printf "\n\tAlphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n");
+  (if debug_print then 
+   (printf "\n\nLearn a tree automaton based on:\n";
+    printf "\n O_a list: \n\t"; Pp.pp_restriction_lst oa_ls; 
+    printf "\n O_p list: \n\t"; Pp.pp_restriction_lst op_ls; 
+    (* printf "\nO_a list :\n\t"; oa_ls |> List.iter (fun r -> match r with Assoc (s, a) -> Pp.pp_symbol s; printf " assoc %s" a | Prec _ -> ()); printf "\n";
+    printf "\nO_p list :\n\t"; op_ls |> List.iter (fun r -> match r with Prec (s, o) -> Pp.pp_symbol s; printf " order %d" o | Assoc _ -> ()); printf "\n"; *)
+    printf "\n Alphabet: { "; a |> List.iter Pp.pp_symbol; printf "}\n")
+  );
+  
   let (lvl_state_pairs, init_state): (int * state) list * state = get_states op_ls in
   let state_ls: state list = lvl_state_pairs |> List.map snd in
   let raw_trans_ls: ((state * symbol), sigma list list) Hashtbl.t = 

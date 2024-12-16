@@ -69,12 +69,12 @@ let () =
     let _opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
     let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false } in
     let opt_flag_g2b: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
-    let o_a: T.restriction list = U.collect_oa_restrictions learned_example_trees debug in 
-    let o_tmp: T.restriction list = U.collect_op_restrictions learned_example_trees debug in 
-    let o_p: T.restriction list = U.combine_op_restrictions_in_pairs o_bp o_tmp debug in 
+    
     let ta_learned: T.ta2 = 
-      L.learn_ta o_a o_p o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states opt_flag_g2b debug 
-    in    
+      L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
+      opt_flag_g2b debug 
+    in
+    
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
       O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag_g2b debug 
@@ -84,8 +84,7 @@ let () =
     let grammar = "G2b" in
     let file_written = U.test_results_filepath grammar !file_postfix in 
     C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states parser_file file_written debug;
-    
-    (* *)
+    (*  *)
     
 end
 else U.no_conflicts_message parser_file
