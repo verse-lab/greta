@@ -60,3 +60,48 @@ let assoc_all (a: Ta.symbol) (ord: int) (ab_ls: ((Ta.symbol * int) * Cfg.sigma l
   if debug_print then (printf "\n\n\t   For symbol "; pp_symbol a; printf " collected:\t"; 
   res |> List.iter (fun s_ls -> printf " [ "; s_ls |> List.iter pp_sigma; printf "] "));
   res
+
+
+let merge ~into:tab1 tab2 =
+  Hashtbl.fold (fun key elt () -> Hashtbl.add tab1 key elt) tab2 ();
+  tab1
+
+let sig_sig_assoc_all (sym: Ta.symbol) (trans: (Ta.symbol * (Cfg.sigma * Cfg.sigma) list) list)
+  : (Cfg.sigma * Cfg.sigma) list = 
+  let rec accumulate ls acc = 
+    match ls with [] -> List.rev acc 
+    | (s, sig_sig_ls) :: tl ->
+      if Ta.syms_equals s sym 
+      then accumulate tl (sig_sig_ls @ acc)
+      else accumulate tl acc
+  in accumulate trans []
+
+let strip_string s =
+  Str.global_replace (Str.regexp "[\r\n\t ]") "" s
+
+let str_rev x =
+  let len = String.length x in
+  String.init len (fun n -> String.get x (len - n - 1))
+
+let str_replace_last (old_substr: string) (new_substr: string) (str: string): string = 
+  let rev_str = str_rev str in 
+  let old_substr_raw = str_rev old_substr in 
+  let (old_substr', new_substr') = (Str.regexp old_substr_raw, str_rev new_substr) in 
+  let res_rev_str = Str.replace_first old_substr' new_substr' rev_str in 
+  str_rev res_rev_str
+
+let rec sublist i j l = 
+  match l with
+    [] -> failwith "sublist"
+  | h :: t -> 
+     let tail = if j=0 then [] else sublist (i-1) (j-1) t in
+     if i>0 then tail else h :: tail
+
+let strip str = 
+  let str = Str.replace_first (Str.regexp "^ +") "" str in
+  Str.replace_first (Str.regexp " +$") "" str
+
+let are_paren_terminals (ts: string list): bool = 
+  match ts with 
+  | fst :: snd :: [] -> (String.equal fst "LPAREN") && (String.equal snd "RPAREN")
+  | _ -> false

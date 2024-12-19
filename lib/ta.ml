@@ -34,6 +34,13 @@ type ta2 =
     mutable trivial_sym_nts : (symbol * state) list;
   }
 
+type optimization = 
+ {
+   mutable eps_opt : bool;   (* true if there is no non-trivial <eps, 1> transition               *)
+   mutable paren_opt : bool; (* true if there is no non-trivial <(), 1> transition                *)
+   mutable triv_opt : bool   (* true if there is no non-trivial <eps, 1> to triv_state transition *)
+ }
+
 let null_ta : ta2 = 
   { states = []; alphabet = []; start_states = []; transitions = Hashtbl.create 0; trivial_sym_nts = [] }
 

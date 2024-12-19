@@ -30,29 +30,23 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
                          
 /* ---------------------------------------------------------------------- */
 
-%start prog0
-%type <Ast.prog> prog0
+%start toplevel
+%type <Ast.prog> toplevel
 %type <Ast.exp> x2
 %type <Ast.const> const
 %%
 
-
-
-prog0:
-  | p=stmts EOF  { p }
-  ;
+toplevel:
+  | p=e1 EOF  { p }
 
 ident:
   | id=IDENT  { loc $startpos $endpos id }
-  ;
 
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }
-  ;
 
-x5:
-  | TINT id=ident EQ init=exp { loc $startpos $endpos @@ {id; init} }
-  ;
+x4:
+  | TINT id=ident EQ init=x2 { loc $startpos $endpos @@ {id; init} }
 
 x2:
   | e1=x2 PLUS e2=x2  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
@@ -61,21 +55,22 @@ x2:
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=x2 RPAREN { e }
-  ;
-
-x1: 
-  | d=decl SEMI                      { loc $startpos $endpos @@ Decl(d) }
-  | id=ident EQ e=exp SEMI           { loc $startpos $endpos @@ Assn(id, e) }
-  | IF LPAREN e=exp RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
-  | IF LPAREN e=exp RPAREN s1=x1 ELSE s2=x1
-                                     { loc $startpos $endpos @@ If(e, [s1], [s2]) }
-  | RETURN e=exp SEMI                { loc $startpos $endpos @@ Ret(e) }
-  | WHILE LPAREN e=exp RPAREN s=x1 { loc $startpos $endpos @@ While(e, [s]) }
-  | LBRACE ss=x1s RBRACE           { loc $startpos $endpos @@ Block(ss) }
-  ;
 
 e1:
   |   /* empty */   { [] }
-  | s=stmt ss=e1   { s::ss }
+  | s=x1 ss=e1   { s::ss }
+
+x3:
+  | d=x4 SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | id=ident EQ e=x2 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
+  | WHILE LPAREN e=x2 RPAREN s=x3 { loc $startpos $endpos @@ While(e, [s]) }
+  | RETURN e=x2 SEMI                { loc $startpos $endpos @@ Ret(e) }
+  | LBRACE ss=e1 RBRACE           { loc $startpos $endpos @@ Block(ss) }
+  | IF LPAREN e=x2 RPAREN s1=x3   { loc $startpos $endpos @@ If(e, [s1], []) }
+  ;
+
+x1:
+  | x3 { $1 }
+  | IF LPAREN e=x2 RPAREN s1=x1 ELSE s2=x1 { loc $startpos $endpos @@ If(e, [s1], [s2]) }
   ;
 

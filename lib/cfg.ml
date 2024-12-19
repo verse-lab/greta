@@ -19,9 +19,9 @@ type cfg = (* CFG := (V, \Sigma, S, P) *)
   }
 
 type cfg3 = (* CFG := (V, \Sigma, S, P) *)
-  { mutable nonterms : nonterminal list;   (* V - a set of nonterminals/variables, eg, E, +  *)
-    mutable terms : terminal list;         (* \Sigma - a set of terminals, eg, N             *)
-    mutable starts : nonterminal list;           (* S - start symbol, \in V, eg, E                 *)
+  { mutable nonterms : nonterminal list;    (* V - a set of nonterminals/variables, eg, E, +  *)
+    mutable terms : terminal list;          (* \Sigma - a set of terminals, eg, N             *)
+    mutable starts : nonterminal list;      (* S - start symbol, \in V, eg, E                 *)
     mutable productions : production2 list; (* P - a set of productions, eg, E -> E + E       *)
     mutable triv_term_nonterm_list : (terminal * nonterminal) list;
   }
@@ -45,8 +45,8 @@ let null_cfg2 = { nonterms = []; terms = []; starts = []; productions = []; triv
 let sigmas_equal (a: sigma) (b: sigma): bool = 
   match a, b with 
   | T _, Nt _ | Nt _, T _ -> false 
-  | T a', T b' -> a' = b'
-  | Nt a', Nt b' -> a' = b'
+  | T a', T b' -> (String.equal a' b')
+  | Nt a', Nt b' -> (String.equal a' b')
 
 let is_terminal (x: sigma): bool = 
   match x with T _ -> true | Nt _ -> false

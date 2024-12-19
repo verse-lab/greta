@@ -26,9 +26,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token RPAREN   /* ) */
 
 %left PLUS DASH
-%left STAR                           
-                         
-/* ---------------------------------------------------------------------- */
+
 %start toplevel
 %type <Ast.prog> toplevel
 %type <Ast.exp> exp
@@ -49,9 +47,12 @@ const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
 exp:
-  | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | e1=exp DASH e2=exp  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | e1=exp STAR e2=exp  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+  | e1=exp PLUS e2=exp2  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | e=exp2 { e }
+
+exp2: 
+  | e1=exp2 DASH e2=exp2  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  | e1=exp2 STAR e2=exp2  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=exp RPAREN { e }
@@ -61,8 +62,7 @@ stmt:
   | d=decl SEMI                      { loc $startpos $endpos @@ Decl(d) }
   | id=ident EQ e=exp SEMI           { loc $startpos $endpos @@ Assn(id, e) }
   | IF LPAREN e=exp RPAREN s1=stmt   { loc $startpos $endpos @@ If(e, [s1], []) }
-  | IF LPAREN e=exp RPAREN s1=stmt ELSE s2=stmt
-                                     { loc $startpos $endpos @@ If(e, [s1], [s2]) }
+  | IF LPAREN e=exp RPAREN s1=stmt ELSE s2=stmt { loc $startpos $endpos @@ If(e, [s1], [s2]) }
   | RETURN e=exp SEMI                { loc $startpos $endpos @@ Ret(e) }
   | WHILE LPAREN e=exp RPAREN s=stmt { loc $startpos $endpos @@ While(e, [s]) }
   | LBRACE ss=stmts RBRACE           { loc $startpos $endpos @@ Block(ss) }

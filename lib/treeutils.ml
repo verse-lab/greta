@@ -201,12 +201,8 @@ let tree_to_expr (t: tree) : string list =
       | "LBRACERBRACE", 1 -> 
         ["("; "LBRACE"] @ tree_loop (nth subts 1) @ ["RBRACE"; ")"]
         (* TODO: Make the rank below to be generalizable *)
-      | "IF", 2 -> 
-        ["("; s'] @ tree_loop (nth subts 0) @ ["THEN"] @ tree_loop (nth subts 1) @ [")"]
       | _, 2 -> 
         ["("] @ tree_loop (nth subts 0) @ [s'] @ tree_loop (nth subts 1) @ [")"]
-      | "IF", 3 -> 
-        ["("; s'] @ tree_loop (nth subts 0) @ ["THEN"] @ tree_loop (nth subts 1) @ ["ELSE"] @ tree_loop (nth subts 2) @ [")"]
       | s, _ -> 
         let treeexprs_for_subts = subts |> fold_left (fun acc t -> acc @ tree_loop t) [] in 
         ["("; s] @ treeexprs_for_subts @ [")"] 
@@ -299,7 +295,9 @@ let collect_op_restrictions (example_trees: (string list * tree * (bool * bool) 
   (debug_print: bool): restriction list = 
   let res = example_trees 
     |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls @ acc else acc) [] 
-  in if debug_print then (Printf.printf "\n  Collected O_p : "; Pp.pp_restriction_lst res); res
+    |> List.map (fun r -> match r with Prec (sym, o) -> Prec (sym, (o-1)) | Assoc _ -> raise No_assoc_possible)
+  in 
+  if debug_print then (Printf.printf "\n  Collected O_p : "; Pp.pp_restriction_lst res); res
 
 (* helper for 'combine_op_restrictions'
  - find all occurrences of (s, o) for sym 's' in o_tmp and combine all the matching o's *)
@@ -330,6 +328,36 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
       let op_order_combined = find_in_o_tmp sym bo o_tmp
       in traverse_o_bp tl (Prec (sym, op_order_combined)::acc)
   in let combined_op = traverse_o_bp o_bp [] 
+  in let reordered_combined_op = reorder_op combined_op in
+  (if debug_print then Printf.printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
+  reordered_combined_op
+
+let update_op_w_restrictions (hi_sym: symbol) (lo_sym: symbol) (init_op: restriction list): restriction list = 
+  let find_order (s: symbol): int = 
+    init_op |> List.map (fun op -> match op with Assoc _ -> raise (Failure "update_op - Assoc not possible")
+      | Prec (s', o') -> (s', o')) |> List.find (fun (sym, _o) -> syms_equals s sym) |> snd 
+  in
+  let (hi_o, lo_o) = find_order hi_sym, find_order lo_sym in
+  (* if hi_sym's ord > lo_sym's ord then no need to update *)
+  if (hi_o > lo_o) then init_op else 
+    (* otherwise, push lo_sym below hi_sym *)
+    begin 
+      init_op |> List.map (fun rst -> match rst with Assoc _ -> raise (Failure "update_op - Assoc not possible")
+      | Prec (s, o) -> 
+        if (syms_equals s lo_sym) 
+        then (let corr_lo_o = hi_o - 1 in Prec (s, corr_lo_o)) else Prec (s, o))
+    end 
+
+let combine_op_restrictions_in_pairs (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list =
+  let rec traverse_o_tmp_in_pairs ls op_acc = 
+    match ls with [] -> op_acc 
+    | Prec (sym1, bo1) :: Prec (sym2, bo2) :: tl ->
+      let updated_op = if (bo1 > bo2) 
+        then update_op_w_restrictions sym1 sym2 op_acc 
+        else update_op_w_restrictions sym2 sym1 op_acc 
+      in traverse_o_tmp_in_pairs tl updated_op
+    | _ -> raise (Failure "Op restrictions in pairs")
+  in let combined_op = traverse_o_tmp_in_pairs o_tmp o_bp
   in let reordered_combined_op = reorder_op combined_op in
   (if debug_print then Printf.printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
@@ -473,7 +501,7 @@ let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_
   match sig_ls1, sig_ls2 with [], [] -> List.rev acc
   | T t1 :: stl1, T t2 :: stl2 -> cross_product_siglsls stl1 stl2 triv_states ((T t1, T t2)::acc)
   | Nt nt1 :: stl1, Nt nt2 :: stl2 -> 
-    if (equal nt1 epsilon_state) || (equal nt2 epsilon_state)
+    if ((equal nt1 epsilon_state) && (not (List.mem nt2 triv_states))) || ((equal nt2 epsilon_state) && (not (List.mem nt1 triv_states)))
     then cross_product_siglsls stl1 stl2 triv_states ((Nt epsilon_state, Nt epsilon_state)::acc) 
     else 
       if ((List.mem nt1 triv_states) && not (List.mem nt2 triv_states)) || ((List.mem nt2 triv_states) && not (List.mem nt1 triv_states))
@@ -514,17 +542,18 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
             (* assume sig_lsls_ls2 is longer *)
             (let sig_lsls1 = hd sig_lsls_ls1 in 
              sig_lsls_ls2 |> fold_left (fun acc lsls2 -> 
-              (cross_loop sig_lsls1 lsls2 []) @ acc) [] 
+              acc @ (cross_loop sig_lsls1 lsls2 [])) [] 
               |> Utils.remove_dups)
            else 
-            if (len2 > len1) 
+            if (len1 > len2) 
             then 
               (let sig_lsls2 = hd sig_lsls_ls2 in 
                sig_lsls_ls1 |> fold_left (fun acc lsls1 -> 
-                (cross_loop sig_lsls2 lsls1 []) @ acc) [] 
+                acc @ (cross_loop lsls1 sig_lsls2 [])) [] 
                 |> Utils.remove_dups)
               else 
-                raise No_cross_product_sigls_possible)
+                (Printf.printf"\n\tCross product bug position!\n";
+                raise No_cross_product_sigls_possible))
       end
     in 
     let reslsls_refined = reslsls |> filter (fun ls -> not (is_empty ls)) in 
@@ -532,8 +561,9 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
       reslsls_refined
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
-  match Hashtbl.find_opt tbl (st, sym) with None -> false
-  | Some _ -> true
+  (* Printf.printf "\n Is Symbol %s in tbl? \n" (fst sym); *)
+  match Hashtbl.find_opt tbl (st, sym) with None -> (* Printf.printf "\tNO\n";*) false
+  | Some _ -> (* Printf.printf "\tYES\n";*) true
 
 let state_pair_append (st_pair: state * state): state = 
   let st1, st2 = (fst st_pair), (snd st_pair) in 
@@ -635,13 +665,57 @@ let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)
   if debug then (Printf.printf "\n\t >> Results of renaming in trans in blocks : \n"; 
   res_trans_blocks |> Pp.pp_raw_trans_blocks);
   res_trans_blocks
- 
+
+let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
+  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let rec remove_dup_trans ls' acc' = 
+    match ls' with [] -> List.rev acc'
+    | tran :: tl' -> 
+      if (List.mem tran acc')
+      then remove_dup_trans tl' acc'
+      else remove_dup_trans tl' (tran::acc')
+  in
+  let rec remove_dups_blocks ls acc = 
+    match ls with [] -> List.rev acc 
+    | (st_pair, trans_ls) :: tl -> 
+      let removed_dups_trans = remove_dup_trans trans_ls [] in 
+      remove_dups_blocks tl ((st_pair, removed_dups_trans) :: acc)
+  in let res_trans_blocks = remove_dups_blocks trans_blocks [] in 
+  if debug then (Printf.printf "\n\t >> Results of removing duplicates in trans in blocks : \n"; 
+  res_trans_blocks |> Pp.pp_raw_trans_blocks);
+  res_trans_blocks
+
+(* let remove_dup_trans_after_eps_intro (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
+  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let rec *)
+
+
 let find_trans_block_for_states_pair (st_pair: (state * state)) 
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list):
   ((state * state) * (symbol * (sigma * sigma) list)) list =
   match List.assoc_opt st_pair trans_blocks with None -> raise Invalid_transitions
-  | Some ls -> ls
+  | Some ls -> (Printf.printf "\n--- debug ----\n"; 
+  ls |> List.iter (fun ((st1, st2), (sym, sig_sig_ls)) -> 
+    Printf.printf "\n\t Sts %s %s ->_" st1 st2; Pp.pp_symbol sym; Pp.pp_sigma_sigma_list sig_sig_ls); ls)
   
+let trans_mem (sym_rhs_sts: symbol * (sigma * sigma) list) (trans_rhs_lst: (symbol * (sigma * sigma) list) list): bool = 
+  let exists_in_sigsigls (sig_pair: sigma * sigma) (sig_sig_ls: (sigma * sigma) list): bool = 
+    let (fst_sig, snd_sig) = (fst sig_pair), (snd sig_pair) in 
+    let rec loop ls ac = 
+      match ls with [] -> ac
+      | (s1, s2) :: tl -> 
+        (if (sigmas_equal s1 fst_sig) && (sigmas_equal s2 snd_sig)
+        then loop tl (true || ac)
+        else loop tl ac)
+    in loop sig_sig_ls false
+  in
+  let (sym, ssls) = (fst sym_rhs_sts), (snd sym_rhs_sts) in
+  match Utils.sig_sig_assoc_all sym trans_rhs_lst with 
+  | [] -> false
+  | sig_sig_ls -> 
+    ssls |> List.for_all (fun sig_pair -> (exists_in_sigsigls sig_pair sig_sig_ls))
+
+
 let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair2: (state * state))
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
   (debug: bool): bool = 
@@ -656,9 +730,10 @@ let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair
     let rec traverse_rhs (ls: (symbol * (sigma * sigma) list) list): bool = 
       match ls with [] -> true
       | hsym_rhs_sts :: tl -> 
-        if (List.mem hsym_rhs_sts st2_trans_rhs_lst)
-        then traverse_rhs tl
-        else false
+        Printf.printf "\n\t symbol %s and rhs \n" (fst (fst hsym_rhs_sts)); Pp.pp_sigma_sigma_list (snd hsym_rhs_sts);
+        if (trans_mem hsym_rhs_sts st2_trans_rhs_lst) (*(List.mem hsym_rhs_sts st2_trans_rhs_lst)*)
+        then (Printf.printf "\n\tYES MEM\n";traverse_rhs tl)
+        else (Printf.printf "\n\tNO, NOT MEM\n"; false)
     in traverse_rhs st1_trans_rhs_lst 
   in if debug then (Printf.printf "\t %b" res_bool); 
   res_bool
@@ -689,9 +764,12 @@ let simplify_trans_blocks_with_epsilon_transitions
     ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
     match other_states_ls with [] -> blocks_acc
     | comp_st_pair :: tl -> 
-      if (st1_transblock_subset_of_st2_transblock st_pair comp_st_pair input_trans_blocks debug)
-      then (let new_trans_blocks = (replace_st1_transkblock_in_st2_transblock_with_eps st_pair comp_st_pair blocks_acc)
-            in simplify_trans_blocks st_pair tl new_trans_blocks)
+      if (st1_transblock_subset_of_st2_transblock st_pair comp_st_pair blocks_acc debug)
+      then (let new_trans_blocks = (replace_st1_transkblock_in_st2_transblock_with_eps st_pair comp_st_pair blocks_acc) in 
+            let new_trans_blocks_wo_dups = remove_dup_trans_for_each_block new_trans_blocks false 
+            in if debug then (Printf.printf "\n\tAfter Replacing State %s trans with State %s trans\n" (fst comp_st_pair) (fst st_pair);
+            Pp.pp_raw_trans_blocks new_trans_blocks_wo_dups);
+            simplify_trans_blocks st_pair tl new_trans_blocks_wo_dups)
       else (simplify_trans_blocks st_pair tl blocks_acc)
   in 
   let rec traverse_states (ls: (state * state) list) blocks_acc =
@@ -704,6 +782,30 @@ let simplify_trans_blocks_with_epsilon_transitions
   in let simplified_res = traverse_states st_pair_ls input_trans_blocks in 
   if debug then (Printf.printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
   simplified_res
+
+let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
+  ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
+  let parenthesis_trans_to_itself (sym_sigsigls: (symbol * (sigma * sigma) list)) (st_pr: (state * state)) =
+    let paren_to_sts (siglsls: (sigma * sigma) list) (sts: (state * state)) = match siglsls with 
+    | ((T "LPAREN"), _) :: ((Nt sts'), _) :: ((T "RPAREN"), _) :: [] -> String.equal (fst sts) sts'
+    | _ -> false in
+    match sym_sigsigls with 
+    | sym, siglsls -> 
+      (syms_equals sym ("LPARENRPAREN", 1)) && (paren_to_sts siglsls st_pr)
+  in
+  let remove_meaningless_trans (blocks: ((state * state) * (symbol * (sigma * sigma) list)) list) =
+    blocks |> List.filter (fun (sts, sym_sig_sig_ls) -> 
+      not (parenthesis_trans_to_itself sym_sig_sig_ls sts))
+  in
+  trans_blocks |> List.map (fun (st_pair, blocks) -> st_pair, (remove_meaningless_trans blocks))
+
+let optimize_sym_list (syms: symbol list) (eps_optimize: bool) (paren_optimize: bool) (debug: bool): symbol list = 
+  let syms_opt1 = 
+    if eps_optimize then syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms in 
+  let syms_opt2 = 
+    if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPARENRPAREN", 1))) else syms_opt1 in 
+  if debug then (Printf.printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
+    syms_opt2
 
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
@@ -719,3 +821,13 @@ let success_message (cnt: int): unit =
 
 let run_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s. Run 'make' again.\n\n" filename
+
+  (* "./test/grammars/G0/G0_results/G0a000.mly" in *)
+let test_results_filepath (grammar: string) (postfix: string): string = 
+  let except_for_last g = 
+    let len = String.length grammar 
+    in Str.string_before g (len-1) 
+  in
+  let grammar_type: string = except_for_last grammar in
+  let path = "./test/grammars/" ^ grammar_type ^ "/" ^ grammar_type ^ "_results/" in 
+  path ^ grammar ^ postfix ^ ".mly"

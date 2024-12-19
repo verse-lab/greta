@@ -1,14 +1,11 @@
 (library 
  (name greta)
  (public_name greta)
- (libraries menhirLib core graphics num str)
+ (libraries sedlex menhirLib str core graphics qcheck num)
  (preprocess (pps ppx_deriving.std sedlex.ppx))
  (flags :standard -rectypes))
 
-(ocamllex
- (modules lexer))
-
 (menhir
  (modules parser)
- (flags --table --inspection --dump --explain --reference-graph))
+ (flags --table --inspection --dump --explain --reference-graph --greta))
 

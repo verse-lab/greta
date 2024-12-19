@@ -1,27 +1,23 @@
 /* *** G1e *** */
 // 9 po's 3 assoc's
 // ~ vs. |
-// ~ vs. ->
-// ~ vs. &
-// & vs. |
-// & vs. ->
+// & vs. |    // | vs. &
 // -> vs. |
+// | assoc
+/* ---------- */ 
+// ~ vs. &
+// -> assoc
+// & assoc
+/* ---------- */ 
+// ~ vs. ->
+// & vs. ->
 // -> vs. &
 // | vs. ->
-// | vs. &
-// & assoc
-// -> assoc
-// | assoc
 
 
 %{
 open Ast;;
 %}
-
-/* menhir uses this declaration to automatically generate
- * a token datatype.
- * Each token carries a Range.t value 
- */
 
 %token EOF
 %token <Range.t * string> VAR
@@ -35,11 +31,8 @@ open Ast;;
 %token <Range.t> FALSE    /* false */
 
 /* ---------------------------------------------------------------------- */
-
-/* Mark 'toplevel' as a starting nonterminal of the grammar */
 %start toplevel           
 
-/* Define type annotations for toplevel and bexp */
 %type <Ast.bexp> toplevel  
 %type <Ast.bexp> bexp
 %%

@@ -293,25 +293,3 @@ let rand_tree_wpat (a: symbol list) (debug_print: bool) (pat: tree): tree =
 
 
 
-(** [prev] generator of purely random trees *)
-let rec rand_tree (a: symbol list) (debug_print: bool) (dep: int): tree =
-  let open Pp in
-  let open Printf in
-  let len = List.length a in
-  let rind = Random.self_init (); Random.int len in
-  let sym = List.nth a rind in 
-    if debug_print then (printf "\nGenerating a purely random tree given:\n\t"; pp_alphabet a;
-    printf "\n\tRandomly selected symbol is "; pp_symbol sym);
-  let ar = arity sym in
-  let tree_res = match ar with
-  | 0 -> Node (sym, [Leaf "ϵ"])
-    (* if debug_print then (pp_repeat dep "\t" ; pp_tree t'; printf "\n");  *)
-  | num -> begin match fst sym with "IF" -> 
-      if (ar = 2) then Node (sym, [Leaf "cond_expr"; Leaf "expr"])
-      else Node (sym, [Leaf "cond_expr"; Leaf "expr"; Leaf "expr"])
-    | _ -> let trees_ls: tree list = 
-      List.init num (fun _ -> rand_tree a debug_print (dep+1)) in Node (sym, trees_ls) end 
-  in printf "\n\n >> Tree Generated: \n";pp_repeat dep "  "; pp_tree tree_res; printf "\n"; tree_res
-
-
-
