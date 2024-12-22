@@ -55,8 +55,8 @@ e1:
   | s=x1 ss=e1   { s::ss }
 
 x6:
-  | ident { $1 }
-  | const { $1 }
+  | id=ident            { loc $startpos $endpos @@ Id (id) }
+  | c=const             { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=x3 RPAREN { e }
   ;
 

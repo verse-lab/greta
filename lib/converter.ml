@@ -1054,7 +1054,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
         printf " Nonterminals < "; nts |> List.iter (printf "%s "); printf ">   ==>  "; 
         Pp.pp_p p; printf "\n")); printf "\n");
   (* --- helper to find (prod string, nonterms) from 'nontriv_prods_terms_ntnum_mapping' --- *)
-  let find_nontriv_prod_from_prods_mapping (terms: string list) (new_nts: string list) (nt_num: int): string * string list = 
+  let find_nontriv_prod_from_prods_mapping (terms: string list) (new_nts: string list) (nt_num: int): 
+    string * string list = 
     (* --- helper of this helper --- created for G2 scenario *)
     let rec triv_nontriv_nonterms_match (nts1: string list) (nts2: string list): bool = 
       match nts1, nts2 with 
@@ -1067,15 +1068,23 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
     in
     if debug_print then (printf "\n\t Find nontriv production from prods mapping from terminal list "; 
       terms |> Pp.pp_terminals; printf "\n\t AND nt_num %d \n" nt_num);
-    match List.assoc_opt (terms, nt_num) nontriv_prods_terms_ntnum_mapping with 
-    | Some (p, nts) -> 
-      let p' = if (triv_nontriv_nonterms_match nts new_nts) then p else "" in
-      if debug_print then (printf "\n\t FOUND production %s \n" p; 
-        printf " with nonterms "; nts |> Pp.pp_nonterminals); 
-      if (String.equal p' "") then ("", []) else (p, nts)
-    | None -> 
-      (* TODO: To resume from this case! *)
-      if debug_print then (printf "\n\t NOT FOUND so look for prod elsewhere \n"); ("", [])
+      match List.assoc_opt (terms, nt_num) nontriv_prods_terms_ntnum_mapping with 
+      | Some (p, nts) -> 
+        let nts_prods_mapped: (string list * string) list = 
+          find_assoc_all terms nt_num nontriv_prods_terms_ntnum_mapping debug_print 
+        in
+          if List.length nts_prods_mapped = 1 then begin 
+            let p' = if (triv_nontriv_nonterms_match nts new_nts) then p else "" in
+              if debug_print then (printf "\n\t FOUND production %s \n" p; 
+              printf " with nonterms "; nts |> Pp.pp_nonterminals); 
+              if (String.equal p' "") then ("", []) else (p, nts) end 
+          else begin
+            let raw_nts_p' = nts_prods_mapped |> List.filter (fun (nts, _prod) -> 
+              string_lists_equal nts new_nts) in 
+            let p' = if (List.is_empty raw_nts_p') then p else raw_nts_p' |> List.hd |> snd in 
+            (p', nts) end
+      | None -> 
+        if debug_print then (printf "\n\t NOT FOUND so look for prod elsewhere \n"); ("", [])
   in
   let change_str_per_nts (old_nts: string list) (new_nts : string list) (ln: string) (scan_forward: bool): string =
     if (List.length old_nts) != (List.length new_nts) then raise Nonterms_length_must_equal;
@@ -1101,8 +1110,9 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
   let changed_nonterm_prods: string list = 
     inconsistent_nonterm_prods_blocks |> List.fold_left (fun acc (nt, ts_nts_p_ls) -> 
       let new_prods = ts_nts_p_ls |> List.fold_left (fun acc (ts, new_nts, prod) -> 
-        if debug_print then (printf "\nNow looking at prod "; Pp.pp_p prod; printf "\n");
+        if debug_print then (printf "\nNow looking at prod "; Pp.pp_p prod);
         let new_nts' = new_nts |> List.filter (fun nt -> not (String.equal nt epsilon_state)) in
+        printf "\n\t New Nonts':\n"; new_nts' |> List.iter (fun x -> printf " %s" x); printf "\n";
         let old_prod_line, old_nts_ls = find_nontriv_prod_from_prods_mapping ts new_nts' (List.length new_nts') in
         if (String.equal "" old_prod_line) && (List.is_empty old_nts_ls) 
         then 
