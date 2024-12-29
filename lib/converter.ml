@@ -122,29 +122,6 @@ let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
       triv_term_nonterm_list = cfg2.triv_term_nonterm_list;
   }
 
-(** enhance_appearance : helper to enhance the symbol representation *)
-let enhance_appearance (a: ta): ta =
-  let change_symbol s = 
-    let s', s'' = fst s, snd s in
-    if (s' = "LPARENRPAREN") then "()", s'' else s 
-  in
-  let alph_updated: symbol list = a.alphabet 
-    |> List.map (fun sym -> change_symbol sym) 
-  in
-  let trans_updated: transition list =
-    a.transitions 
-    |> List.map (fun (st, (sym, st_ls)) ->
-      let sym_new = change_symbol sym 
-      in (st, (sym_new, st_ls))) 
-  in
-  {
-    states = a.states; 
-    alphabet = alph_updated; 
-    start_state = a.start_state; 
-    transitions = trans_updated;
-    trivial_sym_nts = a.trivial_sym_nts 
-  }
-
 let optimize_cfg_starts (g: cfg3) (level: int) =
   let open List in
   let rec h (nts: nonterminal list) (starts: nonterminal list) (prods: production2 list) level =
@@ -182,11 +159,12 @@ let optimize_cfg_starts (g: cfg3) (level: int) =
       (rec_nts, start_to_keep @ rec_starts, rec_prods)
   in h g.nonterms g.starts g.productions level
 
-let cfg_to_ta (debug_print: bool) (g: cfg3): 
+let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3): 
   ta2 * restriction list * ((symbol * int) * sigma list) list * 
   ((int, symbol list) Hashtbl.t) * (symbol * state) list * symbol list =
   let open List in
   let open Printf in
+  let triv_opt = opt.triv_opt in
   let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
   if debug_print then 
     (printf "\n\t Extracted following nonterminals\n\t"; nonterms |> Pp.pp_nonterminals; printf "\n";
@@ -333,9 +311,11 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
     else false
   in
   let restrictions_new = 
-    restrictions |> List.filter (fun (r, (_lhs_nt, sigls)) -> 
-      match r with Prec (sym, _o) -> not (level_changing_eps_transition sym sigls)
-      | Assoc _ -> false)
+    if triv_opt then 
+      restrictions |> List.filter (fun (r, (_lhs_nt, sigls)) -> 
+        match r with Prec (sym, _o) -> not (level_changing_eps_transition sym sigls)
+        | Assoc _ -> false)
+    else restrictions
   in
 
   (* *** debug *** *)
@@ -405,7 +385,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       (* Only add non-trivial symbols to o_bp_tbl *)
       match s with (_, rnk) -> 
           begin 
-            if ((rnk != 0) ) (* && (not (is_trivial_rhs rhss)) *)
+            if ((rnk != 0) || not triv_opt) (*** [fix] for G0a INT triv trans case ***)
             then begin 
               (* If key already exists, then simply add to existing ones *)
               let exist_val = Hashtbl.find_opt o_bp_tbl o in
@@ -441,7 +421,6 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       transitions = transitions_tbl;
       trivial_sym_nts = trivial_syms_nts
     } 
-  (* |> enhance_appearance *) 
   in
   (* *** debug *** *)
   printf "\n >> Trivial non-terminals: [ ";
@@ -479,7 +458,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   in 
   ta_res, restrictions_without_trivials, sym_ord_to_rhs_lst, o_bp_tbl, trivial_syms_nts, trivial_syms
 
-let convertToTa (file: string) (debug_print: bool):
+let convertToTa (file: string) (opt: optimization) (debug_print: bool):
   ta2 * restriction list * ((symbol * int) * sigma list) list * 
   ((int, symbol list) Hashtbl.t) * (symbol * state) list * symbol list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
@@ -493,7 +472,7 @@ let convertToTa (file: string) (debug_print: bool):
   cfg3_of_cfg2)
   |>
   (runIf debug_print (fun _ -> Printf.printf "\n\nConverting CFG to TA\n");
-  cfg_to_ta debug_print)
+  cfg_to_ta opt debug_print)
 
 
 (* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)
