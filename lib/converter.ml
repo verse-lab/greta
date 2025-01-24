@@ -122,29 +122,6 @@ let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
       triv_term_nonterm_list = cfg2.triv_term_nonterm_list;
   }
 
-(** enhance_appearance : helper to enhance the symbol representation *)
-let enhance_appearance (a: ta): ta =
-  let change_symbol s = 
-    let s', s'' = fst s, snd s in
-    if (s' = "LPARENRPAREN") then "()", s'' else s 
-  in
-  let alph_updated: symbol list = a.alphabet 
-    |> List.map (fun sym -> change_symbol sym) 
-  in
-  let trans_updated: transition list =
-    a.transitions 
-    |> List.map (fun (st, (sym, st_ls)) ->
-      let sym_new = change_symbol sym 
-      in (st, (sym_new, st_ls))) 
-  in
-  {
-    states = a.states; 
-    alphabet = alph_updated; 
-    start_state = a.start_state; 
-    transitions = trans_updated;
-    trivial_sym_nts = a.trivial_sym_nts 
-  }
-
 let optimize_cfg_starts (g: cfg3) (level: int) =
   let open List in
   let rec h (nts: nonterminal list) (starts: nonterminal list) (prods: production2 list) level =
@@ -182,11 +159,12 @@ let optimize_cfg_starts (g: cfg3) (level: int) =
       (rec_nts, start_to_keep @ rec_starts, rec_prods)
   in h g.nonterms g.starts g.productions level
 
-let cfg_to_ta (debug_print: bool) (g: cfg3): 
+let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3): 
   ta2 * restriction list * ((symbol * int) * sigma list) list * 
   ((int, symbol list) Hashtbl.t) * (symbol * state) list * symbol list =
   let open List in
   let open Printf in
+  let triv_opt = opt.triv_opt in
   let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
   if debug_print then 
     (printf "\n\t Extracted following nonterminals\n\t"; nonterms |> Pp.pp_nonterminals; printf "\n";
@@ -333,9 +311,11 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
     else false
   in
   let restrictions_new = 
-    restrictions |> List.filter (fun (r, (_lhs_nt, sigls)) -> 
-      match r with Prec (sym, _o) -> not (level_changing_eps_transition sym sigls)
-      | Assoc _ -> false)
+    if triv_opt then 
+      restrictions |> List.filter (fun (r, (_lhs_nt, sigls)) -> 
+        match r with Prec (sym, _o) -> not (level_changing_eps_transition sym sigls)
+        | Assoc _ -> false)
+    else restrictions
   in
 
   (* *** debug *** *)
@@ -405,7 +385,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       (* Only add non-trivial symbols to o_bp_tbl *)
       match s with (_, rnk) -> 
           begin 
-            if ((rnk != 0) ) (* && (not (is_trivial_rhs rhss)) *)
+            if ((rnk != 0) || not triv_opt) (*** [fix] for G0a INT triv trans case ***)
             then begin 
               (* If key already exists, then simply add to existing ones *)
               let exist_val = Hashtbl.find_opt o_bp_tbl o in
@@ -441,7 +421,6 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
       transitions = transitions_tbl;
       trivial_sym_nts = trivial_syms_nts
     } 
-  (* |> enhance_appearance *) 
   in
   (* *** debug *** *)
   printf "\n >> Trivial non-terminals: [ ";
@@ -479,7 +458,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg3):
   in 
   ta_res, restrictions_without_trivials, sym_ord_to_rhs_lst, o_bp_tbl, trivial_syms_nts, trivial_syms
 
-let convertToTa (file: string) (debug_print: bool):
+let convertToTa (file: string) (opt: optimization) (debug_print: bool):
   ta2 * restriction list * ((symbol * int) * sigma list) list * 
   ((int, symbol list) Hashtbl.t) * (symbol * state) list * symbol list = 
   (* Pass in terminals which can have multiple arities, eg, "IF" *)
@@ -493,7 +472,7 @@ let convertToTa (file: string) (debug_print: bool):
   cfg3_of_cfg2)
   |>
   (runIf debug_print (fun _ -> Printf.printf "\n\nConverting CFG to TA\n");
-  cfg_to_ta debug_print)
+  cfg_to_ta opt debug_print)
 
 
 (* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)
@@ -1054,7 +1033,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
         printf " Nonterminals < "; nts |> List.iter (printf "%s "); printf ">   ==>  "; 
         Pp.pp_p p; printf "\n")); printf "\n");
   (* --- helper to find (prod string, nonterms) from 'nontriv_prods_terms_ntnum_mapping' --- *)
-  let find_nontriv_prod_from_prods_mapping (terms: string list) (new_nts: string list) (nt_num: int): string * string list = 
+  let find_nontriv_prod_from_prods_mapping (terms: string list) (new_nts: string list) (nt_num: int): 
+    string * string list = 
     (* --- helper of this helper --- created for G2 scenario *)
     let rec triv_nontriv_nonterms_match (nts1: string list) (nts2: string list): bool = 
       match nts1, nts2 with 
@@ -1067,15 +1047,23 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
     in
     if debug_print then (printf "\n\t Find nontriv production from prods mapping from terminal list "; 
       terms |> Pp.pp_terminals; printf "\n\t AND nt_num %d \n" nt_num);
-    match List.assoc_opt (terms, nt_num) nontriv_prods_terms_ntnum_mapping with 
-    | Some (p, nts) -> 
-      let p' = if (triv_nontriv_nonterms_match nts new_nts) then p else "" in
-      if debug_print then (printf "\n\t FOUND production %s \n" p; 
-        printf " with nonterms "; nts |> Pp.pp_nonterminals); 
-      if (String.equal p' "") then ("", []) else (p, nts)
-    | None -> 
-      (* TODO: To resume from this case! *)
-      if debug_print then (printf "\n\t NOT FOUND so look for prod elsewhere \n"); ("", [])
+      match List.assoc_opt (terms, nt_num) nontriv_prods_terms_ntnum_mapping with 
+      | Some (p, nts) -> 
+        let nts_prods_mapped: (string list * string) list = 
+          find_assoc_all terms nt_num nontriv_prods_terms_ntnum_mapping debug_print 
+        in
+          if List.length nts_prods_mapped = 1 then begin 
+            let p' = if (triv_nontriv_nonterms_match nts new_nts) then p else "" in
+              if debug_print then (printf "\n\t FOUND production %s \n" p; 
+              printf " with nonterms "; nts |> Pp.pp_nonterminals); 
+              if (String.equal p' "") then ("", []) else (p, nts) end 
+          else begin
+            let raw_nts_p' = nts_prods_mapped |> List.filter (fun (nts, _prod) -> 
+              string_lists_equal nts new_nts) in 
+            let p' = if (List.is_empty raw_nts_p') then p else raw_nts_p' |> List.hd |> snd in 
+            (p', nts) end
+      | None -> 
+        if debug_print then (printf "\n\t NOT FOUND so look for prod elsewhere \n"); ("", [])
   in
   let change_str_per_nts (old_nts: string list) (new_nts : string list) (ln: string) (scan_forward: bool): string =
     if (List.length old_nts) != (List.length new_nts) then raise Nonterms_length_must_equal;
@@ -1101,8 +1089,9 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
   let changed_nonterm_prods: string list = 
     inconsistent_nonterm_prods_blocks |> List.fold_left (fun acc (nt, ts_nts_p_ls) -> 
       let new_prods = ts_nts_p_ls |> List.fold_left (fun acc (ts, new_nts, prod) -> 
-        if debug_print then (printf "\nNow looking at prod "; Pp.pp_p prod; printf "\n");
+        if debug_print then (printf "\nNow looking at prod "; Pp.pp_p prod);
         let new_nts' = new_nts |> List.filter (fun nt -> not (String.equal nt epsilon_state)) in
+        printf "\n\t New Nonts':\n"; new_nts' |> List.iter (fun x -> printf " %s" x); printf "\n";
         let old_prod_line, old_nts_ls = find_nontriv_prod_from_prods_mapping ts new_nts' (List.length new_nts') in
         if (String.equal "" old_prod_line) && (List.is_empty old_nts_ls) 
         then 

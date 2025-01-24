@@ -1,72 +1,55 @@
 %{
-open Ast;;
-
-let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
-  { elt ; loc=Range.mk_lex_range startpos endpos }
-
+  open Ast
 %}
 
+%token <int> INT
+
+%token TRUE
+%token FALSE
+%token IF
+%token THEN
+%token ELSE
+
+%token PLUS
+%token MUL
+
+%token LPAREN
+%token RPAREN
+
 %token EOF
-%token <int64>  INT
-%token <string> IDENT
-%token <string> STRING
-%token ELSE     /* else */
-%token IF       /* if */
-%token TINT     /* int */
-%token RETURN   /* return */
-%token WHILE    /* while */
-%token SEMI     /* ; */
-%token LBRACE   /* { */
-%token RBRACE   /* } */
-%token PLUS     /* + */
-%token DASH     /* - */
-%token STAR     /* * */
-%token EQ       /* = */
-%token LPAREN   /* ( */
-%token RPAREN   /* ) */
 
-%left PLUS DASH
 
-%start toplevel
-%type <Ast.prog> toplevel
-%type <Ast.exp> exp
-%type <Ast.const> const
+
+
+%type <Ast.t> program
+%start program
 %%
 
+program : e1 EOF { $1 };
 
-toplevel:
-  | p=stmts EOF  { p }
+cond_expr:
+  | TRUE { Bool true }
+  | FALSE { Bool false } 
+  ;
 
-ident:
-  | id=IDENT  { loc $startpos $endpos id }
+e1:
+  | e1 PLUS x1 { Plus ($1, $3) }
+  | x1  { $1 }
+  ;
 
-decl:
-  | TINT id=ident EQ init=exp { loc $startpos $endpos @@ {id; init} }
+x1:
+  | x2 MUL x1 { Mul ($1, $3) }
+  | x2  { $1 }
+  ;
 
-const:
-  | i=INT { loc $startpos $endpos @@ CInt i }
+x3:
+  | IF cond_expr THEN x3 ELSE x3 { If ($2, Then ($4, Else $6)) }
+  | INT  { Int $1 }
+  | LPAREN e1 RPAREN { Paren $2 }
+  ;
 
-exp:
-  | e1=exp PLUS e2=exp2  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | e=exp2 { e }
+x2:
+  | x3  { $1 }
+  | IF cond_expr THEN x2 { If ($2, Then ($4, Else Na)) }
+  ;
 
-exp2: 
-  | e1=exp2 DASH e2=exp2  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | e1=exp2 STAR e2=exp2  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | id=ident            { loc $startpos $endpos @@ Id (id) }
-  | c=const             { loc $startpos $endpos @@ Const (c) }
-  | LPAREN e=exp RPAREN { e }
-
-
-stmt: 
-  | d=decl SEMI                      { loc $startpos $endpos @@ Decl(d) }
-  | id=ident EQ e=exp SEMI           { loc $startpos $endpos @@ Assn(id, e) }
-  | IF LPAREN e=exp RPAREN s1=stmt   { loc $startpos $endpos @@ If(e, [s1], []) }
-  | IF LPAREN e=exp RPAREN s1=stmt ELSE s2=stmt { loc $startpos $endpos @@ If(e, [s1], [s2]) }
-  | RETURN e=exp SEMI                { loc $startpos $endpos @@ Ret(e) }
-  | WHILE LPAREN e=exp RPAREN s=stmt { loc $startpos $endpos @@ While(e, [s]) }
-  | LBRACE ss=stmts RBRACE           { loc $startpos $endpos @@ Block(ss) }
-
-stmts:
-  |   /* empty */   { [] }
-  | s=stmt ss=stmts   { s::ss }

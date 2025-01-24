@@ -44,13 +44,20 @@ let () =
   else
 
   let debug = true in
+  (* 'opt_flag' for different grammars:
+    * G0, G1 -> opt_flag 
+    * G2 -> opt_flag2 *)
+  let opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
+  let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false } in
+  let _opt_flag_g2b: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
+    
   if (Utils.check_conflicts conflicts_file debug) then
   begin
     let convert_start = Sys.time () in
     let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms): 
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
       ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
-      C.convertToTa cfg_file debug in
+      C.convertToTa cfg_file opt_flag debug in
     let convert_elapsed = Sys.time () -. convert_start in
     (* let ranked_symbols = ta_initial.alphabet in *)
     let interact_counter = ref 0 in
@@ -77,33 +84,34 @@ let () =
             else loop tl ((texpr_ls2, t2, (oa2, op2), rls2)::acc))
         in loop inp_lst []
     in (interact_counter := !interact_counter + 1);
-    let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
-        interact_with_user tree_pairs_lst in 
+    (* let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
+        interact_with_user tree_pairs_lst in  *)
 
     (* 'opt_flag' for different grammars:
      * G0, G1 -> opt_flag 
      * G2 -> opt_flag2 *)
-     let _opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
+     (* let _opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
      let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false } in
-     let opt_flag_g2b: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
-    (* Time output *)
+     let opt_flag_g2b: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in *)
+    
+     (* Time output *)
     let learn_start = Sys.time () in
+    let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
+        interact_with_user tree_pairs_lst 
+    in 
     let ta_learned: T.ta2 = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
-      opt_flag_g2b debug 
+      opt_flag debug 
     in
     let learn_ta_elapsed = Sys.time () -. learn_start in
-    (* let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
-        interact_with_user tree_pairs_lst 
-    in *)
 
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let intersect_start = Sys.time () in
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
-      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag_g2b debug 
+      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag debug 
     in     
     let intersect_elapsed = Sys.time () -. intersect_start in
-    ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st);
+    (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
     (* let file_written = "./test/grammars/G0/G0_results/G0a" in  *)
     let grammar = String.split_on_char '.' parser_file |> List.hd in
     let file_written = U.test_results_filepath grammar !file_postfix in 

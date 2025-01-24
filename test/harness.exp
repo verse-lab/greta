@@ -13,15 +13,15 @@ proc get_cli_command {path} {
     set conflicts_extension ".conflicts"
     set config_extension ".cfg"
 
-    set grammar_file "$base_grammar_file\_"
-    foreach choice $path {
-        set grammar_file "$grammar_file$choice"
-    }
+    # set grammar_file "$base_grammar_file\_"
+    # foreach choice $path {
+    #     set grammar_file "$grammar_file$choice"
+    # }
 
-    exec cp "$base_grammar_file$grammar_extension" "$grammar_file$grammar_extension"
-    set cli_command "$binary_exec $grammar_file$grammar_extension $base_grammar_file$conflicts_extension $base_grammar_file$config_extension"
+    # exec cp "$base_grammar_file$grammar_extension" "$grammar_file$grammar_extension"
+    set cli_command "$binary_exec $base_grammar_file$grammar_extension $base_grammar_file$conflicts_extension $base_grammar_file$config_extension"
 
-    return [list $cli_command $grammar_file$grammar_extension]
+    return [list $cli_command $base_grammar_file$grammar_extension]
 }
 
 # File to store results
@@ -76,7 +76,7 @@ proc handle_choice {current_path next} {
         -re {Choose your preference!.*Option 0:.*Option 1:.*} {
             # kill the process
             # exp_send "\x03"; close;
-            exec rm $grammar_file
+            # exec rm $grammar_file
 
             # Record path for option 0
             handle_choice $current_path 0

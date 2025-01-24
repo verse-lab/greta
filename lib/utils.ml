@@ -105,3 +105,21 @@ let are_paren_terminals (ts: string list): bool =
   match ts with 
   | fst :: snd :: [] -> (String.equal fst "LPAREN") && (String.equal snd "RPAREN")
   | _ -> false
+
+let string_lists_equal (ls1: string list) (ls2: string list) = 
+  (List.length ls1 = List.length ls2) &&
+  ls1 |> List.fold_left (fun acc s1 -> acc && (List.mem s1 ls2)) true 
+
+let find_assoc_all (terms: string list) (num_nonterms: int) (prods_mapping: ((string list * int) * (string * string list)) list) 
+  (debug: bool): (string list * string) list = 
+  let open Printf in 
+  let rec find_all_loop prods_ls (acc: (string list * string) list) = 
+    match prods_ls with [] -> List.rev acc
+    | ((hd_terms, hd_nt_num), (hd_prod, hd_nts)) :: prods_tl -> 
+      if (num_nonterms = hd_nt_num) && (string_lists_equal hd_terms terms) 
+      then find_all_loop prods_tl ((hd_nts, hd_prod)::acc)
+      else find_all_loop prods_tl acc 
+  in let nts_prod_ls = find_all_loop prods_mapping [] in 
+  if debug then (printf "\n\t\t Mapped (nts, prod) list -> \n"; 
+    nts_prod_ls |> List.iter (fun (nts, prod) -> nts |> List.iter (fun x -> printf " %s" x); 
+    printf "\n\t\t mapped to production: %s \n" prod)); nts_prod_ls
