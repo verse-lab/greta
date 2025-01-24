@@ -105,7 +105,7 @@ let () =
     let intersect_elapsed = Sys.time () -. intersect_start in
     ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st);
     (* let file_written = "./test/grammars/G0/G0_results/G0a" in  *)
-    let grammar = "G2b" in
+    let grammar = String.split_on_char '.' parser_file |> List.hd in
     let file_written = U.test_results_filepath grammar !file_postfix in 
     C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states parser_file file_written debug;
     
@@ -113,6 +113,7 @@ let () =
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" convert_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" learn_ta_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed;
+    (* Time for convering back to CFG *)
     (*  *)
     
 end
