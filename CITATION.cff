@@ -7,6 +7,9 @@ authors:
 - family-names: "Rajiv"
   given-names: "Gokul"
   orcid: "https://orcid.org/0000-0000-0000-0000"
+- family-names: "Sergey"
+  given-names: "Ilya"
+  orcid: "https://orcid.org/0000-0003-4250-5392"
 title: "GRETA: Grammar REpair using Tree Automata"
 version: 1.0
 doi: 
