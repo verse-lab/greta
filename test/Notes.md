@@ -23,9 +23,9 @@ Evaluation
 | **G2** |   18   |         5         |        Y        |        -        |        Y        |    Compilers<br />coursework    | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`                       |
 | **G3** |   29   |         5         |        Y        |        -        |        N        |    Compilers<br />coursework    | `parser.mly`   `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`   `range.mli`    |
 | **G4** |   31   |         5         |        Y        |        -        |        N        |  Minimal OCaml<br />(MinCaml)  | `parser.mly`   `lexer.mll`   `id.ml`   `syntax.ml`   `type.ml`                          |
-| **G5** |   -   |         5         |       wip       |        -        |        N        | Yacc grammar<br />for C language | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
+| **G5** |   -   |         5         |        Y        |        -        |        N        |          StackOverflow          | `parser.mly`   `lexer.mll`   `ast.mly`   `range.ml`                                         |
 | **G6** |   -   |         5         |       wip       |        -        |        N        |     ANSI C Yacc<br />Grammar     | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
-| **G7** |   -   |         -         |        -        |        -        |        -        |    GitHub<br />(Project name)    | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
+| **G7** |   -   |         -         |        -        |        -        |        -        | YACC grammar<br />for C language | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
 | **G8** |   -   |         -         |        -        |        -        |        -        |    GitHub<br />(Project name)    | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
 | **G9** |   -   |         -         |        -        |        -        |        -        |    GitHub<br />(Project name)    | `parser.mly`   `lexer.mll`   `ast.mly`                                                          |
 

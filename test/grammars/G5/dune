@@ -1,0 +1,13 @@
+(library 
+ (name g5)
+ (libraries sedlex menhirLib str core graphics qcheck num)
+ (preprocess (pps ppx_deriving.std sedlex.ppx))
+ (flags :standard -rectypes))
+
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (modules parser)
+ (flags --table --inspection --dump --explain --reference-graph --greta))
+
