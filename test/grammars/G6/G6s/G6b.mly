@@ -1,5 +1,3 @@
-// source: https://stackoverflow.com/questions/4588397/fixing-lemon-parsing-confilcts?rq=3
-
 %{
 open Ast
 %}
@@ -26,6 +24,12 @@ open Ast
 %token INT
 
 %token EOF
+
+%left AND
+%left OR
+%left PLUS MINUS
+%left TIMES DIVIDE
+%right POWER NOT
 
 %type <Ast.t> constr
 %type <Ast.exp> int_expr
