@@ -1,5 +1,3 @@
-// source: https://stackoverflow.com/questions/4588397/fixing-lemon-parsing-confilcts?rq=3
-
 %{
 open Ast
 %}
@@ -27,6 +25,9 @@ open Ast
 
 %token EOF
 
+%left AND
+%left OR
+
 %type <Ast.t> constr
 %type <Ast.exp> int_expr
 
@@ -53,12 +54,14 @@ bool_expr:
     ;
 
 int_expr:
-    | int_expr PLUS int_expr { Plus($1, $3) }
-    | int_expr MINUS int_expr { Minus($1, $3) }
-    | int_expr TIMES int_expr { Times($1, $3) }
-    | int_expr DIVIDE int_expr { Divide($1, $3) }
-    | int_expr POWER int_expr { Power($1, $3) }
-    | MINUS int_expr { Negative($2) }
+    | int_expr PLUS int_expr2 { Plus($1, $3) }
+    | int_expr MINUS int_expr2 { Minus($1, $3) }
+    | int_expr TIMES int_expr2 { Times($1, $3) }
+    | int_expr DIVIDE int_expr2 { Divide($1, $3) }
+    | int_expr POWER int_expr2 { Power($1, $3) }
+
+int_expr2:
+    | MINUS int_expr2 { Negative($2) }
     | IVAR { Ivar }
     | INT { Int }
     | LPAREN int_expr RPAREN { Paren($2) }

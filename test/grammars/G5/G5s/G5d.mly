@@ -21,11 +21,11 @@ program : lexpr EOF { $1 };
 lexpr:     
     | lexpr AND lexpr { And($1, $3) }
     | lexpr OR lexpr { Or($1, $3) }
-    | NOT lexpr { Not($2) }
     | term { $1 }
     ;
 
 term: 
+    | NOT term { Not($2) }
     | x=VAR { Var (snd x)}
     | LPAREN lexpr RPAREN { Paren($2) }
     ;

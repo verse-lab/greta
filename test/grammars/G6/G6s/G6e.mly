@@ -1,5 +1,3 @@
-// source: https://stackoverflow.com/questions/4588397/fixing-lemon-parsing-confilcts?rq=3
-
 %{
 open Ast
 %}

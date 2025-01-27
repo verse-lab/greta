@@ -16,16 +16,20 @@
 %start program 
 %% 
 
-program : lexpr EOF { $1 };
+program : lexpr1 EOF { $1 };
 
-lexpr:     
-    | lexpr AND lexpr { And($1, $3) }
-    | lexpr OR lexpr { Or($1, $3) }
-    | NOT lexpr { Not($2) }
+lexpr1:     
+    | lexpr1 AND lexpr2 { And($1, $3) }
+    | lexpr2 { $1 }
+    ;
+
+lexpr2:
+    | lexpr2 OR lexpr2 { Or($1, $3) }
+    | NOT lexpr2 { Not($2) }
     | term { $1 }
     ;
 
 term: 
     | x=VAR { Var (snd x)}
-    | LPAREN lexpr RPAREN { Paren($2) }
+    | LPAREN lexpr1 RPAREN { Paren($2) }
     ;

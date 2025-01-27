@@ -291,8 +291,50 @@ let res = example_trees
   |> List.fold_left (fun acc (_, _, (oa, _), rls) -> if oa then rls @ acc else acc) [] 
 in if debug_print then (Printf.printf "\n  Collected O_a : "; Pp.pp_restriction_lst res); res
 
+let update_if_exist_overlapping_symbols_w_diff_order (so_ls: (symbol * int) list) 
+  (acc_ls: (symbol * int) list list) (debug: bool): (symbol * int) list list = 
+  let open Printf in 
+  let flattened_acc: (symbol * int) list = acc_ls |> List.flatten in
+  let syms_ls: symbol list = flattened_acc |> List.map fst in
+  let find_ord s': int = List.assoc s' flattened_acc in
+  let rec loop (ls: (symbol * int) list) (acc: (symbol * int) list list) = 
+    match ls with [] -> acc 
+    | (s, o) :: so_tl -> 
+      if List.mem s syms_ls then 
+        (let ord = find_ord s in 
+        if (ord = o) then 
+          (if debug then printf "\n\t Exist in acc so list but same order so leave intact\n"; loop so_tl acc)
+        else 
+          (* TODO: change logic here! *)
+          (if debug then printf "\n\t"; loop so_tl acc)) 
+      else 
+        (if debug then printf "\n\t Not exist in acc so list\n"; loop so_tl acc)
+  in loop so_ls acc_ls 
+
+let refine_raw_rest_lsls_wrt_relativ_order (rlsls: restriction list list) (debug: bool): restriction list = 
+  let sym_ord_lsls: (symbol * int) list list = 
+    rlsls |> List.map (fun rls -> 
+      let fst_elem, snd_elem = List.nth rls 0, List.nth rls 1 in
+      match fst_elem, snd_elem with 
+      | Prec (sym1, o1), Prec (sym2, o2) -> [(sym1, o1); (sym2, o2)]
+      | _ -> raise No_assoc_possible) in 
+  let rec refine_loop (ls: (symbol * int) list list) (map_acc: (symbol * int) list list): (symbol * int) list = 
+    match ls with [] -> List.flatten map_acc 
+    | sols_hd :: sols_tl -> 
+      let new_acc = update_if_exist_overlapping_symbols_w_diff_order sols_hd map_acc debug 
+      in refine_loop sols_tl new_acc
+  in let sym_ord_ls = refine_loop sym_ord_lsls [] 
+  in sym_ord_ls |> List.map (fun (s, o) -> Prec (s, o))
+
 let collect_op_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
   (debug_print: bool): restriction list = 
+  let raw_rest_lsls: restriction list list = example_trees 
+    |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls :: acc else acc) [] 
+    |> List.map (fun r_ls -> r_ls 
+      |> List.map (fun r -> match r with Prec (sym, o) -> Prec (sym, (o-1)) | Assoc _ -> raise No_assoc_possible))
+  in 
+  let refined_rest_ls = refine_raw_rest_lsls_wrt_relativ_order raw_rest_lsls debug_print in
+  (Printf.printf "\n\t Refined restriction list : "; Pp.pp_restriction_lst refined_rest_ls);
   let res = example_trees 
     |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls @ acc else acc) [] 
     |> List.map (fun r -> match r with Prec (sym, o) -> Prec (sym, (o-1)) | Assoc _ -> raise No_assoc_possible)
