@@ -1,0 +1,87 @@
+
+** Conflict (shift/reduce) in state 13.
+** Tokens involved: STAR PLUS DASH
+** The following explanations concentrate on token STAR.
+** This state is reached from toplevel after reading:
+
+RETURN exp DASH exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+list(stmt) EOF 
+stmt list(stmt) 
+RETURN exp SEMI 
+       (?)
+
+** In state 13, looking ahead at STAR, reducing production..
+** exp -> exp DASH exp
+** is permitted because of the following sub-derivation:
+
+exp STAR exp // lookahead token appears
+exp DASH exp . 
+
+** In state 13, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+exp DASH exp 
+         exp . STAR exp 
+
+** Conflict (shift/reduce) in state 11.
+** Tokens involved: STAR PLUS DASH
+** The following explanations concentrate on token STAR.
+** This state is reached from toplevel after reading:
+
+RETURN exp PLUS exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+list(stmt) EOF 
+stmt list(stmt) 
+RETURN exp SEMI 
+       (?)
+
+** In state 11, looking ahead at STAR, reducing production..
+** exp -> exp PLUS exp
+** is permitted because of the following sub-derivation:
+
+exp STAR exp // lookahead token appears
+exp PLUS exp . 
+
+** In state 11, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+exp PLUS exp 
+         exp . STAR exp 
+
+** Conflict (shift/reduce) in state 9.
+** Tokens involved: STAR PLUS DASH
+** The following explanations concentrate on token STAR.
+** This state is reached from toplevel after reading:
+
+RETURN exp STAR exp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+list(stmt) EOF 
+stmt list(stmt) 
+RETURN exp SEMI 
+       (?)
+
+** In state 9, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+exp STAR exp 
+         exp . STAR exp 
+
+** In state 9, looking ahead at STAR, reducing production..
+** exp -> exp STAR exp
+** is permitted because of the following sub-derivation:
+
+exp STAR exp // lookahead token appears
+exp STAR exp . 

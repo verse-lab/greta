@@ -1,0 +1,9 @@
+Path,Result,Convert Time,Learn Time,Intersect Time
+0 0 0,ERROR,,,,
+0 0 1,ERROR,,,,
+0 1 0,ERROR,,,,
+0 1 1,ERROR,,,,
+1 0 0,ERROR,,,,
+1 0 1,ERROR,,,,
+1 1 0,ERROR,,,,
+1 1 1,ERROR,,,,
