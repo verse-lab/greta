@@ -434,7 +434,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
     match states_reachable_left with 
     | [] -> List.rev trans_acc, states_reachabe_acc
     | (st_hd1, st_hd2) :: reachable_states_tl -> 
-      if debug_print then (printf "\n\t (current) looking for raw trans ");
+      if debug_print then (printf "\n\t (current) looking for raw trans from (%s, %s) " st_hd1 st_hd2);
       (* --- find transitions from the curr states pair --- *)
       let alph1: symbol list = accessible_symbols_for_state st_hd1 a1.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 
       let alph2: symbol list = accessible_symbols_for_state st_hd2 a2.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 

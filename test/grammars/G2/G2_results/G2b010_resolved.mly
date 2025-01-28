@@ -43,28 +43,13 @@ ident:
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
-x7:
-  | TINT id=ident EQ init=x2 { loc $startpos $endpos @@ {id; init} }
-
 e1:
   |   /* empty */   { [] }
   | s=x1 ss=e1   { s::ss }
 
-x6:
-  | e1=x6 DASH e2=x6  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | LPAREN e=x4 RPAREN { e }
-  ;
-
-x5:
-  | e1=x6 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | e=x6 { e }
-  | id=ident            { loc $startpos $endpos @@ Id (id) }
-  | c=const             { loc $startpos $endpos @@ Const (c) }
-  ;
-
-x4:
-  | e=x5 { e }
-  | e1=x2 PLUS e2=x5  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+x1:
+  | e=x3 { e }
+  | IF LPAREN e=x4 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
   ;
 
 x3:
@@ -76,12 +61,23 @@ x3:
   | IF LPAREN e=x4 RPAREN s1=x3 ELSE s2=x3 { loc $startpos $endpos @@ If(e, [s1], [s2]) }
   ;
 
-x2:
-  | e=x4 { e }
+x7:
+  | TINT id=ident EQ init=x4 { loc $startpos $endpos @@ {id; init} }
+
+x4:
+  | e=x5 { e }
+  | e1=x4 PLUS e2=x5  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
   ;
 
-x1:
-  | e=x3 { e }
-  | IF LPAREN e=x4 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
+x5:
+  | e1=x6 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+  | e=x6 { e }
+  ;
+
+x6:
+  | e1=x6 DASH e2=x6  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  | id=ident            { loc $startpos $endpos @@ Id (id) }
+  | c=const             { loc $startpos $endpos @@ Const (c) }
+  | LPAREN e=x4 RPAREN { e }
   ;
 

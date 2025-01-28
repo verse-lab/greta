@@ -1,3 +1,10 @@
+/* *** G2b *** */
+// 4 conflicts - 3 po's 1 assoc
+// if1 vs. if2
+// - vs. *
+// * vs. -
+// * assoc
+
 %{
 open Ast;;
 
@@ -25,7 +32,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
 
-%left PLUS DASH
+%left DASH
 
 
 %start toplevel
