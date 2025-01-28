@@ -1,7 +1,7 @@
 #!/usr/bin/expect -f
 
 # Set timeout for expect commands (adjust as needed)
-set timeout 30
+set timeout 5
 
 set base_grammar_file [lindex $argv 0]
 
@@ -13,14 +13,7 @@ proc get_cli_command {path} {
     set conflicts_extension ".conflicts"
     set config_extension ".cfg"
 
-    # set grammar_file "$base_grammar_file\_"
-    # foreach choice $path {
-    #     set grammar_file "$grammar_file$choice"
-    # }
-
-    # exec cp "$base_grammar_file$grammar_extension" "$grammar_file$grammar_extension"
     set cli_command "$binary_exec $base_grammar_file$grammar_extension $base_grammar_file$conflicts_extension $base_grammar_file$config_extension"
-
     return [list $cli_command $base_grammar_file$grammar_extension]
 }
 
@@ -35,6 +28,7 @@ proc rerun_path {path spawn_id} {
         if {[catch {
             expect {
                 -re {Choose your preference!.*Option 0:.*Option 1:.*} {
+                    sleep 0.2
                     exp_send "$choice\r"
                 }
                 timeout {
@@ -47,7 +41,7 @@ proc rerun_path {path spawn_id} {
                 }
             }
         } err]} {
-            puts "Error during expect: $err"
+            puts "Error during expect: $err, choice: $choice, path: $path"
             return "EXPECT_ERROR"
         }
     }
@@ -55,54 +49,80 @@ proc rerun_path {path spawn_id} {
 }
 
 # Procedure to handle choices and record paths
-proc handle_choice {current_path next} {
+proc handle_choice {current_path next start} {
     
-    set current_path [lappend current_path $next]
     set output [get_cli_command $current_path]
     set cli_command [lindex $output 0]
     set grammar_file [lindex $output 1]
 
     spawn {*}$cli_command
     
-    set result [rerun_path $current_path $spawn_id]
-    # if {$result == "SUCCESS"} {
-    #     puts "Path: $current_path, $result"
-    # } else {
-    #     puts "Error occurred. Path: $current_path, $result"
-    #     return
-    # }
+    puts "Path: $current_path"
+    if {$start eq 0} {
+        set current_path [lappend current_path $next]
+        sleep 0.5
+        set result [rerun_path $current_path $spawn_id]
+    }
+    set convert_time ""
+    set learn_time ""
+    set intersect_time ""
     
     expect {
+        -re {There are no ambiguities} {
+            set result "NO_CONFLICTS"
+            exp_continue
+        }
         -re {Choose your preference!.*Option 0:.*Option 1:.*} {
             # kill the process
             # exp_send "\x03"; close;
             # exec rm $grammar_file
 
             # Record path for option 0
-            handle_choice $current_path 0
+            sleep 0.1
+            handle_choice $current_path 0 0
 
-            # Record path for option 1
-            handle_choice $current_path 1
+            sleep 0.1
+            handle_choice $current_path 1 0
         }
-        -re {(Final result:.*)} {
-            set result $expect_out(1,string)
-            puts "Path: $current_path, $result"
-            exec echo "$current_path,$result" >> $::results_file
+        -re {Time elapsed for converting TA: ([0-9.]+)} {
+            set convert_time $expect_out(1,string)
+            exp_continue
+        }
+        -re {Time elapsed for learning TA: ([0-9.]+)} {
+            set learn_time $expect_out(1,string)
+            exp_continue
+        }
+        -re {Time elapsed for intersecting TA: ([0-9.]+)} {
+            set intersect_time $expect_out(1,string)
+            exp_continue
+        }
+        -re {Fatal error:.*} {
+            puts "Error occurred. Path: $current_path"
+            exec echo "$current_path,ERROR,,,," >> $::results_file
         }
         timeout {
             puts "Timeout occurred. Path: $current_path"
-            exec echo "$current_path,TIMEOUT" >> $::results_file
+            exec echo "$current_path,TIMEOUT,,,," >> $::results_file
         }
         eof {
-            puts "End of interaction reached. Path: $current_path"
-            exec echo "$current_path,EOF" >> $::results_file
+            puts "End of interaction reached. Path: $current_path. Result: $result"
+            if {$result eq "NO_CONFLICTS"} {
+                exec echo "$current_path, NO_CONFLICTS" >> $::results_file
+            }
+            if {$result ne "NO_CONFLICTS"} {
+                if {$result ne ""} {
+                    # Write complete line with path, result and all timings
+                    exec echo "$current_path,$result,$convert_time,$learn_time,$intersect_time" >> $::results_file
+                }
+            }
+            # exec echo "$current_path,EOF" >> $::results_file
         }
     }
 }
 
 # Main script execution
 puts "Starting CLI application testing..."
-exec echo "Path,Result" > $results_file
+exec echo "Path,Result,Convert Time,Learn Time,Intersect Time" > $results_file
 
-handle_choice {} 0
-handle_choice {} 1
+handle_choice {} 0 1
+
