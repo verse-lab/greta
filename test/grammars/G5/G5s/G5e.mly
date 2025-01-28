@@ -19,13 +19,10 @@
 program : lexpr EOF { $1 };
 
 lexpr:     
-    | lexpr AND lexpr { And($1, $3) }
-    | lexpr OR lexpr { Or($1, $3) }
-    | NOT lexpr { Not($2) }
-    | term { $1 }
-    ;
+  | lexpr AND lexpr { And($1, $3) }
+  | lexpr OR lexpr { Or($1, $3) }
+  | NOT lexpr { Not($2) }
+  | VAR { Var }
+  | LPAREN lexpr RPAREN { Paren($2) }
+  ;
 
-term: 
-    | x=VAR { Var (snd x)}
-    | LPAREN lexpr RPAREN { Paren($2) }
-    ;

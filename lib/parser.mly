@@ -1,87 +1,28 @@
 %{
-open Ast;;
-
-let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
-  { elt ; loc=Range.mk_lex_range startpos endpos }
-
+    open Ast;;
 %}
 
+%token <Range.t * string> VAR
+%token <Range.t> AND
+%token <Range.t> OR 
+%token <Range.t> NOT
+%token <Range.t> LPAREN
+%token <Range.t> RPAREN
+
 %token EOF
-%token <int64>  INT
-%token <string> IDENT
-%token <string> STRING
-%token ELSE     /* else */
-%token IF       /* if */
-%token TINT     /* int */
-%token RETURN   /* return */
-%token WHILE    /* while */
-%token SEMI     /* ; */
-%token LBRACE   /* { */
-%token RBRACE   /* } */
-%token PLUS     /* + */
-%token DASH     /* - */
-%token STAR     /* * */
-%token EQ       /* = */
-%token LPAREN   /* ( */
-%token RPAREN   /* ) */
 
-%left DASH
+%type <Ast.t> program 
 
+%start program 
+%% 
 
-%start toplevel
-%type <Ast.prog> toplevel
-%type <Ast.exp> x2
-%type <Ast.const> const
-%%
+program : lexpr EOF { $1 };
 
-toplevel:
-  | p=e1 EOF  { p }
-
-ident:
-  | id=IDENT  { loc $startpos $endpos id }
-
-const:
-  | i=INT { loc $startpos $endpos @@ CInt i }
-
-x7:
-  | TINT id=ident EQ init=x2 { loc $startpos $endpos @@ {id; init} }
-
-e1:
-  |   /* empty */   { [] }
-  | s=x1 ss=e1   { s::ss }
-
-x6:
-  | e1=x6 DASH e2=x6  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | LPAREN e=x4 RPAREN { e }
-  ;
-
-x5:
-  | e1=x6 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | e=x6 { e }
-  | id=ident            { loc $startpos $endpos @@ Id (id) }
-  | c=const             { loc $startpos $endpos @@ Const (c) }
-  ;
-
-x4:
-  | e=x5 { e }
-  | e1=x2 PLUS e2=x5  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  ;
-
-x3:
-  | d=x7 SEMI                      { loc $startpos $endpos @@ Decl(d) }
-  | id=ident EQ e=x4 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
-  | WHILE LPAREN e=x4 RPAREN s=x3 { loc $startpos $endpos @@ While(e, [s]) }
-  | RETURN e=x4 SEMI                { loc $startpos $endpos @@ Ret(e) }
-  | LBRACE ss=e1 RBRACE           { loc $startpos $endpos @@ Block(ss) }
-  | IF LPAREN e=x4 RPAREN s1=x3 ELSE s2=x3 { loc $startpos $endpos @@ If(e, [s1], [s2]) }
-  ;
-
-x2:
-  | e=x4 { e }
-  ;
-
-x1:
-  | e=x3 { e }
-  | IF LPAREN e=x4 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
+lexpr:     
+  | lexpr AND lexpr { And($1, $3) }
+  | lexpr OR lexpr { Or($1, $3) }
+  | NOT lexpr { Not($2) }
+  | VAR { Var }
+  | LPAREN lexpr RPAREN { Paren($2) }
   ;
 

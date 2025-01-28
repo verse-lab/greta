@@ -30,6 +30,6 @@ lexpr2:
     ;
 
 term: 
-    | x=VAR { Var (snd x)}
+    | VAR { Var }
     | LPAREN lexpr1 RPAREN { Paren($2) }
     ;
