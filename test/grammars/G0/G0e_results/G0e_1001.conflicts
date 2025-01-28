@@ -1,0 +1,28 @@
+
+** Conflict (shift/reduce) in state 18.
+** Token involved: MUL
+** This state is reached from program after reading:
+
+x2 MUL x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+x1 
+x2 PLUS x1 
+(?)
+
+** In state 18, looking ahead at MUL, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 MUL x2 
+       x2 . MUL x2 
+
+** In state 18, looking ahead at MUL, reducing production..
+** x2 -> x2 MUL x2
+** is permitted because of the following sub-derivation:
+
+x2 MUL x2 // lookahead token appears
+x2 MUL x2 . 

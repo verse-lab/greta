@@ -1,0 +1,82 @@
+
+** Conflict (shift/reduce) in state 16.
+** Token involved: MUL
+** This state is reached from program after reading:
+
+x1 MUL x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+x1 PLUS e1 
+(?)
+
+** In state 16, looking ahead at MUL, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 MUL x1 
+       x1 . MUL x1 
+
+** In state 16, looking ahead at MUL, reducing production..
+** x1 -> x1 MUL x1
+** is permitted because of the following sub-derivation:
+
+x1 MUL x1 // lookahead token appears
+x1 MUL x1 . 
+
+** Conflict (shift/reduce) in state 15.
+** Token involved: MUL
+** This state is reached from program after reading:
+
+x1 MUL IF cond THEN x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+x1 PLUS e1 
+x1 MUL x1 
+       (?)
+
+** In state 15, looking ahead at MUL, reducing production..
+** x1 -> IF cond THEN x1
+** is permitted because of the following sub-derivation:
+
+x1 MUL x1 // lookahead token appears
+IF cond THEN x1 . 
+
+** In state 15, looking ahead at MUL, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond THEN x1 
+             x1 . MUL x1 
+
+** Conflict (shift/reduce) in state 8.
+** Tokens involved: PLUS MUL ELSE
+** The following explanations concentrate on token PLUS.
+** This state is reached from program after reading:
+
+IF cond THEN x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 8, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond THEN e1 ELSE e1 
+             x1 . PLUS e1 
+
+** In state 8, looking ahead at PLUS, reducing production..
+** x1 -> IF cond THEN x1
+** is permitted because of the following sub-derivation:
+
+x1 PLUS e1 // lookahead token appears
+IF cond THEN x1 . 

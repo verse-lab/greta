@@ -1,0 +1,31 @@
+
+** Conflict (shift/reduce) in state 6.
+** Token involved: DASH
+** This state is reached from toplevel after reading:
+
+RETURN x5 DASH x5
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+e1 EOF 
+x1 e1 
+x2 
+RETURN x3 SEMI 
+       x4 
+       x5 
+       (?)
+
+** In state 6, looking ahead at DASH, shifting is permitted..
+** because of the following sub-derivation:
+
+x5 DASH x5 
+        x5 . DASH x5 
+
+** In state 6, looking ahead at DASH, reducing production..
+** x5 -> x5 DASH x5
+** is permitted because of the following sub-derivation:
+
+x5 DASH x5 // lookahead token appears
+x5 DASH x5 . 
