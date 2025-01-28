@@ -19,8 +19,6 @@
 %token EOF
 
 
-
-
 %type <Ast.t> program
 %start program
 %%

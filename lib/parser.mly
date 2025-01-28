@@ -1,55 +1,101 @@
 %{
-  open Ast
+open Ast
 %}
 
-%token <int> INT
-
-%token TRUE
-%token FALSE
-%token IF
-%token THEN
-%token ELSE
-
-%token PLUS
-%token MUL
-
-%token LPAREN
-%token RPAREN
+%token UPDATE  SET  WHERE ORDER BY ASC DESC LIMIT AND OR DEFAULT BETWEEN
+%token KEYWORD
+%token IDENTIFIER STRING_LITERAL NEGATIVE_DIGIT POSITIVE_DIGIT FLOAT DATE COMPARISION_OPERATOR
 
 %token EOF
 
+%left OR
+%left AND
+%left BETWEEN
+%left '+' '-'
+%left '*' '/'
+%left UMINUS
+%left ',' '(' ')'
 
 
+%type <Ast.t> constr
+%type <Ast.exp> int_expr
 
-%type <Ast.t> program
 %start program
 %%
 
-program : e1 EOF { $1 };
+program: 
+    | query EOF { $1 }
 
-cond_expr:
-  | TRUE { Bool true }
-  | FALSE { Bool false } 
-  ;
+query:	
+    | UPDATE table_name SET assignment_list
+    | UPDATE table_name SET assignment_list option_list
+    ;
 
-e1:
-  | e1 PLUS x1 { Plus ($1, $3) }
-  | x1  { $1 }
-  ;
+assignment_list:	
+    | assignment_list ',' assignment_list
+	| '(' assignment ')'
+    | assignment
+    ;
 
-x1:
-  | x2 MUL x1 { Mul ($1, $3) }
-  | x2  { $1 }
-  ;
+assignment: 
+    | col_name '=' value
+    ;
 
-x3:
-  | IF cond_expr THEN x3 ELSE x3 { If ($2, Then ($4, Else $6)) }
-  | INT  { Int $1 }
-  | LPAREN e1 RPAREN { Paren $2 }
-  ;
+table_name:	
+    | IDENTIFIER
+    ;
 
-x2:
-  | x3  { $1 }
-  | IF cond_expr THEN x2 { If ($2, Then ($4, Else Na)) }
-  ;
+col_name:   
+    | IDENTIFIER
+    ;
 
+value:  expr
+    |   DEFAULT
+    ;
+
+expr:
+    | expr '+' expr
+    | expr '-' expr
+    | expr '*' expr
+    | expr '/' expr
+    | real_number
+    | identifiers_strings
+    ;
+
+option_list:
+    | WHERE condition_list
+    | ORDER BY order_by_list
+    | LIMIT POSITIVE_DIGIT
+    | WHERE condition_list ORDER BY order_by_list
+    | WHERE condition_list LIMIT POSITIVE_DIGIT
+    | ORDER BY order_by_list LIMIT POSITIVE_DIGIT
+    | WHERE condition_list ORDER BY order_by_list LIMIT POSITIVE_DIGIT
+    ;
+
+condition_list:	condition_list OR condition_list
+	|	condition_list AND condition_list
+    |   '(' condition ')'
+	|	condition
+	;
+
+condition:	assignment
+	|	col_name COMPARISION_OPERATOR real_number
+    |   col_name BETWEEN real_number AND real_number
+	;
+
+identifiers_strings:	IDENTIFIER
+	|	STRING_LITERAL
+	;
+
+real_number:
+    | POSITIVE_DIGIT
+	| '-' real_number %prec UMINUS
+	| FLOAT
+	;
+
+order_by_list:
+    | order_by_list ',' order_by_list
+	| col_name
+	| col_name ASC
+    | col_name DESC
+    ;
