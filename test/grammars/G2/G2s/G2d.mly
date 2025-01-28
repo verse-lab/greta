@@ -1,14 +1,8 @@
 /* *** G2d *** */
-// 9 conflicts - 6 po's 3 assoc's
-// - vs. *
-// - vs. +
-// + vs. *
-// + vs. -
-// * vs. +
-// * vs. -
-// - assoc
-// + assoc
-// * assoc
+// 5 conflicts - 3 po's 2 assoc
+// if1 vs. if2
+// - vs. +,  + vs. -
+// * assoc, + assoc
 
 %{
 open Ast;;
@@ -37,17 +31,17 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
 
-/* ---------------------------------------------------------------------- */
+%left DASH 
+
 %start toplevel
 %type <Ast.prog> toplevel
 %type <Ast.exp> exp
-%type <Ast.block> block
 %type <Ast.const> const
 %%
 
 
 toplevel:
-  | p=list(stmt) EOF  { p }
+  | p=stmts EOF  { p }
 
 ident:
   | id=IDENT  { loc $startpos $endpos id }
@@ -59,28 +53,26 @@ const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
 exp:
+  | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | e1=exp DASH e2=exp  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  | exp2 { $1 }
+  
+exp2:
+  | e1=exp2 STAR e2=exp2  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
-  | e1=exp PLUS e2=exp { loc $startpos $endpos @@ Bop (Add, e1, e2) }
-  | e1=exp DASH e2=exp { loc $startpos $endpos @@ Bop (Sub, e1, e2) }
-  | e1=exp STAR e2=exp { loc $startpos $endpos @@ Bop (Mul, e1, e2) }
   | LPAREN e=exp RPAREN { e }
 
 
 stmt: 
-  | d=decl SEMI             { loc $startpos $endpos @@ Decl(d) }
-  | id=ident EQ e=exp SEMI  { loc $startpos $endpos @@ Assn(id, e) }
-  | ifs=if_stmt             { ifs }
-  | RETURN e=exp SEMI       { loc $startpos $endpos @@ Ret(e) }
-  | WHILE LPAREN e=exp RPAREN b=block { loc $startpos $endpos @@ While(e, b) }
+  | d=decl SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | id=ident EQ e=exp SEMI           { loc $startpos $endpos @@ Assn(id, e) }
+  | IF LPAREN e=exp RPAREN s1=stmt   { loc $startpos $endpos @@ If(e, [s1], []) }
+  | IF LPAREN e=exp RPAREN s1=stmt ELSE s2=stmt { loc $startpos $endpos @@ If(e, [s1], [s2]) }
+  | RETURN e=exp SEMI                { loc $startpos $endpos @@ Ret(e) }
+  | WHILE LPAREN e=exp RPAREN s=stmt { loc $startpos $endpos @@ While(e, [s]) }
+  | LBRACE ss=stmts RBRACE           { loc $startpos $endpos @@ Block(ss) }
 
-block:
-  | LBRACE stmts=list(stmt) RBRACE { stmts }
-
-if_stmt:
-  | IF LPAREN e=exp RPAREN b1=block b2=else_stmt { loc $startpos $endpos @@ If(e,b1,b2) }
-
-else_stmt:
-  | (* empty *)       { [] }
-  | ELSE b=block      { b }
-  | ELSE ifs=if_stmt  { [ ifs ] }
+stmts:
+  |   /* empty */   { [] }
+  | s=stmt ss=stmts   { s::ss }

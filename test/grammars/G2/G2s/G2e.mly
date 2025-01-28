@@ -53,7 +53,7 @@ exp:
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=exp RPAREN { e }
-
+  
 stmt: 
   | d=decl SEMI                      { loc $startpos $endpos @@ Decl(d) }
   | id=ident EQ e=exp SEMI           { loc $startpos $endpos @@ Assn(id, e) }
