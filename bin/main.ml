@@ -36,8 +36,8 @@ let () =
   (* 'opt_flag' for different grammars:
     * G0, G1 -> opt_flag 
     * G2 -> opt_flag2 *)
-  let opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
-  let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false } in
+  let _opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
+  let opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false } in
   let _opt_flag_g2b: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
     
   if (Utils.check_conflicts conflicts_file debug) then
@@ -45,7 +45,7 @@ let () =
     let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms): 
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
       ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
-      C.convertToTa cfg_file opt_flag debug in
+      C.convertToTa cfg_file opt_flag_g2a debug in
     let ranked_symbols = ta_initial.alphabet 
     in
     (* (TODO) Generate trees in <base>.trees instead *)
@@ -72,16 +72,16 @@ let () =
     in 
     let ta_learned: T.ta2 = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
-      opt_flag debug 
+      opt_flag_g2a debug 
     in
     
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
-      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag debug 
+      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag_g2a debug 
     in 
     (* let file_written = "./test/grammars/G0/G0_results/G0a"
     in  *)
-    let grammar = "G0a" in
+    let grammar = "G2a" in
     let file_written = U.test_results_filepath grammar !file_postfix in 
     C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states parser_file file_written debug;
     (*  *)
