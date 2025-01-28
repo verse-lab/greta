@@ -846,7 +846,10 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
     if (List.length old_nonts) = 1 && (only_consist_of_one_trivnonterm old_nonts)
     then 
       (let res_nonterms = nt_p_lst |> List.map (fun (_nt, _i, sigls) -> sigls) |> List.map (fun sigls -> extract_nonterms_sigls sigls) 
-       in if (List.mem old_nonts res_nonterms) then old_nonts else raise (Failure "find_nonterms_for : triv nonterms case"))
+       in if (List.mem old_nonts res_nonterms) then old_nonts else old_nonts 
+        (* [new_fix] just resturn old_nonts even in triv nonterms case*)
+        (* raise (Failure "find_nonterms_for : triv nonterms case") *)
+        )
     else 
       (let sig_lst: sigma list = nt_p_lst |> List.fold_left (fun acc (_nt, _i, sigls) -> 
           let new_nonts = extract_nonterms_sigls sigls in
@@ -1052,12 +1055,15 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
         let nts_prods_mapped: (string list * string) list = 
           find_assoc_all terms nt_num nontriv_prods_terms_ntnum_mapping debug_print 
         in
-          if List.length nts_prods_mapped = 1 then begin 
+          (* [new_fix] tentative fix to account for ident & const happening for nontriv_state-starting trans *)
+          if (List.length nts_prods_mapped = 1) || (List.length nts_prods_mapped = 2) then begin 
             let p' = if (triv_nontriv_nonterms_match nts new_nts) then p else "" in
               if debug_print then (printf "\n\t FOUND production %s \n" p; 
               printf " with nonterms "; nts |> Pp.pp_nonterminals); 
               if (String.equal p' "") then ("", []) else (p, nts) end 
-          else begin
+          else 
+            begin
+              if List.length nts_prods_mapped = 2 then printf "\n\t\tOVER HERE ~ !!\n\n";
             let raw_nts_p' = nts_prods_mapped |> List.filter (fun (nts, _prod) -> 
               string_lists_equal nts new_nts) in 
             let p' = if (List.is_empty raw_nts_p') then p else raw_nts_p' |> List.hd |> snd in 

@@ -32,7 +32,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
 
-%left PLUS DASH
+%left DASH
 
 %start toplevel
 %type <Ast.prog> toplevel

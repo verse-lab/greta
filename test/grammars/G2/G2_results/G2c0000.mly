@@ -25,10 +25,6 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
 
-%left PLUS DASH
-%left STAR                           
-                         
-/* ---------------------------------------------------------------------- */
 
 %start toplevel
 %type <Ast.prog> toplevel
@@ -45,23 +41,40 @@ ident:
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
-x4:
-  | TINT id=ident EQ init=x3 { loc $startpos $endpos @@ {id; init} }
-
-x3:
-  | e1=x3 PLUS e2=x3  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | e1=x3 DASH e2=x3  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | e1=x3 STAR e2=x3  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | id=ident            { loc $startpos $endpos @@ Id (id) }
-  | c=const             { loc $startpos $endpos @@ Const (c) }
-  | LPAREN e=x3 RPAREN { e }
+x8:
+  | TINT id=ident EQ init=x5 { loc $startpos $endpos @@ {id; init} }
 
 e1:
   |   /* empty */   { [] }
   | s=x1 ss=e1   { s::ss }
 
+x7:
+  | id=ident            { loc $startpos $endpos @@ Id (id) }
+  | c=const             { loc $startpos $endpos @@ Const (c) }
+  | LPAREN e=x3 RPAREN { e }
+  ;
+
+x6:
+  | e1=x7 STAR e2=x6  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+  | x7 { $1 }
+  ;
+
+x5:
+  | x6 { $1 }
+  | e1=x5 DASH e2=x5  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  ;
+
+x4:
+  | x6 { $1 }
+  ;
+
+x3:
+  | x5 { $1 }
+  | e1=x4 PLUS e2=x3  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  ;
+
 x2:
-  | d=x4 SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | d=x8 SEMI                      { loc $startpos $endpos @@ Decl(d) }
   | id=ident EQ e=x3 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
   | WHILE LPAREN e=x3 RPAREN s=x2 { loc $startpos $endpos @@ While(e, [s]) }
   | RETURN e=x3 SEMI                { loc $startpos $endpos @@ Ret(e) }

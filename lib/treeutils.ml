@@ -594,8 +594,29 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
                 acc @ (cross_loop lsls1 sig_lsls2 [])) [] 
                 |> Utils.remove_dups)
               else 
-                (Printf.printf"\n\tCross product bug position!\n";
-                raise No_cross_product_sigls_possible))
+                ((* *** [new_fix] for G2b 010 case *** *)
+                let sig_lsls_ls1' = sig_lsls_ls1 |> List.flatten in
+                let sig_lsls_ls2' = sig_lsls_ls2 |> List.flatten in
+                let len1', len2' = length (sig_lsls_ls1'), length (sig_lsls_ls2') in
+                Printf.printf "\n\t\t What's new len(sig_lsls_ls1) %d vs. leng(sig_lsls_ls2) %d\n" len1' len2';
+                if (len1' = len2') 
+                then 
+                  (let _sig_lsls1_hd = hd sig_lsls_ls1 in 
+                    let res_here: (sigma * sigma) list list = 
+                      sig_lsls_ls1 |> fold_left (fun acc' sig_lsls1 -> 
+                        let res' = 
+                          sig_lsls_ls2 |> fold_left (fun acc lsls2 -> 
+                            let interm_res = (cross_loop sig_lsls1 lsls2 []) in
+                            if (interm_res = [[]]) then acc else 
+                            acc @ interm_res) [] 
+                            |> Utils.remove_dups
+                        in res' @ acc'
+                        ) []
+                      in
+                      res_here |> List.iter Pp.pp_sigma_sigma_list; res_here)
+                else 
+                  (Printf.printf"\n\tCross product bug position!\n";
+                   raise No_cross_product_sigls_possible)))
       end
     in 
     let reslsls_refined = reslsls |> filter (fun ls -> not (is_empty ls)) in 

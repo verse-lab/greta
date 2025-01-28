@@ -111,17 +111,14 @@ gexp:
 
 lhs:  
   | id=IDENT            { loc $startpos $endpos @@ Id id }
-  | e=exp1 LBRACKET i=exp1 RBRACKET
-                        { loc $startpos $endpos @@ Index (e, i) }
+  | e=exp1 LBRACKET i=exp1 RBRACKET { loc $startpos $endpos @@ Index (e, i) }
 
 exp1:
   | exp2 { $1 }
   | e1=exp1 b=bop e2=exp1 { loc $startpos $endpos @@ Bop (b, e1, e2) }
   | id=IDENT            { loc $startpos $endpos @@ Id id }
-  | e=exp1 LBRACKET i=exp1 RBRACKET
-                        { loc $startpos $endpos @@ Index (e, i) }
-  | e=exp1 LPAREN es=separated_list(COMMA, exp1) RPAREN
-                        { loc $startpos $endpos @@ Call (e,es) }
+  | e=exp1 LBRACKET i=exp1 RBRACKET { loc $startpos $endpos @@ Index (e, i) }
+  | e=exp1 LPAREN es=separated_list(COMMA, exp1) RPAREN { loc $startpos $endpos @@ Call (e,es) }
 
 exp2:
   | i=INT               { loc $startpos $endpos @@ CInt i }
@@ -136,13 +133,11 @@ vdecl:
 stmt: 
   | d=vdecl SEMI        { loc $startpos $endpos @@ Decl(d) }
   | p=lhs EQ e=exp1 SEMI { loc $startpos $endpos @@ Assn(p,e) }
-  | e=exp1 LPAREN es=separated_list(COMMA, exp1) RPAREN SEMI
-                        { loc $startpos $endpos @@ SCall (e, es) }
+  | e=exp1 LPAREN es=separated_list(COMMA, exp1) RPAREN SEMI { loc $startpos $endpos @@ SCall (e, es) }
   | ifs=if_stmt         { ifs }
   | RETURN SEMI         { loc $startpos $endpos @@ Ret(None) }
   | RETURN e=exp1 SEMI   { loc $startpos $endpos @@ Ret(Some e) }
-  | WHILE LPAREN e=exp1 RPAREN b=block  
-                        { loc $startpos $endpos @@ While(e, b) } 
+  | WHILE LPAREN e=exp1 RPAREN b=block { loc $startpos $endpos @@ While(e, b) } 
 
 block:
   | LBRACE stmts=list(stmt) RBRACE { stmts }

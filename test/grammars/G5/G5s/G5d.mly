@@ -26,6 +26,6 @@ lexpr:
 
 term: 
     | NOT term { Not($2) }
-    | x=VAR { Var (snd x)}
+    | VAR { Var }
     | LPAREN lexpr RPAREN { Paren($2) }
     ;
