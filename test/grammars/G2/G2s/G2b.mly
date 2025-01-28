@@ -1,8 +1,7 @@
 /* *** G2b *** */
-// 4 conflicts - 3 po's 1 assoc
+// 3 conflicts - 3 po's 1 assoc
 // if1 vs. if2
-// - vs. *
-// * vs. -
+// - vs. +
 // * assoc
 
 %{
@@ -32,7 +31,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
 
-%left DASH
+%left DASH 
 
 %start toplevel
 %type <Ast.prog> toplevel
@@ -55,10 +54,10 @@ const:
 
 exp:
   | e1=exp PLUS e2=exp2  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | e=exp2 { e }
+  | e1=exp DASH e2=exp  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  | exp2 { $1 }
 
 exp2: 
-  | e1=exp2 DASH e2=exp2  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
   | e1=exp2 STAR e2=exp2  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }

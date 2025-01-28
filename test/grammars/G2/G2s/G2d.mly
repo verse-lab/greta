@@ -58,15 +58,12 @@ decl:
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
-%inline bop:
-  | PLUS { Add }
-  | DASH { Sub }
-  | STAR { Mul }
-
 exp:
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
-  | e1=exp b=bop e2=exp { loc $startpos $endpos @@ Bop (b, e1, e2) }
+  | e1=exp PLUS e2=exp { loc $startpos $endpos @@ Bop (Add, e1, e2) }
+  | e1=exp DASH e2=exp { loc $startpos $endpos @@ Bop (Sub, e1, e2) }
+  | e1=exp STAR e2=exp { loc $startpos $endpos @@ Bop (Mul, e1, e2) }
   | LPAREN e=exp RPAREN { e }
 
 

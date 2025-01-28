@@ -1,3 +1,9 @@
+/* *** G2b *** */
+// 3 conflicts - 3 po's 1 assoc
+// if1 vs. if2
+// - vs. +
+// * assoc
+
 %{
 open Ast;;
 
@@ -25,7 +31,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
 
-%left DASH
+%left DASH 
 
 
 %start toplevel
@@ -44,11 +50,7 @@ const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
 x7:
-  | TINT id=ident EQ init=x3 { loc $startpos $endpos @@ {id; init} }
-
-x3:
-  | e1=x3 PLUS e2=x4  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | e=x4 { e }
+  | TINT id=ident EQ init=x4 { loc $startpos $endpos @@ {id; init} }
 
 e1:
   |   /* empty */   { [] }
@@ -61,13 +63,18 @@ x6:
   ;
 
 x5:
-  | e=x6 { e }
+  | x6 { $1 }
   | e1=x5 STAR e2=x6  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   ;
 
 x4:
-  | e=x5 { e }
+  | x5 { $1 }
   | e1=x4 DASH e2=x4  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  ;
+
+x3:
+  | x4 { $1 }
+  | e1=x3 PLUS e2=x5  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
   ;
 
 x2:
@@ -80,7 +87,7 @@ x2:
   ;
 
 x1:
-  | e=x2 { e }
+  | x2 { $1 }
   | IF LPAREN e=x3 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
   ;
 

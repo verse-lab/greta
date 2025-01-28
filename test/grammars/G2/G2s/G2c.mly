@@ -1,10 +1,8 @@
 /* *** G2c *** */
-// 6 conflicts - 3 po's 2 assoc's
+// 4 conflicts - 3 po's 1 assoc
 // if1 vs. if2
 // - vs. *
 // * vs. -
-// + assoc
-// - assoc
 // * assoc
 
 %{
@@ -34,11 +32,14 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
 
+%left DASH 
+
 %start toplevel
 %type <Ast.prog> toplevel
 %type <Ast.exp> exp
 %type <Ast.const> const
 %%
+
 
 toplevel:
   | p=stmts EOF  { p }
@@ -47,15 +48,15 @@ ident:
   | id=IDENT  { loc $startpos $endpos id }
 
 decl:
-  | TINT id=ident EQ init=exp2 { loc $startpos $endpos @@ {id; init} }
+  | TINT id=ident EQ init=exp { loc $startpos $endpos @@ {id; init} }
 
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
 exp:
-  | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | e1=exp PLUS e2=exp2  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
   | exp2 { $1 }
-  
+
 exp2: 
   | e1=exp2 DASH e2=exp2  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
   | e1=exp2 STAR e2=exp2  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }

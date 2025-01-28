@@ -29,11 +29,17 @@ module T = Ta
 let () =
   (** Step 1: Initial inputs provided by the user *)
   let parser_file = Array.get Sys.argv 1 in
-  (* let _versatile_syms = [("IF", [2; 3])] in *)
   let conflicts_file = Array.get Sys.argv 2 in
   let cfg_file = Array.get Sys.argv 3 in
+  
+  (* 
+  let parser_file = "./lib/parser.mly" in 
+  let conflicts_file = "./_build/default/lib/parser.conflicts" in 
+  let cfg_file = "./_build/default/lib/parser.cfg" in 
+   *)
+  
   (* Learn TA and O_bp wrt 'parser_file' *)
-
+  
   (* Check that the path exists *)
   if (not (Sys.file_exists parser_file)) then 
     (print_endline "Error: Parser file does not exist. Exiting."; exit 1)
@@ -50,7 +56,10 @@ let () =
   let _opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
   let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false } in
   let _opt_flag_g2b: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
-  let opt_flag_g5: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = false } in
+  let _opt_flag_g2c: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
+  let opt_flag_g2d: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = true } in
+  let _opt_flag_g5: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = false } in
+  let _opt_flag_g6: T.optimization = { eps_opt = true; paren_opt = false; triv_opt = false } in
     
   if (Utils.check_conflicts conflicts_file debug) then
   begin
@@ -58,14 +67,15 @@ let () =
     let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms): 
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
       ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
-      C.convertToTa cfg_file _opt_flag debug in
+      C.convertToTa cfg_file opt_flag_g2d debug in
+      
     let convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet 
     in
     (* (TODO) Generate trees in <base>.trees instead *)
       let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
       E.gen_examples conflicts_file ranked_symbols debug 
-    in
+    in 
     (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)
     let file_postfix = ref "" in
     let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list):
@@ -85,33 +95,29 @@ let () =
     (* let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
         interact_with_user tree_pairs_lst in  *)
 
-    (* 'opt_flag' for different grammars:
-     * G0, G1 -> opt_flag 
-     * G2 -> opt_flag2 *)
-     (* let _opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
-     let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false } in
-     let opt_flag_g2b: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in *)
-    
-     (* Time output *)
+    (* Time output *)
     let learn_start = Sys.time () in
     let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
         interact_with_user tree_pairs_lst 
     in 
     let ta_learned: T.ta2 = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
-      opt_flag_g5 debug 
+      opt_flag_g2d debug 
     in
     let learn_ta_elapsed = Sys.time () -. learn_start in
 
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let intersect_start = Sys.time () in
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
-      O.intersect ta_initial ta_learned triv_syms triv_syms_states _opt_flag debug 
+      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag_g2d debug 
     in     
     let intersect_elapsed = Sys.time () -. intersect_start in
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
     (* let file_written = "./test/grammars/G0/G0_results/G0a" in  *)
-    let grammar = String.split_on_char '.' parser_file |> List.hd in
+    let grammar = 
+      String.split_on_char '.' parser_file |> List.hd 
+      (* "G2d" *)
+    in
     let file_written = U.test_results_filepath grammar !file_postfix in 
     C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states parser_file file_written debug;
     
@@ -124,10 +130,7 @@ let () =
     
 end
 else U.no_conflicts_message parser_file
-(* 
-U.success_message 100 (* !interact_counter *)
-*)
-  
+
 (*** Assumptions made on the language designer (user of this tool):
  *   * Non-terminals representing boolean are specified with "cond" ^ s*
  *     - If this assumption changes, change data type to represent state to a tuple 
