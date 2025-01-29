@@ -1,9 +1,9 @@
 (ocamllex
- (modules lllexer lexer))
+ (modules lexer))
 
 (menhir
  (flags --explain --dump) 	
- (modules llparser parser))
+ (modules parser))
 
 (library
   (name g3)

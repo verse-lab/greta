@@ -27,21 +27,15 @@
   let reserved_words = [
   (* Keywords *)
   ("null", NULL);
-  ("void", TVOID);
-  ("int", TINT);
-  ("string", TSTRING);
   ("else", ELSE);
   ("if", IF);
   ("while", WHILE);
   ("return", RETURN);
   ("var", VAR);
-  ("global", GLOBAL);
 
   (* Symbols *)
   ( ";", SEMI);
   ( ",", COMMA);
-  ( "{", LBRACE);
-  ( "}", RBRACE);
   ( "+", PLUS);
   ( "-", DASH);
   ( "*", STAR);
@@ -170,9 +164,9 @@ and comments level = parse
              Printf.sprintf "comments are not closed")) }
 
 and string in_directive = parse
-  | '"'  { if in_directive = false then
+  (* | '"'  { if in_directive = false then
              STRING (get_str())
-           else directive 2 lexbuf }  
+           else directive 2 lexbuf }   *)
   | '\\' { add_str(escaped lexbuf); string in_directive lexbuf }
   | '\n' { add_str '\n'; newline lexbuf; string in_directive lexbuf }
   | eof  { raise (Lexer_error (lex_long_range lexbuf,

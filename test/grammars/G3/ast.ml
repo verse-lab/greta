@@ -1,25 +1,11 @@
-open Assert
+type 'a loc = {
+    elt : 'a
+  ; loc : Range.t
+}
 
-type 'a node = { elt : 'a; loc : Range.t }
+let no_loc x = {elt=x; loc=Range.norange}
 
-(** val no_loc : 'a1 -> 'a1 node **)
-
-let no_loc x =
-  { elt = x; loc = Range.norange }
-
-type id = string
-
-type ty =
-| TBool
-| TInt
-| TRef of rty
-and rty =
-| RString
-| RArray of ty
-| RFun of ty list * ret_ty
-and ret_ty =
-| RetVoid
-| RetVal of ty
+type id =  string loc (* Identifiers *)
 
 type unop =
 | Neg
@@ -44,42 +30,37 @@ type binop =
 | Shr
 | Sar
 
-type exp =
-| CNull of rty
-| CBool of bool
-| CInt of int64
+type _cond = CBool of bool 
+and cond = _cond loc
+
+type _exp =
+| CInt
 | CStr of string
-| CArr of ty * exp node list
-| NewArr of ty * exp node
+| CArr of exp list
+| NewArr of exp
 | Id of id
-| Index of exp node * exp node
-| Call of exp node * exp node list
-| Bop of binop * exp node * exp node
-| Uop of unop * exp node
+| Index of exp * exp 
+| Call of exp * exp
+| Bop of binop * exp * exp 
+| Uop of unop * exp
+| Paren of exp
+and exp = _exp loc
 
-type cfield = id * exp node
+type cfield = id * exp 
 
-type vdecl = id * exp node
+type _vdecl = { id: id; init: exp;}
+and vdecl = _vdecl loc
 
-type stmt =
-| Assn of exp node * exp node
+type _stmt =
+| CNull
+| Assn of exp * exp
 | Decl of vdecl
-| Ret of exp node option
-| SCall of exp node * exp node list
-| If of exp node * stmt node list * stmt node list
-| For of vdecl list * exp node option * stmt node option * stmt node list
-| While of exp node * stmt node list
+| Ret of exp option
+| SCall of exp * exp
+| If of cond * stmt list * stmt list
+| For of vdecl list * exp option * stmt option * stmt list
+| While of exp * stmt
+| Block of stmt 
+and stmt = _stmt loc
 
-type block = stmt node list
-
-type gdecl = { name : id; init : exp node }
-
-type fdecl = { frtyp : ret_ty; fname : id; args : (ty * id) list; body : block }
-
-type field = { fieldName : id; ftyp : ty }
-
-type decl =
-| Gvdecl of gdecl node
-| Gfdecl of fdecl node
-
-type prog = decl list
+type prog = stmt
