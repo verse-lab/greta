@@ -1,0 +1,81 @@
+
+** Conflict (shift/reduce) in state 10.
+** Tokens involved: OR AND
+** The following explanations concentrate on token OR.
+** This state is reached from program after reading:
+
+NOT lexpr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+lexpr EOF 
+(?)
+
+** In state 10, looking ahead at OR, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT lexpr 
+    lexpr . OR lexpr 
+
+** In state 10, looking ahead at OR, reducing production..
+** lexpr -> NOT lexpr
+** is permitted because of the following sub-derivation:
+
+lexpr OR lexpr // lookahead token appears
+NOT lexpr . 
+
+** Conflict (shift/reduce) in state 9.
+** Tokens involved: OR AND
+** The following explanations concentrate on token OR.
+** This state is reached from program after reading:
+
+lexpr AND lexpr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+lexpr EOF 
+(?)
+
+** In state 9, looking ahead at OR, reducing production..
+** lexpr -> lexpr AND lexpr
+** is permitted because of the following sub-derivation:
+
+lexpr OR lexpr // lookahead token appears
+lexpr AND lexpr . 
+
+** In state 9, looking ahead at OR, shifting is permitted..
+** because of the following sub-derivation:
+
+lexpr AND lexpr 
+          lexpr . OR lexpr 
+
+** Conflict (shift/reduce) in state 7.
+** Tokens involved: OR AND
+** The following explanations concentrate on token OR.
+** This state is reached from program after reading:
+
+lexpr OR lexpr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+lexpr EOF 
+(?)
+
+** In state 7, looking ahead at OR, shifting is permitted..
+** because of the following sub-derivation:
+
+lexpr OR lexpr 
+         lexpr . OR lexpr 
+
+** In state 7, looking ahead at OR, reducing production..
+** lexpr -> lexpr OR lexpr
+** is permitted because of the following sub-derivation:
+
+lexpr OR lexpr // lookahead token appears
+lexpr OR lexpr . 

@@ -1,0 +1,27 @@
+
+** Conflict (shift/reduce) in state 39.
+** Tokens involved: OR IFF AND
+** The following explanations concentrate on token OR.
+** This state is reached from constr after reading:
+
+NOT bool_expr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+(?)
+
+** In state 39, looking ahead at OR, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT bool_expr 
+    bool_expr . OR bool_expr 
+
+** In state 39, looking ahead at OR, reducing production..
+** bool_expr -> NOT bool_expr
+** is permitted because of the following sub-derivation:
+
+bool_expr OR bool_expr // lookahead token appears
+NOT bool_expr . 

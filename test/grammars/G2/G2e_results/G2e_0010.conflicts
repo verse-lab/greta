@@ -1,5 +1,5 @@
 
-** Conflict (shift/reduce) in state 10.
+** Conflict (shift/reduce) in state 15.
 ** Token involved: PLUS
 ** This state is reached from toplevel after reading:
 
@@ -16,20 +16,20 @@ RETURN x3 SEMI
        x4 STAR x3 
        (?)
 
-** In state 10, looking ahead at PLUS, shifting is permitted..
+** In state 15, looking ahead at PLUS, shifting is permitted..
 ** because of the following sub-derivation:
 
 x4 PLUS x4 
         x4 . PLUS x4 
 
-** In state 10, looking ahead at PLUS, reducing production..
+** In state 15, looking ahead at PLUS, reducing production..
 ** x4 -> x4 PLUS x4
 ** is permitted because of the following sub-derivation:
 
 x4 PLUS x4 // lookahead token appears
 x4 PLUS x4 . 
 
-** Conflict (shift/reduce) in state 8.
+** Conflict (shift/reduce) in state 11.
 ** Token involved: DASH
 ** This state is reached from toplevel after reading:
 
@@ -45,20 +45,20 @@ x2
 RETURN x3 SEMI 
        (?)
 
-** In state 8, looking ahead at DASH, shifting is permitted..
+** In state 11, looking ahead at DASH, shifting is permitted..
 ** because of the following sub-derivation:
 
 x3 DASH x3 
         x3 . DASH x3 
 
-** In state 8, looking ahead at DASH, reducing production..
+** In state 11, looking ahead at DASH, reducing production..
 ** x3 -> x3 DASH x3
 ** is permitted because of the following sub-derivation:
 
 x3 DASH x3 // lookahead token appears
 x3 DASH x3 . 
 
-** Conflict (shift/reduce) in state 6.
+** Conflict (shift/reduce) in state 9.
 ** Token involved: DASH
 ** This state is reached from toplevel after reading:
 
@@ -74,14 +74,14 @@ x2
 RETURN x3 SEMI 
        (?)
 
-** In state 6, looking ahead at DASH, reducing production..
+** In state 9, looking ahead at DASH, reducing production..
 ** x3 -> x4 STAR x3
 ** is permitted because of the following sub-derivation:
 
 x3 DASH x3 // lookahead token appears
 x4 STAR x3 . 
 
-** In state 6, looking ahead at DASH, shifting is permitted..
+** In state 9, looking ahead at DASH, shifting is permitted..
 ** because of the following sub-derivation:
 
 x4 STAR x3 

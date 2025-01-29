@@ -1,7 +1,33 @@
 
-** Conflict (shift/reduce) in state 13.
-** Tokens involved: STAR PLUS DASH
-** The following explanations concentrate on token STAR.
+** Conflict (shift/reduce) in state 31.
+** Token involved: ELSE
+** This state is reached from toplevel after reading:
+
+IF LPAREN exp RPAREN IF LPAREN exp RPAREN stmt
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+stmts EOF 
+stmt stmts 
+(?)
+
+** In state 31, looking ahead at ELSE, reducing production..
+** stmt -> IF LPAREN exp RPAREN stmt
+** is permitted because of the following sub-derivation:
+
+IF LPAREN exp RPAREN stmt ELSE stmt // lookahead token appears
+                     IF LPAREN exp RPAREN stmt . 
+
+** In state 31, looking ahead at ELSE, shifting is permitted..
+** because of the following sub-derivation:
+
+IF LPAREN exp RPAREN stmt 
+                     IF LPAREN exp RPAREN stmt . ELSE stmt 
+
+** Conflict (shift/reduce) in state 16.
+** Token involved: PLUS
 ** This state is reached from toplevel after reading:
 
 RETURN exp DASH exp
@@ -10,27 +36,27 @@ RETURN exp DASH exp
 ** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
 
 toplevel 
-list(stmt) EOF 
-stmt list(stmt) 
+stmts EOF 
+stmt stmts 
 RETURN exp SEMI 
        (?)
 
-** In state 13, looking ahead at STAR, reducing production..
-** exp -> exp DASH exp
-** is permitted because of the following sub-derivation:
-
-exp STAR exp // lookahead token appears
-exp DASH exp . 
-
-** In state 13, looking ahead at STAR, shifting is permitted..
+** In state 16, looking ahead at PLUS, shifting is permitted..
 ** because of the following sub-derivation:
 
 exp DASH exp 
-         exp . STAR exp 
+         exp . PLUS exp 
 
-** Conflict (shift/reduce) in state 11.
-** Tokens involved: STAR PLUS DASH
-** The following explanations concentrate on token STAR.
+** In state 16, looking ahead at PLUS, reducing production..
+** exp -> exp DASH exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp DASH exp . 
+
+** Conflict (shift/reduce) in state 14.
+** Tokens involved: PLUS DASH
+** The following explanations concentrate on token PLUS.
 ** This state is reached from toplevel after reading:
 
 RETURN exp PLUS exp
@@ -39,49 +65,49 @@ RETURN exp PLUS exp
 ** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
 
 toplevel 
-list(stmt) EOF 
-stmt list(stmt) 
+stmts EOF 
+stmt stmts 
 RETURN exp SEMI 
        (?)
 
-** In state 11, looking ahead at STAR, reducing production..
-** exp -> exp PLUS exp
-** is permitted because of the following sub-derivation:
-
-exp STAR exp // lookahead token appears
-exp PLUS exp . 
-
-** In state 11, looking ahead at STAR, shifting is permitted..
+** In state 14, looking ahead at PLUS, shifting is permitted..
 ** because of the following sub-derivation:
 
 exp PLUS exp 
-         exp . STAR exp 
+         exp . PLUS exp 
+
+** In state 14, looking ahead at PLUS, reducing production..
+** exp -> exp PLUS exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp // lookahead token appears
+exp PLUS exp . 
 
 ** Conflict (shift/reduce) in state 9.
-** Tokens involved: STAR PLUS DASH
-** The following explanations concentrate on token STAR.
+** Token involved: STAR
 ** This state is reached from toplevel after reading:
 
-RETURN exp STAR exp
+RETURN exp2 STAR exp2
 
 ** The derivations that appear below have the following common factor:
 ** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
 
 toplevel 
-list(stmt) EOF 
-stmt list(stmt) 
+stmts EOF 
+stmt stmts 
 RETURN exp SEMI 
+       exp2 
        (?)
 
 ** In state 9, looking ahead at STAR, shifting is permitted..
 ** because of the following sub-derivation:
 
-exp STAR exp 
-         exp . STAR exp 
+exp2 STAR exp2 
+          exp2 . STAR exp2 
 
 ** In state 9, looking ahead at STAR, reducing production..
-** exp -> exp STAR exp
+** exp2 -> exp2 STAR exp2
 ** is permitted because of the following sub-derivation:
 
-exp STAR exp // lookahead token appears
-exp STAR exp . 
+exp2 STAR exp2 // lookahead token appears
+exp2 STAR exp2 . 

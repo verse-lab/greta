@@ -1,3 +1,4 @@
+/* *** G2e *** */
 %{
 open Ast;;
 
@@ -24,9 +25,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token EQ       /* = */
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
-                         
-                         
-/* ---------------------------------------------------------------------- */
+
 
 %start toplevel
 %type <Ast.prog> toplevel
@@ -43,30 +42,35 @@ ident:
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
-x6:
+x7:
   | TINT id=ident EQ init=x5 { loc $startpos $endpos @@ {id; init} }
+
+x6:
+  | id=ident            { loc $startpos $endpos @@ Id (id) }
+  | c=const             { loc $startpos $endpos @@ Const (c) }
+  | LPAREN e=x3 RPAREN { e }
 
 e1:
   |   /* empty */   { [] }
   | s=x1 ss=e1   { s::ss }
 
 x5:
+  | x6 { $1 }
   | e1=x5 DASH e2=x5  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | LPAREN e=x3 RPAREN { e }
   ;
 
 x4:
-  | id=x5            { loc $startpos $endpos @@ Id (id) }
+  | x5 { $1 }
   | e1=x4 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   ;
 
 x3:
-  | id=x4            { loc $startpos $endpos @@ Id (id) }
+  | x4 { $1 }
   | e1=x3 PLUS e2=x3  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
   ;
 
 x2:
-  | d=x6 SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | d=x7 SEMI                      { loc $startpos $endpos @@ Decl(d) }
   | id=ident EQ e=x4 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
   | WHILE LPAREN e=x4 RPAREN s=x2 { loc $startpos $endpos @@ While(e, [s]) }
   | RETURN e=x4 SEMI                { loc $startpos $endpos @@ Ret(e) }
@@ -75,7 +79,7 @@ x2:
   ;
 
 x1:
-  | id=x2            { loc $startpos $endpos @@ Id (id) }
+  | x2 { $1 }
   | IF LPAREN e=x3 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
   ;
 

@@ -1,5 +1,5 @@
 
-** Conflict (shift/reduce) in state 10.
+** Conflict (shift/reduce) in state 15.
 ** Tokens involved: PLUS DASH
 ** The following explanations concentrate on token PLUS.
 ** This state is reached from toplevel after reading:
@@ -17,20 +17,20 @@ RETURN x3 SEMI
        x4 STAR x3 
        (?)
 
-** In state 10, looking ahead at PLUS, shifting is permitted..
+** In state 15, looking ahead at PLUS, shifting is permitted..
 ** because of the following sub-derivation:
 
 x4 DASH x4 
         x4 . PLUS x4 
 
-** In state 10, looking ahead at PLUS, reducing production..
+** In state 15, looking ahead at PLUS, reducing production..
 ** x4 -> x4 DASH x4
 ** is permitted because of the following sub-derivation:
 
 x4 PLUS x4 // lookahead token appears
 x4 DASH x4 . 
 
-** Conflict (shift/reduce) in state 8.
+** Conflict (shift/reduce) in state 13.
 ** Tokens involved: PLUS DASH
 ** The following explanations concentrate on token PLUS.
 ** This state is reached from toplevel after reading:
@@ -48,13 +48,13 @@ RETURN x3 SEMI
        x4 STAR x3 
        (?)
 
-** In state 8, looking ahead at PLUS, shifting is permitted..
+** In state 13, looking ahead at PLUS, shifting is permitted..
 ** because of the following sub-derivation:
 
 x4 PLUS x4 
         x4 . PLUS x4 
 
-** In state 8, looking ahead at PLUS, reducing production..
+** In state 13, looking ahead at PLUS, reducing production..
 ** x4 -> x4 PLUS x4
 ** is permitted because of the following sub-derivation:
 

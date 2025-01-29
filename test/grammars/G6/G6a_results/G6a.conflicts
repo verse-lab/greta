@@ -1,0 +1,54 @@
+
+** Conflict (shift/reduce) in state 40.
+** Token involved: IFF
+** This state is reached from constr after reading:
+
+NOT bool_expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+bool_expr2 
+(?)
+
+** In state 40, looking ahead at IFF, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT bool_expr2 
+    bool_expr2 . IFF bool_expr2 
+
+** In state 40, looking ahead at IFF, reducing production..
+** bool_expr2 -> NOT bool_expr2
+** is permitted because of the following sub-derivation:
+
+bool_expr2 IFF bool_expr2 // lookahead token appears
+NOT bool_expr2 . 
+
+** Conflict (shift/reduce) in state 33.
+** Token involved: IFF
+** This state is reached from constr after reading:
+
+bool_expr2 IFF bool_expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+bool_expr2 
+(?)
+
+** In state 33, looking ahead at IFF, shifting is permitted..
+** because of the following sub-derivation:
+
+bool_expr2 IFF bool_expr2 
+               bool_expr2 . IFF bool_expr2 
+
+** In state 33, looking ahead at IFF, reducing production..
+** bool_expr2 -> bool_expr2 IFF bool_expr2
+** is permitted because of the following sub-derivation:
+
+bool_expr2 IFF bool_expr2 // lookahead token appears
+bool_expr2 IFF bool_expr2 . 

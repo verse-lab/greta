@@ -1,5 +1,5 @@
 
-** Conflict (reduce/reduce) in state 30.
+** Conflict (reduce/reduce) in state 34.
 ** Token involved: ELSE
 ** This state is reached from toplevel after reading:
 
@@ -13,7 +13,7 @@ e1 EOF
 x1 e1 
 (?)
 
-** In state 30, looking ahead at ELSE, reducing production..
+** In state 34, looking ahead at ELSE, reducing production..
 ** x1 -> x2
 ** is permitted because of the following sub-derivation:
 
@@ -21,7 +21,7 @@ IF LPAREN x3 RPAREN x1 ELSE x1
                     IF LPAREN x3 RPAREN x1 ELSE x1 // lookahead token appears
                                         x2 . 
 
-** In state 30, looking ahead at ELSE, reducing production..
+** In state 34, looking ahead at ELSE, reducing production..
 ** x2 -> IF LPAREN x3 RPAREN x2
 ** is permitted because of the following sub-derivation:
 
@@ -29,7 +29,7 @@ IF LPAREN x3 RPAREN x1 ELSE x1 // lookahead token appears
                     x2 // lookahead token is inherited
                     IF LPAREN x3 RPAREN x2 . 
 
-** Conflict (shift/reduce) in state 12.
+** Conflict (shift/reduce) in state 17.
 ** Tokens involved: STAR DASH
 ** The following explanations concentrate on token STAR.
 ** This state is reached from toplevel after reading:
@@ -46,20 +46,20 @@ x2
 RETURN x3 SEMI 
        (?)
 
-** In state 12, looking ahead at STAR, shifting is permitted..
+** In state 17, looking ahead at STAR, shifting is permitted..
 ** because of the following sub-derivation:
 
 x3 DASH x3 
         x3 . STAR x4 
 
-** In state 12, looking ahead at STAR, reducing production..
+** In state 17, looking ahead at STAR, reducing production..
 ** x3 -> x3 DASH x3
 ** is permitted because of the following sub-derivation:
 
 x3 STAR x4 // lookahead token appears
 x3 DASH x3 . 
 
-** Conflict (shift/reduce) in state 6.
+** Conflict (shift/reduce) in state 9.
 ** Token involved: PLUS
 ** This state is reached from toplevel after reading:
 
@@ -76,13 +76,13 @@ RETURN x3 SEMI
        x4 
        (?)
 
-** In state 6, looking ahead at PLUS, shifting is permitted..
+** In state 9, looking ahead at PLUS, shifting is permitted..
 ** because of the following sub-derivation:
 
 x4 PLUS x4 
         x4 . PLUS x4 
 
-** In state 6, looking ahead at PLUS, reducing production..
+** In state 9, looking ahead at PLUS, reducing production..
 ** x4 -> x4 PLUS x4
 ** is permitted because of the following sub-derivation:
 
