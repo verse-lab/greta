@@ -1,0 +1,83 @@
+
+** Conflict (shift/reduce) in state 39.
+** Tokens involved: IFF AND
+** The following explanations concentrate on token IFF.
+** This state is reached from constr after reading:
+
+NOT x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+(?)
+
+** In state 39, looking ahead at IFF, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT x1 
+    x1 . IFF x1 
+
+** In state 39, looking ahead at IFF, reducing production..
+** x1 -> NOT x1
+** is permitted because of the following sub-derivation:
+
+x1 IFF x1 // lookahead token appears
+NOT x1 . 
+
+** Conflict (shift/reduce) in state 34.
+** Token involved: IFF
+** This state is reached from constr after reading:
+
+x1 AND x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+(?)
+
+** In state 34, looking ahead at IFF, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 AND x1 
+       x1 . IFF x1 
+
+** In state 34, looking ahead at IFF, reducing production..
+** x1 -> x1 AND x1
+** is permitted because of the following sub-derivation:
+
+x1 IFF x1 // lookahead token appears
+x1 AND x1 . 
+
+** Conflict (shift/reduce) in state 32.
+** Tokens involved: IFF AND
+** The following explanations concentrate on token IFF.
+** This state is reached from constr after reading:
+
+x1 IFF x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+(?)
+
+** In state 32, looking ahead at IFF, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 IFF x1 
+       x1 . IFF x1 
+
+** In state 32, looking ahead at IFF, reducing production..
+** x1 -> x1 IFF x1
+** is permitted because of the following sub-derivation:
+
+x1 IFF x1 // lookahead token appears
+x1 IFF x1 . 

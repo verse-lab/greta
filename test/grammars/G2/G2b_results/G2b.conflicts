@@ -26,11 +26,11 @@ IF LPAREN exp RPAREN stmt ELSE stmt // lookahead token appears
 IF LPAREN exp RPAREN stmt 
                      IF LPAREN exp RPAREN stmt . ELSE stmt 
 
-** Conflict (shift/reduce) in state 11.
-** Token involved: STAR
+** Conflict (shift/reduce) in state 16.
+** Token involved: PLUS
 ** This state is reached from toplevel after reading:
 
-RETURN exp2 DASH exp2
+RETURN exp DASH exp
 
 ** The derivations that appear below have the following common factor:
 ** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
@@ -39,25 +39,23 @@ toplevel
 stmts EOF 
 stmt stmts 
 RETURN exp SEMI 
-       exp2 
        (?)
 
-** In state 11, looking ahead at STAR, reducing production..
-** exp2 -> exp2 DASH exp2
-** is permitted because of the following sub-derivation:
-
-exp2 STAR exp2 // lookahead token appears
-exp2 DASH exp2 . 
-
-** In state 11, looking ahead at STAR, shifting is permitted..
+** In state 16, looking ahead at PLUS, shifting is permitted..
 ** because of the following sub-derivation:
 
-exp2 DASH exp2 
-          exp2 . STAR exp2 
+exp DASH exp 
+         exp . PLUS exp2 
+
+** In state 16, looking ahead at PLUS, reducing production..
+** exp -> exp DASH exp
+** is permitted because of the following sub-derivation:
+
+exp PLUS exp2 // lookahead token appears
+exp DASH exp . 
 
 ** Conflict (shift/reduce) in state 9.
-** Tokens involved: STAR DASH
-** The following explanations concentrate on token STAR.
+** Token involved: STAR
 ** This state is reached from toplevel after reading:
 
 RETURN exp2 STAR exp2

@@ -1,0 +1,54 @@
+
+** Conflict (shift/reduce) in state 40.
+** Token involved: AND
+** This state is reached from constr after reading:
+
+NOT x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 
+(?)
+
+** In state 40, looking ahead at AND, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT x2 
+    x2 . AND x2 
+
+** In state 40, looking ahead at AND, reducing production..
+** x2 -> NOT x2
+** is permitted because of the following sub-derivation:
+
+x2 AND x2 // lookahead token appears
+NOT x2 . 
+
+** Conflict (shift/reduce) in state 39.
+** Token involved: IFF
+** This state is reached from constr after reading:
+
+e1 IFF e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+(?)
+
+** In state 39, looking ahead at IFF, shifting is permitted..
+** because of the following sub-derivation:
+
+e1 IFF e1 
+       e1 . IFF e1 
+
+** In state 39, looking ahead at IFF, reducing production..
+** e1 -> e1 IFF e1
+** is permitted because of the following sub-derivation:
+
+e1 IFF e1 // lookahead token appears
+e1 IFF e1 . 

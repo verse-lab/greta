@@ -58,6 +58,7 @@ proc handle_choice {current_path next start} {
     spawn {*}$cli_command
     
     puts "Path: $current_path"
+    set result ""
     if {$start eq 0} {
         set current_path [lappend current_path $next]
         sleep 0.5
@@ -98,11 +99,11 @@ proc handle_choice {current_path next start} {
         }
         -re {Fatal error:.*} {
             puts "Error occurred. Path: $current_path"
-            exec echo "$current_path,ERROR,,,," >> $::results_file
+            exec echo "$current_path,ERROR,,," >> $::results_file
         }
         timeout {
             puts "Timeout occurred. Path: $current_path"
-            exec echo "$current_path,TIMEOUT,,,," >> $::results_file
+            exec echo "$current_path,TIMEOUT,,," >> $::results_file
         }
         eof {
             puts "End of interaction reached. Path: $current_path. Result: $result"
