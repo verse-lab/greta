@@ -610,7 +610,11 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
             else 
               (* collect lines starting with '%type' *)
               if (starts "%type" s)
-              then (let type_id = List.nth (s |> String.split_on_char ' ') 2 in
+              then (let type_id = 
+                      let ls = s |> String.split_on_char ' ' in 
+                      let len = List.length ls in 
+                      List.nth ls (len - 1) 
+                    in
                     if starts_first 
                     then divide_lines inp before_prod acc_keep acc_prods acc_starts ((type_id, s)::acc_types) starts_first types_first
                     else divide_lines inp before_prod acc_keep acc_prods acc_starts ((type_id, s)::acc_types) starts_first true)
