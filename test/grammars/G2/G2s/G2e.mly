@@ -1,3 +1,4 @@
+/* *** G2e *** */
 %{
 open Ast;;
 
@@ -24,9 +25,7 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token EQ       /* = */
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
-                         
-                         
-/* ---------------------------------------------------------------------- */
+
 %start toplevel
 %type <Ast.prog> toplevel
 %type <Ast.exp> exp
@@ -50,10 +49,14 @@ exp:
   | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
   | e1=exp DASH e2=exp  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
   | e1=exp STAR e2=exp  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+  | exp2 { $1 }
+  
+exp2:
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=exp RPAREN { e }
-  
+
+
 stmt: 
   | d=decl SEMI                      { loc $startpos $endpos @@ Decl(d) }
   | id=ident EQ e=exp SEMI           { loc $startpos $endpos @@ Assn(id, e) }

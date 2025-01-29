@@ -1,10 +1,3 @@
-/* *** G2c *** */
-// 4 conflicts - 3 po's 1 assoc
-// if1 vs. if2
-// - vs. *
-// * vs. -
-// * assoc
-
 %{
 open Ast;;
 
@@ -31,8 +24,9 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token EQ       /* = */
 %token LPAREN   /* ( */
 %token RPAREN   /* ) */
-
-%left DASH 
+                         
+                         
+/* ---------------------------------------------------------------------- */
 
 
 %start toplevel
@@ -50,35 +44,17 @@ ident:
 const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
-x7:
+x6:
   | TINT id=ident EQ init=x3 { loc $startpos $endpos @@ {id; init} }
 
-x3:
-  | e1=x3 PLUS e2=x4  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | x4 { $1 }
-
-e1:
-  |   /* empty */   { [] }
-  | s=x1 ss=e1   { s::ss }
-
-x6:
+x7:
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=x3 RPAREN { e }
   ;
 
-x5:
-  | e1=x6 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | x6 { $1 }
-  ;
-
-x4:
-  | x5 { $1 }
-  | e1=x4 DASH e2=x4  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  ;
-
 x2:
-  | d=x7 SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | d=x6 SEMI                      { loc $startpos $endpos @@ Decl(d) }
   | id=ident EQ e=x3 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
   | WHILE LPAREN e=x3 RPAREN s=x2 { loc $startpos $endpos @@ While(e, [s]) }
   | RETURN e=x3 SEMI                { loc $startpos $endpos @@ Ret(e) }
@@ -89,5 +65,25 @@ x2:
 x1:
   | x2 { $1 }
   | IF LPAREN e=x3 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
+  ;
+
+x5:
+  | e1=x7 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+  | x7            { $1 }
+  ;
+
+x4:
+  | x5            { $1 }
+  | e1=x4 DASH e2=x4  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  ;
+
+x3:
+  | e1=x4 PLUS e2=x3  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | x4 { $1 }
+  ;
+
+e1:
+  |   /* empty */   { [] }
+  | s=x1 ss=e1   { s::ss }
   ;
 

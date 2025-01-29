@@ -210,8 +210,10 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
           match_collect sym tl curr_st is_lbrace_trans ((Nt curr_st)::acc))
   in
 
-  let find_rhs_lst_lst (s: symbol) (o: int) (o_versatile: int): sigma list list = 
-    if (List.mem s versatile_syms) then Utils.assoc_all s o_versatile sym_ord_rhs_ls debug else 
+  let find_rhs_lst_lst (s: symbol) (o: int) (_o_versatile: int): sigma list list = 
+    (* *** NOTE! *** *)
+    (* [new_fix] commented out below for G2e 0000 scenario for now; if doesn't work need to revise *)
+    (* if (List.mem s versatile_syms) then (Printf.printf "\n\t\t ALRIGHT\n\n";Utils.assoc_all s o_versatile sym_ord_rhs_ls debug) else  *)
     if (triv_opt = false) then Utils.assoc_all s o sym_ord_rhs_ls debug else 
     if (eps_opt = true) then (if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug)
     else Utils.assoc_all s o sym_ord_rhs_ls debug

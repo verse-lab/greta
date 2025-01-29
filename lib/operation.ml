@@ -562,7 +562,8 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
       remove_transitions_of_duplicate_states dup_states_pair_ls_after_eps_intro trans_blocks_simplified_eps_trans_trimmed debug_print 
     in 
       replace_dup_state_names dup_states_pair_ls_after_eps_intro trans_blocks_after_removing debug_print
-      |> remove_meaningless_transitions
+      (* |> remove_meaningless_transitions  *)
+      (* Note: Needed to comment the above out for G2a *)
   in
   (if debug_print then pp_upline_new (); printf "##### Step 13 - Remove duplicates after eps introduction to simplify further : \n";
     Pp.pp_raw_trans_blocks trans_blocks_simplified_further; pp_loline_new ());

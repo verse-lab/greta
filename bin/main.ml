@@ -57,7 +57,8 @@ let () =
   let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false } in
   let _opt_flag_g2b: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
   let _opt_flag_g2c: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
-  let opt_flag_g2d: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = true } in
+  let opt_flag_g2d: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
+  let _opt_flag_g2e: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true } in
   let _opt_flag_g5: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = false } in
   let _opt_flag_g6: T.optimization = { eps_opt = true; paren_opt = false; triv_opt = false } in
     
