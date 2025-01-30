@@ -1,0 +1,85 @@
+
+** Conflict (shift/reduce) in state 19.
+** Token involved: POWER
+** This state is reached from constr after reading:
+
+x2 DIVIDE x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 NE x2 
+(?)
+
+** In state 19, looking ahead at POWER, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 DIVIDE x2 
+          x2 . POWER x2 
+
+** In state 19, looking ahead at POWER, reducing production..
+** x2 -> x2 DIVIDE x2
+** is permitted because of the following sub-derivation:
+
+x2 POWER x2 // lookahead token appears
+x2 DIVIDE x2 . 
+
+** Conflict (shift/reduce) in state 17.
+** Token involved: POWER
+** This state is reached from constr after reading:
+
+x2 MINUS x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 NE x2 
+(?)
+
+** In state 17, looking ahead at POWER, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 MINUS x2 
+         x2 . POWER x2 
+
+** In state 17, looking ahead at POWER, reducing production..
+** x2 -> x2 MINUS x2
+** is permitted because of the following sub-derivation:
+
+x2 POWER x2 // lookahead token appears
+x2 MINUS x2 . 
+
+** Conflict (shift/reduce) in state 15.
+** Tokens involved: POWER MINUS DIVIDE
+** The following explanations concentrate on token POWER.
+** This state is reached from constr after reading:
+
+x2 POWER x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 NE x2 
+(?)
+
+** In state 15, looking ahead at POWER, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 POWER x2 
+         x2 . POWER x2 
+
+** In state 15, looking ahead at POWER, reducing production..
+** x2 -> x2 POWER x2
+** is permitted because of the following sub-derivation:
+
+x2 POWER x2 // lookahead token appears
+x2 POWER x2 . 

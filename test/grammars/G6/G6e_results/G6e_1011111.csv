@@ -1,1 +1,4 @@
 Path,Result,Convert Time,Learn Time,Intersect Time
+0,TIMEOUT,,,
+1 0,SUCCESS,0.000277,0.001718,0.017369
+1 1,SUCCESS,0.000267,0.001557,0.017204

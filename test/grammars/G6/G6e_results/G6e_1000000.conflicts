@@ -1,0 +1,141 @@
+
+** Conflict (shift/reduce) in state 19.
+** Token involved: POWER
+** This state is reached from constr after reading:
+
+x2 DIVIDE x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 NE x2 
+(?)
+
+** In state 19, looking ahead at POWER, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 DIVIDE x2 
+          x2 . POWER x2 
+
+** In state 19, looking ahead at POWER, reducing production..
+** x2 -> x2 DIVIDE x2
+** is permitted because of the following sub-derivation:
+
+x2 POWER x2 // lookahead token appears
+x2 DIVIDE x2 . 
+
+** Conflict (shift/reduce) in state 17.
+** Token involved: POWER
+** This state is reached from constr after reading:
+
+x2 MINUS x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 NE x2 
+(?)
+
+** In state 17, looking ahead at POWER, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 MINUS x2 
+         x2 . POWER x2 
+
+** In state 17, looking ahead at POWER, reducing production..
+** x2 -> x2 MINUS x2
+** is permitted because of the following sub-derivation:
+
+x2 POWER x2 // lookahead token appears
+x2 MINUS x2 . 
+
+** Conflict (shift/reduce) in state 15.
+** Token involved: POWER
+** This state is reached from constr after reading:
+
+x2 PLUS x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 NE x2 
+(?)
+
+** In state 15, looking ahead at POWER, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 PLUS x2 
+        x2 . POWER x2 
+
+** In state 15, looking ahead at POWER, reducing production..
+** x2 -> x2 PLUS x2
+** is permitted because of the following sub-derivation:
+
+x2 POWER x2 // lookahead token appears
+x2 PLUS x2 . 
+
+** Conflict (shift/reduce) in state 13.
+** Tokens involved: TIMES POWER PLUS MINUS DIVIDE
+** The following explanations concentrate on token TIMES.
+** This state is reached from constr after reading:
+
+x2 POWER x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 NE x2 
+(?)
+
+** In state 13, looking ahead at TIMES, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 POWER x2 
+         x2 . TIMES x2 
+
+** In state 13, looking ahead at TIMES, reducing production..
+** x2 -> x2 POWER x2
+** is permitted because of the following sub-derivation:
+
+x2 TIMES x2 // lookahead token appears
+x2 POWER x2 . 
+
+** Conflict (shift/reduce) in state 11.
+** Token involved: POWER
+** This state is reached from constr after reading:
+
+x2 TIMES x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 NE x2 
+(?)
+
+** In state 11, looking ahead at POWER, reducing production..
+** x2 -> x2 TIMES x2
+** is permitted because of the following sub-derivation:
+
+x2 POWER x2 // lookahead token appears
+x2 TIMES x2 . 
+
+** In state 11, looking ahead at POWER, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 TIMES x2 
+         x2 . POWER x2 

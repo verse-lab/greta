@@ -1,0 +1,28 @@
+
+** Conflict (shift/reduce) in state 14.
+** Token involved: EQEQ
+** This state is reached from prog after reading:
+
+x3 PLUS x3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+e1 EOF 
+x6 EQ x1 SEMI 
+x3 LBRACKET x3 RBRACKET 
+(?)
+
+** In state 14, looking ahead at EQEQ, reducing production..
+** x3 -> x3 PLUS x3
+** is permitted because of the following sub-derivation:
+
+x3 EQEQ x5 // lookahead token appears
+x3 PLUS x3 . 
+
+** In state 14, looking ahead at EQEQ, shifting is permitted..
+** because of the following sub-derivation:
+
+x3 PLUS x3 
+        x3 . EQEQ x5 

@@ -1,0 +1,30 @@
+
+** Conflict (shift/reduce) in state 22.
+** Token involved: PLUS
+** This state is reached from prog after reading:
+
+LPAREN x1 PLUS x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+x2 EOF 
+x6 EQ x3 SEMI 
+x4 LBRACKET x4 RBRACKET 
+x5 
+LPAREN x1 RPAREN 
+       (?)
+
+** In state 22, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 PLUS x1 
+        x1 . PLUS x1 
+
+** In state 22, looking ahead at PLUS, reducing production..
+** x1 -> x1 PLUS x1
+** is permitted because of the following sub-derivation:
+
+x1 PLUS x1 // lookahead token appears
+x1 PLUS x1 . 

@@ -62,6 +62,7 @@ x1:
   | x2 EQ x2 { Eq($1, $3) }
   | x1 IFF x1 { Iff($1, $3) }
   | LPAREN e1 RPAREN { Bparen($2) } 
+  | BVAR { Bvar }
   ;
 
 e1:

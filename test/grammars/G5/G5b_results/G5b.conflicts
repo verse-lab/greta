@@ -1,5 +1,5 @@
 
-** Conflict (shift/reduce) in state 12.
+** Conflict (shift/reduce) in state 13.
 ** Token involved: OR
 ** This state is reached from program after reading:
 
@@ -13,20 +13,20 @@ lexpr1 EOF
 lexpr2 
 (?)
 
-** In state 12, looking ahead at OR, shifting is permitted..
+** In state 13, looking ahead at OR, shifting is permitted..
 ** because of the following sub-derivation:
 
 NOT lexpr2 
     lexpr2 . OR lexpr2 
 
-** In state 12, looking ahead at OR, reducing production..
+** In state 13, looking ahead at OR, reducing production..
 ** lexpr2 -> NOT lexpr2
 ** is permitted because of the following sub-derivation:
 
 lexpr2 OR lexpr2 // lookahead token appears
 NOT lexpr2 . 
 
-** Conflict (shift/reduce) in state 7.
+** Conflict (shift/reduce) in state 8.
 ** Token involved: OR
 ** This state is reached from program after reading:
 
@@ -40,13 +40,13 @@ lexpr1 EOF
 lexpr2 
 (?)
 
-** In state 7, looking ahead at OR, shifting is permitted..
+** In state 8, looking ahead at OR, shifting is permitted..
 ** because of the following sub-derivation:
 
 lexpr2 OR lexpr2 
           lexpr2 . OR lexpr2 
 
-** In state 7, looking ahead at OR, reducing production..
+** In state 8, looking ahead at OR, reducing production..
 ** lexpr2 -> lexpr2 OR lexpr2
 ** is permitted because of the following sub-derivation:
 

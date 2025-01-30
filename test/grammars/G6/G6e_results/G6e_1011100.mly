@@ -25,8 +25,7 @@ open Ast
 
 %token EOF
 
-%left AND
-%left OR
+%left AND OR
 %left IFF PLUS MINUS TIMES DIVIDE
 
 
@@ -41,6 +40,8 @@ constr:
   ;
 
 x3:
+  | INT { Int }
+  | IVAR { Ivar }
   | MINUS x3 { Negative($2) }
   | x3 MINUS x3 { Minus($1, $3) }
   | x3 PLUS x3 { Plus($1, $3) }
@@ -63,6 +64,7 @@ x1:
   | x1 IFF x1 { Iff($1, $3) }
   | x1 AND x1 { And($1, $3) }
   | LPAREN e1 RPAREN { Bparen($2) } 
+  | BVAR { Bvar }
   ;
 
 e1:

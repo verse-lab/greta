@@ -1,0 +1,28 @@
+
+** Conflict (shift/reduce) in state 39.
+** Token involved: AND
+** This state is reached from constr after reading:
+
+NOT x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 
+(?)
+
+** In state 39, looking ahead at AND, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT x2 
+    x2 . AND x2 
+
+** In state 39, looking ahead at AND, reducing production..
+** x2 -> NOT x2
+** is permitted because of the following sub-derivation:
+
+x2 AND x2 // lookahead token appears
+NOT x2 . 

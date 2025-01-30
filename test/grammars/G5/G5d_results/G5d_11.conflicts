@@ -1,0 +1,27 @@
+
+** Conflict (shift/reduce) in state 8.
+** Token involved: AND
+** This state is reached from program after reading:
+
+x1 AND x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+x1 
+(?)
+
+** In state 8, looking ahead at AND, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 AND x1 
+       x1 . AND x1 
+
+** In state 8, looking ahead at AND, reducing production..
+** x1 -> x1 AND x1
+** is permitted because of the following sub-derivation:
+
+x1 AND x1 // lookahead token appears
+x1 AND x1 . 

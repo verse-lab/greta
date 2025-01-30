@@ -2,26 +2,29 @@
     open Ast;;
 %}
 
-%token <Range.t * string> VAR
-%token <Range.t> AND
-%token <Range.t> OR 
-%token <Range.t> NOT
-%token <Range.t> LPAREN
-%token <Range.t> RPAREN
+%token AND
+%token OR 
+%token NOT
+%token TRUE
+%token FALSE
+%token LPAREN
+%token RPAREN
 
 %token EOF
 
 
 
 %type <Ast.t> program
-%start program 
+%start program
 %%
 
 program : e1 EOF { $1 };
 
 x1:
+  | FALSE { False }
   | LPAREN e1 RPAREN { Paren($2) }
   | NOT x1 { Not($2) }
+  | TRUE { True }
   | x1 AND x1 { And($1, $3) }
   ;
 

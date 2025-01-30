@@ -1,0 +1,30 @@
+
+** Conflict (shift/reduce) in state 11.
+** Tokens involved: MINUS DIVIDE
+** The following explanations concentrate on token MINUS.
+** This state is reached from constr after reading:
+
+x4 POWER x3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 
+x3 NE x3 
+(?)
+
+** In state 11, looking ahead at MINUS, reducing production..
+** x3 -> x4 POWER x3
+** is permitted because of the following sub-derivation:
+
+x3 MINUS x3 // lookahead token appears
+x4 POWER x3 . 
+
+** In state 11, looking ahead at MINUS, shifting is permitted..
+** because of the following sub-derivation:
+
+x4 POWER x3 
+         x3 . MINUS x3 
