@@ -513,8 +513,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
     collect_unique_states_and_map_to_new_states trans_blocks_replaced start_states_raw debug_print in
   let start_states_prev: (state * state) list = 
     (printf "\n ** Start states raw : \n"; start_states_raw |> List.iter (fun (x, y) -> printf " (%s, %s) " x y));
-    (* below simplified fix for G6s *)
-    (* start_states_raw |> List.map fst *)
+    (* below simplified fix for G6s and G3s *)
     start_states_raw
     (* start_states_raw |> List.fold_left (fun acc start_state -> 
       let new_start_state = (find_renamed_state start_state states_renaming_map) |> state_pair_append
@@ -599,7 +598,12 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
     states_renaming_map |> List.map (fun ((orig_st, _), (new_st, _)) -> (orig_st, new_st))
   in 
   let correct_start_states: state list = 
-    states_rename_map |> List.filter (fun (x, y) -> List.mem (x, y) start_states_prev) |> List.map snd
+    
+    let start_states_prev_fsts = start_states_raw |> List.map fst in 
+    let start_states_mapped = states_rename_map |> List.filter (fun (x, _) -> List.mem x start_states_prev_fsts) in 
+    if (List.length start_states_mapped) > 1 then       
+      states_rename_map |> List.filter (fun (x, y) -> List.mem (x, y) start_states_prev) |> List.map snd
+    else start_states_mapped |> List.map snd
   in
   let res_ta: ta2 = 
     { states = res_states_final @ [epsilon_state] ; alphabet = syms ; start_states = correct_start_states (* start_states_renamed *) ; 

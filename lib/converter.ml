@@ -939,6 +939,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
         let new_prods = prods |> List.map (fun ln -> 
           (* [fixed] b/c not always replaced with primary state *)
           (* replace_str_wrt_primary_mapped_state ln res_states_mapping_primary *)
+          if (String.ends_with ~suffix:":" ln) then (new_st ^ ":") else
           if (no_terms_or_nonterms ln) 
           then replace_str_wrt_primary_mapped_state ln res_states_mapping_primary
           else new_replace_str_wrt_mapped_states !nonterm ln
