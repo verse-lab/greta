@@ -20,24 +20,20 @@
 
 program : e1 EOF { $1 };
 
-e1:     
-  | e1 AND x1 { And($1, $3) }
-  | x1 { $1 }
-  ;
-
-x3: 
+x2:
+  | NOT x2 { Not($2) }
   | TRUE { True }
   | FALSE { False }
   | LPAREN e1 RPAREN { Paren($2) }
   ;
 
-x2:
-  | x3 { $1 }
-  | NOT x2 { Not($2) }
-  ;
-
 x1:
   | x2 { $1 }
-  | x1 OR x3 { Or($1, $3) }
+  | x1 AND x1 { And($1, $3) }
+  ;
+
+e1:
+  | x1 { $1 }
+  | e1 OR x1 { Or($1, $3) }
   ;
 
