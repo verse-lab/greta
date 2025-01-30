@@ -1,4 +1,4 @@
-// 10 conflicts - 9 po's 1 assoc
+// 8 conflicts
 %{
 open Ast
 
@@ -34,10 +34,8 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 %token TRUE 
 %token FALSE
 
-%left PLUS DASH
+%left DASH STAR EQEQ
 
-
-/* ---------------------------------------------------------------------- */
 
 %start prog
 %type <Ast.exp> exp1
@@ -58,7 +56,7 @@ exp1:
   | e1=exp1 PLUS e2=exp1 { loc $startpos $endpos @@ Bop (Add, e1, e2) }
   | e1=exp1 DASH e2=exp1 { loc $startpos $endpos @@ Bop (Sub, e1, e2) }
   | e1=exp1 STAR e2=exp1 { loc $startpos $endpos @@ Bop (Mul, e1, e2) }
-  | e1=exp1 EQEQ e2=exp2 { loc $startpos $endpos @@ Bop (Eq, e1, e2) }
+  | e1=exp1 EQEQ e2=exp1 { loc $startpos $endpos @@ Bop (Eq, e1, e2) }
   | DASH e=exp1         { loc $startpos $endpos @@ Uop (Neg, e) }
   
 exp2:
