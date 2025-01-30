@@ -7,11 +7,10 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 
 %}
 
-/* Declare your tokens here. */
+
 %token EOF
 %token <int64>  INT
 %token NULL
-%token <string> STRING
 %token <string> IDENT
 
 %token IF       /* if */
@@ -42,6 +41,8 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 
 
 
+
+
 %start prog
 %type <Ast.exp> x1
 %type <Ast.stmt> e1
@@ -58,23 +59,23 @@ bool_expr:
   | TRUE { loc $startpos $endpos @@ CBool true }
   | FALSE { loc $startpos $endpos @@ CBool false }
 
-x4:  
+x6:  
   | e=x2 LBRACKET i=x2 RBRACKET { loc $startpos $endpos @@ Index (e, i) }
 
-x3:
+x5:
   | INT                 { loc $startpos $endpos @@ CInt }
-  | DASH e=x3         { loc $startpos $endpos @@ Uop (Neg, e) }
-  | BANG e=x3         { loc $startpos $endpos @@ Uop (Lognot, e) }
-  | TILDE e=x3        { loc $startpos $endpos @@ Uop (Bitnot, e) }
+  | DASH e=x5         { loc $startpos $endpos @@ Uop (Neg, e) }
+  | BANG e=x5         { loc $startpos $endpos @@ Uop (Lognot, e) }
+  | TILDE e=x5        { loc $startpos $endpos @@ Uop (Bitnot, e) }
   | LPAREN e=x1 RPAREN { e } 
   
 
-x5:
+x7:
   | VAR id=ident EQ init=x2 { loc $startpos $endpos @@ {id; init} }
 
 e1: 
-  | d=x5 SEMI        { loc $startpos $endpos @@ Decl(d) }
-  | p=x4 EQ e=x1 SEMI { loc $startpos $endpos @@ Assn(p,e) }
+  | d=x7 SEMI        { loc $startpos $endpos @@ Decl(d) }
+  | p=x6 EQ e=x1 SEMI { loc $startpos $endpos @@ Assn(p,e) }
   | e=x1 LPAREN COMMA es=x1 RPAREN SEMI { loc $startpos $endpos @@ SCall (e, es) }
   | IF e=bool_expr THEN s1=e1 ELSE s2=e1  { loc $startpos $endpos @@ If(e,[s1],[s2]) }
   | RETURN SEMI         { loc $startpos $endpos @@ Ret(None) }
@@ -82,15 +83,23 @@ e1:
   | WHILE LPAREN e=x1 RPAREN b=e1  { loc $startpos $endpos @@ While(e, b) } 
   | NULL  { loc $startpos $endpos @@ CNull }
 
-x2:
-  | x3 { $1 }
-  | e1=x2 PLUS e2=x2 { loc $startpos $endpos @@ Bop (Add, e1, e2) }
-  | e1=x2 EQEQ e2=x3 { loc $startpos $endpos @@ Bop (Eq, e1, e2) }
-  | e1=x2 DASH e2=x3 { loc $startpos $endpos @@ Bop (Sub, e1, e2) }
-  ;
-
 x1:
   | x2 { $1 }
-  | e1=x1 STAR e2=x3 { loc $startpos $endpos @@ Bop (Mul, e1, e2) }
+  | e1=x1 STAR e2=x5 { loc $startpos $endpos @@ Bop (Mul, e1, e2) }
+  ;
+
+x2:
+  | x3 { $1 }
+  | e1=x2 EQEQ e2=x5 { loc $startpos $endpos @@ Bop (Eq, e1, e2) }
+  ;
+
+x4:
+  | x5 { $1 }
+  | e1=x4 PLUS e2=x4 { loc $startpos $endpos @@ Bop (Add, e1, e2) }
+  ;
+
+x3:
+  | x4 { $1 }
+  | e1=x3 DASH e2=x5 { loc $startpos $endpos @@ Bop (Sub, e1, e2) }
   ;
 

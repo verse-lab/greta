@@ -511,10 +511,15 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   let states_renaming_map: ((state * state) * (state * state)) list =
     (if debug_print then printf "\n*** Collecting unique states and map to new states : \n");
     collect_unique_states_and_map_to_new_states trans_blocks_replaced start_states_raw debug_print in
-  let start_states_renamed: state list = 
+  let start_states_prev: state list = 
+    (printf "\n ** Start states raw : \n"; start_states_raw |> List.iter (fun (x, y) -> printf " (%s, %s) " x y));
+    start_states_raw |> List.map fst
+    (* 
     start_states_raw |> List.fold_left (fun acc start_state -> 
       let new_start_state = (find_renamed_state start_state states_renaming_map) |> state_pair_append
-      in new_start_state :: acc) [] in
+      in new_start_state :: acc) [] 
+    *)
+    in
   let state_pairs_renamed: (state * state) list = states_renaming_map |> List.map snd in 
   let res_states_fst: state list = state_pairs_renamed |> List.map state_pair_append in 
   let trans_blocks_renamed: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
@@ -589,15 +594,20 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   (if debug_print then pp_upline_new (); printf "##### Step 14 - Converted trans blocks (and trivial trans) to transitions hashtbl : \n";
     Pp.pp_transitions_tbl res_trans_tbl; pp_loline_new ());
 
-  let res_ta: ta2 = 
-    { states = res_states_final @ [epsilon_state] ; alphabet = syms ; start_states = start_states_renamed ; 
-      transitions = res_trans_tbl ; trivial_sym_nts = triv_sym_state_ls } 
-    (* null_ta  *)
-  in
   let states_rename_map: (state * state) list = 
     states_renaming_map |> List.map (fun ((orig_st, _), (new_st, _)) -> (orig_st, new_st))
   in 
-  printf "\nResult of TA intersection: \n"; Pp.pp_ta2 res_ta; 
+  let correct_start_states: state list = 
+    states_rename_map |> List.filter (fun (x, _) -> List.mem x start_states_prev) |> List.map snd
+  in
+  let res_ta: ta2 = 
+    { states = res_states_final @ [epsilon_state] ; alphabet = syms ; start_states = correct_start_states (* start_states_renamed *) ; 
+      transitions = res_trans_tbl ; trivial_sym_nts = triv_sym_state_ls } 
+    (* null_ta  *)
+  in
+  (printf "\n ** Result of TA intersection: \n"; Pp.pp_ta2 res_ta;
+   printf "\n ** Resulted states rename map: \n"; states_rename_map |> List.iter (fun (x, y) -> printf " ( %s, %s ) " x y);
+   printf "\n\n"); 
   
   res_ta, states_rename_map (*|> rename_w_parser_friendly_states_in_ta debug_print *)
 

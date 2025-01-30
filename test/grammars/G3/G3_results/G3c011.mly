@@ -39,16 +39,15 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 
 
 
-
 %start prog
 %type <Ast.exp> x1
 %type <Ast.cond> bool_expr
-%type <Ast.stmt> e1
+%type <Ast.stmt> x2
 %type <Ast.prog> prog
 %%
 
 prog:
-  | e1 EOF  { $1 }
+  | x2 EOF  { $1 }
 
 ident:
   | id=IDENT { loc $startpos $endpos id }
@@ -58,16 +57,16 @@ bool_expr:
   | FALSE { loc $startpos $endpos @@ CBool false }
 
 x6:  
-  | x3 LBRACKET x3 RBRACKET { loc $startpos $endpos @@ Index ($1, $3) }
+  | x4 LBRACKET x4 RBRACKET { loc $startpos $endpos @@ Index ($1, $3) }
 
-e1: 
+x2: 
   | d=x7 SEMI        { loc $startpos $endpos @@ Decl(d) }
-  | p=x6 EQ e=x1 SEMI { loc $startpos $endpos @@ Assn(p,e) }
-  | e=x1 LPAREN COMMA es=x1 RPAREN SEMI { loc $startpos $endpos @@ SCall (e, es) }
-  | IF e=bool_expr THEN s1=e1 ELSE s2=e1  { loc $startpos $endpos @@ If(e,[s1],[s2]) }
+  | p=x6 EQ e=x3 SEMI { loc $startpos $endpos @@ Assn(p,e) }
+  | e=x3 LPAREN COMMA es=x3 RPAREN SEMI { loc $startpos $endpos @@ SCall (e, es) }
+  | IF e=bool_expr THEN s1=x2 ELSE s2=x2  { loc $startpos $endpos @@ If(e,[s1],[s2]) }
   | RETURN SEMI         { loc $startpos $endpos @@ Ret(None) }
-  | RETURN e=x1 SEMI   { loc $startpos $endpos @@ Ret(Some e) }
-  | WHILE LPAREN e=x1 RPAREN b=e1  { loc $startpos $endpos @@ While(e, b) } 
+  | RETURN e=x3 SEMI   { loc $startpos $endpos @@ Ret(Some e) }
+  | WHILE LPAREN e=x3 RPAREN b=x2  { loc $startpos $endpos @@ While(e, b) } 
   | NULL  { loc $startpos $endpos @@ CNull }
 
 x5:
@@ -78,26 +77,22 @@ x5:
   
 
 x7:
-  | VAR id=ident EQ init=x3 { loc $startpos $endpos @@ {id; init} }
+  | VAR id=ident EQ init=x4 { loc $startpos $endpos @@ {id; init} }
 
 x4:
   | x5 { $1 }
-  | DASH x4         { loc $startpos $endpos @@ Uop (Neg, $2) }
+  | x4 PLUS x4 { loc $startpos $endpos @@ Bop (Add, $1, $3) }
+  | x4 EQEQ x5 { loc $startpos $endpos @@ Bop (Eq, $1, $3) }
   ;
 
 x3:
   | x4 { $1 }
-  | x3 PLUS x3 { loc $startpos $endpos @@ Bop (Add, $1, $3) }
-  | x3 EQEQ x5 { loc $startpos $endpos @@ Bop (Eq, $1, $3) }
-  ;
-
-x2:
-  | x3 { $1 }
-  | x2 DASH x2 { loc $startpos $endpos @@ Bop (Sub, $1, $3) }
+  | x3 STAR x5 { loc $startpos $endpos @@ Bop (Mul, $1, $3) }
+  | x3 DASH x3 { loc $startpos $endpos @@ Bop (Sub, $1, $3) }
   ;
 
 x1:
-  | x2 { $1 }
-  | x1 STAR x5 { loc $startpos $endpos @@ Bop (Mul, $1, $3) }
+  | x3 { $1 }
+  | DASH x1         { loc $startpos $endpos @@ Uop (Neg, $2) }
   ;
 

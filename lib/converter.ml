@@ -1099,7 +1099,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
   let changed_nonterm_prods: string list = 
     inconsistent_nonterm_prods_blocks |> List.fold_left (fun acc (nt, ts_nts_p_ls) -> 
       let new_prods = ts_nts_p_ls |> List.fold_left (fun acc (ts, new_nts, prod) -> 
-        if debug_print then (printf "\nNow looking at prod "; Pp.pp_p prod);
+        if debug_print then (printf "\nNow looking at prod starting from %s " nt; Pp.pp_p prod);
         let new_nts' = new_nts |> List.filter (fun nt -> not (String.equal nt epsilon_state)) in
         printf "\n\t New Nonts':\n"; new_nts' |> List.iter (fun x -> printf " %s" x); printf "\n";
         let old_prod_line, old_nts_ls = find_nontriv_prod_from_prods_mapping ts new_nts' (List.length new_nts') in
