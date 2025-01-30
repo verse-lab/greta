@@ -25,8 +25,7 @@ open Ast
 
 %token EOF
 
-%left AND
-%left OR
+%left AND OR
 %left IFF PLUS MINUS TIMES DIVIDE
 
 %type <Ast.t> constr

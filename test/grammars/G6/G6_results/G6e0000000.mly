@@ -25,9 +25,8 @@ open Ast
 
 %token EOF
 
-%left AND
-%left OR
-%left PLUS MINUS TIMES DIVIDE POWER IFF
+%left AND OR
+%left IFF PLUS MINUS TIMES DIVIDE
 
 
 
@@ -40,15 +39,19 @@ constr:
   | e1 EOF { $1 }
   ;
 
+x3:
+  | INT { Int }
+  | IVAR { Ivar }
+  | MINUS x3 { Negative($2) }
+  ;
+
 x2:
+  | x3 { $1 }
+  | x2 TIMES x2 { Times($1, $3) }
+  | x2 POWER x2 { Power($1, $3) }
   | x2 PLUS x2 { Plus($1, $3) }
   | x2 MINUS x2 { Minus($1, $3) }
-  | x2 TIMES x2 { Times($1, $3) }
   | x2 DIVIDE x2 { Divide($1, $3) }
-  | x2 POWER x2 { Power($1, $3) }
-  | MINUS x2 { Negative($2) }
-  | IVAR { Ivar }
-  | INT { Int }
   ;
 
 x1:

@@ -27,7 +27,9 @@ open Ast
 
 %left AND
 %left OR
-%left PLUS MINUS TIMES DIVIDE POWER IFF
+%left PLUS MINUS
+%left TIMES DIVIDE
+%right POWER NOT
 
 
 
@@ -58,15 +60,15 @@ x1:
   | x2 GTE x2 { Gte($1, $3) }
   | x2 GT x2 { Gt($1, $3) }
   | x2 EQ x2 { Eq($1, $3) }
-  | x1 IFF x1 { Iff($1, $3) }
+  | x1 OR x1 { Or($1, $3) }
   | x1 AND x1 { And($1, $3) }
-  | NOT x1 { Not($2) }
   | LPAREN e1 RPAREN { Bparen($2) } 
   | BVAR { Bvar }
   ;
 
 e1:
   | x1 { $1 }
-  | e1 OR e1 { Or($1, $3) }
+  | e1 IFF e1 { Iff($1, $3) }
+  | NOT e1 { Not($2) }
   ;
 
