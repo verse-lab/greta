@@ -87,12 +87,12 @@ x4:
 
 x3:
   | x4 { $1 }
-  | x3 PLUS x3 { loc $startpos $endpos @@ Bop (Add, $1, $3) }
   | x3 EQEQ x5 { loc $startpos $endpos @@ Bop (Eq, $1, $3) }
   ;
 
 x2:
   | x3 { $1 }
+  | x2 PLUS x2 { loc $startpos $endpos @@ Bop (Add, $1, $3) }
   | x2 DASH x2 { loc $startpos $endpos @@ Bop (Sub, $1, $3) }
   ;
 

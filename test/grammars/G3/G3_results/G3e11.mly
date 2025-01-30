@@ -82,7 +82,7 @@ e1:
   | WHILE LPAREN e=x2 RPAREN b=e1  { loc $startpos $endpos @@ While(e, b) } 
   | NULL  { loc $startpos $endpos @@ CNull }
 
-e1:
+x2:
   | x3 { $1 }
   | e1=x2 STAR e2=x3 { loc $startpos $endpos @@ Bop (Mul, e1, e2) }
   ;
