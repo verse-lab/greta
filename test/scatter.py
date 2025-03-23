@@ -14,14 +14,19 @@ def process_grammar_file(filename):
     if len(success_df) == 0:
         return None
         
+    # Convert seconds to milliseconds
     return {
-        'convert_time': success_df['convert_time'].mean(),
-        'learn_time': success_df['learn_time'].mean(),
-        'intersect_time': success_df['intersect_time'].mean()
+        'convert_time': success_df['convert_time'].mean() * 1000,  # Convert to ms
+        'learn_time': success_df['learn_time'].mean() * 1000,      # Convert to ms
+        'intersect_time': success_df['intersect_time'].mean() * 1000  # Convert to ms
     }
 
-def create_plots(data_dir, ambiguity_map):
-    """Create scatter plots for each time metric vs ambiguities."""
+def create_plots(data_dir, ambiguity_map, output_dir='plots'):
+    """Create separate scatter plots for each time metric vs ambiguities and save as SVG files."""
+    # Create output directory if it doesn't exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
     # Process all grammar files
     results = []
     for grammar in ['G0', 'G1', 'G2', 'G3', 'G5', 'G6']:
@@ -36,44 +41,46 @@ def create_plots(data_dir, ambiguity_map):
                         'ambiguities': ambiguity_map[grammar_id],
                         **averages
                     })
-
-    # Create the plots
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
+    
+    # Define markers and colors
     markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*']
     colors = plt.cm.tab10(np.linspace(0, 1, 6))  # Different color for each G0-G6
-
-    for i, grammar_base in enumerate(['G0', 'G1', 'G2', 'G3', 'G5', 'G6']):
-        # Filter results for this grammar base
-        grammar_results = [r for r in results if r['grammar'].startswith(grammar_base)]
-        if grammar_results:
-            if grammar_base == 'G5':
-                grammar_base = 'G4'
-            if grammar_base == 'G6':
-                grammar_base = 'G5'
-            x = [r['ambiguities'] for r in grammar_results]
-            
-            # Convert time plot
-            y1 = [r['convert_time'] for r in grammar_results]
-            ax1.scatter(x, y1, label=grammar_base, marker=markers[i], color=colors[i])
-            
-            # Learn time plot
-            y2 = [r['learn_time'] for r in grammar_results]
-            ax2.scatter(x, y2, label=grammar_base, marker=markers[i], color=colors[i])
-            
-            # Intersect time plot
-            y3 = [r['intersect_time'] for r in grammar_results]
-            ax3.scatter(x, y3, label=grammar_base, marker=markers[i], color=colors[i])
-
-    # Customize plots
-    for ax, title in zip([ax1, ax2, ax3], ['Convert Time', 'Learn Time', 'Intersect Time']):
-        ax.set_xlabel('Number of Ambiguities')
-        ax.set_ylabel('Average Time (s)')
-        ax.set_title(f'Average {title} vs Ambiguities')
-        ax.grid(True, linestyle='--', alpha=0.7)
-        ax.legend()
-
-    plt.tight_layout()
-    plt.show()
+    
+    # Function to create a single plot and save as SVG
+    def create_single_plot(metric_name, title, filename):
+        plt.figure(figsize=(8, 6))
+        for i, grammar_base in enumerate(['G0', 'G1', 'G2', 'G3', 'G5', 'G6']):
+            # Filter results for this grammar base
+            grammar_results = [r for r in results if r['grammar'].startswith(grammar_base)]
+            if grammar_results:
+                # Adjust labels for G5 and G6 as per original code
+                display_name = grammar_base
+                if grammar_base == 'G5':
+                    display_name = 'G4'
+                if grammar_base == 'G6':
+                    display_name = 'G5'
+                
+                x = [r['ambiguities'] for r in grammar_results]
+                y = [r[metric_name] for r in grammar_results]
+                plt.scatter(x, y, label=display_name, marker=markers[i], color=colors[i])
+        
+        plt.xlabel('Number of Ambiguities')
+        plt.ylabel('Average Time (ms)')
+        plt.title(f'Average {title} vs Ambiguities')
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.legend()
+        plt.tight_layout()
+        
+        # Save as SVG
+        pdf_path = os.path.join(output_dir, filename)
+        plt.savefig(pdf_path, format='pdf', dpi=300, bbox_inches='tight')
+        plt.close()  # Close the figure to free memory
+        print(f"Saved plot to {pdf_path}")
+    
+    # Create separate plots for each metric and save as SVG
+    create_single_plot('convert_time', 'Convert Time', 'convert_time_vs_ambiguities.pdf')
+    create_single_plot('learn_time', 'Learn Time', 'learn_time_vs_ambiguities.pdf')
+    create_single_plot('intersect_time', 'Intersect Time', 'intersect_time_vs_ambiguities.pdf')
 
 # Example usage:
 ambiguity_map = {
@@ -84,4 +91,5 @@ ambiguity_map = {
     'G5a': 1, 'G5b': 2, 'G5c': 3, 'G5d': 4, 'G5e': 6,
     'G6a': 2, 'G6b': 3, 'G6c': 6, 'G6d': 8, 'G6e': 13
 }
+
 create_plots('.', ambiguity_map)
