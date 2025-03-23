@@ -46,8 +46,7 @@ apt install ocaml-dune
 
 2. The following packages need to be installed by running `opam install <package>`:
 
-- sedlex
-- ppx_deriving
+- sedlex, ppx_deriving, num, core, qcheck
 
 3. Install Menhir from [here](https://github.com/verse-lab/menhir)
 

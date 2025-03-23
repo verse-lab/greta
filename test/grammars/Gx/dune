@@ -1,6 +1,5 @@
 (library 
- (name greta)
- (public_name greta)
+ (name g0demo)
  (libraries sedlex menhirLib str graphics)
  (preprocess (pps ppx_deriving.std sedlex.ppx))
  (flags :standard -rectypes))
