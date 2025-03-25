@@ -870,6 +870,16 @@ let optimize_sym_list (syms: symbol list) (eps_optimize: bool) (paren_optimize: 
   if debug then (Printf.printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
     syms_opt2
 
+let optimize_sym_list_new (syms: symbol list) (eps_optimize: bool) (paren_optimize: bool) 
+  (curr_o: int) (max_o: int) (debug: bool): symbol list = 
+  let syms_opt1 = 
+    if (curr_o = max_o) then (Printf.printf "\n\t Curr order = %d vs. Max order = %d\n" curr_o max_o;syms) else 
+    if eps_optimize then syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms in 
+  let syms_opt2 = 
+    if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPARENRPAREN", 1))) else syms_opt1 in 
+  if debug then (Printf.printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
+    syms_opt2
+
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename
 
@@ -895,3 +905,23 @@ let test_results_filepath (grammar: string) (postfix: string): string =
   let path = "./test/grammars/" ^ grammar_type ^ "/" ^ grammar_type ^ "_results/" in 
   path ^ grammar ^ postfix ^ ".mly"
   (* grammar ^ "_" ^ postfix ^ ".mly" *)
+
+
+let update_flag (current_ta: ta2) (triv_states: state list) (opt: optimization) (debug_print: bool): optimization = 
+  (* traverse the TA and if encounter multiple eps transitions then turn on the eps_opt *)
+  let only_triv_states (siglsls: sigma list list): bool = 
+    siglsls |> List.fold_left (fun acc sigls -> 
+      match sigls with 
+      | Nt st' :: [] -> (List.mem st' triv_states) || acc
+      | _ -> false || acc ) false
+  in
+  let coll_lst: sigma list list list = 
+    Hashtbl.fold (fun (_lhs_nt, sy) siglsls acc -> 
+      if (syms_equals sy epsilon_symb) && not (only_triv_states siglsls)
+      then siglsls::acc else acc
+      ) current_ta.transitions [] in
+  if debug_print then (Printf.printf "\n\t\t Updating the flag!\n";
+  coll_lst |> List.iter (fun x -> Pp.pp_sigma_listlist x));
+    if ((List.length coll_lst) >= 3) && opt.onoff_opt 
+  then { eps_opt = true; paren_opt = opt.paren_opt; triv_opt = opt.triv_opt; onoff_opt = opt.onoff_opt }
+  else opt

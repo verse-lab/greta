@@ -110,8 +110,10 @@ let string_lists_equal (ls1: string list) (ls2: string list) =
   (List.length ls1 = List.length ls2) &&
   ls1 |> List.fold_left (fun acc s1 -> acc && (List.mem s1 ls2)) true 
 
+
+
 let find_assoc_all (terms: string list) (num_nonterms: int) (prods_mapping: ((string list * int) * (string * string list)) list) 
-  (debug: bool): (string list * string) list = 
+  (_dummy: string list) (debug: bool): (string list * string) list = 
   let open Printf in 
   let rec find_all_loop prods_ls (acc: (string list * string) list) = 
     match prods_ls with [] -> List.rev acc

@@ -138,9 +138,11 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     let sym_ord_ls = sym_ord_rhs_ls |> List.map (fun ((s, o), _sls) -> (s, o)) in
     List.assoc s sym_ord_ls in
   let order_of_sym s = List.assoc s sym_ord_ls_wrt_op_new in 
-  let different_order_in_obp (s: symbol) (o': int): bool = 
+  let max_order = sym_ord_ls_wrt_op_new |> List.map snd |> List.fold_left max min_int in
+  let different_order_in_obp (s: symbol) (o': int) (curr_lvl: int) (max_o: int): bool = 
     if debug then (printf "\n\t Sym <%s, %d> order %d " (fst s) (snd s) o');
-    if (eps_opt = true) && (syms_equals s epsilon_symb) then false else
+    (* if (eps_opt = true) && (curr_lvl = max_o) && (syms_equals s epsilon_symb) then true else *)
+    if (eps_opt = true) && (curr_lvl != max_o) && (syms_equals s epsilon_symb) then false else
     let ords_in_bp: int list ref = ref [] in 
     o_bp_tbl |> iter (fun o sym_ls -> if (List.mem s sym_ls) then ords_in_bp := o::!ords_in_bp); 
     if debug then (printf " Orders of the sym in O_bp : "; !ords_in_bp |> List.iter (fun x -> printf "%d " x));
@@ -177,16 +179,23 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       | Nt x' -> (List.mem x' trivial_nonterms)
   in
   let is_lbrace_terminal (x:sigma): bool = 
-    match x with T "LBRACE" ->  true
-    | _ -> false 
+    match x with T "LBRACE" ->  true | _ -> false 
+  in
+  let is_cond_terminal (x:sigma): bool = 
+    match x with T "IF" ->  true | _ -> false 
   in
   let lbrace_order: int = 
     let lb_ord: int ref = ref 1000 in
     Hashtbl.iter (fun o sym_ls -> if (List.mem ("LBRACE", 2) sym_ls) 
+      (* [Note! G2e 00000 => 00 scenario had a start nonterminal in btw so required -1 below] *)
       then (lb_ord := o) else ()) updated_op_tbl; !lb_ord
   in
-  
-  let rec match_collect (sym: symbol) (ls: sigma list) (curr_st: state) (is_lbrace_trans: bool) (acc: sigma list): sigma list =
+  let cond_order: int = 
+    let cd_ord: int ref = ref 1000 in 
+    Hashtbl.iter (fun o symls -> if ((List.mem ("IF", 4) symls) || (List.mem ("IF", 6) symls))
+                   then (if o < !cd_ord then cd_ord := o else ()) else ()) updated_op_tbl; !cd_ord
+  in
+  let rec match_collect (sym: symbol) (ls: sigma list) (curr_st: state) (is_lbrace_trans: bool) (is_cond_trans: bool) (acc: sigma list): sigma list =
     let syms_wrt_oa = oa_ls |> List.map (fun x -> match x with 
       Assoc (s, _) -> s | Prec _ -> raise No_prec_possible) in 
     if ((arity sym) = 2) && (List.mem sym syms_wrt_oa) 
@@ -195,27 +204,35 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       (* account for associativity *)
       (let higher_state = get_higher_state curr_st in 
        if (is_left_assoc sym oa_ls)
-       then [(Nt higher_state); (T (fst sym)); (Nt curr_st)]
-       else [(Nt curr_st); (T (fst sym)); (Nt higher_state)]) 
+       then [(Nt curr_st); (T (fst sym)); (Nt higher_state)]
+       else [(Nt higher_state); (T (fst sym)); (Nt curr_st)]) 
     else
       (match ls with [] -> List.rev acc
       | h :: tl -> 
         (* if h is terminal then keep, if nonterminal then replace with curr level state *)
         if (is_terminal h) then 
-          (if (is_lbrace_terminal h) then match_collect sym tl curr_st true (h::acc) else match_collect sym tl curr_st is_lbrace_trans (h::acc))
-        else if (is_trivial_nonterm h) then match_collect sym tl curr_st is_lbrace_trans (h::acc)
+          (if (is_lbrace_terminal h) then match_collect sym tl curr_st true is_cond_trans (h::acc) else 
+           if (is_cond_terminal h) then match_collect sym tl curr_st is_lbrace_trans true (h::acc) else 
+            match_collect sym tl curr_st is_lbrace_trans is_cond_trans (h::acc))
+        else if (is_trivial_nonterm h) then match_collect sym tl curr_st is_lbrace_trans is_cond_trans (h::acc)
         else if is_lbrace_trans then 
-          (let corr_st = "e" ^ (string_of_int lbrace_order) in match_collect sym tl curr_st is_lbrace_trans ((Nt corr_st)::acc))
-        else
-          match_collect sym tl curr_st is_lbrace_trans ((Nt curr_st)::acc))
+          (let corr_st = if (opt.onoff_opt ) then "e1" else "e" ^ (string_of_int lbrace_order) (* curr_st *)
+           in match_collect sym tl curr_st is_lbrace_trans is_cond_trans ((Nt corr_st)::acc))
+        else if is_cond_trans then 
+          (let corr_st = if (opt.onoff_opt && opt.eps_opt) then "e" ^ (string_of_int cond_order) else curr_st
+           in match_collect sym tl curr_st is_lbrace_trans is_cond_trans ((Nt corr_st)::acc))
+        else 
+          match_collect sym tl curr_st is_lbrace_trans is_cond_trans ((Nt curr_st)::acc))
   in
 
-  let find_rhs_lst_lst (s: symbol) (o: int) (_o_versatile: int): sigma list list = 
+  let find_rhs_lst_lst (s: symbol) (o: int) (max_o: int): sigma list list = 
     (* *** NOTE! *** *)
     (* [new_fix] commented out below for G2e 0000 scenario for now; if doesn't work need to revise *)
+    (* [new_new_fix] added another condition for max_o for G2e 0000 -> 00 case *)
     (* if (List.mem s versatile_syms) then (Printf.printf "\n\t\t ALRIGHT\n\n";Utils.assoc_all s o_versatile sym_ord_rhs_ls debug) else  *)
     if (triv_opt = false) then Utils.assoc_all s o sym_ord_rhs_ls debug else 
-    if (eps_opt = true) then (if (syms_equals s epsilon_symb) then [] else Utils.assoc_all s o sym_ord_rhs_ls debug)
+    if (eps_opt = true) then (if (syms_equals s epsilon_symb) then 
+      (if (o = max_o) then Utils.assoc_all s o sym_ord_rhs_ls debug else []) else Utils.assoc_all s o sym_ord_rhs_ls debug)
     else Utils.assoc_all s o sym_ord_rhs_ls debug
   in
 
@@ -224,7 +241,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     let ver_sym_corr_ord_pairs = ref [] in
     sym_ls |> List.fold_left (fun acc sym -> 
       let sym_rhs_ls_ls : sigma list list = 
-        if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
+        if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym) lvl max_order))
         then 
           (let original_lvl = original_order sym in
           if (List.mem sym versatile_syms) then (ver_sym_corr_ord_pairs := (sym, (lvl-1))::!ver_sym_corr_ord_pairs);
@@ -234,24 +251,24 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
           in
           find_rhs_lst_lst sym original_lvl corr_ord)
         else 
-          find_rhs_lst_lst sym lvl (lvl+1)
+          find_rhs_lst_lst sym lvl max_order
       in
       let sym_rhs_lsls_learned: sigma list list = 
-        if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym)))
+        if ((List.mem sym syms_op) && (different_order_in_obp sym (order_of_sym sym) lvl max_order))
         then 
           (if debug then (printf "\n Different? *** Part of Syms_O_p \t"; Pp.pp_symbol sym;
             printf "\n Found rhs sigma ls ls "; Pp.pp_sigma_listlist sym_rhs_ls_ls);
            sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls ->
            let new_lvl = List.assoc sym sym_ord_ls_wrt_op_new in 
            let new_st = "e" ^ (string_of_int (new_lvl+1)) in
-           let sym_rhs_ls_learned = match_collect sym rhs_ls new_st false []
+           let sym_rhs_ls_learned = match_collect sym rhs_ls new_st false false []
             in 
            sym_rhs_ls_learned :: acc) [])
         else 
           (if debug then (printf "\n Not different OR not part of Syms_op OR epsilon symb\t"; Pp.pp_symbol sym;
             printf "\n Rhs sigma ls ls "; Pp.pp_sigma_listlist sym_rhs_ls_ls);
             sym_rhs_ls_ls |> List.fold_left (fun acc rhs_ls -> 
-          let sym_rhs_ls_learned = match_collect sym rhs_ls curr_st false []
+          let sym_rhs_ls_learned = match_collect sym rhs_ls curr_st false false []
           in sym_rhs_ls_learned :: acc ) [])
       in
       (printf "\n\t\t Rhs sigma lsls learned\n\t\t";
@@ -269,7 +286,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
         (* Collect nontrivial symbols per level [note: lvl starts from 0 to max-1] *)
         let sym_ls : symbol list = 
           let init_sym_ls = List.flatten (find_all updated_op_tbl lvl) in 
-          optimize_sym_list init_sym_ls eps_opt paren_opt debug
+          optimize_sym_list_new init_sym_ls eps_opt paren_opt lvl max_order debug
         in
           (printf "\n\t >> For level %d Length of syms is %i ---> " (lvl+1) (List.length sym_ls);
           sym_ls |> List.iter Pp.pp_symbol);

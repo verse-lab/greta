@@ -99,7 +99,7 @@ let pp_sigma_sigma_list (ssls: (C.sigma * C.sigma) list) =
   printf "[ "; ssls |> iter (fun (sig1, sig2) -> 
     printf "( "; pp_sigma sig1; printf ", "; pp_sigma sig2; printf ") "); printf "] \n"
 
-let pp_sigma_listlist slsls = 
+let pp_sigma_listlist (slsls: C.sigma list list) = 
   printf "\t\t\t\t\t  [     "; slsls |> iter pp_sigma_list2; printf "     ]\n"
 
 let pp_productions2 (ps: C.production2 list) =

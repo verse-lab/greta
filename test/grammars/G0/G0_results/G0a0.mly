@@ -1,3 +1,11 @@
+/* *** G0a *** */
+// 3 po's 1 assoc
+// if2 vs. *
+// * assoc
+// if1 vs. *
+/* ---------- */
+// if1 vs. if2
+
 %{
   open Ast
 %}
@@ -19,6 +27,8 @@
 %token EOF
 
 
+
+
 %type <Ast.t> program
 %start program
 %%
@@ -36,8 +46,8 @@ e1:
   ;
 
 x1:
-  | x2 MUL x1 { Mul ($1, $3) }
   | x2  { $1 }
+  | x1 MUL x2 { Mul ($1, $3) }
   ;
 
 x3:

@@ -1,25 +1,37 @@
-type id = string
+type 'a loc = {
+    elt : 'a
+  ; loc : Range.t
+}
 
-type t =
-  | Na
+let no_loc x = {elt=x; loc=Range.norange}
+
+type id =  string loc (* Identifiers *)
+
+type _const =
+  | CInt  of int64
+and const = _const loc
+
+type binop =
+  | Add | Sub | Mul
+
+and _exp =  
+  | Id of id
+  | Const of const 
+  | Bop of binop * exp * exp 
+and exp = _exp loc
+
+type _stmt =
   | Decl of decl
-  | If2 of exp_t * then_t
-  | If3 of exp_t * then_t * else_t
+  | Assn of id * exp
+  | If of exp * block * block  
+  | While of exp * block
+  | Ret of exp
+  | Block of block
+and stmt = _stmt loc
 
-and then_t = 
-  | Then of t
+and _decl = {id : id; init : exp;}
+and decl = _decl loc
 
-and else_t = 
-  | Else of t
+and block = stmt list
 
-and exp_t =
-  | Plus of exp_t * exp_t
-  | Mul of exp_t * exp_t
-  | Paren of exp_t
-  | CInt of int64
-  | Ident of id
-
-and decl =
-  | Assign of id * exp_t
-  
-type prog = t
+type prog = block

@@ -1,9 +1,11 @@
+(ocamllex
+ (modules lexer))
+
 (library 
  (name greta)
  (public_name greta)
- (libraries sedlex menhirLib str graphics)
- (preprocess (pps ppx_deriving.std sedlex.ppx))
- (flags :standard -rectypes))
+ (modes byte native)
+ (libraries unix num menhirLib str core graphics))
 
 (menhir
  (modules parser)

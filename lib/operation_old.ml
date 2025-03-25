@@ -387,14 +387,14 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   if debug_print then (printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
   Pp.pp_ta2 a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta2 a2; printf "\n\n");
 
-  let eps_opt, paren_opt = opt_flag.eps_opt, opt_flag.paren_opt 
+  let eps_opt, paren_opt, onoff_opt = opt_flag.eps_opt, opt_flag.paren_opt, opt_flag.onoff_opt
   in
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 0 - Consider symbols excluding trivial symbols *)
   let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
   let syms_nontrivial = 
     let init_sym_ls = syms |> List.filter (fun s -> not (List.mem s trivSyms)) 
-    in optimize_sym_list init_sym_ls eps_opt false debug_print
+    in optimize_sym_list_new init_sym_ls eps_opt false 0 1 debug_print
   in 
   (if debug_print then pp_upline_new (); printf "##### Step 0 - Found nontrivial symbols\n\t"; 
     syms_nontrivial |> List.iter Pp.pp_symbol; printf "\n"; pp_loline_new ());
@@ -412,11 +412,33 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   let triv_states: state list = triv_sym_state_ls |> List.map snd 
   in
   Printf.printf "\nTrivial States!! \n"; triv_states |> Pp.pp_states;
+  (* Additional fix to make G2e working! *)
+  let triv_states_linked_states (trans_tbl: (terminal * symbol, sigma list list) Hashtbl.t): state list = 
+    (* let res = ref [] in  *)
+    let only_one_triv_st (sls: sigma list): bool = 
+      match sls with 
+      | (Nt s') :: [] -> (List.mem s' triv_states)
+      | _ -> false 
+    in
+    let rec include_triv_states (mapped_rhs_lst: sigma list list) (acc: bool): bool = 
+      match mapped_rhs_lst with [] -> acc
+      | (hd_sig_ls) :: tl_sig_ls -> 
+        if (only_one_triv_st hd_sig_ls)
+        then true else include_triv_states tl_sig_ls acc
+    in 
+    Hashtbl.fold (fun (term_st, sy) mapped_sig_ls_ls acc -> 
+      if (include_triv_states mapped_sig_ls_ls false) && (syms_equals sy epsilon_symb) 
+      then (term_st::acc) else acc) trans_tbl []
+  in
+  let triv_states_linked_sts1 = triv_states_linked_states a1.transitions in
+  let triv_states_linked_sts2 = triv_states_linked_states a2.transitions in
+
+  printf "\n Trivial states-linked states from A1: \t"; triv_states_linked_sts1 |> List.iter (fun x -> printf " %s " x);
+  printf "\n Trivial states-linked states from A2: \t"; triv_states_linked_sts2 |> List.iter (fun x -> printf " %s " x);
+
   let raw_init_trans_ls: (((state * state) * symbol) * (sigma * sigma) list list) list = 
-    if opt_flag.onoff_opt then 
-      cartesian_product_trans_from start_states_raw a1.transitions a2.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print 
-    else 
-      cartesian_product_trans_from start_states_raw a1.transitions a2.transitions syms_nontrivial triv_states debug_print 
+    (* [Note! B/c of particulars in G2e init nontrivially eps1-transitioning] *)
+    cartesian_product_trans_from start_states_raw a1.transitions a2.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print 
   in
   (if debug_print then pp_upline_new (); printf "##### Step 2 - Find initial states-starting transitions : \n\t"; 
     Pp.pp_raw_transitions_new raw_init_trans_ls; pp_loline_new ());
@@ -437,13 +459,22 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
     match states_reachable_left with 
     | [] -> List.rev trans_acc, states_reachabe_acc
     | (st_hd1, st_hd2) :: reachable_states_tl -> 
-      if debug_print then (printf "\n\t (current) looking for raw trans from (%s, %s) " st_hd1 st_hd2);
+      if debug_print then (printf "\n\t *** (current) looking for raw trans from (%s, %s) " st_hd1 st_hd2);
       (* --- find transitions from the curr states pair --- *)
       let alph1: symbol list = accessible_symbols_for_state st_hd1 a1.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 
       let alph2: symbol list = accessible_symbols_for_state st_hd2 a2.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 
       let alph_overlapped: symbol list = 
         let syms_overlapped = take_smaller_symbols_list alph1 alph2 debug_print |> remove_dup_symbols in 
-        if eps_opt then syms_overlapped |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms_overlapped
+        (* [Note: temp fix for G2e 0000 => 00] *)
+        if eps_opt then 
+          (if (List.mem st_hd1 triv_states_linked_sts1) || (List.mem st_hd2 triv_states_linked_sts2) 
+            then (printf "\n\t Eps_Opt AND w.r.t. triv-linked states\n!"; syms_overlapped) 
+            else (printf "\n\t Eps_Opt but not w.r.t. triv-linked states\n"; 
+                  if onoff_opt then syms_overlapped |> List.filter (fun s -> not (syms_equals s ("LPARENRPAREN", 1))) 
+                  else syms_overlapped |> List.filter (fun s -> not (syms_equals s epsilon_symb)))
+            )
+        (* syms_overlapped |> List.filter (fun s -> not (syms_equals s epsilon_symb))  *)
+        else syms_overlapped
       in 
       let curr_raw_trans_from_states_pair = 
         cartesian_product_trans_from [(st_hd1, st_hd2)] a1.transitions a2.transitions alph_overlapped triv_states debug_print

@@ -55,8 +55,8 @@ e1:
   | s=x1 ss=e1   { s::ss }
 
 x4:
-  | e1=x5 STAR e2=x4  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   | x5 { $1 }
+  | e1=x4 STAR e2=x5  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   ;
 
 x3:

@@ -1,0 +1,53 @@
+
+** Conflict (shift/reduce) in state 9.
+** Token involved: PLUS
+** This state is reached from toplevel after reading:
+
+expr PLUS expr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+expr EOF 
+(?)
+
+** In state 9, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+expr PLUS expr 
+          expr . PLUS expr 
+
+** In state 9, looking ahead at PLUS, reducing production..
+** expr -> expr PLUS expr
+** is permitted because of the following sub-derivation:
+
+expr PLUS expr // lookahead token appears
+expr PLUS expr . 
+
+** Conflict (shift/reduce) in state 5.
+** Token involved: STAR
+** This state is reached from toplevel after reading:
+
+expr2 STAR expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+expr EOF 
+expr2 
+(?)
+
+** In state 5, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+expr2 STAR expr2 
+           expr2 . STAR expr2 
+
+** In state 5, looking ahead at STAR, reducing production..
+** expr2 -> expr2 STAR expr2
+** is permitted because of the following sub-derivation:
+
+expr2 STAR expr2 // lookahead token appears
+expr2 STAR expr2 . 
