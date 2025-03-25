@@ -1055,6 +1055,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
         else find_all_loop prods_tl acc 
     in let nts_prod_ls = find_all_loop prods_mapping [] in
     let new_nts_prod_ls = nts_prod_ls |> List.filter (fun (nts_ls, _prod) -> 
+      if (not flag.onoff_opt) then true else 
       if (List.length nts_ls) = 1 then 
       (let only_nonterm = List.hd nts_ls in not (List.mem only_nonterm triv_nonterms)) else true ) in
     if debug then (printf "\n\t\t Mapped (nts, prod) list -> \n"; 
