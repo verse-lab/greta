@@ -28,14 +28,13 @@ module T = Ta
 
 let () =
   (** Step 1: Initial inputs provided by the user *)
-  (* let parser_file = Array.get Sys.argv 1 in
+  let parser_file = Array.get Sys.argv 1 in
   let conflicts_file = Array.get Sys.argv 2 in
-  let cfg_file = Array.get Sys.argv 3 in *)
+  let cfg_file = Array.get Sys.argv 3 in
   
-  
-  let parser_file = "./lib/parser.mly" in 
+  (* let parser_file = "./lib/parser.mly" in 
   let conflicts_file = "./_build/default/lib/parser.conflicts" in 
-  let cfg_file = "./_build/default/lib/parser.cfg" in 
+  let cfg_file = "./_build/default/lib/parser.cfg" in  *)
   
   
   (* Learn TA and O_bp wrt 'parser_file' *)
@@ -64,16 +63,38 @@ let () =
   let _opt_flag_g5: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = false } in
   
   let _opt_flag_g6: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
-  let opt_flag_gx: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
+  let _opt_flag_gx: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false } in
   
 
+  let contains s1 s2 =
+    let re = Str.regexp_string s2
+    in
+        try ignore (Str.search_forward re s1 0); true
+        with Not_found -> false
+  in
+  let grammar = 
+    String.split_on_char '.' parser_file |> List.hd 
+  in
+  let current_flag =
+    if (contains grammar "G0") then _opt_flag
+    else if (contains grammar "G1") then _opt_flag
+    else if (contains grammar "G2a") then _opt_flag_g2a
+    else if (contains grammar "G2b") then _opt_flag_g2b
+    else if (contains grammar "G2c") then _opt_flag_g2c
+    else if (contains grammar "G2d") then _opt_flag_g2d
+    else if (contains grammar "G2e") then _opt_flag_g2e
+    else if (contains grammar "G3") then _opt_flag_g3
+    else if (contains grammar "G5") then _opt_flag_g5
+    else if (contains grammar "G6") then _opt_flag_g6
+    else _opt_flag
+  in
   if (Utils.check_conflicts conflicts_file debug) then
   begin
     let convert_start = Sys.time () in
     let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms): 
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
       ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
-      C.convertToTa cfg_file opt_flag_gx debug in
+      C.convertToTa cfg_file current_flag debug in
       
     let convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet 
@@ -108,21 +129,34 @@ let () =
     in 
     let ta_learned: T.ta2 = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
-      opt_flag_gx debug 
+      current_flag debug 
     in
     let learn_ta_elapsed = Sys.time () -. learn_start in
 
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let intersect_start = Sys.time () in
+
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
-      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag_gx debug 
+      O.intersect ta_initial ta_learned triv_syms triv_syms_states current_flag false 
     in     
     let intersect_elapsed = Sys.time () -. intersect_start in
+
+    (* classical intersect *)
+    let classical_intersect_start = Sys.time () in
+    let ta3_initial = O.convert_ta ta_initial in
+    let ta3_learned = O.convert_ta ta_learned in
+    let _ = O.intersect2 ta3_initial ta3_learned true in
+    let classical_intersect_elapsed = Sys.time () -. classical_intersect_start in
+    (* Ta.pp_ta3 ta3_initial;
+    Ta.pp_ta3 ta3_learned;
+    Ta.pp_ta3 ta3_intersect;
+     *)
+
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
     (* let file_written = "./test/grammars/G0/G0_results/G0a" in  *)
     let grammar = 
-      (* String.split_on_char '.' parser_file |> List.hd  *)
-      "Gxa"  
+      String.split_on_char '.' parser_file |> List.hd 
+      (* "Gxa"   *)
     in
     let file_written = U.test_results_filepath grammar !file_postfix in 
     C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states parser_file file_written debug;
@@ -131,6 +165,7 @@ let () =
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" convert_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" learn_ta_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed;
+    Printf.printf "\n\n\t\tTime elapsed for classical intersecting TA: %f\n\n" classical_intersect_elapsed;
     (* Time for convering back to CFG *)
     
 end

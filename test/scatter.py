@@ -44,7 +44,7 @@ def create_plots(data_dir, ambiguity_map, output_dir='plots'):
     
     # Define markers and colors
     markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*']
-    colors = plt.cm.tab10(np.linspace(0, 1, 6))  # Different color for each G0-G6
+    colors = ['#FF0000', '#0000FF', '#000000', '#FF00FF', '#008080', '#800080']
     
     # Function to create a single plot and save as SVG
     def create_single_plot(metric_name, title, filename):
@@ -62,13 +62,17 @@ def create_plots(data_dir, ambiguity_map, output_dir='plots'):
                 
                 x = [r['ambiguities'] for r in grammar_results]
                 y = [r[metric_name] for r in grammar_results]
-                plt.scatter(x, y, label=display_name, marker=markers[i], color=colors[i])
+                
+                plt.plot(x, y, color=colors[i], linestyle='-', alpha=0.5)
+                plt.scatter(x, y, label=display_name, marker=markers[i], color=colors[i], s=50)
         
-        plt.xlabel('Number of Ambiguities')
-        plt.ylabel('Average Time (ms)')
-        plt.title(f'Average {title} vs Ambiguities')
+        plt.xlabel('Number of Ambiguities', fontsize=18)
+        plt.ylabel('Average Time (ms)', fontsize=18)
+        plt.title(f'Average {title} vs Ambiguities', fontsize=18)
         plt.grid(True, linestyle='--', alpha=0.7)
-        plt.legend()
+        plt.legend(prop={'size': 18})
+        plt.xticks(fontsize=14)
+        plt.yticks(fontsize=14)
         plt.tight_layout()
         
         # Save as SVG

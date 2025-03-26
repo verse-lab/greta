@@ -67,6 +67,7 @@ proc handle_choice {current_path next start} {
     set convert_time ""
     set learn_time ""
     set intersect_time ""
+    set intersect_time_classic ""
     
     expect {
         -re {There are no ambiguities} {
@@ -97,6 +98,10 @@ proc handle_choice {current_path next start} {
             set intersect_time $expect_out(1,string)
             exp_continue
         }
+        -re {Time elapsed for classical intersecting TA: ([0-9.]+)} {
+            set intersect_time_classic $expect_out(1,string)
+            exp_continue
+        }
         -re {Fatal error:.*} {
             puts "Error occurred. Path: $current_path"
             exec echo "$current_path,ERROR,,," >> $::results_file
@@ -113,7 +118,7 @@ proc handle_choice {current_path next start} {
             if {$result ne "NO_CONFLICTS"} {
                 if {$result ne ""} {
                     # Write complete line with path, result and all timings
-                    exec echo "$current_path,$result,$convert_time,$learn_time,$intersect_time" >> $::results_file
+                    exec echo "$current_path,$result,$convert_time,$learn_time,$intersect_time,$intersect_time_classic" >> $::results_file
                 }
             }
             # exec echo "$current_path,EOF" >> $::results_file
@@ -123,7 +128,7 @@ proc handle_choice {current_path next start} {
 
 # Main script execution
 puts "Starting CLI application testing..."
-exec echo "Path,Result,Convert Time,Learn Time,Intersect Time" > $results_file
+exec echo "Path,Result,Convert Time,Learn Time,Intersect Time,Intersect Classic Time" > $results_file
 
 handle_choice {} 0 1
 

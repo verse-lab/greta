@@ -616,11 +616,172 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   
   res_ta, states_rename_map (*|> rename_w_parser_friendly_states_in_ta debug_print *)
 
+let convert_ta (ta: ta2): ta3 =
+  let new_transitions : (int, (Cfg.nonterminal * Cfg.sigma list) list) Hashtbl.t = Hashtbl.create 10 in
+  let old_transitions : (state * symbol, sigma list list) Hashtbl.t = ta.transitions in
+  Hashtbl.iter (fun (st, (s, k)) sig_ls_ls -> 
+    List.iter (fun sig_ls -> 
+      let arity : int = List.length sig_ls in
+      let lhs : Cfg.nonterminal = st in
+      let rhs : Cfg.sigma list = (if (k = 0) then [T s] else sig_ls) in
+      if Hashtbl.mem new_transitions arity 
+      then 
+        let old_ls = Hashtbl.find new_transitions arity in
+        Hashtbl.replace new_transitions arity ((lhs, rhs)::old_ls)
+      else
+        Hashtbl.add new_transitions arity [(lhs, rhs)]
+    ) sig_ls_ls) 
+  old_transitions; 
+  {
+    states = ta.states;
+    start_states = ta.start_states;
+    transitions = new_transitions;
+  }
 
+let intersect2 (a1: ta3) (a2: ta3) (reachability_check: bool) : ta3 =
+  (* Create a new transition table for the intersection *)
+  let new_transitions = Hashtbl.create 10 in
 
-
-
-
-
-
+  (* Generate cross-product state name *)
+  let cross_state (st1: nonterminal) (st2: nonterminal) : nonterminal =
+    st1 ^ "_" ^ st2
+  in
   
+  (* Compute cross-product states *)
+  let cross_states = 
+    List.flatten (
+      List.map (fun st1 -> 
+        List.map (fun st2 -> 
+          cross_state st1 st2
+        ) a2.states
+      ) a1.states
+    )
+  in
+  
+  (* Compute cross-product start states *)
+  let cross_start_states = 
+    List.flatten (
+      List.map (fun st1 -> 
+        List.map (fun st2 -> 
+          cross_state st1 st2
+        ) a2.start_states
+      ) a1.start_states
+    )
+  in
+  
+  (* Iterate through arities *)
+  let arities = 
+    Hashtbl.fold (fun arity _ acc -> 
+      if Hashtbl.mem a2.transitions arity then 
+        arity :: acc 
+      else acc
+    ) a1.transitions []
+  in
+  
+  (* Process transitions for each arity *)
+  List.iter (fun arity ->
+    let a1_transitions = Hashtbl.find a1.transitions arity in
+    let a2_transitions = Hashtbl.find a2.transitions arity in
+    
+    (* Cross-product of transitions *)
+    let cross_transitions = 
+      List.flatten (
+        List.map (fun (lhs1, rhs1) ->
+          List.map (fun (lhs2, rhs2) ->
+            (* Check if symbols match *)
+            let symbols_match = 
+              List.for_all2 (fun s1 s2 -> 
+                match (s1, s2) with
+                | (T t1, T t2) -> t1 = t2
+                | (Nt _, Nt _) -> true
+                | _ -> false
+              ) rhs1 rhs2
+            in
+            
+            if symbols_match then
+              let new_lhs = cross_state lhs1 lhs2 in
+              (* Create new RHS with cross-product of nonterminal children *)
+              let new_rhs = 
+                List.map2 (fun s1 s2 ->
+                  match (s1, s2) with
+                  | (Nt nt1, Nt nt2) -> Nt (cross_state nt1 nt2)
+                  | (T t, T _) -> T t
+                  | _ -> failwith "Impossible: symbols_match ensures this doesn't happen"
+                ) rhs1 rhs2
+              in
+              Some (new_lhs, new_rhs)
+            else
+              None
+          ) a2_transitions
+        ) a1_transitions
+      ) 
+      |> List.filter_map (fun x -> x)  (* Remove None values *)
+    in
+    
+    (* Add cross transitions to new transition table *)
+    Hashtbl.add new_transitions arity cross_transitions
+  ) arities;
+
+  if reachability_check
+  then
+    (* Reachability Analysis *)
+    let compute_reachable_states () =
+      (* Create a set of reachable states *)
+      let reachable_states = Hashtbl.create (List.length cross_states) in
+      
+      (* Initialize with start states *)
+      List.iter (fun st -> Hashtbl.add reachable_states st true) cross_start_states;
+      
+      (* Fixpoint computation of reachable states *)
+      let changed = ref true in
+      while !changed do
+        changed := false;
+        Hashtbl.iter (fun _ transitions ->
+          List.iter (fun (lhs, rhs) ->
+            if Hashtbl.mem reachable_states lhs then
+              List.iter (fun sym ->
+                match sym with
+                | Nt child_state ->
+                  if not (Hashtbl.mem reachable_states child_state) then
+                    (Hashtbl.add reachable_states child_state true;
+                    changed := true)
+                | _ -> ()
+              ) rhs
+          ) transitions
+        ) new_transitions
+      done;
+      
+      reachable_states
+    in
+    
+    (* Filter reachable states and transitions *)
+    let reachable_states = compute_reachable_states () in
+    
+    (* Filter transitions *)
+    let filtered_transitions = Hashtbl.create (Hashtbl.length new_transitions) in
+    Hashtbl.iter (fun arity transitions ->
+      let filtered_trans = 
+        List.filter (fun (lhs, rhs) -> 
+          Hashtbl.mem reachable_states lhs &&
+          List.for_all (function 
+            | Nt state -> Hashtbl.mem reachable_states state 
+            | _ -> true
+          ) rhs
+        ) transitions
+      in
+      if filtered_trans != [] then
+        Hashtbl.add filtered_transitions arity filtered_trans
+    ) new_transitions;
+    
+    (* Return the intersection automaton with only reachable states *)
+    {
+      states = Hashtbl.fold (fun state _ acc -> state :: acc) reachable_states [];
+      start_states = List.filter (fun st -> Hashtbl.mem reachable_states st) cross_start_states;
+      transitions = filtered_transitions;
+    }
+  else
+    {
+      states = cross_states;
+      start_states = cross_start_states;
+      transitions = new_transitions;
+    }

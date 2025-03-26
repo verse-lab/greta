@@ -34,6 +34,62 @@ type ta2 =
     mutable trivial_sym_nts : (symbol * state) list;
   }
 
+type ta3 = 
+  {
+    mutable states : Cfg.nonterminal list;
+    mutable start_states : Cfg.nonterminal list;
+    (* arity -> transitions *)
+    mutable transitions : (int, (Cfg.nonterminal * Cfg.sigma list) list) Hashtbl.t;
+  }
+
+(* Pretty printer for sigma (terminal/nonterminal) *)
+let string_of_sigma (s: Cfg.sigma) : string =
+  match s with
+  | T terminal -> "'" ^ terminal ^ "'"
+  | Nt nonterminal -> nonterminal
+
+(* Pretty print a list with a custom separator *)
+let rec print_list ~separator f lst =
+  match lst with
+  | [] -> ""
+  | [x] -> f x
+  | x::xs -> f x ^ separator ^ print_list ~separator f xs
+
+(* Pretty printer for transitions *)
+let string_of_transitions (transitions: (int, (Cfg.nonterminal * Cfg.sigma list) list) Hashtbl.t) : string =
+  Hashtbl.fold (fun arity trans_list acc ->
+    let arity_transitions = 
+      List.map (fun (lhs, rhs) ->
+        Printf.sprintf "  %s -> %s [%s]" 
+          lhs 
+          (print_list ~separator:" " string_of_sigma rhs)
+          (string_of_int arity)
+      ) trans_list
+    in
+    acc ^ 
+    (Printf.sprintf "Arity %d Transitions:\n%s\n" 
+      arity 
+      (print_list ~separator:"\n" (fun x -> x) arity_transitions))
+  ) transitions ""
+
+(* Pretty printer for ta3 *)
+let pp_ta3 (ta: ta3) : unit =
+  (* Print header *)
+  Printf.printf "Tree Automaton:\n";
+  Printf.printf "==============\n\n";
+  
+  (* Print states *)
+  Printf.printf "States:\n";
+  Printf.printf "  %s\n\n" (print_list ~separator:", " (fun x -> x) ta.states);
+  
+  (* Print start states *)
+  Printf.printf "Start States:\n";
+  Printf.printf "  %s\n\n" (print_list ~separator:", " (fun x -> x) ta.start_states);
+  
+  (* Print transitions *)
+  Printf.printf "Transitions:\n";
+  print_endline (string_of_transitions ta.transitions)
+
 type optimization = 
  {
    mutable eps_opt : bool;   (* true if there is no non-trivial <eps, 1> transition               *)

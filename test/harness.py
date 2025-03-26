@@ -8,6 +8,9 @@ grammars = [
     # "grammars/G2/G2s",
     # "grammars/G3/G3s",
     # "grammars/G4/G4s",
+    # "grammars/G5/G5s",
+    # "grammars/G6/G6s"
+    # "grammars/scilla"
 ]
 
 # for each grammar in grammars, run the harness script, 
@@ -29,7 +32,7 @@ while exist_unseen:
         # get rid of .mly extension
         files = [f[:-4] for f in files]
 
-        unseen_files = [f for f in files if f not in seen_files]
+        unseen_files = [f for f in files if f not in seen_files and "G0a" in f]
 
         if unseen_files == []:
             continue
