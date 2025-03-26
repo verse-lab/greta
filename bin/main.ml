@@ -149,9 +149,8 @@ let () =
     let classical_intersect_elapsed = Sys.time () -. classical_intersect_start in
     (* Ta.pp_ta3 ta3_initial;
     Ta.pp_ta3 ta3_learned;
-    Ta.pp_ta3 ta3_intersect;
-     *)
-
+    Ta.pp_ta3 ta3_intersect; *)
+ 
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
     (* let file_written = "./test/grammars/G0/G0_results/G0a" in  *)
     let grammar = 
