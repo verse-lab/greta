@@ -618,8 +618,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
 
 let convert_ta (ta: ta2): ta3 =
   let new_transitions : (int, (Cfg.nonterminal * Cfg.sigma list) list) Hashtbl.t = Hashtbl.create 10 in
-  let symbol_states = ref [] in
-  
+  let symbol_states = ref [] in  
   let old_transitions : (state * symbol, sigma list list) Hashtbl.t = ta.transitions in
   Hashtbl.iter (fun (st, (s, k)) sig_ls_ls -> 
     List.iter (fun sig_ls -> 
@@ -641,12 +640,12 @@ let convert_ta (ta: ta2): ta3 =
     ) sig_ls_ls) 
   old_transitions;
   List.iter (fun (sym_st) -> 
-    if not (Hashtbl.mem new_transitions 0) then
-      Hashtbl.add new_transitions 0 [(sym_st, [T "empty"])]
+    if not (Hashtbl.mem new_transitions 1) then
+      Hashtbl.add new_transitions 1 [(sym_st, [T "empty"])]
     else 
-      let old_ls = Hashtbl.find new_transitions 0 in
-      Hashtbl.replace new_transitions 0 ((sym_st, [T "empty"])::old_ls)
-    ) !symbol_states;
+      let old_ls = Hashtbl.find new_transitions 1 in
+      Hashtbl.replace new_transitions 1 ((sym_st, [T "empty"])::old_ls)
+    ) !symbol_states;  
   {
     states = ta.states @ !symbol_states;
     start_states = ta.start_states;
