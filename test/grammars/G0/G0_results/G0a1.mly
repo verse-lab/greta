@@ -1,3 +1,11 @@
+/* *** G0a *** */
+// 3 po's 1 assoc
+// if2 vs. *
+// * assoc
+// if1 vs. *
+/* ---------- */
+// if1 vs. if2
+
 %{
   open Ast
 %}
@@ -32,14 +40,14 @@ cond_expr:
   | FALSE { Bool false } 
   ;
 
-x1:
-  | x2 MUL x1 { Mul ($1, $3) }
-  | x2  { $1 }
+e1:
+  | e1 PLUS x1 { Plus ($1, $3) }
+  | x1  { $1 }
   ;
 
-e1:
-  | x1  { $1 }
-  | e1 PLUS x2 { Plus ($1, $3) }
+x1:
+  | x2  { $1 }
+  | x1 MUL x2 { Mul ($1, $3) }
   ;
 
 x3:

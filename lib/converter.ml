@@ -524,7 +524,7 @@ let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 =
 
 (** cfg_to_parser : once convert to grammar, write it on the parser.mly file *)
 let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list) 
-  (init_states: state list) (debug_print: bool) (to_write: string) (g: cfg2) : unit =
+  (init_states: state list) (debug_print: bool) (to_write: string) (flag:optimization) (g: cfg2) : unit =
   let open Printf in
   printf "\nWrite the grammar on parser file %s\n" parser_file;
   if debug_print then (printf "\n  Input grammar:\n"; Pp.pp_cfg2 g);
@@ -611,7 +611,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
               (* collect lines starting with '%type' *)
               if (starts "%type" s)
               then (let type_id = 
-                      let ls = s |> String.split_on_char ' ' in 
+                      let ls = s |> String.split_on_char ' ' |> List.filter (fun x -> not (String.equal x "")) in 
                       let len = List.length ls in 
                       List.nth ls (len - 1) 
                     in
@@ -1040,6 +1040,28 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
         printf "\n\t\t Terminals  < "; ts |> List.iter (printf "%s "); printf "> ";
         printf " Nonterminals < "; nts |> List.iter (printf "%s "); printf ">   ==>  "; 
         Pp.pp_p p; printf "\n")); printf "\n");
+
+  
+  let find_assoc_all_new (terms: string list) (num_nonterms: int) (prods_mapping: ((string list * int) * (string * string list)) list) 
+    (triv_nonterms: string list) (debug: bool): (string list * string) list = 
+    printf "\n\t\tTRIV nonterms are? "; triv_nonterms |> List.iter (fun x -> printf "%s " x);
+    let rec find_all_loop prods_ls (acc: (string list * string) list) = 
+      match prods_ls with [] -> List.rev acc
+      | ((hd_terms, hd_nt_num), (hd_prod, hd_nts)) :: prods_tl -> 
+        if (num_nonterms = hd_nt_num) && (string_lists_equal hd_terms terms) 
+        then let nt' = extract_nonterminal hd_prod in
+          if nt' = "" then find_all_loop prods_tl ((hd_nts, hd_prod)::acc) else
+          (if (List.mem nt' triv_nonterms) then find_all_loop prods_tl acc else find_all_loop prods_tl ((hd_nts, hd_prod)::acc))
+        else find_all_loop prods_tl acc 
+    in let nts_prod_ls = find_all_loop prods_mapping [] in
+    let new_nts_prod_ls = nts_prod_ls |> List.filter (fun (nts_ls, _prod) -> 
+      if (not flag.onoff_opt) then true else 
+      if (List.length nts_ls) = 1 then 
+      (let only_nonterm = List.hd nts_ls in not (List.mem only_nonterm triv_nonterms)) else true ) in
+    if debug then (printf "\n\t\t Mapped (nts, prod) list -> \n"; 
+    new_nts_prod_ls |> List.iter (fun (nts, prod) -> nts |> List.iter (fun x -> printf " %s" x); 
+      printf "\n\t\t mapped to production: %s \n" prod)); new_nts_prod_ls in
+
   (* --- helper to find (prod string, nonterms) from 'nontriv_prods_terms_ntnum_mapping' --- *)
   let find_nontriv_prod_from_prods_mapping (terms: string list) (new_nts: string list) (nt_num: int): 
     string * string list = 
@@ -1058,7 +1080,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
       match List.assoc_opt (terms, nt_num) nontriv_prods_terms_ntnum_mapping with 
       | Some (p, nts) -> 
         let nts_prods_mapped: (string list * string) list = 
-          find_assoc_all terms nt_num nontriv_prods_terms_ntnum_mapping debug_print 
+          find_assoc_all_new terms nt_num nontriv_prods_terms_ntnum_mapping triv_nonterms debug_print 
         in
           (* [new_fix] tentative fix to account for ident & const happening for nontriv_state-starting trans *)
           if (List.length nts_prods_mapped = 1) || (List.length nts_prods_mapped = 2) then begin 
@@ -1068,7 +1090,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
               if (String.equal p' "") then ("", []) else (p, nts) end 
           else 
             begin
-              if List.length nts_prods_mapped = 2 then printf "\n\t\tOVER HERE ~ !!\n\n";
+              if List.length nts_prods_mapped >= 2 then printf "\n\t\tOVER HERE ~ !!\n\n";
+              if (List.is_empty terms) && (nt_num = 1) && flag.onoff_opt then ("", []) else
             let raw_nts_p' = nts_prods_mapped |> List.filter (fun (nts, _prod) -> 
               string_lists_equal nts new_nts) in 
             let p' = if (List.is_empty raw_nts_p') then p else raw_nts_p' |> List.hd |> snd in 
@@ -1100,9 +1123,9 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
   let changed_nonterm_prods: string list = 
     inconsistent_nonterm_prods_blocks |> List.fold_left (fun acc (nt, ts_nts_p_ls) -> 
       let new_prods = ts_nts_p_ls |> List.fold_left (fun acc (ts, new_nts, prod) -> 
-        if debug_print then (printf "\nNow looking at prod starting from %s " nt; Pp.pp_p prod);
+        if debug_print then (printf "\nNow looking at prod starting from %s \n\t\t " nt; Pp.pp_p prod);
         let new_nts' = new_nts |> List.filter (fun nt -> not (String.equal nt epsilon_state)) in
-        printf "\n\t New Nonts':\n"; new_nts' |> List.iter (fun x -> printf " %s" x); printf "\n";
+        printf "\n\t New Nonts':\n\t\t"; new_nts' |> List.iter (fun x -> printf " %s" x); printf "\n";
         let old_prod_line, old_nts_ls = find_nontriv_prod_from_prods_mapping ts new_nts' (List.length new_nts') in
         if (String.equal "" old_prod_line) && (List.is_empty old_nts_ls) 
         then 
@@ -1131,8 +1154,8 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
 
 (** convertToGrammar : *)
 let convertToGrammar (ta_inp: ta2) (states_rename_map: (state * state) list) 
-  (init_states: state list) (file: string) (to_write: string) (debug: bool) =
-  ta_inp |> ta_to_cfg debug |> cfg_to_parser file states_rename_map init_states debug to_write
+  (init_states: state list) (file: string) (to_write: string) (flag:optimization) (debug: bool) =
+  ta_inp |> ta_to_cfg debug |> cfg_to_parser file states_rename_map init_states debug to_write flag
 
 (* Below: currently not taken into consideration  *)
 (* ******************** Specify associativity > parser.mly ******************** *)

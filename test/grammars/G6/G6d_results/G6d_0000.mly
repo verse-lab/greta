@@ -61,6 +61,7 @@ x1:
   | x1 IFF x1 { Iff($1, $3) }
   | NOT x1 { Not($2) }
   | LPAREN e1 RPAREN { Bparen($2) } 
+  | BVAR { Bvar }
   ;
 
 e1:

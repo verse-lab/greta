@@ -1,0 +1,27 @@
+
+** Conflict (shift/reduce) in state 23.
+** Token involved: STAR
+** This state is reached from prog after reading:
+
+x1 DASH x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+e1 EOF 
+x1 LPAREN COMMA x1 RPAREN SEMI 
+(?)
+
+** In state 23, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 DASH x1 
+        x1 . STAR x5 
+
+** In state 23, looking ahead at STAR, reducing production..
+** x1 -> x1 DASH x1
+** is permitted because of the following sub-derivation:
+
+x1 STAR x5 // lookahead token appears
+x1 DASH x1 . 

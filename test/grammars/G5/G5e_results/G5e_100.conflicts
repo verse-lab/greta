@@ -1,0 +1,52 @@
+
+** Conflict (shift/reduce) in state 13.
+** Token involved: AND
+** This state is reached from program after reading:
+
+NOT e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 13, looking ahead at AND, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT e1 
+    e1 . AND e1 
+
+** In state 13, looking ahead at AND, reducing production..
+** e1 -> NOT e1
+** is permitted because of the following sub-derivation:
+
+e1 AND e1 // lookahead token appears
+NOT e1 . 
+
+** Conflict (shift/reduce) in state 12.
+** Token involved: AND
+** This state is reached from program after reading:
+
+e1 AND e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 12, looking ahead at AND, shifting is permitted..
+** because of the following sub-derivation:
+
+e1 AND e1 
+       e1 . AND e1 
+
+** In state 12, looking ahead at AND, reducing production..
+** e1 -> e1 AND e1
+** is permitted because of the following sub-derivation:
+
+e1 AND e1 // lookahead token appears
+e1 AND e1 . 

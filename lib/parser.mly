@@ -1,37 +1,88 @@
-// subset of C++ grammar to address review C's question
-// Q: Can it be so one cannot disambiguate between the two parse trees 
-// as the right disambiguation depends on the surrounding context?
-
-
+/* *** G2e *** */
 %{
-    open Ast;;
+open Ast;;
+
+let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
+  { elt ; loc=Range.mk_lex_range startpos endpos }
+
 %}
 
-%token <string> DECL (* literal word "decl" *)
+%token EOF
+%token <int64>  INT
 %token <string> IDENT
-%token LPAREN RPAREN EOF
+%token <string> STRING
+%token ELSE     /* else */
+%token IF       /* if */
+%token TINT     /* int */
+%token RETURN   /* return */
+%token WHILE    /* while */
+%token SEMI     /* ; */
+%token LBRACE   /* { */
+%token RBRACE   /* } */
+%token PLUS     /* + */
+%token DASH     /* - */
+%token STAR     /* * */
+%token EQ       /* = */
+%token LPAREN   /* ( */
+%token RPAREN   /* ) */
 
-%type <Ast.t> program
-%start program
+
+
+
+%start toplevel
+%type <Ast.prog> toplevel
+%type <Ast.exp> x3
+%type <Ast.const> const
 %%
 
-program : decl EOF { $1 };
+toplevel:
+  | p=e1 EOF  { p }
 
-decl:
-  | DECL ty id LPAREN expr RPAREN  { Decl1 ($2, $3, $5) }
-  | DECL ty id LPAREN param RPAREN { Decl2 ($2, $3, $5) }
+ident:
+  | id=IDENT  { loc $startpos $endpos id }
+
+const:
+  | i=INT { loc $startpos $endpos @@ CInt i }
+
+x6:
+  | TINT id=ident EQ init=x5 { loc $startpos $endpos @@ {id; init} }
+
+x7:
+  | id=ident            { loc $startpos $endpos @@ Id (id) }
+  | c=const             { loc $startpos $endpos @@ Const (c) }
+  | LPAREN e=x3 RPAREN { e }
+
+e1:
+  |   /* empty */   { [] }
+  | s=x1 ss=e1   { s::ss }
+
+x5:
+  | x7 { $1 }
+  | e1=x5 STAR e2=x7  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   ;
 
-expr: 
-  | id LPAREN RPAREN { Call $1 }
+x2:
+  | d=x6 SEMI                      { loc $startpos $endpos @@ Decl(d) }
+  | id=ident EQ e=x4 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
+  | WHILE LPAREN e=x4 RPAREN s=x2 { loc $startpos $endpos @@ While(e, [s]) }
+  | RETURN e=x4 SEMI                { loc $startpos $endpos @@ Ret(e) }
+  | LBRACE ss=e1 RBRACE           { loc $startpos $endpos @@ Block(ss) }
+  | IF LPAREN e=x3 RPAREN s1=x2 ELSE s2=x2 { loc $startpos $endpos @@ If(e, [s1], [s2]) }
   ;
 
-param:
-  | ty LPAREN RPAREN { Param $1 }
-  ; 
+x1:
+  | x2 { $1 }
+  | IF LPAREN e=x3 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
+  ;
 
-ty: 
-  | IDENT { TyString $1 }
+x4:
+  | x5 { $1 }
+  | e1=x4 DASH e2=x5  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
+  ;
+
+x3:
+  | x4 { $1 }
+  | e1=x3 PLUS e2=x4  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
   ;
 
 id: 

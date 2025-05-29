@@ -70,6 +70,7 @@ x2:
   | x3 GTE x3 { Gte($1, $3) }
   | x3 GT x3 { Gt($1, $3) }
   | x3 EQ x3 { Eq($1, $3) }
+  | BVAR { Bvar }
   ;
 
 x1:

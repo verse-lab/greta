@@ -1,0 +1,30 @@
+
+** Conflict (shift/reduce) in state 11.
+** Token involved: POWER
+** This state is reached from constr after reading:
+
+x4 POWER x4
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 
+x3 NE x3 
+x4 
+(?)
+
+** In state 11, looking ahead at POWER, shifting is permitted..
+** because of the following sub-derivation:
+
+x4 POWER x4 
+         x4 . POWER x4 
+
+** In state 11, looking ahead at POWER, reducing production..
+** x4 -> x4 POWER x4
+** is permitted because of the following sub-derivation:
+
+x4 POWER x4 // lookahead token appears
+x4 POWER x4 . 

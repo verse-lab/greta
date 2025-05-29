@@ -1,0 +1,82 @@
+
+** Conflict (shift/reduce) in state 21.
+** Token involved: STAR
+** This state is reached from prog after reading:
+
+x1 DASH x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+e1 EOF 
+x1 LPAREN COMMA x1 RPAREN SEMI 
+(?)
+
+** In state 21, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 DASH x1 
+        x1 . STAR x3 
+
+** In state 21, looking ahead at STAR, reducing production..
+** x1 -> x1 DASH x1
+** is permitted because of the following sub-derivation:
+
+x1 STAR x3 // lookahead token appears
+x1 DASH x1 . 
+
+** Conflict (shift/reduce) in state 19.
+** Token involved: STAR
+** This state is reached from prog after reading:
+
+x1 PLUS x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+e1 EOF 
+x1 LPAREN COMMA x1 RPAREN SEMI 
+(?)
+
+** In state 19, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 PLUS x1 
+        x1 . STAR x3 
+
+** In state 19, looking ahead at STAR, reducing production..
+** x1 -> x1 PLUS x1
+** is permitted because of the following sub-derivation:
+
+x1 STAR x3 // lookahead token appears
+x1 PLUS x1 . 
+
+** Conflict (shift/reduce) in state 10.
+** Token involved: EQEQ
+** This state is reached from prog after reading:
+
+DASH x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+e1 EOF 
+x4 EQ x1 SEMI 
+x2 LBRACKET x2 RBRACKET 
+(?)
+
+** In state 10, looking ahead at EQEQ, shifting is permitted..
+** because of the following sub-derivation:
+
+DASH x2 
+     x2 . EQEQ x3 
+
+** In state 10, looking ahead at EQEQ, reducing production..
+** x2 -> DASH x2
+** is permitted because of the following sub-derivation:
+
+x2 EQEQ x3 // lookahead token appears
+DASH x2 . 

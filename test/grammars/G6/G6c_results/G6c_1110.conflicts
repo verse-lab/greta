@@ -1,5 +1,5 @@
 
-** Conflict (shift/reduce) in state 40.
+** Conflict (shift/reduce) in state 41.
 ** Token involved: IFF
 ** This state is reached from constr after reading:
 
@@ -13,20 +13,20 @@ e1 EOF
 x1 
 (?)
 
-** In state 40, looking ahead at IFF, shifting is permitted..
+** In state 41, looking ahead at IFF, shifting is permitted..
 ** because of the following sub-derivation:
 
 NOT x1 
     x1 . IFF x1 
 
-** In state 40, looking ahead at IFF, reducing production..
+** In state 41, looking ahead at IFF, reducing production..
 ** x1 -> NOT x1
 ** is permitted because of the following sub-derivation:
 
 x1 IFF x1 // lookahead token appears
 NOT x1 . 
 
-** Conflict (shift/reduce) in state 35.
+** Conflict (shift/reduce) in state 36.
 ** Token involved: IFF
 ** This state is reached from constr after reading:
 
@@ -40,13 +40,13 @@ e1 EOF
 x1 
 (?)
 
-** In state 35, looking ahead at IFF, shifting is permitted..
+** In state 36, looking ahead at IFF, shifting is permitted..
 ** because of the following sub-derivation:
 
 x1 IFF x1 
        x1 . IFF x1 
 
-** In state 35, looking ahead at IFF, reducing production..
+** In state 36, looking ahead at IFF, reducing production..
 ** x1 -> x1 IFF x1
 ** is permitted because of the following sub-derivation:
 

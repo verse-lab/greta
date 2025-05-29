@@ -1,0 +1,55 @@
+
+** Conflict (shift/reduce) in state 16.
+** Token involved: EQEQ
+** This state is reached from prog after reading:
+
+x4 PLUS x4
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+x2 EOF 
+x6 EQ x3 SEMI 
+x4 LBRACKET x4 RBRACKET 
+(?)
+
+** In state 16, looking ahead at EQEQ, reducing production..
+** x4 -> x4 PLUS x4
+** is permitted because of the following sub-derivation:
+
+x4 EQEQ x5 // lookahead token appears
+x4 PLUS x4 . 
+
+** In state 16, looking ahead at EQEQ, shifting is permitted..
+** because of the following sub-derivation:
+
+x4 PLUS x4 
+        x4 . EQEQ x5 
+
+** Conflict (shift/reduce) in state 12.
+** Token involved: DASH
+** This state is reached from prog after reading:
+
+x4 STAR x3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+x2 EOF 
+x3 LPAREN COMMA x3 RPAREN SEMI 
+(?)
+
+** In state 12, looking ahead at DASH, reducing production..
+** x3 -> x4 STAR x3
+** is permitted because of the following sub-derivation:
+
+x3 DASH x3 // lookahead token appears
+x4 STAR x3 . 
+
+** In state 12, looking ahead at DASH, shifting is permitted..
+** because of the following sub-derivation:
+
+x4 STAR x3 
+        x3 . DASH x3 

@@ -22,17 +22,27 @@ exception Invalid_subtrees
 exception Tree_specifies_oa_or_op
 exception Neither_left_nor_right
 
-(** gen_examples : gen examples from parser.conflicts in CFG *)
+let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool): 
+  ((string list * tree * (bool * bool) * restriction list) * (string list * tree * (bool * bool) * restriction list)) list = 
+  let open List in
+  let open Printf in
+  let syms_ls: string list = a |> List.map fst in
+  printf "\nGenerate examples from conflicts in file %s\n" filename; 
+    (* *** debug *** *)
+    if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); printf "\n");
+  (* helpers *)
+  let ic = open_in filename in
+  let _try_read () = try Some (input_line ic) with End_of_file -> None in
+  []
+
+
+
+(** gen_examples_prev : gen examples from parser.conflicts in CFG *)
 let gen_examples (filename: string) (a: symbol list) (debug_print: bool): 
   ((string list * tree * (bool * bool) * restriction list) * (string list * tree * (bool * bool) * restriction list)) list = 
   let open List in
   let open String in
   let open Printf in
-  (* 
-    let a_new = a |> List.map (fun (sym, ar) -> 
-      match sym with "+" -> ("PLUS", ar) | "*" -> ("MUL", ar) | "()" -> ("LPARENRPAREN", ar)
-      | rest -> (rest, ar)) in
-  *)
   let syms_ls: string list = a |> List.map fst in
   printf "\nGenerate examples from conflicts in file %s\n" filename; 
     (* *** debug *** *)
@@ -168,9 +178,9 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
   in
   let relev_ls: string list = traverse 1 false [] in 
     (* *** debug *** *)
-    (* 
+    
     if debug_print then (printf "\tRel lines: "; relev_ls |> List.iteri (fun i l -> (printf "#%d %s \n" (i+1) l)); printf "\n"); 
-     *)
+    
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
     (* *** debug *** *)
     if debug_print then (printf "\tExtracted trees: "; 

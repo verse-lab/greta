@@ -1,0 +1,56 @@
+
+** Conflict (shift/reduce) in state 41.
+** Tokens involved: IFF AND
+** The following explanations concentrate on token IFF.
+** This state is reached from constr after reading:
+
+NOT x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+(?)
+
+** In state 41, looking ahead at IFF, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT x1 
+    x1 . IFF x1 
+
+** In state 41, looking ahead at IFF, reducing production..
+** x1 -> NOT x1
+** is permitted because of the following sub-derivation:
+
+x1 IFF x1 // lookahead token appears
+NOT x1 . 
+
+** Conflict (shift/reduce) in state 19.
+** Token involved: POWER
+** This state is reached from constr after reading:
+
+x2 POWER x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 NE x2 
+(?)
+
+** In state 19, looking ahead at POWER, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 POWER x2 
+         x2 . POWER x2 
+
+** In state 19, looking ahead at POWER, reducing production..
+** x2 -> x2 POWER x2
+** is permitted because of the following sub-derivation:
+
+x2 POWER x2 // lookahead token appears
+x2 POWER x2 . 

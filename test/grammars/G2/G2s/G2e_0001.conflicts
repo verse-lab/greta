@@ -1,0 +1,60 @@
+
+** Conflict (shift/reduce) in state 17.
+** Tokens involved: PLUS DASH
+** The following explanations concentrate on token PLUS.
+** This state is reached from toplevel after reading:
+
+RETURN x3 DASH x3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+e1 EOF 
+x1 e1 
+x2 
+RETURN x3 SEMI 
+       (?)
+
+** In state 17, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+x3 DASH x3 
+        x3 . PLUS x3 
+
+** In state 17, looking ahead at PLUS, reducing production..
+** x3 -> x3 DASH x3
+** is permitted because of the following sub-derivation:
+
+x3 PLUS x3 // lookahead token appears
+x3 DASH x3 . 
+
+** Conflict (shift/reduce) in state 15.
+** Tokens involved: PLUS DASH
+** The following explanations concentrate on token PLUS.
+** This state is reached from toplevel after reading:
+
+RETURN x3 PLUS x3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+e1 EOF 
+x1 e1 
+x2 
+RETURN x3 SEMI 
+       (?)
+
+** In state 15, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+x3 PLUS x3 
+        x3 . PLUS x3 
+
+** In state 15, looking ahead at PLUS, reducing production..
+** x3 -> x3 PLUS x3
+** is permitted because of the following sub-derivation:
+
+x3 PLUS x3 // lookahead token appears
+x3 PLUS x3 . 

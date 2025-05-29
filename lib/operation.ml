@@ -413,7 +413,10 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
   in
   Printf.printf "\nTrivial States!! \n"; triv_states |> Pp.pp_states;
   let raw_init_trans_ls: (((state * state) * symbol) * (sigma * sigma) list list) list = 
-    cartesian_product_trans_from start_states_raw a1.transitions a2.transitions syms_nontrivial triv_states debug_print 
+    if opt_flag.onoff_opt then 
+      cartesian_product_trans_from start_states_raw a1.transitions a2.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print 
+    else 
+      cartesian_product_trans_from start_states_raw a1.transitions a2.transitions syms_nontrivial triv_states debug_print 
   in
   (if debug_print then pp_upline_new (); printf "##### Step 2 - Find initial states-starting transitions : \n\t"; 
     Pp.pp_raw_transitions_new raw_init_trans_ls; pp_loline_new ());

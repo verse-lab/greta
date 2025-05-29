@@ -64,6 +64,7 @@ x1:
   ;
 
 x4:
+  | BVAR { Bvar }
   | LPAREN e1 RPAREN { Bparen($2) } 
   ;
 

@@ -1,0 +1,30 @@
+
+** Conflict (shift/reduce) in state 13.
+** Token involved: DIVIDE
+** This state is reached from constr after reading:
+
+x5 POWER x4
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+e1 EOF 
+x1 
+x2 
+x3 NE x3 
+x4 
+(?)
+
+** In state 13, looking ahead at DIVIDE, reducing production..
+** x4 -> x5 POWER x4
+** is permitted because of the following sub-derivation:
+
+x4 DIVIDE x4 // lookahead token appears
+x5 POWER x4 . 
+
+** In state 13, looking ahead at DIVIDE, shifting is permitted..
+** because of the following sub-derivation:
+
+x5 POWER x4 
+         x4 . DIVIDE x4 

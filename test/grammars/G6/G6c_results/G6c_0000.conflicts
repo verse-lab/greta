@@ -1,5 +1,5 @@
 
-** Conflict (shift/reduce) in state 33.
+** Conflict (shift/reduce) in state 34.
 ** Token involved: IFF
 ** This state is reached from constr after reading:
 
@@ -13,13 +13,13 @@ e1 EOF
 x1 
 (?)
 
-** In state 33, looking ahead at IFF, shifting is permitted..
+** In state 34, looking ahead at IFF, shifting is permitted..
 ** because of the following sub-derivation:
 
 x1 IFF x1 
        x1 . IFF x1 
 
-** In state 33, looking ahead at IFF, reducing production..
+** In state 34, looking ahead at IFF, reducing production..
 ** x1 -> x1 IFF x1
 ** is permitted because of the following sub-derivation:
 

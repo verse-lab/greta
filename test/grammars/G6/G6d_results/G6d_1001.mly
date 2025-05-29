@@ -62,6 +62,7 @@ x1:
   | x1 AND x1 { And($1, $3) }
   | NOT x1 { Not($2) }
   | LPAREN e1 RPAREN { Bparen($2) } 
+  | BVAR { Bvar }
   ;
 
 e1:

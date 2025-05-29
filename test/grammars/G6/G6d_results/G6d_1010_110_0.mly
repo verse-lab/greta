@@ -34,7 +34,7 @@ open Ast
 
 
 %type <Ast.t> constr
-%type <Ast.exp> x6
+%type <Ast.exp> x4
 %start constr
 %%
 
@@ -42,13 +42,13 @@ constr:
   | e1 EOF { $1 }
   ;
 
-x6:
-  | x6 PLUS x6 { Plus($1, $3) }
-  | x6 MINUS x6 { Minus($1, $3) }
-  | x6 TIMES x6 { Times($1, $3) }
-  | x6 DIVIDE x6 { Divide($1, $3) }
-  | x6 POWER x6 { Power($1, $3) }
-  | MINUS x6 { Negative($2) }
+x4:
+  | x4 PLUS x4 { Plus($1, $3) }
+  | x4 MINUS x4 { Minus($1, $3) }
+  | x4 TIMES x4 { Times($1, $3) }
+  | x4 DIVIDE x4 { Divide($1, $3) }
+  | x4 POWER x4 { Power($1, $3) }
+  | MINUS x4 { Negative($2) }
   | IVAR { Ivar }
   | INT { Int }
   ;
@@ -58,23 +58,20 @@ e1:
   | e1 OR e1 { Or($1, $3) }
   ;
 
-x7:
+x5:
   | LPAREN e1 RPAREN { Bparen($2) } 
   ;
 
-x5:
-  | x7 IFF x5 { Iff($1, $3) }
-  | x7 { $1 }
-  | x6 NE x6 { Ne($1, $3) }
-  | x6 LTE x6 { Lte($1, $3) }
-  | x6 LT x6 { Lt($1, $3) }
-  | x6 GTE x6 { Gte($1, $3) }
-  | x6 GT x6 { Gt($1, $3) }
-  | x6 EQ x6 { Eq($1, $3) }
-  ;
-
 x3:
-  | x3 { $1 }
+  | x5 IFF x3 { Iff($1, $3) }
+  | x5 { $1 }
+  | x4 NE x4 { Ne($1, $3) }
+  | x4 LTE x4 { Lte($1, $3) }
+  | x4 LT x4 { Lt($1, $3) }
+  | x4 GTE x4 { Gte($1, $3) }
+  | x4 GT x4 { Gt($1, $3) }
+  | x4 EQ x4 { Eq($1, $3) }
+  | BVAR { Bvar }
   ;
 
 x2:

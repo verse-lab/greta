@@ -60,6 +60,7 @@ x3:
   | x4 EQ x4 { Eq($1, $3) }
   | x3 AND x3 { And($1, $3) }
   | LPAREN e1 RPAREN { Bparen($2) } 
+  | BVAR { Bvar }
   ;
 
 x2:

@@ -54,17 +54,7 @@ x4:
   | INT { Int }
   ;
 
-e1:
-  | x1 { $1 }
-  | e1 OR e1 { Or($1, $3) }
-  ;
-
-x5:
-  | LPAREN e1 RPAREN { Bparen($2) } 
-  ;
-
 x3:
-  | x5 { $1 }
   | x4 NE x4 { Ne($1, $3) }
   | x4 LTE x4 { Lte($1, $3) }
   | x4 LT x4 { Lt($1, $3) }
@@ -72,6 +62,13 @@ x3:
   | x4 GT x4 { Gt($1, $3) }
   | x4 EQ x4 { Eq($1, $3) }
   | x3 AND x3 { And($1, $3) }
+  | LPAREN e1 RPAREN { Bparen($2) } 
+  | BVAR { Bvar }
+  ;
+
+e1:
+  | x1 { $1 }
+  | e1 OR e1 { Or($1, $3) }
   ;
 
 x2:

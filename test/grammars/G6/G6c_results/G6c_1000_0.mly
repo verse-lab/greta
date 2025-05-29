@@ -74,5 +74,6 @@ x1:
   | x2 GTE x2 { Gte($1, $3) }
   | x2 GT x2 { Gt($1, $3) }
   | x2 EQ x2 { Eq($1, $3) }
+  | BVAR { Bvar }
   ;
 

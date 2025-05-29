@@ -46,10 +46,9 @@ apt install ocaml-dune
 
 2. The following packages need to be installed by running `opam install <package>`:
 
-- sedlex
-- ppx_deriving
+- sedlex, ppx_deriving, num, core, qcheck
 
-3. Install Menhir from [here](https://github.com/verse-lab/menhir)
+3. Install Menhir from the separate attachment.
 
 4. In order to access the opam installation, run the following:
 
@@ -68,17 +67,8 @@ eval $(opam env)
 
 ### Running 
 
-To run the project, do the following:
+To run the project, do the following and choose your selections:
 
 ```
 make
 ```
-
-### Documentation
-
-Demo scenario as well as overall framework is explained in the [Wiki page](https://github.com/yunjeong-lee/cfg-ta/wiki).
-
-### References
-
-<a id="1">[1]</a>:
-Adams, M. D., & Might, M. (2017). Restricting grammars with tree automata. Proceedings of the ACM on Programming Languages, 1(OOPSLA), 1-25. https://doi.org/10.1145/3133906.
