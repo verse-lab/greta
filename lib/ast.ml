@@ -1,10 +1,12 @@
-(* source: StackOverflow
- * https://stackoverflow.com/questions/910445/issue-resolving-a-shift-reduce-conflict-in-my-grammar 
- *)
- type t =
- | Var
- | And of t * t
- | Or  of t * t
- | Not of t
- | Paren of t 
+type ty = TyString of string 
+
+type id = IdString of string
+
+type expr = Call of id
+
+type param = Param of ty 
+
+type t =
+| Decl1 of ty * id * expr
+| Decl2 of ty * id * param
 

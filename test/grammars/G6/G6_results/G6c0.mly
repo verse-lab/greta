@@ -61,7 +61,6 @@ x2:
   | x3 GTE x3 { Gte($1, $3) }
   | x3 GT x3 { Gt($1, $3) }
   | x3 EQ x3 { Eq($1, $3) }
-  | x2 AND x2 { And($1, $3) }
   | NOT x2 { Not($2) }
   | LPAREN e1 RPAREN { Bparen($2) } 
   | BVAR { Bvar }
@@ -69,11 +68,12 @@ x2:
 
 x1:
   | x2 { $1 }
-  | x1 OR x1 { Or($1, $3) }
+  | x2 IFF x1 { Iff($1, $3) }
   ;
 
 e1:
   | x1 { $1 }
-  | x1 IFF e1 { Iff($1, $3) }
+  | e1 OR e1 { Or($1, $3) }
+  | e1 AND e1 { And($1, $3) }
   ;
 

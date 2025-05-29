@@ -85,33 +85,19 @@ let addtyp x = (x, Type.gentyp ())
 prog:
 | e=exp EOF { e }
 
-simple_exp: /* (caml2html: parser_simple) */
-| LPAREN exp RPAREN
-    { $2 }
-| LPAREN RPAREN
-    { Unit }
-| BOOL
-    { Bool($1) }
-| INT
-    { Int($1) }
-| FLOAT
-    { Float($1) }
-| IDENT
-    { Var($1) }
-| simple_exp DOT LPAREN exp RPAREN
-    { Get($1, $4) }
+simple_exp: 
+| LPAREN exp RPAREN { $2 }
+| LPAREN RPAREN { Unit }
+| BOOL { Bool($1) }
+| INT { Int($1) }
+| FLOAT { Float($1) }
+| IDENT { Var($1) }
+| simple_exp DOT LPAREN exp RPAREN { Get($1, $4) }
 
-exp: /* (caml2html: parser_exp) */
-| simple_exp
-    { $1 }
-| NOT exp
-    %prec prec_app
-    { Not($2) }
-| MINUS exp
-    %prec prec_unary_minus
-    { match $2 with
-    | Float(f) -> Float(-.f)
-    | e -> Neg(e) }
+exp: 
+| simple_exp { $1 }
+| NOT exp %prec prec_app { Not($2) }
+| MINUS exp %prec prec_unary_minus { match $2 with | Float(f) -> Float(-.f) | e -> Neg(e) }
 | exp PLUS exp /* (caml2html: parser_add) */
     { Add($1, $3) }
 | exp MINUS exp
