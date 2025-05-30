@@ -2,7 +2,9 @@
  (name greta)
  (public_name greta)
  (modes byte native)
- (libraries sedlex num menhirLib str core graphics qcheck))
+ (libraries sedlex num menhirLib str core graphics qcheck)
+ (preprocess (pps ppx_deriving.std sedlex.ppx))
+ (flags :standard -rectypes))
 
 (menhir
  (modules parser)
