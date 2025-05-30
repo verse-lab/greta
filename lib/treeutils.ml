@@ -898,22 +898,6 @@ let run_again (filename: string): unit =
   (* "./test/grammars/G0/G0_results/G0a000.mly" in *)
 let test_results_filepath (grammar: string) (postfix: string): string = 
   let except_for_last g = 
-<<<<<<< HEAD
-    let len = String.length grammar 
-    in Str.string_before g (len-1) 
-  in
-  let grammar_type: string = except_for_last grammar in
-  let path = "./test/grammars/" ^ grammar_type ^ "/" ^ grammar_type ^ "_results/" in 
-  path ^ grammar ^ postfix ^ ".mly"
-  
-  (* (* let except_for_last g = 
-    let len = String.length grammar 
-    in Str.string_before g (len-1) 
-  in *)
-  (* let grammar_type: string = except_for_last grammar in *)
-  (* let path = "/test/grammars/" ^ grammar_type ^ "/" ^ grammar_type ^ "_results/" in  *)
-  grammar ^ "_" ^ postfix ^ ".mly" *)
-=======
     let len = String.length grammar 
     in Str.string_before g (len-1) 
   in
@@ -941,4 +925,3 @@ let update_flag (current_ta: ta2) (triv_states: state list) (opt: optimization) 
     if ((List.length coll_lst) >= 3) && opt.onoff_opt 
   then { eps_opt = true; paren_opt = opt.paren_opt; triv_opt = opt.triv_opt; onoff_opt = opt.onoff_opt }
   else opt
->>>>>>> e3802eee547e5493584a32946f0dfc57ba186b3d

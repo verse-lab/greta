@@ -1,11 +1,8 @@
-(ocamllex
- (modules lexer))
-
 (library 
  (name greta)
  (public_name greta)
  (modes byte native)
- (libraries unix num menhirLib str core graphics))
+ (libraries sedlex num menhirLib str core graphics qcheck))
 
 (menhir
  (modules parser)

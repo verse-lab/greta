@@ -1,3 +1,7 @@
+// this is to try out Review c's question (#5)
+// reg (op (op _ _) _) vs (op _ (op _ _)) 
+// and (op1 (op2 _) _) vs (op2 _ (op1 _))
+
 %{
     open Ast;;
 %}
