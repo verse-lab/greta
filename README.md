@@ -40,17 +40,37 @@ Building upon the idea from the paper *Restricting Grammars with Tree Automata* 
 
 1. You need to install `dune` using `ocaml-dune`:
 
-```
-apt install ocaml-dune
-```
+   * Linux OS
+     ```
+     apt install ocaml-dune
+     ```
+
+   * Mac OS (using Homebrew)
+     - Install Opam:
+        ```
+        brew install opam
+        ```
+     - Initialize Opam:
+        ```
+        opam init
+        ```
+     - Activate opam environment:
+        ```
+        eval $(opam env)
+        ```
+     - Install Dune:
+        ```
+        opam install dune
+        ```
+
 
 2. The following packages need to be installed by running `opam install <package>`:
 
-- sedlex, ppx_deriving, num, core, qcheck
+   * sedlex, ppx_deriving, num, core, qcheck
 
-3. Install Menhir from the separate attachment.
+3. Install [Menhir](https://github.com/verse-lab/menhir/tree/dump-cfg) from the separate attachment.
 
-4. In order to access the opam installation, run the following:
+4. After installing the above packages, in order to access the opam installation, run the following:
 
 ```
 eval $(opam env)
@@ -64,6 +84,7 @@ eval $(opam env)
 ```
 
 6. (Optional) When you encounter a message "... seems to be compiled with a version of OCaml that is not supported by Merlin", then check the ocaml version via `opam switch list` and select `ocaml.4.14.0` compiler for this project. Make sure you run `eval $(opam env)` after switching to version `4.14.0`.
+
 
 ### Running 
 
