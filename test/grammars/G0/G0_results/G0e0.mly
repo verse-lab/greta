@@ -1,3 +1,15 @@
+/* *** G0e *** */
+// 7 po's 2 assoc's
+// if2 vs. +
+// if2 vs. *
+// * vs. +
+// + vs. *
+// if1 vs. +
+// if1 vs. * 
+// if1 vs. if2
+// * assoc
+// + assoc
+
 %{
   open Ast
 %}
@@ -33,18 +45,18 @@ cond:
   ;
 
 e1:
-  | x1 PLUS e1 { Plus ($1, $3) }
   | x1 { $1 }
+  | e1 PLUS x1 { Plus ($1, $3) }
   ;
 
 x4:
-  | INT  { Int $1 }
   | LPAREN e1 RPAREN { Paren $2 }
   ;
 
 x3:
   | x4 { $1 }
   | x3 MUL x4 { Mul ($1, $3) }
+  | INT  { Int $1 }
   ;
 
 x2:

@@ -1,3 +1,9 @@
+// This is the one that has a context-dependent ambiguity
+// Fix involves introducing a token for string for type
+// refer to G9b.mly for the repaired one.
+
+// Ambig expression would be 'decl Foo f(Bar ());'
+
 // subset of C++ grammar to address review C's question
 // Q: Can it be so one cannot disambiguate between the two parse trees 
 // as the right disambiguation depends on the surrounding context?
@@ -7,13 +13,9 @@
     open Ast;;
 %}
 
-%token <string> TYPE (* "Foo" or "Bar" *)
-%token <string> ID (* any identifier, eg, "f" or "Bar" *)
-%token DECL
-%token LPAREN
-%token RPAREN
-
-%token EOF
+%token <string> DECL (* literal word "decl" *)
+%token <string> IDENT
+%token LPAREN RPAREN EOF
 
 %type <Ast.t> program
 %start program
@@ -27,17 +29,17 @@ decl:
   ;
 
 expr: 
-  | id LPAREN RPAREN { Call($1) }
+  | id LPAREN RPAREN { Call $1 }
   ;
 
 param:
-  | ty LPAREN RPAREN { Param($1) }
+  | ty LPAREN RPAREN { Param $1 }
   ; 
 
 ty: 
-  | TYPE { TyString($1) }
+  | IDENT { TyString $1 }
   ;
 
 id: 
-  | ID { IdString($1) }
+  | IDENT { IdString $1 }
   ;

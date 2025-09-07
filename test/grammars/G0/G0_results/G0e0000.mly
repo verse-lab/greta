@@ -1,3 +1,15 @@
+/* *** G0e *** */
+// 7 po's 2 assoc's
+// if2 vs. +
+// if2 vs. *
+// * vs. +
+// + vs. *
+// if1 vs. +
+// if1 vs. * 
+// if1 vs. if2
+// * assoc
+// + assoc
+
 %{
   open Ast
 %}
@@ -39,7 +51,7 @@ x1:
   ;
 
 e1:
-  | x1 PLUS e1 { Plus ($1, $3) }
   | x1 { $1 }
+  | e1 PLUS x1 { Plus ($1, $3) }
   ;
 
