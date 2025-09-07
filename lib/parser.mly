@@ -1,21 +1,3 @@
-(*
-  This file is part of scilla.
-
-  Copyright (c) 2018 - present Zilliqa Research Pvt. Ltd.
-  
-  scilla is free software: you can redistribute it and/or modify it under the
-  terms of the GNU General Public License as published by the Free Software
-  Foundation, either version 3 of the License, or (at your option) any later
-  version.
- 
-  scilla is distributed in the hope that it will be useful, but WITHOUT ANY
-  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-  A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
- 
-  You should have received a copy of the GNU General Public License along with
-  scilla.  If not, see <http://www.gnu.org/licenses/>.
-*)
-
 %parameter<S : ParserUtil.Syn>
 
 %{
@@ -213,37 +195,26 @@ t_map_value_args:
 | MAP; k=t_map_key; v = t_map_value; { SType.MapType (k, v) }
 
 t_map_value :
-(*
-| d = scid; targs=list(t_map_value_args)
-    { match targs with
-      | [] -> to_type d (toLoc $startpos(d))
-      | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
-*)
-| d = scid;
-  { to_type d (toLoc $startpos(d)) }
+| d = scid; { to_type d (toLoc $startpos(d)) }
 | MAP; k=t_map_key; v = t_map_value; { SType.MapType (k, v) }
-  | LPAREN; t = t_map_value_allow_targs; RPAREN;
-    { (* We only allow targs when the type is surrounded by parentheses *)
-      t }
+| LPAREN; t = t_map_value_allow_targs; RPAREN; { t } (* We only allow targs when the type is surrounded by parentheses *)
 | vt = address_typ; { vt }
 | t = t_map_value_allow_targs_deprecated { t }
 
 t_map_value_allow_targs_deprecated :
 | d = scid; targs = nonempty_list(t_map_value_args)
-  {
-    match targs with
+  { match targs with
     | [] -> to_type d (toLoc $startpos(d))
     | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
 
-
+(* We only allow targs when the type is surrounded by parentheses *)
 t_map_value_allow_targs :
 | d = scid; targs = nonempty_list(t_map_value_args)
-  { (* We only allow targs when the type is surrounded by parentheses *)
-    match targs with
+  { match targs with
     | [] -> to_type d (toLoc $startpos(d))
     | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
-| t = t_map_value
-  { t }
+| t = t_map_value { t }
+
 
 address_typ :
 | d = CID; WITH; END;
@@ -280,8 +251,7 @@ typ :
 | d = scid; targs=list(targ)
   { match targs with
     | [] -> to_type d (toLoc $startpos(d))
-    | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs)
-  }
+    | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
 | MAP; k=t_map_key; v = t_map_value; { SType.MapType (k, v) }
 | t1 = typ; TARROW; t2 = typ; { SType.FunType (t1, t2) }
 | LPAREN; t = typ; RPAREN; { t }
@@ -308,18 +278,13 @@ exp:
 | f = simple_exp {f}
 
 simple_exp :
-| LET; x = ID;
-  t = ioption(type_annot)
-  EQ; f = simple_exp; IN; e = exp
-  {(Let ( to_loc_id x (toLoc $startpos(x)), t, f, e), toLoc $startpos) }
+| LET; x = ID; t = ioption(type_annot) EQ; f = simple_exp; IN; e = exp {(Let ( to_loc_id x (toLoc $startpos(x)), t, f, e), toLoc $startpos) }
 (* Function *)
 | FUN; LPAREN; iwt = id_with_typ; RPAREN; ARROW; e = exp
     { match iwt with
       | (i, t) -> (Fun (i, t, e), toLoc $startpos ) }
 (* Application *)
-| f = sid;
-  args = nonempty_list(sident)
-  { (App (ParserIdentifier.mk_id f (toLoc $startpos(f)), args), toLoc $startpos ) }
+| f = sid; args = nonempty_list(sident) { (App (ParserIdentifier.mk_id f (toLoc $startpos(f)), args), toLoc $startpos ) }
 (* Atomic expression *)
 | a = atomic_exp {a}
 (* Built-in call *)
@@ -338,22 +303,18 @@ simple_exp :
     (Constr (SIdentifier.mk_id c (toLoc $startpos), targs, args), toLoc $startpos)
   }
 (* Match expression *)
-| MATCH; x = sid; WITH; cs=list(exp_pm_clause); END
-  { (MatchExpr (ParserIdentifier.mk_id x (toLoc $startpos(x)), cs), toLoc $startpos) }
+| MATCH; x = sid; WITH; cs=list(exp_pm_clause); END { (MatchExpr (ParserIdentifier.mk_id x (toLoc $startpos(x)), cs), toLoc $startpos) }
 (* Type function *)
-| TFUN; i = TID ARROW; e = exp
-  { (TFun ( to_loc_id i (toLoc $startpos(i)), e), toLoc $startpos) }
+| TFUN; i = TID ARROW; e = exp { (TFun ( to_loc_id i (toLoc $startpos(i)), e), toLoc $startpos) }
 (* Type application *)
-| AT; f = sid; targs = nonempty_list(targ)
-  { (TApp (ParserIdentifier.mk_id f (toLoc $startpos(f)), targs), toLoc $startpos) }
+| AT; f = sid; targs = nonempty_list(targ) { (TApp (ParserIdentifier.mk_id f (toLoc $startpos(f)), targs), toLoc $startpos) }
 
 atomic_exp :
-| i = sid       { (Var (ParserIdentifier.mk_id i (toLoc $startpos(i))), toLoc $startpos) }
+| i = sid      { (Var (ParserIdentifier.mk_id i (toLoc $startpos(i))), toLoc $startpos) }
 | l = lit      { (Literal l, toLoc $startpos) }
 
 lit :
-| i = CID;
-  n = NUMLIT   {
+| i = CID; n = NUMLIT   {
     let string_of_n = Big_int.string_of_big_int n in
     let iloc = toLoc $startpos(i) in
     (* XXX: for Int32 -11111111111111111111 we will report error pointing to Int32,
@@ -397,7 +358,7 @@ builtin_args :
 | LPAREN; RPAREN { [] }
 
 bcfetch_args :
-  | LPAREN; args = separated_nonempty_list(COMMA, sident); RPAREN { args }
+| LPAREN; args = separated_nonempty_list(COMMA, sident); RPAREN { args }
 
 exp_term :
 | e = exp; EOF { e }
@@ -422,14 +383,10 @@ stmt:
     let bcinfo = build_bcfetch c (Option.value args_opt ~default:[]) (toLoc $startpos) in
     (ReadFromBC ( to_loc_id l (toLoc $startpos(l)), bcinfo), toLoc $startpos) 
   }
-| l = ID; FETCH; r = ID; keys = nonempty_list(map_access)
-  { MapGet( to_loc_id l (toLoc $startpos(l)), to_loc_id r (toLoc $startpos(r)), keys, true), toLoc $startpos }
-| l = ID; FETCH; EXISTS; r = ID; keys = nonempty_list(map_access)
-  { MapGet( to_loc_id l (toLoc $startpos(l)), to_loc_id r (toLoc $startpos(r)), keys, false), toLoc $startpos }
-| l = ID; keys = nonempty_list(map_access); ASSIGN; r = sid
-  { MapUpdate( to_loc_id l (toLoc $startpos(l)), keys, Some (ParserIdentifier.mk_id r (toLoc $startpos(r)))), toLoc $startpos }
-| DELETE; l = ID; keys = nonempty_list(map_access)
-  { MapUpdate( to_loc_id l (toLoc $startpos(l)), keys, None), toLoc $startpos }
+| l = ID; FETCH; r = ID; keys = nonempty_list(map_access) { MapGet( to_loc_id l (toLoc $startpos(l)), to_loc_id r (toLoc $startpos(r)), keys, true), toLoc $startpos }
+| l = ID; FETCH; EXISTS; r = ID; keys = nonempty_list(map_access) { MapGet( to_loc_id l (toLoc $startpos(l)), to_loc_id r (toLoc $startpos(r)), keys, false), toLoc $startpos }
+| l = ID; keys = nonempty_list(map_access); ASSIGN; r = sid { MapUpdate( to_loc_id l (toLoc $startpos(l)), keys, Some (ParserIdentifier.mk_id r (toLoc $startpos(r)))), toLoc $startpos }
+| DELETE; l = ID; keys = nonempty_list(map_access) { MapUpdate( to_loc_id l (toLoc $startpos(l)), keys, None), toLoc $startpos }
 | ACCEPT                 { (AcceptPayment, toLoc $startpos) }
 | kw = SPID; ASSIGN; i = sid {
   if String.equal kw "_return" then
@@ -437,39 +394,31 @@ stmt:
   else
     raise (SyntaxError (Printf.sprintf "Illegal assignment to %s" kw, toLoc $startpos(kw)))
   }
-| SEND; m = sid;          { (SendMsgs (ParserIdentifier.mk_id m (toLoc $startpos(m))), toLoc $startpos) }
+| SEND; m = sid;  { (SendMsgs (ParserIdentifier.mk_id m (toLoc $startpos(m))), toLoc $startpos) }
 | EVENT; m = sid; { (CreateEvnt (ParserIdentifier.mk_id m (toLoc $startpos(m))), toLoc $startpos) }
 | THROW; mopt = option(sid); { Throw (Core.Option.map mopt ~f:(fun m -> (ParserIdentifier.mk_id m (toLoc $startpos(mopt))))), toLoc $startpos }
 | MATCH; x = sid; WITH; cs=list(stmt_pm_clause); END
   { (MatchStmt (ParserIdentifier.mk_id x (toLoc $startpos(x)), cs), toLoc $startpos)  }
 | (* calling a procedure without return type *)
-  p = component_id;
-  args = list(sident)
-  { (CallProc (None, p, args), toLoc $startpos)  }
+  p = component_id; args = list(sident) { (CallProc (None, p, args), toLoc $startpos)  }
 | (* list iterator *)
-  FORALL; l = sident; p = component_id
-  { Iterate (l, p), toLoc $startpos }
+  FORALL; l = sident; p = component_id { Iterate (l, p), toLoc $startpos }
 
 remote_fetch_stmt:
 | l = ID; FETCH; AND; adr = ID; PERIOD; r = sident
   { RemoteLoad (to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), r), toLoc $startpos }
 | (* Reading _sender._balance or _origin._balance *)
-  l = ID; FETCH; AND; adr = SPID; PERIOD; r = SPID
-  { RemoteLoad (to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r))), toLoc $startpos }
+  l = ID; FETCH; AND; adr = SPID; PERIOD; r = SPID { RemoteLoad (to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r))), toLoc $startpos }
 | (* Adding this production in preparation for remote reads of contract parameters *)
-  _l = ID; FETCH; AND; _adr = ID; PERIOD; LPAREN; _r = sident; RPAREN;
-  { raise (SyntaxError ("Remote fetch of contract parameters not yet supported", toLoc $startpos(_adr))) }
-| l = ID; FETCH; AND; adr = ID; PERIOD; r = ID; keys = nonempty_list(map_access)
-  { RemoteMapGet(to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r)), keys, true), toLoc $startpos }
-| l = ID; FETCH; AND; EXISTS; adr = ID; PERIOD; r = ID; keys = nonempty_list(map_access)
-  { RemoteMapGet(to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r)), keys, false), toLoc $startpos }
+  _l = ID; FETCH; AND; _adr = ID; PERIOD; LPAREN; _r = sident; RPAREN; { raise (SyntaxError ("Remote fetch of contract parameters not yet supported", toLoc $startpos(_adr))) }
+| l = ID; FETCH; AND; adr = ID; PERIOD; r = ID; keys = nonempty_list(map_access) { RemoteMapGet(to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r)), keys, true), toLoc $startpos }
+| l = ID; FETCH; AND; EXISTS; adr = ID; PERIOD; r = ID; keys = nonempty_list(map_access) { RemoteMapGet(to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r)), keys, false), toLoc $startpos }
 | (* Adding this production in preparation for address type casts *)
-  l = ID; FETCH; AND; adr = sident; AS; t = address_typ
-  { TypeCast(to_loc_id l (toLoc $startpos(l)), adr, t), toLoc $startpos }
+  l = ID; FETCH; AND; adr = sident; AS; t = address_typ { TypeCast(to_loc_id l (toLoc $startpos(l)), adr, t), toLoc $startpos }
 
 stmt_pm_clause:
-| BAR ; p = pattern ; ARROW ;
-  ss = separated_list(SEMICOLON, stmt) { p, ss }
+| BAR ; p = pattern ; ARROW ; ss = separated_list(SEMICOLON, stmt) { p, ss }
+
 stmts :
 | ss = separated_list(SEMICOLON, stmt) { ss }
 
@@ -484,10 +433,8 @@ param_pair:
 | iwt = id_with_typ { iwt }
 
 component:
-| t = transition
-  { t }
-| p = procedure 
-  { p }
+| t = transition { t }
+| p = procedure { p }
 
 procedure:
 | PROCEDURE; t = component_id;
@@ -518,12 +465,10 @@ component_id:
 | i = ID { to_loc_id i (toLoc $startpos(i)) }
 
 component_params:
-| LPAREN; params = separated_list(COMMA, param_pair); RPAREN;
-  { params }
+| LPAREN; params = separated_list(COMMA, param_pair); RPAREN; { params }
 
 component_body:
-| ss = stmts; END;
-  { ss }
+| ss = stmts; END; { ss }
 
 field:
 | FIELD; iwt = id_with_typ
@@ -532,8 +477,7 @@ field:
       | (f, t) -> (f, t, rhs) }
 
 with_constraint:
-| WITH; f = exp; ARROW
-  { f }  
+| WITH; f = exp; ARROW { f }
 
 contract:
 | CONTRACT; c = CID;
@@ -548,24 +492,19 @@ contract:
       ccomps = comps } }
 
 tconstr :
-| BAR; tn = CID;
-    { { cname = to_loc_id tn (toLoc $startpos); c_arg_types = [] } }
-| BAR; tn = CID; OF; t = nonempty_list(targ);
-    { { cname = to_loc_id tn (toLoc $startpos); c_arg_types = t }}
+| BAR; tn = CID; { { cname = to_loc_id tn (toLoc $startpos); c_arg_types = [] } }
+| BAR; tn = CID; OF; t = nonempty_list(targ); { { cname = to_loc_id tn (toLoc $startpos); c_arg_types = t }}
 
 libentry :
 | LET; ns = ID;
   t = ioption(type_annot)
   EQ; e= exp { LibVar (to_loc_id ns (toLoc $startpos(ns)), t, e) }
-| TYPE; tname = CID
-  { LibTyp (to_loc_id tname (toLoc $startpos), []) }
+| TYPE; tname = CID { LibTyp (to_loc_id tname (toLoc $startpos), []) }
 | TYPE; tname = CID; EQ; constrs = nonempty_list(tconstr)
   { LibTyp (to_loc_id tname (toLoc $startpos), constrs) }
 
 library :
-| LIBRARY; n = CID; ls = list(libentry);
-  { {lname = to_loc_id n (toLoc $startpos);
-     lentries = ls } }
+| LIBRARY; n = CID; ls = list(libentry); { {lname = to_loc_id n (toLoc $startpos); lentries = ls } }
 
 lmodule :
 | SCILLA_VERSION; cver = NUMLIT; els = imports; l = library; EOF 

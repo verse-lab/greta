@@ -66,7 +66,9 @@ Building upon the idea from the paper *Restricting Grammars with Tree Automata* 
 
 2. The following packages need to be installed by running `opam install <package>`:
 
-   * sedlex, ppx_deriving, num, core, qcheck
+   * sedlex, ppx_deriving, num, core, core_unix, qcheck, ppx_deriving_yojson, fileutils
+
+Note: Some of the packages above are needed for testing. 
 
 3. Install [Menhir](https://github.com/verse-lab/menhir/tree/dump-cfg) from the separate attachment.
 

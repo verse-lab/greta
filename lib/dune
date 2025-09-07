@@ -2,9 +2,11 @@
  (name greta)
  (public_name greta)
  (modes byte native)
- (libraries sedlex num menhirLib str core graphics qcheck)
- (preprocess (pps ppx_deriving.std sedlex.ppx))
- (flags :standard -rectypes))
+ (libraries sedlex num menhirLib str fileutils core core_unix core_unix.sys_unix graphics qcheck)
+ (preprocess
+  (pps ppx_sexp_conv ppx_deriving_yojson ppx_let ppx_deriving.show ppx_compare bisect_ppx
+    --conditional))
+ (flags (:standard -rectypes)))
 
 (menhir
  (modules parser)
