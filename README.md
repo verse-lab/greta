@@ -46,46 +46,36 @@ Building upon the idea from the paper *Restricting Grammars with Tree Automata* 
      ```
 
    * Mac OS (using Homebrew)
-     - Install Opam:
-        ```
-        brew install opam
-        ```
-     - Initialize Opam:
-        ```
-        opam init
-        ```
-     - Activate opam environment:
-        ```
-        eval $(opam env)
-        ```
-     - Install Dune:
-        ```
-        opam install dune
-        ```
+     ```
+     brew install opam
+     opam init
+     eval "$(opam env)"
+     opam install dune
+     ```
 
 
-2. The following packages need to be installed by running `opam install <package>`:
+2. Install opam packages:
 
-   * sedlex, ppx_deriving, num, core, core_unix, qcheck, ppx_deriving_yojson, fileutils
+```
+opam update
+opam install sedlex ppx_deriving num core core_unix qcheck ppx_deriving_yojson fileutils stdint
+eval "$(opam env)"
+```
 
-Note: Some of the packages above are needed for testing. 
+Note: Some of the packages above are needed for testing. Last command is needed to access the opam installation. 
 
 3. Install [Menhir](https://github.com/verse-lab/menhir/tree/dump-cfg) from the separate attachment.
 
-4. After installing the above packages, in order to access the opam installation, run the following:
+Note: Run `make install` before running Greta.
 
-```
-eval $(opam env)
-```
-
-5. (Optional) Ensure that you are using the right `dune` and `menhir` versions in `dune-project`. The current project runs with the following versions:
+4. (Optional) Ensure that you are using the right `dune` and `menhir` versions in `dune-project`. The current project runs with the following versions:
 
 ```
 (lang dune 2.1)
 (using menhir 2.0)
 ```
 
-6. (Optional) When you encounter a message "... seems to be compiled with a version of OCaml that is not supported by Merlin", then check the ocaml version via `opam switch list` and select `ocaml.4.14.0` compiler for this project. Make sure you run `eval $(opam env)` after switching to version `4.14.0`.
+5. (Optional) When you encounter a message "... seems to be compiled with a version of OCaml that is not supported by Merlin", then check the ocaml version via `opam switch list` and select `ocaml.4.14.0` compiler for this project. Make sure you run `eval $(opam env)` after switching to version `4.14.0`.
 
 
 ### Running 
