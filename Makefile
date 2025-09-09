@@ -10,6 +10,10 @@ default: test all
 all:
 	dune exec ./bin/main.exe
 
+menhir-only:
+	dune exec ./bin/main.exe
+	menhir --table --inspection --dump --explain --reference-graph --greta ./lib/parser.mly --base ./_build/default/lib/parser
+
 test: 
 	dune test
 	

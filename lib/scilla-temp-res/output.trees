@@ -1,0 +1,188 @@
+
+
+** Conflict type shift/reduce.
+** Tokens: CID
+** NumTokens: 1
+
+** << CID >>
+PROCEDURE component_id component_params option(return_type) component_body 
+return_type 
+COLON typ 
+scid list(targ) 
+targ list(targ) 
+targ list(targ) 
+address_typ 
+@@ CID WITH END 
+
+>> Production list(targ) ->
+PROCEDURE component_id component_params option(return_type) component_body 
+return_type 
+COLON typ 
+scid list(targ) 
+targ list(targ) 
+@@ 
+
+
+** Conflict type shift/reduce.
+** Tokens: CID
+** NumTokens: 1
+
+** << CID >>
+PROCEDURE component_id component_params option(return_type) component_body 
+return_type 
+COLON typ 
+scid list(targ) 
+targ list(targ) 
+address_typ 
+@@ CID WITH END 
+
+>> Production list(targ) ->
+PROCEDURE component_id component_params option(return_type) component_body 
+return_type 
+COLON typ 
+scid list(targ) 
+@@ 
+
+
+** Conflict type reduce/reduce.
+** Tokens: RPAREN
+** NumTokens: 1
+
+** << RPAREN >>
+>> Production t_map_value_allow_targs -> scid nonempty_list(t_map_value_args)
+scid nonempty_list(t_map_value_args) @@ 
+
+>> Production t_map_value_allow_targs_deprecated -> scid nonempty_list(t_map_value_args)
+t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) @@ 
+
+
+** Conflict type shift/reduce.
+** Tokens: MAP LPAREN HEXLIT CID
+** NumTokens: 4
+
+** << MAP >>
+>> Production nonempty_list(t_map_value_args) -> t_map_value_args
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args @@ 
+
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args nonempty_list(t_map_value_args) 
+t_map_value_args 
+@@ MAP t_map_key t_map_value 
+
+** << LPAREN >>
+>> Production nonempty_list(t_map_value_args) -> t_map_value_args
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args @@ 
+
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args nonempty_list(t_map_value_args) 
+t_map_value_args 
+@@ LPAREN t_map_value_allow_targs RPAREN 
+
+** << HEXLIT >>
+>> Production nonempty_list(t_map_value_args) -> t_map_value_args
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args @@ 
+
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args nonempty_list(t_map_value_args) 
+t_map_value_args 
+scid 
+@@ HEXLIT PERIOD CID 
+
+** << CID >>
+>> Production nonempty_list(t_map_value_args) -> t_map_value_args
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args @@ 
+
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args nonempty_list(t_map_value_args) 
+t_map_value_args 
+scid 
+@@ CID 
+
+
+** Conflict type shift/reduce.
+** Tokens: MAP LPAREN HEXLIT CID
+** NumTokens: 4
+
+** << MAP >>
+>> Production t_map_value -> scid
+targ list(targ) 
+MAP t_map_key t_map_value 
+scid @@ 
+
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args 
+@@ MAP t_map_key t_map_value 
+
+** << LPAREN >>
+>> Production t_map_value -> scid
+targ list(targ) 
+MAP t_map_key t_map_value 
+scid @@ 
+
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args 
+@@ LPAREN t_map_value_allow_targs RPAREN 
+
+** << HEXLIT >>
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args 
+scid 
+@@ HEXLIT PERIOD CID 
+
+>> Production t_map_value -> scid
+targ list(targ) 
+MAP t_map_key t_map_value 
+scid @@ 
+
+** << CID >>
+targ list(targ) 
+MAP t_map_key t_map_value 
+t_map_value_allow_targs_deprecated 
+scid nonempty_list(t_map_value_args) 
+t_map_value_args 
+scid 
+@@ CID 
+
+>> Production t_map_value -> scid
+targ list(targ) 
+MAP t_map_key t_map_value 
+scid @@ 

@@ -102,8 +102,6 @@
 %token FETCH
 %token REMOTEFETCH
 %token ASSIGN
-(* %token LANGLE
- * %token RANGLE *)
 
 (* Keywords *)
 %token BUILTIN
@@ -141,8 +139,6 @@
 
 (* Associativity *)
 
-(* %left PLUS *)
-(* %nonassoc NEG *)
 %right TARROW
 
 %start <S.expr_annot> exp_term
@@ -166,11 +162,7 @@ sident :
 scid :
 | name = CID { ParserName.parse_simple_name name }
 | ns = CID; PERIOD; name = CID { ParserName.parse_qualified_name ns name }
-(* This production is necessary because message and state jsons contain global type names *)
-| ns = HEXLIT; PERIOD; name = CID {
-  let ns' = SLiteral.(Bystrx.hex_encoding (Bystrx.parse_hex ns)) in
-  ParserName.parse_qualified_name ns' name
-}
+| ns = HEXLIT; PERIOD; name = CID { let ns' = SLiteral.(Bystrx.hex_encoding (Bystrx.parse_hex ns)) in ParserName.parse_qualified_name ns' name }
 
 type_annot:
 | COLON; t = typ { t }
@@ -202,56 +194,23 @@ t_map_value :
 | t = t_map_value_allow_targs_deprecated { t }
 
 t_map_value_allow_targs_deprecated :
-| d = scid; targs = nonempty_list(t_map_value_args)
-  { match targs with
-    | [] -> to_type d (toLoc $startpos(d))
-    | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
+| d = scid; targs = nonempty_list(t_map_value_args) { match targs with [] -> to_type d (toLoc $startpos(d)) | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
 
 (* We only allow targs when the type is surrounded by parentheses *)
 t_map_value_allow_targs :
-| d = scid; targs = nonempty_list(t_map_value_args)
-  { match targs with
-    | [] -> to_type d (toLoc $startpos(d))
-    | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
+| d = scid; targs = nonempty_list(t_map_value_args) { match targs with [] -> to_type d (toLoc $startpos(d)) | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
 | t = t_map_value { t }
 
-
 address_typ :
-| d = CID; WITH; END;
-    { if d = "ByStr20"
-      then Address AnyAddr
-      else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
-| d = CID; WITH; CONTRACT; fs = separated_list(COMMA, address_type_field); END;
-    { if d = "ByStr20"
-      then
-        let fs' = List.fold_left (fun acc (id, t) -> 
-                                   match SType.IdLoc_Comp.Map.add acc ~key:id ~data:t with
-                                   | `Ok new_map -> new_map
-                                   | `Duplicate ->
-                                      raise (SyntaxError (Printf.sprintf "Duplicate field name %s in address type" (ParserIdentifier.as_string id), toLoc $startpos(d))))
-                                 SType.IdLoc_Comp.Map.empty fs
-        in
-        Address (ContrAddr fs')
-      else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
-| d = CID; WITH; LIBRARY; END;
-    { if d = "ByStr20"
-      then Address LibAddr
-      else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
-| d = CID; WITH; c = SPID; END;
-    { if d = "ByStr20" && c = "_codehash"
-      then Address CodeAddr
-      else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
-| (* Adding this production in preparation for contract parameters *)
-  d = CID; WITH; CONTRACT; LPAREN; _ps = separated_list(COMMA, param_pair); RPAREN; _fs = separated_list(COMMA, address_type_field); END;
-    { if d = "ByStr20"
-      then raise (SyntaxError ("Contract parameters in address types not yet supported", toLoc $startpos(d)))
-      else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
+| d = CID; WITH; END; { if d = "ByStr20" then Address AnyAddr else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) } (* SType.IdLoc_Comp.Map.add *)
+| d = CID; WITH; CONTRACT; fs = separated_list(COMMA, address_type_field); END; { if d = "ByStr20" then (let fs' = List.fold_left (fun acc (id, t) ->  match Map.add acc ~key:id ~data:t with `Ok new_map -> new_map | `Duplicate -> raise (SyntaxError (Printf.sprintf "Duplicate field name %s in address type" (ParserIdentifier.as_string id), toLoc $startpos(d)))) SType.IdLoc_Comp.Map.empty fs in Address (ContrAddr fs')) else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
+| d = CID; WITH; LIBRARY; END; { if d = "ByStr20" then Address LibAddr else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
+| d = CID; WITH; c = SPID; END; { if d = "ByStr20" && c = "_codehash" then Address CodeAddr else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
+| d = CID; WITH; CONTRACT; LPAREN; _ps = separated_list(COMMA, param_pair); RPAREN; _fs = separated_list(COMMA, address_type_field); END; { if d = "ByStr20" then raise (SyntaxError ("Contract parameters in address types not yet supported", toLoc $startpos(d))) else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
+(* Adding this production in preparation for contract parameters *)
 
 typ :
-| d = scid; targs=list(targ)
-  { match targs with
-    | [] -> to_type d (toLoc $startpos(d))
-    | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
+| d = scid; targs=list(targ) { match targs with [] -> to_type d (toLoc $startpos(d)) | _ -> ADT (SIdentifier.mk_id d (toLoc $startpos(d)), targs) }
 | MAP; k=t_map_key; v = t_map_value; { SType.MapType (k, v) }
 | t1 = typ; TARROW; t2 = typ; { SType.FunType (t1, t2) }
 | LPAREN; t = typ; RPAREN; { t }
@@ -280,28 +239,17 @@ exp:
 simple_exp :
 | LET; x = ID; t = ioption(type_annot) EQ; f = simple_exp; IN; e = exp {(Let ( to_loc_id x (toLoc $startpos(x)), t, f, e), toLoc $startpos) }
 (* Function *)
-| FUN; LPAREN; iwt = id_with_typ; RPAREN; ARROW; e = exp
-    { match iwt with
-      | (i, t) -> (Fun (i, t, e), toLoc $startpos ) }
+| FUN; LPAREN; iwt = id_with_typ; RPAREN; ARROW; e = exp { match iwt with | (i, t) -> (Fun (i, t, e), toLoc $startpos ) }
 (* Application *)
 | f = sid; args = nonempty_list(sident) { (App (ParserIdentifier.mk_id f (toLoc $startpos(f)), args), toLoc $startpos ) }
 (* Atomic expression *)
 | a = atomic_exp {a}
 (* Built-in call *)
-| BUILTIN; b = ID; targs = option(ctargs); xs = builtin_args
-  { let bloc = toLoc $startpos(b) in
-    (Builtin ((parse_builtin b bloc, bloc), Option.value targs ~default:[], xs)), toLoc $startpos }
+| BUILTIN; b = ID; targs = option(ctargs); xs = builtin_args { let bloc = toLoc $startpos(b) in (Builtin ((parse_builtin b bloc, bloc), Option.value targs ~default:[], xs)), toLoc $startpos }
 (* Message construction *)
-| LBRACE; es = separated_list(SEMICOLON, msg_entry); RBRACE
-  { (Message es, toLoc $startpos) }
+| LBRACE; es = separated_list(SEMICOLON, msg_entry); RBRACE { (Message es, toLoc $startpos) }
 (* Data constructor application *)
-| c = scid ts=option(ctargs) args=list(sident)
-  { let targs =
-      (match ts with
-       | None -> []
-       | Some ls -> ls) in
-    (Constr (SIdentifier.mk_id c (toLoc $startpos), targs, args), toLoc $startpos)
-  }
+| c = scid ts=option(ctargs) args=list(sident) { let targs = (match ts with None -> [] | Some ls -> ls) in (Constr (SIdentifier.mk_id c (toLoc $startpos), targs, args), toLoc $startpos) }
 (* Match expression *)
 | MATCH; x = sid; WITH; cs=list(exp_pm_clause); END { (MatchExpr (ParserIdentifier.mk_id x (toLoc $startpos(x)), cs), toLoc $startpos) }
 (* Type function *)
@@ -314,20 +262,10 @@ atomic_exp :
 | l = lit      { (Literal l, toLoc $startpos) }
 
 lit :
-| i = CID; n = NUMLIT   {
-    let string_of_n = Big_int.string_of_big_int n in
-    let iloc = toLoc $startpos(i) in
-    (* XXX: for Int32 -11111111111111111111 we will report error pointing to Int32,
-            not the numeral, because the user might have forgotten to switch e.g. Int32 to Int64
-     *)
-    build_prim_literal_exn (to_prim_type_exn i iloc) string_of_n (toLoc $startpos)
-  }
+| i = CID; n = NUMLIT   { let string_of_n = Big_int.string_of_big_int n in let iloc = toLoc $startpos(i) in build_prim_literal_exn (to_prim_type_exn i iloc) string_of_n (toLoc $startpos) }
 | h = HEXLIT   { SLiteral.(ByStrX (Bystrx.parse_hex h)) }
 | s = STRING   { build_prim_literal_exn String_typ s (toLoc $startpos) }
-| EMP; kt = t_map_key; vt = t_map_value
-{
-  Map ((kt, vt), Caml.Hashtbl.create 4) (* 4 is arbitrary here. *)
-}
+| EMP; kt = t_map_key; vt = t_map_value { Map ((kt, vt), Hashtbl.create 4) } (* 4 is arbitrary here. *)
 
 ctargs:
 | LBRACE; ts = list(targ); RBRACE { ts }
@@ -374,47 +312,31 @@ stmt:
 | l = ID; FETCH; r = sid   { (Load (to_loc_id l (toLoc $startpos(l)), ParserIdentifier.mk_id r (toLoc $startpos(r))), toLoc $startpos) }
 | r = remote_fetch_stmt { r }
 | l = ID; ASSIGN; r = sid { (Store ( to_loc_id l (toLoc $startpos(l)), ParserIdentifier.mk_id r (toLoc $startpos(r))), toLoc $startpos) }
-| l = ID; EQ; r = exp  {
+| l = ID; EQ; r = exp  { ( Bind ( to_loc_id l (toLoc $startpos(l)), r), toLoc $startpos ) }
   (* This [Bind] may contain both application of a function or call a procedure
       with return type because they have the same syntax. We always save it as
       [Bind] to disambiguate it later. *)
-  ( Bind ( to_loc_id l (toLoc $startpos(l)), r), toLoc $startpos ) }
-| l = ID; FETCH; AND; c = CID; args_opt = option(bcfetch_args) { 
-    let bcinfo = build_bcfetch c (Option.value args_opt ~default:[]) (toLoc $startpos) in
-    (ReadFromBC ( to_loc_id l (toLoc $startpos(l)), bcinfo), toLoc $startpos) 
-  }
+| l = ID; FETCH; AND; c = CID; args_opt = option(bcfetch_args) { let bcinfo = build_bcfetch c (Option.value args_opt ~default:[]) (toLoc $startpos) in (ReadFromBC ( to_loc_id l (toLoc $startpos(l)), bcinfo), toLoc $startpos) }
 | l = ID; FETCH; r = ID; keys = nonempty_list(map_access) { MapGet( to_loc_id l (toLoc $startpos(l)), to_loc_id r (toLoc $startpos(r)), keys, true), toLoc $startpos }
 | l = ID; FETCH; EXISTS; r = ID; keys = nonempty_list(map_access) { MapGet( to_loc_id l (toLoc $startpos(l)), to_loc_id r (toLoc $startpos(r)), keys, false), toLoc $startpos }
 | l = ID; keys = nonempty_list(map_access); ASSIGN; r = sid { MapUpdate( to_loc_id l (toLoc $startpos(l)), keys, Some (ParserIdentifier.mk_id r (toLoc $startpos(r)))), toLoc $startpos }
 | DELETE; l = ID; keys = nonempty_list(map_access) { MapUpdate( to_loc_id l (toLoc $startpos(l)), keys, None), toLoc $startpos }
 | ACCEPT                 { (AcceptPayment, toLoc $startpos) }
-| kw = SPID; ASSIGN; i = sid {
-  if String.equal kw "_return" then
-    (Return (ParserIdentifier.mk_id i (toLoc $startpos(kw))), toLoc $startpos)
-  else
-    raise (SyntaxError (Printf.sprintf "Illegal assignment to %s" kw, toLoc $startpos(kw)))
-  }
+| kw = SPID; ASSIGN; i = sid { if String.equal kw "_return" then (Return (ParserIdentifier.mk_id i (toLoc $startpos(kw))), toLoc $startpos) else raise (SyntaxError (Printf.sprintf "Illegal assignment to %s" kw, toLoc $startpos(kw))) }
 | SEND; m = sid;  { (SendMsgs (ParserIdentifier.mk_id m (toLoc $startpos(m))), toLoc $startpos) }
 | EVENT; m = sid; { (CreateEvnt (ParserIdentifier.mk_id m (toLoc $startpos(m))), toLoc $startpos) }
 | THROW; mopt = option(sid); { Throw (Core.Option.map mopt ~f:(fun m -> (ParserIdentifier.mk_id m (toLoc $startpos(mopt))))), toLoc $startpos }
-| MATCH; x = sid; WITH; cs=list(stmt_pm_clause); END
-  { (MatchStmt (ParserIdentifier.mk_id x (toLoc $startpos(x)), cs), toLoc $startpos)  }
-| (* calling a procedure without return type *)
-  p = component_id; args = list(sident) { (CallProc (None, p, args), toLoc $startpos)  }
-| (* list iterator *)
-  FORALL; l = sident; p = component_id { Iterate (l, p), toLoc $startpos }
+| MATCH; x = sid; WITH; cs=list(stmt_pm_clause); END { (MatchStmt (ParserIdentifier.mk_id x (toLoc $startpos(x)), cs), toLoc $startpos)  }
+| p = component_id; args = list(sident) { (CallProc (None, p, args), toLoc $startpos)  } (* calling a procedure without return type *)
+| FORALL; l = sident; p = component_id { Iterate (l, p), toLoc $startpos } (* list iterator *)
 
 remote_fetch_stmt:
-| l = ID; FETCH; AND; adr = ID; PERIOD; r = sident
-  { RemoteLoad (to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), r), toLoc $startpos }
-| (* Reading _sender._balance or _origin._balance *)
-  l = ID; FETCH; AND; adr = SPID; PERIOD; r = SPID { RemoteLoad (to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r))), toLoc $startpos }
-| (* Adding this production in preparation for remote reads of contract parameters *)
-  _l = ID; FETCH; AND; _adr = ID; PERIOD; LPAREN; _r = sident; RPAREN; { raise (SyntaxError ("Remote fetch of contract parameters not yet supported", toLoc $startpos(_adr))) }
+| l = ID; FETCH; AND; adr = ID; PERIOD; r = sident { RemoteLoad (to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), r), toLoc $startpos }
+| l = ID; FETCH; AND; adr = SPID; PERIOD; r = SPID { RemoteLoad (to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r))), toLoc $startpos } (* Reading _sender._balance or _origin._balance *)
+| _l = ID; FETCH; AND; _adr = ID; PERIOD; LPAREN; _r = sident; RPAREN; { raise (SyntaxError ("Remote fetch of contract parameters not yet supported", toLoc $startpos(_adr))) } (* Adding this production in preparation for remote reads of contract parameters *)
 | l = ID; FETCH; AND; adr = ID; PERIOD; r = ID; keys = nonempty_list(map_access) { RemoteMapGet(to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r)), keys, true), toLoc $startpos }
 | l = ID; FETCH; AND; EXISTS; adr = ID; PERIOD; r = ID; keys = nonempty_list(map_access) { RemoteMapGet(to_loc_id l (toLoc $startpos(l)), to_loc_id adr (toLoc $startpos(adr)), to_loc_id r (toLoc $startpos(r)), keys, false), toLoc $startpos }
-| (* Adding this production in preparation for address type casts *)
-  l = ID; FETCH; AND; adr = sident; AS; t = address_typ { TypeCast(to_loc_id l (toLoc $startpos(l)), adr, t), toLoc $startpos }
+| l = ID; FETCH; AND; adr = sident; AS; t = address_typ { TypeCast(to_loc_id l (toLoc $startpos(l)), adr, t), toLoc $startpos } (* Adding this production in preparation for address type casts *)
 
 stmt_pm_clause:
 | BAR ; p = pattern ; ARROW ; ss = separated_list(SEMICOLON, stmt) { p, ss }
@@ -437,28 +359,13 @@ component:
 | p = procedure { p }
 
 procedure:
-| PROCEDURE; t = component_id;
-  params = component_params;
-  ret = option(return_type);
-  ss = component_body;
-  { { comp_type = CompProc;
-      comp_name = t;
-      comp_params = params;
-      comp_body = ss;
-      comp_return = ret } }
+| PROCEDURE; t = component_id; params = component_params; ret = option(return_type); ss = component_body; { { comp_type = CompProc; comp_name = t; comp_params = params; comp_body = ss; comp_return = ret } }
 
 return_type:
 | COLON; t = typ; { t }
 
 transition:
-| TRANSITION; t = component_id;
-  params = component_params;
-  ss = component_body;
-  { { comp_type = CompTrans;
-      comp_name = t;
-      comp_params = params;
-      comp_body = ss;
-      comp_return = None; } }
+| TRANSITION; t = component_id; params = component_params; ss = component_body; { { comp_type = CompTrans; comp_name = t; comp_params = params; comp_body = ss; comp_return = None; } }
 
 component_id:
 | c = CID { to_loc_id c (toLoc $startpos(c)) }
@@ -471,45 +378,28 @@ component_body:
 | ss = stmts; END; { ss }
 
 field:
-| FIELD; iwt = id_with_typ
-  EQ; rhs = exp
-    { match iwt with
-      | (f, t) -> (f, t, rhs) }
+| FIELD; iwt = id_with_typ; EQ; rhs = exp { match iwt with | (f, t) -> (f, t, rhs) }
 
 with_constraint:
 | WITH; f = exp; ARROW { f }
 
 contract:
-| CONTRACT; c = CID;
-  LPAREN; params = separated_list(COMMA, param_pair); RPAREN;
-  ct = ioption(with_constraint);
-  fs = list(field);
-  comps = list(component)
-  { { cname   = to_loc_id c (toLoc $startpos(c));
-      cparams = params;
-      cconstraint = Core.Option.value ct ~default:(build_bool_literal true dummy_loc);
-      cfields = fs;
-      ccomps = comps } }
+| CONTRACT; c = CID; LPAREN; params = separated_list(COMMA, param_pair); RPAREN; ct = ioption(with_constraint); fs = list(field); comps = list(component) { { cname   = to_loc_id c (toLoc $startpos(c)); cparams = params; cconstraint = Core.Option.value ct ~default:(build_bool_literal true dummy_loc); cfields = fs; ccomps = comps } }
 
 tconstr :
 | BAR; tn = CID; { { cname = to_loc_id tn (toLoc $startpos); c_arg_types = [] } }
 | BAR; tn = CID; OF; t = nonempty_list(targ); { { cname = to_loc_id tn (toLoc $startpos); c_arg_types = t }}
 
 libentry :
-| LET; ns = ID;
-  t = ioption(type_annot)
-  EQ; e= exp { LibVar (to_loc_id ns (toLoc $startpos(ns)), t, e) }
+| LET; ns = ID; t = ioption(type_annot) EQ; e= exp { LibVar (to_loc_id ns (toLoc $startpos(ns)), t, e) }
 | TYPE; tname = CID { LibTyp (to_loc_id tname (toLoc $startpos), []) }
-| TYPE; tname = CID; EQ; constrs = nonempty_list(tconstr)
-  { LibTyp (to_loc_id tname (toLoc $startpos), constrs) }
+| TYPE; tname = CID; EQ; constrs = nonempty_list(tconstr) { LibTyp (to_loc_id tname (toLoc $startpos), constrs) }
 
 library :
 | LIBRARY; n = CID; ls = list(libentry); { {lname = to_loc_id n (toLoc $startpos); lentries = ls } }
 
 lmodule :
-| SCILLA_VERSION; cver = NUMLIT; els = imports; l = library; EOF 
-  { { smver = Big_int.int_of_big_int cver;
-      elibs = els; libs = l } }
+| SCILLA_VERSION; cver = NUMLIT; els = imports; l = library; EOF { { smver = Big_int.int_of_big_int cver; elibs = els; libs = l } }
 
 importname :
 | c = CID { to_loc_id c (toLoc $startpos), None }
@@ -520,8 +410,4 @@ imports :
 | { [] }
 
 cmodule:
-| SCILLA_VERSION; cver = NUMLIT; els = imports; ls = option(library); c = contract; EOF
-  { { smver = Big_int.int_of_big_int cver;
-      libs = ls;
-      elibs = els;
-      contr = c } }
+| SCILLA_VERSION; cver = NUMLIT; els = imports; ls = option(library); c = contract; EOF { { smver = Big_int.int_of_big_int cver; libs = ls; elibs = els; contr = c } }

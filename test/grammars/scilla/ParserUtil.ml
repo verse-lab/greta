@@ -16,8 +16,10 @@
   scilla.  If not, see <http://www.gnu.org/licenses/>.
 *)
 
-(* open ErrorUtils
+open ErrorUtils
+
 open Literal
+(*
 open Syntax
 open GasCharge *)
 

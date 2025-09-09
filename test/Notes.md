@@ -28,7 +28,7 @@ Evaluation
 | **G7** |  -  |   -   |    -    |   -   |    -     | Simplified SQL<br />Grammar  | `parser.mly`   `ast.mly`                                             |
 | **G8** |  -  |   -   |    -    |   -   |    -     |        ANSI C Grammar        | `parser.mly`   `lexer.mll`   `ast.mly`                               |
 | **G9** |  -  |   -   |    -    |   -   |    -     | TestMatch data<br />(Java 5 by T. Parr) | `parser.mly`   `lexer.mll`   `ast.mly`                    |
-| **Scilla** | - | - | Y | - | - | Zilliqa Research | `parser.mly`  `lexer.mll`  `ParserUtil.ml`  `ErrorUtils.ml`  `DebugMessage.ml` `GlobalConfig.ml`  `ScillaUtil.ml` | 
+| **Scilla** | - | - | Y | - | - | Zilliqa Research | `parser.mly` `ParserUtil.ml` | 
 | **Tezos**  | - | - | - | - | - | Tezos | `parser.mly` (TODO) | 
 
 Note: Check if `dune` is consistent

@@ -17,10 +17,10 @@
 *)
 
 open ErrorUtils
-(* 
+
 open Literal
 open Syntax
-open GasCharge *)
+open GasCharge
 
 (*******************************************************)
 (*              Location annotations                   *)
