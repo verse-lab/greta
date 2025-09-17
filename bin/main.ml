@@ -145,12 +145,14 @@ let () =
     let classical_intersect_start = Sys.time () in
     let ta3_initial = O.convert_ta ta_initial in
     let ta3_learned = O.convert_ta ta_learned in
-    let _ = O.intersect2 ta3_initial ta3_learned true in
+    let ta3_intersect = O.intersect2 ta3_initial ta3_learned true in
     let classical_intersect_elapsed = Sys.time () -. classical_intersect_start in
-    (* Ta.pp_ta3 ta3_initial;
+    Ta.pp_ta3 ta3_initial;
     Ta.pp_ta3 ta3_learned;
-    Ta.pp_ta3 ta3_intersect; *)
- 
+    Ta.pp_ta3 ta3_intersect;
+
+    Pp.pp_ta2 ta_intersected;
+(*  
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
     (* let file_written = "./test/grammars/G0/G0_results/G0a" in  *)
     let grammar = 
@@ -164,7 +166,7 @@ let () =
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" convert_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" learn_ta_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed;
-    Printf.printf "\n\n\t\tTime elapsed for classical intersecting TA: %f\n\n" classical_intersect_elapsed;
+    Printf.printf "\n\n\t\tTime elapsed for classical intersecting TA: %f\n\n" classical_intersect_elapsed; *)
     (* Time for convering back to CFG *)
     
 end
