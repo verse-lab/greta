@@ -108,6 +108,6 @@ let[@warning "-16"] mk_internal_error ~kind ?inst =
 
 exception FatalError of string
 
-let exit_with_error msg =
+(* let exit_with_error msg =
   DebugMessage.perr msg;
-  exit 1
+  exit 1 *)

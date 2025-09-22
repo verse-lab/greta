@@ -408,16 +408,17 @@ module MkType (I : ScillaIdentifier) = struct
       | Address CodeAddr, Address (ContrAddr _) ->
           (* Any address containing code, library or contract is a code address. *)
           true
-      | Address (ContrAddr tfts), Address (ContrAddr ffts) ->
+      | Address (ContrAddr _tfts), Address (ContrAddr _ffts) ->
           (* Check that tfts is a subset of ffts, and that types are assignable/equivalent. *)
-          IdLoc_Comp.Map.for_alli tfts ~f:(fun ~key:tf ~data:tft ->
+          false
+          (* IdLoc_Comp.Map.for_alli tfts ~f:(fun ~key:tf ~data:tft ->
               match IdLoc_Comp.Map.find ffts tf with
               | None ->
                   (* to field does not appear in from type *)
                   false
               | Some fft ->
                   (* Matching field name. Types must be assignable. *)
-                  assignable tft fft)
+                  assignable tft fft) *)
       | PrimType (Bystrx_typ len), Address _ when len = address_length ->
           (* Any address is assignable to ByStr20. *)
           true
