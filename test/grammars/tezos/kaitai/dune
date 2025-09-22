@@ -5,8 +5,7 @@
 (ocamllex lexer)
 
 (library 
- (name greta)
- (public_name greta)
+ (name kaitai)
  (modes byte native)
  (libraries sedlex sexplib menhirLib str core graphics qcheck num)
  (preprocess (pps ppx_deriving.std ppx_sexp_conv))

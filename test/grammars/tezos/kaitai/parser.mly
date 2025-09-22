@@ -33,34 +33,57 @@ open Types
 %token COLON
 %token LSHIFT
 %token RSHIFT
-%token LT GT EQ GTE LTE
+%token LT
+%token GT
+%token EQ
+%token GTE
+%token LTE
 %token NOTEQ
-%token ADD SUB MUL DIV MOD
-%token BITOR BITAND BITXOR
-%token COMMA TILDE DOT
+%token ADD
+%token SUB
+%token MUL
+%token DIV
+%token MOD
+%token BITOR
+%token BITAND
+%token BITXOR
+%token COMMA
+%token TILDE
+%token DOT
 %token EOF
 %start <Ast.t> expression
 
 %%
 
 test:
-  | test OR test { Ast.(BoolOp { op = Or; values = [$1; $3] }) }
-  | test AND test { Ast.(BoolOp { op = And; values = [$1; $3] }) }
+  | or_test { $1 }
+  | condition=or_test QUESTION ifTrue=test COLON ifFalse=test
+    { Ast.(IfExp {condition; ifTrue; ifFalse}) }
+
+or_test:
+  | and_test { $1 }
+  | or_test OR and_test { Ast.(BoolOp { op = Or; values = [$1; $3] }) }
+
+and_test:
   | not_test { $1 }
-  | condition=test QUESTION ifTrue=test COLON ifFalse=test { Ast.(IfExp {condition; ifTrue; ifFalse}) }
-  
+  | and_test AND not_test { Ast.(BoolOp { op = And; values = [$1; $3] }) }
+
 not_test:
   | NOT not_test { Ast.(UnaryOp { op = Ast.Not; operand = $2 }) }
   | comparison { $1 }
 
 comparison:
   | expr { $1 }
-  | left=expr LT right=expr { Ast.Compare {left;ops=Ast.Lt;right} }
-  | left=expr LTE right=expr { Ast.Compare {left;ops=Ast.LtE;right} }
-  | left=expr GT right=expr { Ast.Compare {left;ops=Ast.Gt;right} }
-  | left=expr GTE right=expr { Ast.Compare {left;ops=Ast.GtE;right} }
-  | left=expr EQ right=expr { Ast.Compare {left;ops=Ast.Eq;right} }
-  | left=expr NOTEQ right=expr { Ast.Compare {left;ops=Ast.NotEq;right} }
+  | left=expr ops=comp_op right=expr
+    { Ast.Compare {left;ops;right} }
+
+comp_op:
+  | LT { Ast.Lt }
+  | LTE { Ast.LtE }
+  | GT { Ast.Gt }
+  | GTE { Ast.GtE }
+  | EQ { Ast.Eq }
+  | NOTEQ { Ast.NotEq }
 
 chain(P, OP):
   | P { $1 }
@@ -120,16 +143,25 @@ atom:
   | s=STRING { Ast.Str s }
   | f=FLOAT { Ast.FloatNum (float_of_string f) }
   | i=INT { Ast.IntNum (int_of_string i) }
+  /* | i=IDENT { */
+  /*     match i with */
+  /*     | "true"  -> Ast.Bool true */
+  /*     | "false" -> Ast.Bool false */
+  /*     | _       -> Ast.Name i */
+  /*       } */
   | SIZEOF LT typeName=typeId GT { Ast.ByteSizeOfType{typeName} }
   | BITSIZEOF LT typeName=typeId GT { Ast.BitSizeOfType{typeName} }
-  | nameOrEnumByName { $1 }
+  | NameOrEnumByName { $1 }
   | LBRACKET separated_nonempty_list(COMMA, test) RBRACKET { Ast.List $2 }
   | LPAREN test RPAREN { $2 }
 
 typeId:
-  | option(COLON2) separated_nonempty_list(COLON2, IDENT) option(pair(LBRACKET, LBRACKET)) { let absolute = Option.is_some $1 in Ast.({ absolute; isArray = false; names = $2 }) }
+  | option(COLON2) separated_nonempty_list(COLON2, IDENT) option(pair(LBRACKET, LBRACKET)) {
+    let absolute = Option.is_some $1 in
+    Ast.({ absolute; isArray = false; names = $2 })
+  }
 
-nameOrEnumByName:
+NameOrEnumByName:
   | option(COLON2) separated_nonempty_list(COLON2, IDENT)
     {
       match $1, $2 with

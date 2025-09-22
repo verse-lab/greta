@@ -7,7 +7,7 @@
  (modules ScillaParser))
 
 (library 
- (name scilla-demo)
+ (name scilla)
  (modes byte native)
  (libraries num menhirLib str fileutils core core_unix core_unix.sys_unix graphics qcheck hex stdint)
  (preprocess
