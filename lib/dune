@@ -1,14 +1,19 @@
+;; Below to be consistent with Scilla's dune file (https://github.com/Zilliqa/scilla/blob/308af35eb3948528702259c39a2537ba1e515ea1/src/base/dune)
+(ocamllex
+ (modules ScillaLexer))
+
+(menhir
+ (flags --table --inspection --dump --explain --reference-graph --greta)
+ (modules ScillaParser))
+
 (library 
  (name greta)
  (public_name greta)
  (modes byte native)
- (libraries sedlex num menhirLib str fileutils core core_unix core_unix.sys_unix graphics qcheck hex stdint)
+ (libraries num menhirLib str fileutils core core_unix core_unix.sys_unix graphics qcheck hex stdint)
  (preprocess
   (pps ppx_sexp_conv ppx_deriving_yojson ppx_let ppx_deriving.show ppx_compare bisect_ppx
     --conditional))
  (flags (:standard -rectypes)))
 
-(menhir
- (modules parser)
- (flags --table --inspection --dump --explain --reference-graph --greta))
 

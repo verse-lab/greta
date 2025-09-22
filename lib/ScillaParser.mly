@@ -100,7 +100,7 @@
 %token EQ
 %token AND
 %token FETCH
-%token REMOTEFETCH
+// %token REMOTEFETCH // unused in grammar
 %token ASSIGN
 
 (* Keywords *)
@@ -109,8 +109,8 @@
 %token EMP
 %token LIBRARY
 %token IMPORT
-%token TRY
-%token CATCH
+// %token TRY // unused in grammar 
+// %token CATCH // unused in grammar
 %token AS
 %token PROCEDURE
 %token THROW
@@ -173,14 +173,12 @@ id_with_typ :
 (***********************************************)
 (*                  Types                      *)
 (***********************************************)
-(* TODO: This is a temporary fix of issue #166 *)
 t_map_key :
 | kt = scid { to_map_key_type_exn kt (toLoc $startpos) }
 | LPAREN; kt = scid; RPAREN; { to_map_key_type_exn kt (toLoc $startpos(kt)) }
 | LPAREN; kt = address_typ; RPAREN; { kt }
 | kt = address_typ; { kt }
 
-(* TODO: This is a temporary fix of issue #261 *)
 t_map_value_args:
 | LPAREN; t = t_map_value_allow_targs; RPAREN; { t }
 | d = scid; { to_type d (toLoc $startpos(d))}
@@ -203,7 +201,9 @@ t_map_value_allow_targs :
 
 address_typ :
 | d = CID; WITH; END; { if d = "ByStr20" then Address AnyAddr else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) } (* SType.IdLoc_Comp.Map.add *)
-| d = CID; WITH; CONTRACT; fs = separated_list(COMMA, address_type_field); END; { if d = "ByStr20" then (let fs' = List.fold_left (fun acc (id, t) ->  match Map.add acc ~key:id ~data:t with `Ok new_map -> new_map | `Duplicate -> raise (SyntaxError (Printf.sprintf "Duplicate field name %s in address type" (ParserIdentifier.as_string id), toLoc $startpos(d)))) SType.IdLoc_Comp.Map.empty fs in Address (ContrAddr fs')) else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
+| d = CID; WITH; CONTRACT; fs = separated_list(COMMA, address_type_field); END; { if d = "ByStr20" then (let fs' = Address (ContrAddr SType.IdLoc_Comp.Map.empty) List.fold_left (fun acc (id, t) ->  
+    match SType.IdLoc_Comp.Map.add acc ~key:id ~data:t with `Ok new_map -> new_map 
+    | `Duplicate -> raise (SyntaxError (Printf.sprintf "Duplicate field name %s in address type" (ParserIdentifier.as_string id), toLoc $startpos(d)))) SType.IdLoc_Comp.Map.empty fs in ) else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) } // <<==>>
 | d = CID; WITH; LIBRARY; END; { if d = "ByStr20" then Address LibAddr else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
 | d = CID; WITH; c = SPID; END; { if d = "ByStr20" && c = "_codehash" then Address CodeAddr else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }
 | d = CID; WITH; CONTRACT; LPAREN; _ps = separated_list(COMMA, param_pair); RPAREN; _fs = separated_list(COMMA, address_type_field); END; { if d = "ByStr20" then raise (SyntaxError ("Contract parameters in address types not yet supported", toLoc $startpos(d))) else raise (SyntaxError ("Invalid type", toLoc $startpos(d))) }

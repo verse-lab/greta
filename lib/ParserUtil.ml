@@ -17,7 +17,6 @@
 *)
 
 open ErrorUtils
-
 open Literal
 open Syntax
 open GasCharge
