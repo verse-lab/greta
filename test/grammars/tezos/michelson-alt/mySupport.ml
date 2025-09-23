@@ -18,6 +18,7 @@ let let_ ids rhs body =
   Exp.let_ Asttypes.Nonrecursive
     [ { pvb_pat  = pat_of_tuple_vars ids;
         pvb_expr = rhs;
+        pvb_constraint = None;           (* added *)
         pvb_attributes = [];
        pvb_loc = Location.none } ]
     body
@@ -26,6 +27,7 @@ let letp_ pat rhs body =
   Exp.let_ Asttypes.Nonrecursive
     [ { pvb_pat  = pat;
         pvb_expr = rhs;
+        pvb_constraint = None;           (* added *)
         pvb_attributes = [];
        pvb_loc = Location.none } ]
     body

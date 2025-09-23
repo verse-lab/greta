@@ -4,8 +4,31 @@
     open MySupport
 %}
 
-%token PARAM STORAGE CODE LPAREN RPAREN LBRACE RBRACE SEMI EOF
-%token UNIT PAIR LEFT RIGHT SOME NONE ELT
+%token PARAM 
+%token STORAGE 
+%token CODE 
+%token LPAREN 
+%token RPAREN 
+%token LBRACE 
+%token RBRACE 
+%token LIT
+%token SEMI 
+%token EOF
+%token UNIT
+%token PAIR
+%token LPAREN_PAIR 
+%token LPAREN_LEFT 
+%token LPAREN_RIGHT 
+%token SOME 
+%token NONE
+%token ELT 
+%token IF
+%token IF_LEFT 
+%token IF_RIGHT 
+%token IF_NONE
+%token AT
+%token PCT 
+%token COLON
 
 %token <string> INTV
 %token <bool> BOOL
@@ -18,84 +41,85 @@
 %%
 
 toplevel :
-  | sc=Script EOF { sc }
+  | sc=script EOF { sc }
 
-Script :
-  | CODE LBRACE is=InstList RBRACE { Code (None, is) }
-  | PARAM pty=Ty SEMI STORAGE stty=Ty SEMI CODE LBRACE is=InstList RBRACE { Code (Some (pty, stty), is) }
+script :
+  | CODE LBRACE is=instlist RBRACE { Code (None, is) }
+  | PARAM pty=tyy SEMI STORAGE stty=tyy SEMI CODE LBRACE is=instlist RBRACE { Code (Some (pty, stty), is) }
 
-Ty :
-    ty=LCID { Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }
-  | LPAREN ty=LCID tys=Tys RPAREN {
-      let ty = if ty = "or" then "or_" else ty in
-      Typ.constr (Location.mknoloc (Longident.Lident ty)) tys
-    }
-Tys :
-    /* empty */ { [] }
-  | ty=Ty tys=Tys { ty::tys }
+annot :
+  | PCT LCID     { (* %field *) () }
+  | AT  LCID     { (* @var   *) () }
+  | COLON LCID   { (* :type  *) () }
 
-Literal :
-  | s=STR { Exp.constant (Pconst_string (s, Location.none, None)) }
-  | i=INTV { Exp.constant (Pconst_integer (i, None)) }
+annots :
+  | /* empty */  { [] }
+  | an=annot ans=annots { an :: ans }
+
+tyy :
+  | head_ann=annots ty=LCID { let _ = head_ann in Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }
+  // | ty=LCID { Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }
+  | LPAREN ty=LCID tail=tys RPAREN { let ty = if ty = "or" then "or_" else ty in Typ.constr (Location.mknoloc (Longident.Lident ty)) tail }
+tys :
+  | /* empty */ { [] }
+  | ty=tyy tyds=tys { ty::tyds }
+
+literal :
+  | s=STR { Exp.constant (Const.string s) }
+  | i=INTV { Exp.constant (Const.int (int_of_string i)) }
   | b=BOOL { Exp.construct (Location.mknoloc (Longident.Lident (string_of_bool b))) None }
   | UNIT { Exp.tuple [] }
-  | LBRACE l=SemiLits RBRACE { l }  /* list/set literal; pair could be of the same form but we ignore */
-  | LBRACE kvs=KVLists RBRACE
-    {
-      Exp.apply (exp_of_var "map_of_assoc") [Asttypes.Nolabel, kvs]
-    }
+  | LBRACE LIT l=semilits RBRACE { l }  /* list/set literal; pair could be of the same form but we ignore */
+  | LBRACE kvs=kvlists RBRACE { Exp.apply (exp_of_var "map_of_assoc") [Asttypes.Nolabel, kvs] }
   | NONE { Exp.construct (Location.mknoloc (Longident.Lident "None")) None }
-  | SOME l=Literal { Exp.construct (Location.mknoloc (Longident.Lident "Some")) (Some l) }
-  | LPAREN LEFT l=Literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Left")) (Some l) }
-  | LPAREN RIGHT l=Literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Right")) (Some l) }
-  | LPAREN PAIR ls=Lits RPAREN { ls }
+  | SOME l=literal { Exp.construct (Location.mknoloc (Longident.Lident "Some")) (Some l) }
+  | LPAREN_LEFT l=literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Left")) (Some l) }
+  | LPAREN_RIGHT l=literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Right")) (Some l) }
+  | LPAREN_PAIR ls=lits RPAREN { ls }
+  | l1=literal ELT  l2=literal { Exp.tuple [l1; l2] }
+  | LPAREN PAIR a=literal b=literal RPAREN { Exp.tuple [a; b] }
+  | PAIR a=literal b=literal { Exp.tuple [a; b] }
 
-SemiLits :
-  | /* empty */
-    { Exp.construct (Location.mknoloc (Longident.Lident "[]")) None }
-  | l=Literal 
-    {
-      Exp.construct
-        (Location.mknoloc (Longident.Lident "::"))
-        (Some (Exp.tuple [l; Exp.construct (Location.mknoloc (Longident.Lident "[]")) None]))
-    }
-  | l=Literal SEMI ls=SemiLits
-    {
-      Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [l; ls]))
-    }
+semilits :
+  | /* empty */ { Exp.construct (Location.mknoloc (Longident.Lident "[]")) None }
+  | l=literal { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [l; Exp.construct (Location.mknoloc (Longident.Lident "[]")) None])) }
+  | l=literal SEMI ls=semilits { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [l; ls])) }
 
-OptSEMI : /* empty */ { () } | SEMI { () }
-KVLists : /* Cannot be empty to distinguish from the empty list */
-  | ELT l1=Literal l2=Literal OptSEMI
-    { Exp.construct
-        (Location.mknoloc (Longident.Lident "::"))
-        (Some (Exp.tuple [Exp.tuple [l1; l2];
-                          Exp.construct (Location.mknoloc (Longident.Lident "[]")) None]))
-    }
-  | ELT l1=Literal l2=Literal SEMI ls=KVLists
-    {
-      Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [Exp.tuple [l1; l2]; ls]))
-    }
+optsemi : 
+  | /* empty */ { () } 
+  | SEMI { () }
 
-Lits :
-  | l1=Literal l2=Literal { Exp.tuple [l1; l2] }
-  | l=Literal ls=Lits { Exp.tuple [l; ls] }
+kvlists : /* Cannot be empty to distinguish from the empty list */
+  | ELT l1=literal l2=literal optsemi { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [Exp.tuple [l1; l2]; Exp.construct (Location.mknoloc (Longident.Lident "[]")) None])) }
+  | ELT l1=literal l2=literal SEMI ls=kvlists { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [Exp.tuple [l1; l2]; ls])) }
 
-SingleInst :
+lits :
+  | l1=literal l2=literal { Exp.tuple [l1; l2] }
+  | l=literal ls=lits { Exp.tuple [l; ls] }
+
+singleinst :
   | m=MNEMONIC { Simple m }
-  | m=MNEMONIC Ty { Simple m }
-  | m=MNEMONIC Ty Ty { Simple m }
-  | m=MNEMONIC Ty l=Literal { SimpleArgCon (m, l) }
+  | m=MNEMONIC tyy { Simple m }
+  | m=MNEMONIC tyy tyy { Simple m }
+  | m=MNEMONIC tyy l=literal { SimpleArgCon (m, l) }
   | m=MNEMONIC i=INTV { SimpleWithNum (m, int_of_string i) }
-  | m=MNEMONIC LBRACE is=InstList RBRACE { OneBlock (m, is) }
-  | m=MNEMONIC ty1=Ty ty2=Ty LBRACE is=InstList RBRACE { OneBlockWithTwoTys (m, ty1, ty2, is) }
-  | m=MNEMONIC i=INTV LBRACE is=InstList RBRACE { OneBlockWithNum (m, int_of_string i, is) }
-  | m=MNEMONIC LBRACE is1=InstList RBRACE LBRACE is2=InstList RBRACE { TwoBlocks (m, is1, is2) }
-  | m=MNEMONIC LBRACE sc=Script RBRACE { CreateContract (m, sc) }
-  | LBRACE is=InstList RBRACE { Block is }
+  | m=MNEMONIC LBRACE is=instlist RBRACE { OneBlock (m, is) }
+  | m=MNEMONIC ty1=tyy ty2=tyy LBRACE is=instlist RBRACE { OneBlockWithTwoTys (m, ty1, ty2, is) }
+  | m=MNEMONIC i=INTV LBRACE is=instlist RBRACE { OneBlockWithNum (m, int_of_string i, is) }
+  | m=MNEMONIC LBRACE is1=instlist RBRACE LBRACE is2=instlist RBRACE { TwoBlocks (m, is1, is2) }
+  | m=MNEMONIC LBRACE sc=script RBRACE { CreateContract (m, sc) }
+  | LBRACE is=instlist RBRACE { Block is }
   | m=MNEMONIC error { prerr_string m; exit 1 }
+  | IF b1=block                 { IfThen b1 }
+  | IF b1=block b2=block        { IfThenElse (b1, b2) }
+  | IF_LEFT  b1=block b2=block  { IfLeft  (b1, b2) }
+  | IF_RIGHT b1=block b2=block  { IfRight (b1, b2) }
+  | IF_NONE  b1=block b2=block  { IfNone  (b1, b2) }
 
-InstList :
-    /* empty */ { [] }
-  | i=SingleInst { [ i ] }
-  | i=SingleInst SEMI is=InstList { i :: is }
+block :
+  | LBRACE is=instlist RBRACE { Block is }  /* real Michelson block */
+
+instlist :
+  | /* empty */ { [] }
+  | i=singleinst { [ i ] }
+  | i=singleinst SEMI is=instlist { i :: is }

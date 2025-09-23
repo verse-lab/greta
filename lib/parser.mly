@@ -22,11 +22,11 @@
 %token SOME 
 %token NONE
 %token ELT 
-%token IF                          /* control macros like real Michelson */
+%token IF
 %token IF_LEFT 
 %token IF_RIGHT 
 %token IF_NONE
-%token AT                          /* @  %  :  (annotations) */
+%token AT
 %token PCT 
 %token COLON
 
@@ -76,7 +76,9 @@ literal :
   | LPAREN_LEFT l=literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Left")) (Some l) }
   | LPAREN_RIGHT l=literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Right")) (Some l) }
   | LPAREN_PAIR ls=lits RPAREN { ls }
-  | pair_expr { $1 }
+  | l1=literal ELT  l2=literal { Exp.tuple [l1; l2] }
+  | LPAREN PAIR a=literal b=literal RPAREN { Exp.tuple [a; b] }
+  | PAIR a=literal b=literal { Exp.tuple [a; b] }
 
 semilits :
   | /* empty */ { Exp.construct (Location.mknoloc (Longident.Lident "[]")) None }
@@ -107,10 +109,7 @@ singleinst :
   | m=MNEMONIC LBRACE is1=instlist RBRACE LBRACE is2=instlist RBRACE { TwoBlocks (m, is1, is2) }
   | m=MNEMONIC LBRACE sc=script RBRACE { CreateContract (m, sc) }
   | LBRACE is=instlist RBRACE { Block is }
-  | ctrl                                        { $1 }        /* control forms */
   | m=MNEMONIC error { prerr_string m; exit 1 }
-
-ctrl :
   | IF b1=block                 { IfThen b1 }
   | IF b1=block b2=block        { IfThenElse (b1, b2) }
   | IF_LEFT  b1=block b2=block  { IfLeft  (b1, b2) }
@@ -124,16 +123,3 @@ instlist :
   | /* empty */ { [] }
   | i=singleinst { [ i ] }
   | i=singleinst SEMI is=instlist { i :: is }
-
-
-pair_expr :
-  | LPAREN PAIR ls=pair_args RPAREN { ls }  
-  | PAIR la=pair_args_loose { la }
-
-pair_args :
-  | a=literal b=literal           { Exp.tuple [a; b] }
-  | a=literal rest=pair_args      { Exp.tuple [a; rest] }    /* right-nesting */
-
-pair_args_loose :
-  | a=literal b=literal           { Exp.tuple [a; b] }
-  | rest=pair_args_loose c=literal{ Exp.tuple [rest; c] }    /* left-nesting */
