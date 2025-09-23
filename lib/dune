@@ -8,7 +8,7 @@
  (name greta)
  (public_name greta)
  (modes byte native)
- (libraries sedlex sexplib menhirLib str core graphics qcheck num)
+ (libraries sedlex sexplib menhirLib str core graphics qcheck num compiler-libs.common)
  (preprocess (pps ppx_deriving.std ppx_sexp_conv))
  (flags (:standard -rectypes)))
 
