@@ -80,7 +80,10 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
           then T x
         else if List.exists (fun y -> y = x) !nonterms
           then Nt x
-        else raise (Failure "RHS contains unknown symbols")) rhs)
+        else 
+          (* ==>> HERE <<== how is it possible for x to be `error`? *)
+          (Printf.printf "\nWhat is this? %s\n" x
+          ;raise (Failure "RHS contains unknown symbols"))) rhs)
     ) t_prods
   in
   let nonterms = !nonterms in
