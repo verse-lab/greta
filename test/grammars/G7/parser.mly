@@ -1,3 +1,5 @@
+// SQL language
+
 %{
 open Ast
 %}

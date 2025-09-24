@@ -1,101 +1,179 @@
-/* michelson.mly — Micheline-text + legacy headers */
-
 %{
-open Ast
+    open Syntax
+    open Ast_helper
+    open MySupport
 %}
 
-%start <script> script
+%token PARAM 
+%token STORAGE 
+%token CODE 
+%token LPAREN 
+%token RPAREN 
+%token LBRACE 
+%token RBRACE 
+%token LIT
+%token SEMI 
+%token EOF
+%token UNIT
+%token PAIR
+%token LPAREN_PAIR 
+%token LPAREN_LEFT 
+%token LPAREN_RIGHT 
+%token SOME 
+%token NONE
+%token ELT 
+%token IF
+%token IF_LEFT 
+%token IF_RIGHT 
+%token IF_NONE
+%token AT
+%token PCT 
+%token COLON
 
-/* ===== Tokens ===== */
-%token LBRACE RBRACE LPAREN RPAREN SEMI EOF
-%token KW_PARAMETER KW_STORAGE KW_CODE
+%token LOOP
+%token LOOP_LEFT
+%token ITER 
+%token MAP
+%token LAMBDA
+%token EXEC
+%token DIP
 
-/* Numbers/strings/bytes */
-%token <Ast.expr> INT
-%token <string> STRING
-%token <string> BYTES
+%token ADD 
+%token SUB 
+%token MUL 
+%token EDIV 
+%token ABS 
+%token NEG 
+%token LSL
+%token LSR
+%token AND_ 
+%token OR_ 
+%token XOR 
+%token NOT 
+%token COMPARE 
+%token EQ 
+%token NEQ 
+%token LT 
+%token LE 
+%token GT 
+%token GE
 
-/* Prim heads */
-%token <string> INSTR /* e.g., PUSH, IF, DIP, LOOP, SWAP */
+%token <string> INTV
+%token <bool> BOOL
+%token <string> STR
+%token <string> MNEMONIC
+%token <string> LCID
 
-/* Five distinct annotation terminals (sigils) */
-%token <string> AT_ANNOT     /* e.g., @x      */
-%token <string> PCT_ANNOT    /* e.g., %entry  */
-%token <string> COLON_ANNOT  /* e.g., :t      */
-%token <string> AMP_ANNOT    /* e.g., &lbl    */
-%token <string> HASH_ANNOT   /* e.g., #meta   */
-
+%start toplevel
+%type <Syntax.program> toplevel
 %%
 
-/* ===== Top level ===== */
+toplevel :
+  | sc=script EOF { sc }
 
-script:
-  | legacy_contract EOF                  { $1 }
-  ;
+script :
+  | CODE LBRACE is=instlist RBRACE { Code (None, is) }
+  | PARAM pty=tyy SEMI STORAGE stty=tyy SEMI CODE LBRACE is=instlist RBRACE { Code (Some (pty, stty), is) }
 
-/* Legacy .tz header form or expr */
-legacy_contract:
-  | KW_PARAMETER expr SEMI KW_STORAGE expr SEMI KW_CODE expr { SContract { parameter = $2; storage = $5; code = $8 } }
-  | expr { SExpr $1 }
-  ;
+annot :
+  | PCT LCID     { (* %field *) () }
+  | AT  LCID     { (* @var   *) () }
+  | COLON LCID   { (* :type  *) () }
 
-/* ===== Expressions ===== */
+annots :
+  | /* empty */  { [] }
+  | an=annot ans=annots { an :: ans }
 
-expr:
-  | atoms { $1 }
-  /* allow each sigil token to start an expression as an "annotation atom"
-     — this is crucial for longest-match conflicts against annots5 below */
-  | atom_annot                           { $1 }
-  | instr                                { $1 }
-  | LBRACE seq_items_opt RBRACE          { ESeq $2 } /* sequences */
-  | LPAREN expr RPAREN                   { $2 } /* grouping */
-  ;
+tyy :
+  | head_ann=annots ty=LCID { let _ = head_ann in Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }
+  // | ty=LCID { Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }     /* <<== this prod creates conflcits not addressable by greta  */
+  | LPAREN ty=LCID tail=tys RPAREN { let ty = if ty = "or" then "or_" else ty in Typ.constr (Location.mknoloc (Longident.Lident ty)) tail }
+tys :
+  | /* empty */ { [] }
+  | ty=tyy tyds=tys { ty::tyds }
 
-instr:
-  | INSTR annots5 expr { EPrim { name = $1; annots = $2; args = [$3] } } /* prim application */
+literal :
+  | s=STR { Exp.constant (Const.string s) }
+  | i=INTV { Exp.constant (Const.int (int_of_string i)) }
+  | b=BOOL { Exp.construct (Location.mknoloc (Longident.Lident (string_of_bool b))) None }
+  | UNIT { Exp.tuple [] }
+  | LBRACE LIT l=semilits RBRACE { l }  /* list/set literal; pair could be of the same form but we ignore */
+  | LBRACE kvs=kvlists RBRACE { Exp.apply (exp_of_var "map_of_assoc") [Asttypes.Nolabel, kvs] }
+  | NONE { Exp.construct (Location.mknoloc (Longident.Lident "None")) None }
+  | SOME l=literal { Exp.construct (Location.mknoloc (Longident.Lident "Some")) (Some l) }
+  | LPAREN_LEFT l=literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Left")) (Some l) }
+  | LPAREN_RIGHT l=literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Right")) (Some l) }
+  | LPAREN_PAIR ls=lits RPAREN { ls }
+  | l1=literal ELT  l2=literal { Exp.tuple [l1; l2] }
+  | LPAREN PAIR a=literal b=literal RPAREN { Exp.tuple [a; b] }
+  | PAIR a=literal b=literal { Exp.tuple [a; b] }
 
-atoms: 
-  | INT                                  { EInt $1 }
-  | STRING                               { EString $1 }
-  | BYTES                                { EBytes $1 }
-  ;
+semilits :
+  | /* empty */ { Exp.construct (Location.mknoloc (Longident.Lident "[]")) None }
+  | l=literal { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [l; Exp.construct (Location.mknoloc (Longident.Lident "[]")) None])) }
+  | l=literal SEMI ls=semilits { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [l; ls])) }
 
-/* Turn any sigil token into an expr so it can compete with 'annots5'. */
-atom_annot:
-  | AT_ANNOT                             { EPrim { name = "ANNOT_AT";   annots = []; args = [EString $1] } }
-  | PCT_ANNOT                            { EPrim { name = "ANNOT_PCT";  annots = []; args = [EString $1] } }
-  | COLON_ANNOT                          { EPrim { name = "ANNOT_COLON";annots = []; args = [EString $1] } }
-  | AMP_ANNOT                            { EPrim { name = "ANNOT_AMP";  annots = []; args = [EString $1] } }
-  | HASH_ANNOT                           { EPrim { name = "ANNOT_HASH"; annots = []; args = [EString $1] } }
-  ;
+optsemi : 
+  | /* empty */ { () } 
+  | SEMI { () }
 
-/* ===== Sequences ===== */
+kvlists : /* Cannot be empty to distinguish from the empty list */
+  | ELT l1=literal l2=literal optsemi { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [Exp.tuple [l1; l2]; Exp.construct (Location.mknoloc (Longident.Lident "[]")) None])) }
+  | ELT l1=literal l2=literal SEMI ls=kvlists { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [Exp.tuple [l1; l2]; ls])) }
 
-seq_items_opt:
-  | /* empty */                          { [] }
-  | expr                                 { [ $1 ] }
-  | seq_items_opt SEMI expr              { $1 @ [ $3 ] }
-  | seq_items_opt SEMI                   { $1 }        /* trailing ';' */
-  ;
+lits :
+  | l1=literal l2=literal { Exp.tuple [l1; l2] }
+  | l=literal ls=lits { Exp.tuple [l; ls] }
 
-/* ===== Prim applications =====
-   PRIM followed by a GREEDY mix of any sigil annot tokens (annots5),
-   followed by zero or more arguments (args_opt).
+singleinst :
+  | m=MNEMONIC { Simple m }
+  | m=MNEMONIC tyy { Simple m }
+  | m=MNEMONIC tyy tyy { Simple m }
+  | m=MNEMONIC tyy l=literal { SimpleArgCon (m, l) }
+  | m=MNEMONIC i=INTV { SimpleWithNum (m, int_of_string i) }
+  | m=MNEMONIC LBRACE is=instlist RBRACE { OneBlock (m, is) }
+  | m=MNEMONIC ty1=tyy ty2=tyy LBRACE is=instlist RBRACE { OneBlockWithTwoTys (m, ty1, ty2, is) }
+  | m=MNEMONIC i=INTV LBRACE is=instlist RBRACE { OneBlockWithNum (m, int_of_string i, is) }
+  | m=MNEMONIC LBRACE is1=instlist RBRACE LBRACE is2=instlist RBRACE { TwoBlocks (m, is1, is2) }
+  | m=MNEMONIC LBRACE sc=script RBRACE { CreateContract (m, sc) }
+  | LBRACE is=instlist RBRACE { Block (is) }
+  | IF b1=block                 { IfThen b1 }
+  | IF b1=block b2=block        { IfThenElse (b1, b2) }
+  | IF_LEFT  b1=block b2=block  { IfLeft  (b1, b2) }
+  | IF_RIGHT b1=block b2=block  { IfRight (b1, b2) }
+  | IF_NONE  b1=block b2=block  { IfNone  (b1, b2) }
+  | ADD { Simple "ADD" } 
+  | SUB { Simple "SUB" } 
+  | MUL { Simple "MUL" } 
+  | EDIV { Simple "EDIV" } 
+  | ABS { Simple "ABS" } 
+  | NEG { Simple "NEG" } 
+  | LSL { Simple "LSL" } 
+  | LSR { Simple "LSR" } 
+  | AND_ { Simple "AND" } 
+  | OR_ { Simple "OR" } 
+  | XOR { Simple "XOR" } 
+  | NOT { Simple "NOT" } 
+  | COMPARE { Simple "COMPARE" } 
+  | EQ { Simple "EQ" } 
+  | NEQ { Simple "NEQ" } 
+  | LT { Simple "LT" } 
+  | LE { Simple "LE" } 
+  | GT { Simple "GT" } 
+  | GE { Simple "GE" }
+  | LOOP b=block { Loop (b) }
+  | LOOP_LEFT b=block { LoopLeft (b) }
+  | ITER b=block { Iter (b) }
+  | MAP b=block { Map (b) }
+  | LAMBDA ty1=tyy ty2=tyy b=block { OneBlockWithTwoTys ("Lambda", ty1, ty2, b) }
+  | EXEC { Simple "Exec" }
+  | DIP b=block { OneBlock ("DIP", b) }
+  | DIP i=INTV b=block { OneBlockWithNum ("DIP", int_of_string i, b) }
 
-   Longest-match conflict sites (≥5):
-   For each of AT_ANNOT, PCT_ANNOT, COLON_ANNOT, AMP_ANNOT, HASH_ANNOT:
-   at lookahead = that token, Menhir can:
-     - shift to keep eating annots5 (greedy), OR
-     - reduce annots5 and let that token start an argument (via atom_annot -> expr).
-*/
+block :
+  | LBRACE is=instlist RBRACE { is }
 
-/* Greedy kleene-star over a 5-way union of sigil tokens. */
-annots5:
-  | /* empty */                          { [] }
-  | annots5 AT_ANNOT                     { $1 @ [ $2 ] }
-  | annots5 PCT_ANNOT                    { $1 @ [ $2 ] }
-  | annots5 COLON_ANNOT                  { $1 @ [ $2 ] }
-  | annots5 AMP_ANNOT                    { $1 @ [ $2 ] }
-  | annots5 HASH_ANNOT                   { $1 @ [ $2 ] }
-;
-
+instlist :
+  | /* empty */ { [] }
+  | i=singleinst { [ i ] }
+  | i=singleinst SEMI is=instlist { i :: is }

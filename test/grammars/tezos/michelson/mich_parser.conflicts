@@ -1,0 +1,342 @@
+
+** Conflict (shift/reduce) in state 144.
+** Token involved: ELT
+** This state is reached from toplevel after reading:
+
+CODE LBRACE MNEMONIC tyy SOME literal
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy literal 
+                         (?)
+
+** In state 144, looking ahead at ELT, reducing production..
+** literal -> SOME literal
+** is permitted because of the following sub-derivation:
+
+literal ELT literal // lookahead token appears
+SOME literal . 
+
+** In state 144, looking ahead at ELT, shifting is permitted..
+** because of the following sub-derivation:
+
+SOME literal 
+     literal . ELT literal 
+
+** Conflict (shift/reduce) in state 143.
+** Token involved: ELT
+** This state is reached from toplevel after reading:
+
+CODE LBRACE MNEMONIC tyy PAIR literal literal
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy literal 
+                         (?)
+
+** In state 143, looking ahead at ELT, shifting is permitted..
+** because of the following sub-derivation:
+
+PAIR literal literal 
+             literal . ELT literal 
+
+** In state 143, looking ahead at ELT, reducing production..
+** literal -> PAIR literal literal
+** is permitted because of the following sub-derivation:
+
+literal ELT literal // lookahead token appears
+PAIR literal literal . 
+
+** Conflict (shift/reduce) in state 121.
+** Token involved: ELT
+** This state is reached from toplevel after reading:
+
+CODE LBRACE MNEMONIC tyy literal ELT literal
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy literal 
+                         (?)
+
+** In state 121, looking ahead at ELT, shifting is permitted..
+** because of the following sub-derivation:
+
+literal ELT literal 
+            literal . ELT literal 
+
+** In state 121, looking ahead at ELT, reducing production..
+** literal -> literal ELT literal
+** is permitted because of the following sub-derivation:
+
+literal ELT literal // lookahead token appears
+literal ELT literal . 
+
+
+
+
+
+** Conflict (shift/reduce) in state 100.
+** Token involved: LCID
+** This state is reached from toplevel after reading:
+
+CODE LBRACE MNEMONIC tyy
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy tyy 
+                         (?)
+
+** In state 100, looking ahead at LCID, reducing production..
+** annots ->
+** is permitted because of the following sub-derivation:
+
+annots LCID // lookahead token appears
+. 
+
+** In state 100, looking ahead at LCID, shifting is permitted..
+** because of the following sub-derivation:
+
+. LCID 
+
+
+
+
+
+** Conflict (shift/reduce) in state 47.
+** Token involved: LCID
+** This state is reached from toplevel after reading:
+
+CODE LBRACE LAMBDA tyy
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            LAMBDA tyy tyy block 
+                       (?)
+
+** In state 47, looking ahead at LCID, reducing production..
+** annots ->
+** is permitted because of the following sub-derivation:
+
+annots LCID // lookahead token appears
+. 
+
+** In state 47, looking ahead at LCID, shifting is permitted..
+** because of the following sub-derivation:
+
+. LCID 
+
+
+
+
+** Conflict (shift/reduce) in state 46.
+** Token involved: LCID
+** This state is reached from toplevel after reading:
+
+CODE LBRACE LAMBDA
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            LAMBDA tyy tyy block 
+                   (?)
+
+** In state 46, looking ahead at LCID, reducing production..
+** annots ->
+** is permitted because of the following sub-derivation:
+
+annots LCID // lookahead token appears
+. 
+
+** In state 46, looking ahead at LCID, shifting is permitted..
+** because of the following sub-derivation:
+
+. LCID 
+
+
+
+
+
+** Conflict (shift/reduce) in state 33.
+** Token involved: LCID
+** This state is reached from toplevel after reading:
+
+CODE LBRACE MNEMONIC
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy 
+                     (?)
+
+** In state 33, looking ahead at LCID, reducing production..
+** annots ->
+** is permitted because of the following sub-derivation:
+
+annots LCID // lookahead token appears
+. 
+
+** In state 33, looking ahead at LCID, shifting is permitted..
+** because of the following sub-derivation:
+
+. LCID 
+
+
+
+
+
+** Conflict (shift/reduce) in state 21.
+** Token involved: LCID
+** This state is reached from toplevel after reading:
+
+PARAM tyy SEMI STORAGE
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+PARAM tyy SEMI STORAGE tyy SEMI CODE LBRACE instlist RBRACE 
+                       (?)
+
+** In state 21, looking ahead at LCID, reducing production..
+** annots ->
+** is permitted because of the following sub-derivation:
+
+annots LCID // lookahead token appears
+. 
+
+** In state 21, looking ahead at LCID, shifting is permitted..
+** because of the following sub-derivation:
+
+. LCID 
+
+
+
+
+
+
+** Conflict (shift/reduce) in state 11.
+** Token involved: LCID
+** This state is reached from toplevel after reading:
+
+PARAM LPAREN LCID tyy
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+PARAM tyy SEMI STORAGE tyy SEMI CODE LBRACE instlist RBRACE 
+      LPAREN LCID tys RPAREN 
+                  tyy tys 
+                      tyy tys 
+                      (?)
+
+** In state 11, looking ahead at LCID, reducing production..
+** annots ->
+** is permitted because of the following sub-derivation:
+
+annots LCID // lookahead token appears
+. 
+
+** In state 11, looking ahead at LCID, shifting is permitted..
+** because of the following sub-derivation:
+
+. LCID 
+
+
+
+
+
+
+** Conflict (shift/reduce) in state 5.
+** Token involved: LCID
+** This state is reached from toplevel after reading:
+
+PARAM LPAREN LCID
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+PARAM tyy SEMI STORAGE tyy SEMI CODE LBRACE instlist RBRACE 
+      LPAREN LCID tys RPAREN 
+                  tyy tys 
+                  (?)
+
+** In state 5, looking ahead at LCID, reducing production..
+** annots ->
+** is permitted because of the following sub-derivation:
+
+annots LCID // lookahead token appears
+. 
+
+** In state 5, looking ahead at LCID, shifting is permitted..
+** because of the following sub-derivation:
+
+. LCID 
+
+
+
+
+
+
+** Conflict (shift/reduce) in state 1.
+** Token involved: LCID
+** This state is reached from toplevel after reading:
+
+PARAM
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+PARAM tyy SEMI STORAGE tyy SEMI CODE LBRACE instlist RBRACE 
+      (?)
+
+** In state 1, looking ahead at LCID, reducing production..
+** annots ->
+** is permitted because of the following sub-derivation:
+
+annots LCID // lookahead token appears
+. 
+
+** In state 1, looking ahead at LCID, shifting is permitted..
+** because of the following sub-derivation:
+
+. LCID 
