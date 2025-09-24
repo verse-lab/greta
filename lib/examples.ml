@@ -50,25 +50,50 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   in  
   let add_at_at i ls = 
     List.mapi (fun j x -> if j = i then ("@" ^ x) else x) ls in 
-  let remove_at i lst =
-  List.filteri (fun j _ -> j <> i) lst in
+  let remove_at i ls =
+  List.filteri (fun j _ -> j <> i) ls in
   let attach_at_with_nonterm s: string = 
     let s_ls = Str.split (Str.regexp "[ \t\n\r]+") s in
     let at_ind = match (index_of "@@" s_ls) with Some i -> i | None -> raise (Failure "atat index") in
     let new_sls = add_at_at (at_ind - 1) s_ls in 
     let new_sls_filtered = remove_at at_ind new_sls in 
     String.concat " " new_sls_filtered
-
+  in 
+  let extract_tokens s: string = 
+    let s_ls = Str.split (Str.regexp "[ \t\n\r]+") s in
+    let tkns_ind = match (index_of "Tokens:" s_ls) with Some i -> i | None -> raise (Failure "tokens: index") in
+    let new_sls_filtered = List.filteri (fun j _ -> j = tkns_ind + 1) s_ls in
+    List.hd new_sls_filtered
   in 
   (* traverse and acc relevant lines for generating trees from `parser.trees` file *)
-  let rec traverse (res_acc: string list): string list = 
+  let rec traverse (res_acc: string list) (can_collect_ctxt: bool) (curr_ctxt: string list) 
+    (tkns: string) (outside_acc: (string * string list) list): string list = 
     match try_read () with 
-    | None -> (close_in ic; List.rev res_acc)
+    | None -> 
+      (close_in ic; if debug_print then (outside_acc |> List.iter (fun (tk, lns) -> 
+        printf "\n=> Tokens involved: %s\n=> Relevant prods: \n" tk; lns |> List.iter (fun x -> printf "\t%s\n" x))); 
+        List.rev res_acc)
     | Some s -> 
-      if (contains_atat s)
-      then (let changed_str = attach_at_with_nonterm s
-            in traverse (changed_str::res_acc))
-      else traverse res_acc
+      (* <<== NOTE! below added to not address ambigs outside the scope of greta *)
+      begin 
+        match can_collect_ctxt with 
+        | true -> traverse res_acc can_collect_ctxt (s::curr_ctxt) tkns outside_acc 
+        | false -> 
+          if (starts "** Tokens:" s) then 
+            (let tkns_from_string = extract_tokens s in traverse res_acc can_collect_ctxt curr_ctxt tkns_from_string outside_acc) 
+          else 
+          if (starts ">> ContextStart" s) then traverse res_acc true [] tkns outside_acc else 
+          if (starts ">> ContextEnd" s) then traverse res_acc false curr_ctxt tkns outside_acc else
+          if (contains_atat s) && (starts "@@" s) then 
+            (if List.is_empty curr_ctxt 
+             then traverse res_acc can_collect_ctxt curr_ctxt tkns outside_acc 
+             else traverse res_acc can_collect_ctxt [] "" ((tkns, curr_ctxt)::outside_acc)) 
+          else
+            if (contains_atat s) && (not (starts "@@" s)) 
+            then (let changed_str = attach_at_with_nonterm s in 
+                  traverse (changed_str::res_acc) can_collect_ctxt curr_ctxt tkns outside_acc)
+            else traverse res_acc can_collect_ctxt curr_ctxt tkns outside_acc
+      end 
   in 
   let convert_to_tree_exprs (str_ls: string list): tree = 
     let rec conv_loop ls nodsym_acc subtrees_acc = 
@@ -153,7 +178,7 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
               combine_loop (List.tl tl) (two_trees_combined @ res_acc))
     in combine_loop e_trees_n_exprs []
   in 
-  let relev_ls: string list = traverse [] in
+  let relev_ls: string list = traverse [] false [] "" [] in
     (if debug_print then relev_ls |> (List.iter (fun x -> printf "%s\n" x)));
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
   if debug_print then (printf "\tExtracted trees: "; 
@@ -163,8 +188,6 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   let combined_trees: (tree * (bool * bool) * restriction list) list = 
                                                 combine_tree_exprs extracted_trees_n_exprs in
   (* generate tree expressions by splitting per every two combined ones *)
-  (* (TODO) To remove 'tree_expressions' when no longer necessary *)
-  
   let tree_expressions: (string list * string list) list = 
     let rec gen_texprs lst cnt tmp_acc res_acc = 
       match lst with [] -> List.rev res_acc
