@@ -202,10 +202,10 @@ let tree_to_expr (t: tree) : string list =
         ["("; "LBRACE"] @ tree_loop (nth subts 1) @ ["RBRACE"; ")"]
         (* TODO: Make the rank below to be generalizable *)
       | _, 2 -> 
-        ["("] @ tree_loop (nth subts 0) @ [s'] @ tree_loop (nth subts 1) @ [")"]
-      | s, _ -> 
+        ["("] @ tree_loop (nth subts 0) @ tree_loop (nth subts 1) @ [")"] (* prev version @ [s'] @ tree_loop ... *)
+      | _s, _ -> 
         let treeexprs_for_subts = subts |> fold_left (fun acc t -> acc @ tree_loop t) [] in 
-        ["("; s] @ treeexprs_for_subts @ [")"] 
+        ["("] @ treeexprs_for_subts @ [")"] (* prev version ["("; s] @ *)
   in tree_loop t
 
 (* (TODO) After fixing UI, remove 'gen_dual_expr' and 'present_tree_pair_single_operator' *)

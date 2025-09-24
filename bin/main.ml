@@ -35,7 +35,7 @@ let () =
   let parser_file = "./lib/parser.mly" in 
   let conflicts_file = "./_build/default/lib/parser.conflicts" in 
   let cfg_file = "./_build/default/lib/parser.cfg" in 
-  let _tree_file = "./_build/default/lib/parser.trees" in
+  let tree_file = "./_build/default/lib/parser.trees" in
   
   (* Learn TA and O_bp wrt 'parser_file' *)
   
@@ -49,7 +49,7 @@ let () =
   else
 
   let debug = true in
-  let debug_prev = false in 
+  let _debug_prev = false in 
   let opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in (* g0s, g1s *)
   let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false; onoff_opt = false } in
   let _opt_flag_g2: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = false } in (* g2b - g2e *)
@@ -74,15 +74,14 @@ let () =
     let convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet 
     in
-    (* [wip] Generate trees in <base>.trees instead *)
+    (*
       let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
       E.gen_examples conflicts_file ranked_symbols debug_prev 
     in 
-    (* 
-      let _tree_pairs_lst_new: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
-      E.gen_examples_new tree_file ranked_symbols debug_prev
+    *)
+      let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
+      E.gen_examples_new tree_file ranked_symbols debug
     in 
-     *)
     (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)
     let file_postfix = ref "" in
     let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list):
@@ -109,7 +108,7 @@ let () =
     in 
     let ta_learned: T.ta2 = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
-      opt_flag debug_prev
+      opt_flag debug
     in
     let learn_ta_elapsed = Sys.time () -. learn_start in
 
@@ -135,6 +134,7 @@ let () =
     Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed;
     (* Time for convering back to CFG *)
  (* () *) 
+  
 end
 else U.no_conflicts_message parser_file
 
