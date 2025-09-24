@@ -10,10 +10,14 @@ type inst =
   | TwoBlocks of string * inst list * inst list  (* such IF code1 code 2 *)
   | CreateContract of string * program
   | Block of inst list
-  | IfThen of inst
-  | IfThenElse of inst * inst
-  | IfLeft of inst * inst
-  | IfRight of inst * inst
-  | IfNone of inst * inst
+  | IfThen of inst list
+  | IfThenElse of inst list * inst list
+  | IfLeft of inst list * inst list
+  | IfRight of inst list * inst list
+  | IfNone of inst list * inst list
+  | Loop of inst list
+  | LoopLeft of inst list
+  | Iter of inst list
+  | Map of inst list
 and program = 
     Code of (Parsetree.core_type * Parsetree.core_type) option * inst list

@@ -30,6 +30,34 @@
 %token PCT 
 %token COLON
 
+%token LOOP
+%token LOOP_LEFT
+%token ITER 
+%token MAP
+%token LAMBDA
+%token EXEC
+%token DIP
+
+%token ADD 
+%token SUB 
+%token MUL 
+%token EDIV 
+%token ABS 
+%token NEG 
+%token LSL
+%token LSR
+%token AND_ 
+%token OR_ 
+%token XOR 
+%token NOT 
+%token COMPARE 
+%token EQ 
+%token NEQ 
+%token LT 
+%token LE 
+%token GT 
+%token GE
+
 %token <string> INTV
 %token <bool> BOOL
 %token <string> STR
@@ -108,16 +136,42 @@ singleinst :
   | m=MNEMONIC i=INTV LBRACE is=instlist RBRACE { OneBlockWithNum (m, int_of_string i, is) }
   | m=MNEMONIC LBRACE is1=instlist RBRACE LBRACE is2=instlist RBRACE { TwoBlocks (m, is1, is2) }
   | m=MNEMONIC LBRACE sc=script RBRACE { CreateContract (m, sc) }
-  | LBRACE is=instlist RBRACE { Block is }
-  | m=MNEMONIC error { prerr_string m; exit 1 }
+  | LBRACE is=instlist RBRACE { Block (is) }
   | IF b1=block                 { IfThen b1 }
   | IF b1=block b2=block        { IfThenElse (b1, b2) }
   | IF_LEFT  b1=block b2=block  { IfLeft  (b1, b2) }
   | IF_RIGHT b1=block b2=block  { IfRight (b1, b2) }
   | IF_NONE  b1=block b2=block  { IfNone  (b1, b2) }
+  | ADD { Simple "ADD" } 
+  | SUB { Simple "SUB" } 
+  | MUL { Simple "MUL" } 
+  | EDIV { Simple "EDIV" } 
+  | ABS { Simple "ABS" } 
+  | NEG { Simple "NEG" } 
+  | LSL { Simple "LSL" } 
+  | LSR { Simple "LSR" } 
+  | AND_ { Simple "AND" } 
+  | OR_ { Simple "OR" } 
+  | XOR { Simple "XOR" } 
+  | NOT { Simple "NOT" } 
+  | COMPARE { Simple "COMPARE" } 
+  | EQ { Simple "EQ" } 
+  | NEQ { Simple "NEQ" } 
+  | LT { Simple "LT" } 
+  | LE { Simple "LE" } 
+  | GT { Simple "GT" } 
+  | GE { Simple "GE" }
+  | LOOP b=block { Loop (b) }
+  | LOOP_LEFT b=block { LoopLeft (b) }
+  | ITER b=block { Iter (b) }
+  | MAP b=block { Map (b) }
+  | LAMBDA ty1=tyy ty2=tyy b=block { OneBlockWithTwoTys ("Lambda", ty1, ty2, b) }
+  | EXEC { Simple "Exec" }
+  | DIP b=block { OneBlock ("DIP", b) }
+  | DIP i=INTV b=block { OneBlockWithNum ("DIP", int_of_string i, b) }
 
 block :
-  | LBRACE is=instlist RBRACE { Block is }  /* real Michelson block */
+  | LBRACE is=instlist RBRACE { is }
 
 instlist :
   | /* empty */ { [] }
