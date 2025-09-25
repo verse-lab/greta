@@ -35,19 +35,23 @@ e1:
   | x1  { $1 }
   ;
 
-x1:
-  | x2  { $1 }
-  | x1 MUL x2 { Mul ($1, $3) }
+x4:
+  | INT  { Int $1 }
+  | LPAREN x4 RPAREN { Paren $2 }
   ;
 
 x3:
-  | IF cond_expr THEN x3 { If ($2, Then ($4, Else Na)) }
-  | INT  { Int $1 }
-  | LPAREN x3 RPAREN { Paren $2 }
+  | x4 MUL x3 { Mul ($1, $3) }
+  | x4  { $1 }
   ;
 
 x2:
   | x3  { $1 }
-  | IF cond_expr THEN x2 ELSE x2 { If ($2, Then ($4, Else $6)) }
+  | IF cond_expr THEN x2 { If ($2, Then ($4, Else Na)) }
+  ;
+
+x1:
+  | x2  { $1 }
+  | IF cond_expr THEN x1 ELSE x1 { If ($2, Then ($4, Else $6)) }
   ;
 

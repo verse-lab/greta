@@ -31,7 +31,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let open Printf in
   let open Hashtbl in
   let trivial_syms = triv_syms_nonterms |> List.map fst in
-  let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 0) ) in 
+  let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 1) ) in 
   let versatile_syms = a |> List.filter (fun s -> more_than_one_transitions s sym_ord_rhs_ls) in
   if debug then 
    (printf "\n Trivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); printf "\n";
@@ -80,6 +80,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   
     op_ls |> List.map (fun x -> match x with Assoc _ -> raise No_assoc_possible | Prec (s, o) -> (s, o)) 
     |> List.fold_left cons_uniq [] |> List.rev (* removing dups here *)
+    |> List.filter (fun (sym, _op) -> not (List.mem sym trivial_syms)) (* ==> Note! Remove trivial symbols here *)
   
   in
   let sym_ord_ls_wrt_op_new: (symbol * int) list = 

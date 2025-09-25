@@ -132,7 +132,7 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   let filter_out_wrt_menhir_limitations (input_ls: string list): string list = 
     let ls_sorted = List.sort (fun s1 s2 -> Int.compare (String.length s1) (String.length s2)) input_ls in
     let rec loop (res_acc: string list) (skip: bool) (ls: string list): string list =  
-    match ls with [] -> res_acc
+    match ls with [] -> if !is_due_to_menhir then res_acc else input_ls
     | h :: tl -> 
       if skip then loop res_acc false tl else
       if (contains h "@") && ((List.length (change_to_str_ls h)) = 1) 
