@@ -32,7 +32,9 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); printf "\n");
   (* helpers *)
   let ic = open_in filename in
+  let ic2 = open_in filename in 
   let try_read () = try Some (input_line ic) with End_of_file -> None in
+  let try_read2 () = try Some (input_line ic2) with End_of_file -> None in
   let starts str lin = String.starts_with ~prefix:str lin in 
   let contains_atat lin = 
     try 
@@ -52,47 +54,85 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
     List.mapi (fun j x -> if j = i then ("@" ^ x) else x) ls in 
   let remove_at i ls =
   List.filteri (fun j _ -> j <> i) ls in
+  let change_to_str_ls s = Str.split (Str.regexp "[ \t\n\r]+") s in
   let attach_at_with_nonterm s: string = 
-    let s_ls = Str.split (Str.regexp "[ \t\n\r]+") s in
+    let s_ls = change_to_str_ls s in
     let at_ind = match (index_of "@@" s_ls) with Some i -> i | None -> raise (Failure "atat index") in
     let new_sls = add_at_at (at_ind - 1) s_ls in 
     let new_sls_filtered = remove_at at_ind new_sls in 
     String.concat " " new_sls_filtered
-  in 
-  let extract_tokens s: string = 
-    let s_ls = Str.split (Str.regexp "[ \t\n\r]+") s in
+  in  
+   let extract_tokens s: string = 
+    let s_ls = change_to_str_ls s in
     let tkns_ind = match (index_of "Tokens:" s_ls) with Some i -> i | None -> raise (Failure "tokens: index") in
     let new_sls_filtered = List.filteri (fun j _ -> j = tkns_ind + 1) s_ls in
     List.hd new_sls_filtered
-  in 
+  in
+  let extract_prod_line s: string = 
+    let s_ls = change_to_str_ls s in 
+    let prod_ind = match (index_of "Production" s_ls) with Some i -> i | None -> raise (Failure "prod: index") in
+    let new_sls_filtered = s_ls |> remove_at prod_ind |> List.tl in
+    String.concat " " new_sls_filtered
+  in
   (* traverse and acc relevant lines for generating trees from `parser.trees` file *)
-  let rec traverse (res_acc: string list) (can_collect_ctxt: bool) (curr_ctxt: string list) 
-    (tkns: string) (outside_acc: (string * string list) list): string list = 
+  let rec traverse (res_acc: string list): string list = 
     match try_read () with 
-    | None -> 
-      (close_in ic; if debug_print then (outside_acc |> List.iter (fun (tk, lns) -> 
-        printf "\n=> Tokens involved: %s\n=> Relevant prods: \n" tk; lns |> List.iter (fun x -> printf "\t%s\n" x))); 
-        List.rev res_acc)
+    | None -> (close_in ic; List.rev res_acc)
     | Some s -> 
       (* <<== NOTE! below added to not address ambigs outside the scope of greta *)
+      if (contains_atat s) && (not (starts "@@" s))
+      then (let changed_str = attach_at_with_nonterm s
+            in traverse (changed_str::res_acc))
+      else traverse res_acc
+  in 
+  (* traverse_for_nonaddr collects prods that can be useful for non-addressable ambiguities *)
+  let rec traverse_nonaddr (outside_acc: (string * string list) list) (can_collect_ctxt: bool) (curr_ctxt: string list)
+    (can_collect_last_ctxt: bool) (last_ctxt_prods: string list) (tkns: string): (string * string list) list = 
+    match try_read2 () with 
+    | None -> 
+      (close_in ic2; if debug_print then (outside_acc |> List.iter (fun (tk, lns) -> 
+        printf "\n=> Tokens involved: %s\n=> Relevant prods: \n" tk; lns |> List.iter (fun x -> printf "\t%s\n" x))); 
+      List.rev outside_acc)
+    | Some s -> 
+      (* *** 
+         ==> Depending on what other grammars dump for non-addressable case, might have to change logic below
+       *** *)   
       begin 
         match can_collect_ctxt with 
-        | true -> traverse res_acc can_collect_ctxt (s::curr_ctxt) tkns outside_acc 
+        | true -> 
+          if (starts ">> ContextEnd" s) 
+          then traverse_nonaddr outside_acc false curr_ctxt can_collect_last_ctxt last_ctxt_prods tkns 
+          else traverse_nonaddr outside_acc can_collect_ctxt (s::curr_ctxt) can_collect_last_ctxt last_ctxt_prods tkns 
         | false -> 
-          if (starts "** Tokens:" s) then 
-            (let tkns_from_string = extract_tokens s in traverse res_acc can_collect_ctxt curr_ctxt tkns_from_string outside_acc) 
-          else 
-          if (starts ">> ContextStart" s) then traverse res_acc true [] tkns outside_acc else 
-          if (starts ">> ContextEnd" s) then traverse res_acc false curr_ctxt tkns outside_acc else
-          if (contains_atat s) && (starts "@@" s) then 
-            (if List.is_empty curr_ctxt 
-             then traverse res_acc can_collect_ctxt curr_ctxt tkns outside_acc 
-             else traverse res_acc can_collect_ctxt [] "" ((tkns, curr_ctxt)::outside_acc)) 
+          if can_collect_last_ctxt 
+          (* assumption: only 2 production lines w.r.t. last_cotxt_prods - so set to false while collecting curr 's' *)
+          then traverse_nonaddr outside_acc can_collect_ctxt curr_ctxt false (s::last_ctxt_prods) tkns 
           else
-            if (contains_atat s) && (not (starts "@@" s)) 
-            then (let changed_str = attach_at_with_nonterm s in 
-                  traverse (changed_str::res_acc) can_collect_ctxt curr_ctxt tkns outside_acc)
-            else traverse res_acc can_collect_ctxt curr_ctxt tkns outside_acc
+          (* if collect_last_ctxt is false, then check if it starts from "* Production" *)
+          if (starts "* Production" s) 
+          then (let curr_prod = extract_prod_line s 
+                in traverse_nonaddr outside_acc can_collect_ctxt curr_ctxt true (curr_prod::last_ctxt_prods) tkns)
+          else
+          (* if contains @@ and starts from @@, then has to do with nonaddressable ambigs (To check this assumption!) *)
+          if (contains_atat s) && (starts "@@" s) 
+          then 
+            (if List.is_empty curr_ctxt 
+             then traverse_nonaddr outside_acc can_collect_ctxt curr_ctxt can_collect_last_ctxt last_ctxt_prods tkns  
+             else traverse_nonaddr ((tkns, (List.rev curr_ctxt) @ (List.rev last_ctxt_prods))::outside_acc) can_collect_ctxt [] can_collect_last_ctxt [] "") 
+          else
+          (* if starts from "** Tokens:", then extract tokens and collect *)
+          if (starts "** Tokens:" s) then 
+            (let tkns_from_string = extract_tokens s 
+             in traverse_nonaddr outside_acc can_collect_ctxt curr_ctxt can_collect_last_ctxt last_ctxt_prods tkns_from_string) 
+          else 
+          (* if starts from ">> ContextStart", then set 'can_collect_ctxt' to be true while passing [] to 'curr_ctxt' *)
+          if (starts ">> ContextStart" s) 
+          then traverse_nonaddr outside_acc true [] can_collect_last_ctxt last_ctxt_prods tkns 
+          else
+          (* if 's' contains @@ and does not start form @@, then not relevant in this loop *)
+          if (contains_atat s) && (not (starts "@@" s)) 
+          then traverse_nonaddr outside_acc false [] false [] ""
+          else traverse_nonaddr outside_acc can_collect_ctxt curr_ctxt can_collect_last_ctxt last_ctxt_prods tkns 
       end 
   in 
   let convert_to_tree_exprs (str_ls: string list): tree = 
@@ -178,7 +218,7 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
               combine_loop (List.tl tl) (two_trees_combined @ res_acc))
     in combine_loop e_trees_n_exprs []
   in 
-  let relev_ls: string list = traverse [] false [] "" [] in
+  let relev_ls: string list = traverse [] in
     (if debug_print then relev_ls |> (List.iter (fun x -> printf "%s\n" x)));
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
   if debug_print then (printf "\tExtracted trees: "; 
@@ -215,6 +255,8 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
     in gen_texamples combined_trees 0 [] []
   in
   if debug_print then (Pp.pp_combined_trees combined_trees); Pp.pp_exprs tree_expressions;
+  let _non_addr_ambigs: (string * string list) list = traverse_nonaddr [] false [] false [] "" in 
+  printf "\n\tHow many? %s\n" (string_of_int (List.length _non_addr_ambigs));
   tree_example_pairs 
 
 
