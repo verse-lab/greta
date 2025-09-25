@@ -3,9 +3,9 @@
 
 (menhir
  (modules parser)
- (flags --table --inspection --explain --dump))
+ (flags --table --inspection --explain --dump --reference-graph --greta))
 
 (library
-  (name g2) ; greta
+  (name g2)
   (modes byte native)
-  (libraries unix num menhirLib str))
+  (libraries unix num menhirLib str core graphics qcheck))

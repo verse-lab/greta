@@ -130,7 +130,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     end done;
   (* Step 3 - add transitions for trivial symbols (eg, INT, BOOL) *)
   trivial_syms |> List.iter (fun sym -> let triv_state = find_lhs sym 
-    in add trans_tbl (triv_state, sym) [[(Nt epsilon_state)]]);
+    in add trans_tbl (triv_state, sym) [[(T (fst sym))]]); (* [prev] (Nt epsilon_state) *)
   if debug then printf "\n  >> After adding trivial transitions \n"; 
     Pp.pp_transitions_tbl trans_tbl;
   (* Step 4 - add transitions for nontrivial symbols level by level *)
@@ -187,7 +187,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   in
   let lbrace_order: int = 
     let lb_ord: int ref = ref 1000 in
-    Hashtbl.iter (fun o sym_ls -> if (List.mem ("LBRACE", 2) sym_ls) 
+    Hashtbl.iter (fun o sym_ls -> if (List.mem ("LBRACE", 3) sym_ls) 
       (* [Note! G2e 00000 => 00 scenario had a start nonterminal in btw so required -1 below] *)
       then (lb_ord := o) else ()) updated_op_tbl; !lb_ord
   in

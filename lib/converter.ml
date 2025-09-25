@@ -360,7 +360,9 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
   in 
   let trivial_syms_nts : (symbol * nonterminal) list = 
     let init_triv_syms = raw_trivial_syms_nts |> List.map fst 
-    in raw_trivial_syms_nts |> List.filter (fun (sym, nt) -> 
+    (* Debugging in progress! *)
+    in (printf "\n\t *** HERE! ***\n\n"; raw_trivial_syms_nts |> Pp.pp_sym_nts_ls);
+        raw_trivial_syms_nts |> List.filter (fun (sym, nt) -> 
         only_consists_of_trivial_trans sym nt init_triv_syms g.productions)
   in 
   (* *** debug *** *)
@@ -406,10 +408,10 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
           let triv_syms = trivial_syms_nts |> List.map fst 
           in match exist_in_trantbl with 
               | None -> if (List.mem s triv_syms) 
-                        then add transitions_tbl (lhs, s) [(Nt epsilon_state)]
+                        then add transitions_tbl (lhs, s) [(T (fst s))] (* [prev] (Nt epsilon_state) *)
                         else add transitions_tbl (lhs, s) rhss
               | Some ls' -> if (List.mem s triv_syms)
-                            then Hashtbl.replace transitions_tbl (lhs, s) ([(Nt epsilon_state)]::ls')
+                            then Hashtbl.replace transitions_tbl (lhs, s) ([(T (fst s))]::ls') (* [prev] (Nt epsilon_state) *)
                             else Hashtbl.replace transitions_tbl (lhs, s) (rhss::ls')
           end
     ) restrictions);
@@ -483,7 +485,7 @@ let convertToTa (file: string) (opt: optimization) (debug_print: bool):
 let undo_enhancement (a: ta): ta =
   let undo_change_symbol s =
     let s', s'' = fst s, snd s in if (s' = "*") then "MUL", s'' else
-    if (s' = "+") then "PLUS", s'' else if (s' = "()") then "LPARENRPAREN", s'' else s in
+    if (s' = "+") then "PLUS", s'' else s in
   let alph_updated = a.alphabet |> List.map (fun sym -> undo_change_symbol sym) in
   let trans_updated = a.transitions |> List.map (fun (st, (sym, st_ls)) ->
     let sym_new = undo_change_symbol sym in (st, (sym_new, st_ls))) in 
@@ -500,7 +502,6 @@ let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 =
   let nonterms_excl_eps: nonterminal list = a.states |> List.filter (fun x -> not (x = "ϵ")) in
   let unranked_terminals: terminal list = a.alphabet |> List.filter (fun s -> not (sym_equals s "ε"))
     |> List.fold_left (fun acc (name, _rnk) -> match name with
-    | "LPARENRPAREN" -> acc @ ["LPAREN"; "RPAREN"]
     | "LBRACERBRACE" -> acc @ ["LBRACE"; "RBRACE"]
     | "LBRACKETRBRACKET" -> acc @ ["LBRACKET"; "RBRACKET"]
     | s -> acc @ [s] ) [] |> remove_dups in
@@ -838,7 +839,10 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
   let extract_terminal_sigls (ls: sigma list): string = 
     let res = ls |> List.fold_left (fun acc sg -> match sg with T ter -> acc @ [ter] | Nt _ -> acc) [] in 
       if (List.is_empty res) then (printf "\n\tExtract terminal sigls : empty!\n";"") else 
-        (let fst_term = List.hd res in if (String.equal fst_term "LPAREN") then "LPARENRPAREN" else fst_term)
+        (let fst_term = List.hd res in 
+          (* if (String.equal fst_term "LPAREN") then "LPARENRPAREN" else fst_term *)
+          fst_term 
+          )
   in 
   let extract_nonterms_sigls (ls: sigma list): string list = 
     ls |> List.fold_left (fun acc sg -> match sg with Nt nt -> acc @ [nt] | T _ -> acc) []
@@ -883,14 +887,14 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
   in
   let new_replace_str_wrt_mapped_states (nt: string) (ln: string): string = 
     let term = extract_terminal ln in 
-    let term' = if (String.equal term "LPAREN") then "LPARENRPAREN" else term in 
-    if debug_print then printf "\n\t\t term %s " term';
+    (* let term' = if (String.equal term "LPAREN") then "LPARENRPAREN" else term in  *)
+    if debug_print then printf "\n\t\t term %s " term;
     let nonts = extract_nonterms ln in 
     if debug_print then (printf "\n\t\t old nonterms -->"; nonts |> List.iter (fun x -> printf "%s " x); printf "\n");
-    let correct_nonts = find_nonterms_for nt term' nonts in 
-    if debug_print then (printf "\n\t\t finding correct nonterms for Nonterm %s and Term %s -->" nt term'; 
+    let correct_nonts = find_nonterms_for nt term nonts in 
+    if debug_print then (printf "\n\t\t finding correct nonterms for Nonterm %s and Term %s -->" nt term; 
       correct_nonts |> List.iter (fun x -> printf "%s " x); printf "\n\n"); 
-    if (String.equal term' "") && (List.length nonts) = 1 && (List.length correct_nonts) = 1 
+    if (String.equal term "") && (List.length nonts) = 1 && (List.length correct_nonts) = 1 
     then (let old_st = Str.regexp (List.hd nonts) in 
           Str.global_replace old_st (List.hd correct_nonts) ln)
     else 

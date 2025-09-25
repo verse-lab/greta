@@ -241,8 +241,11 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
       match ls with [] -> Node (nodsym_acc, List.rev subtrees_acc)
       | (sh: string) :: stl -> 
         if (is_in_alphabet sh)
-        then (let sym_rank = (List.length str_ls) (* (me) is this length or length - 1? *)
-              in conv_loop stl (sh, sym_rank) (Leaf sh :: subtrees_acc))
+        then (if (syms_equals ("", -1) nodsym_acc) 
+              then 
+                let sym_rank = (List.length str_ls)
+                in conv_loop stl (sh, sym_rank) (Leaf sh :: subtrees_acc)
+              else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc))
         else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc)
     in conv_loop str_ls ("", -1) []
   in 
