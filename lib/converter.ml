@@ -111,8 +111,8 @@ let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
         let len = List.length rhs in
         let first_t, rhs' = match remove_first_t rhs with 
         | (Some (T x), l) when x = "LPAREN" 
-          -> (("LPARENRPAREN", len - 2), l)
-        | (Some (T x), l) -> ((x, len - 1), l)
+          -> (("LPAREN", len), l)
+        | (Some (T x), l) -> ((x, len), l)
         | (None, l) -> (("ε", len), l)
         | _ -> assert false
         in

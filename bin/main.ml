@@ -120,12 +120,12 @@ let () =
     in     
     let intersect_elapsed = Sys.time () -. intersect_start in
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
-    (* let file_written = "./test/grammars/G0/G0_results/G0a" in  *)
-    let grammar = 
+    let file_written = "./test/grammars/Ga/Ga_results/Gaa" in 
+    (* let grammar = 
       (* String.split_on_char '.' parser_file |> List.hd  *)
-      "G0e"  
+      "Gaa"  
     in
-    let file_written = U.test_results_filepath grammar !file_postfix in 
+    let file_written = U.test_results_filepath grammar !file_postfix in  *)
     C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states parser_file file_written opt_flag debug;
     
     Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_written;
