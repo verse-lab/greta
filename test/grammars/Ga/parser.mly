@@ -86,7 +86,7 @@ annots :
 
 tyy :
   | head_ann=annots ty=LCID { let _ = head_ann in Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }
-  // | ty=LCID { Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }     /* <<== this prod creates conflcits not addressable by greta  */
+  | ty=LCID { Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }     /* <<== this prod creates conflcits not addressable by greta  */
   | LPAREN ty=LCID tail=tys RPAREN { let ty = if ty = "or" then "or_" else ty in Typ.constr (Location.mknoloc (Longident.Lident ty)) tail }
 tys :
   | /* empty */ { [] }
