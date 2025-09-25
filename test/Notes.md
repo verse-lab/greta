@@ -17,17 +17,17 @@ Evaluation
 #### Test Data
 
 |        | Tokens | Varia-<br />tions | Data<br />Ready? | Init<br />Learn? | E2E<br />Tested? | Source |      Relevant Files         |
-| :----: | :--: | :----: | :---: | :---: | :------: | :-------------------------------------: | --------------------------------------------------------- |
-| **G0** |  11  | 5    |    Y    |   Y   |    Y     |            Paper             | `parser.mly`  `ast.ml`   `lexer.ml`   `range.ml`   `parseutils.ml`   |
-| **G1** |  10  | 5    |    Y    |   Y   |    Y     |   Compilers<br />coursework  | `parser.mly`  `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`      |
-| **G2** |  18  | 5    |    Y    |   Y   |    Y     |   Compilers<br />coursework  | `parser.mly`  `ast.ml`   `astlib.ml`   `lexer.mll`   `range.ml`      |
-| **G3** |  25  | 5    |    Y    |   Y   |    N     |   Compilers<br />coursework  | `parser.mly`  `ast.ml`   `lexer.mll`   `range.ml`   `range.mli`      |
-| **G4** |  31  | 5    |    Y    |   Y   |    N     | Minimal OCaml<br />(MinCaml) | `parser.mly`  `lexer.mll`   `id.ml`   `syntax.ml`   `type.ml`        |
-| **G5** |  7   | 5    |    Y    |   Y   |    N     |        StackOverflow         | `parser.mly`  `ast.mly`                                              |
-| **G6** |  21  | 5    |    Y    |   Y   |    N     |        StackOverflow         | `parser.mly`  `ast.mly`                                              |
-| **G7** |  -  |   -   |    -    |   -   |    -     | Simplified SQL<br />Grammar  | `parser.mly`   `ast.mly`                                             |
-| **G8** |  -  |   -   |    -    |   -   |    -     |        ANSI C Grammar        | `parser.mly`   `lexer.mll`   `ast.mly`                               |
-| **G9** |  -  |   -   |    -    |   -   |    -     | TestMatch data<br />(Java 5 by T. Parr) | `parser.mly`   `lexer.mll`   `ast.mly`                    |
+| :----: | :--: | :--: | :---: | :---: | :---: | :-------------------------------------: | --------------------------------------------------- |
+| **G0** |  11  | 5  |    Y    |   Y   |   Y   |            Paper             | `parser.mly`  `ast.ml`  `lexer.ml`  `range.ml`  `parseutils.ml`  |
+| **G1** |  10  | 5  |    Y    |   Y   |   Y   |   Compilers<br />coursework  | `parser.mly`  `ast.ml`  `lexer.mll`  `range.ml`  `range.mli`     |
+| **G2** |  18  | 5  |    Y    |   Y   |   Y   |   Compilers<br />coursework  | `parser.mly`  `ast.ml`  `astlib.ml`   `lexer.mll`  `range.ml`    |
+| **G3** |  25  | 5  |    Y    |   Y   |   N   |   Compilers<br />coursework  | `parser.mly`  `ast.ml`  `lexer.mll`   `range.ml`  `range.mli`    |
+| **G4** |  31  | 5  |    Y    |   Y   |   N   | Minimal OCaml<br />(MinCaml) | `parser.mly`  `lexer.mll`  `id.ml`   `syntax.ml`  `type.ml`      |
+| **G5** |  7   | 5  |    Y    |   Y   |   N   |        StackOverflow         | `parser.mly`  `ast.mly`  `dune`                       |
+| **G6** |  21  | 5  |    Y    |   Y   |   N   |        StackOverflow         | `parser.mly`  `ast.mly`   `dune`                      |
+| **G7** |  -  |  -  |    -    |   -   |   -   | Simplified SQL<br />Grammar  | `parser.mly`   `ast.mly`   `dune`                     |
+| **G8** |  -  |  -  |    -    |   -   |   -   |        ANSI C Grammar        | `parser.mly`   `lexer.mll`   `ast.ml`    `dune`       |
+| **G9** |  -  |  -  |    -    |   -   |   -   | TestMatch data<br />(Java 5 by T. Parr) | `parser.mly`   `lexer.mll`   `ast.ml`      |
 | **Ga** (Tezos - Michelson)  | - | - | - | - | - | Tezos | `parser.mly` `lexer.mll` `syntax.ml` `mySupport.ml` | 
 | **Gb** (Tezos - Kaitai)  | - | - | - | - | - | Tezos | `parser.mly` `lexer.mll` `types.ml` | 
 | **Gc** (Scilla) | - | - | Y | - | - | Zilliqa Research | `ScillaParser.mly` `ScillaLexer.mll` `ParserUtil.ml` `ErrorUtils.ml` `MonadUtil.ml` `ScillaUtil.ml` `Literal.ml` `Integer256.ml` `Identifier.ml` `GasCharge.ml` `Syntax.ml` `Type.ml` | 

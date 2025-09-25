@@ -198,7 +198,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let rec match_collect (sym: symbol) (ls: sigma list) (curr_st: state) (is_lbrace_trans: bool) (is_cond_trans: bool) (acc: sigma list): sigma list =
     let syms_wrt_oa = oa_ls |> List.map (fun x -> match x with 
       Assoc (s, _) -> s | Prec _ -> raise No_prec_possible) in 
-    if ((arity sym) = 2) && (List.mem sym syms_wrt_oa) 
+    if ((arity sym) = 3) && (List.mem sym syms_wrt_oa) 
     then 
       (* TODO: Do this separately *)
       (* account for associativity *)

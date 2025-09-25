@@ -302,7 +302,7 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
   let trivial_nts : state list = g.nonterms
     |> filter (fun nt ->
       filter (fun (lhs, _, _) -> lhs = nt) g.productions
-      |> for_all (fun (_, ((_, a), _), _) -> a = 0) 
+      |> for_all (fun (_, ((_, a), _), _) -> a = 1) 
     ) |> filter (fun x -> (not (String.equal epsilon_state x)))
   in
   (* --- helper to identify level-changing eps-trasition --- *)
@@ -341,7 +341,7 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
   in
   let raw_trivial_syms_nts : (symbol * nonterminal) list = 
     (* new version: to take all the trivial symbols into account *)
-    ranked_alphabet |> List.filter (fun a -> snd a = 0) |> List.map (fun sym -> 
+    ranked_alphabet |> List.filter (fun a -> snd a = 1) |> List.map (fun sym -> 
       (sym, (find_nonterm_from_prods sym g.productions))
       ) 
   in 
@@ -599,7 +599,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
   let rec divide_lines inp before_prod acc_keep acc_prods acc_starts acc_types starts_first types_first: 
     string list * string list * (string * string) list * (string * string) list * (bool * bool) =
     match (read_line inp) with
-    | None -> List.rev ("" :: acc_keep), List.rev acc_prods, List.rev acc_starts, acc_types, (starts_first, types_first)
+    | None -> List.rev acc_keep, List.rev acc_prods, List.rev acc_starts, acc_types, (starts_first, types_first) (* ("" :: acc_keep) *)
     | Some s ->
       if (before_prod) 
       then begin
