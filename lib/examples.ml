@@ -54,9 +54,9 @@ let pp_nonaddr (non_addr_ambigs: (string * string list) list ) =
       else 
         (printf "\t%s -> \n" h; pp_loop prod_hd past_qq tl)
   in 
-  non_addr_ambigs |> List.iteri (fun i (tk, lns) -> 
-    printf "\n\tAmbig #%s \n\t* Tokens involved: %s\n\t* How to reach this ambiguity: \n" (string_of_int (i+1)) tk; 
-    pp_loop "" false lns)
+  non_addr_ambigs |> List.iteri (fun i (_tk, lns) -> 
+    printf "\n\tAmbig #%s " (string_of_int (i+1)); (* printf "\n\t* Tokens involved: %s" tk ; *)
+    printf "\n\t* How to reach this ambiguity: \n"; pp_loop "" false lns)
 
 
 let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool): 
