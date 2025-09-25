@@ -22,6 +22,43 @@ exception Invalid_subtrees
 exception Tree_specifies_oa_or_op
 exception Neither_left_nor_right
 
+let starts str lin = String.starts_with ~prefix:str lin
+let change_to_str_ls s = Str.split (Str.regexp "[ \t\n\r]+") s
+let contains lin s = 
+  try 
+    (ignore (Str.search_forward (Str.regexp_string s) lin 0); true)
+  with 
+    Not_found -> false
+let index_of x ls = 
+  let rec aux i = function 
+  | [] -> None
+  | y :: ys -> if x = y then Some i else aux (i+1) ys 
+  in aux 0 ls
+
+let pp_nonaddr (non_addr_ambigs: (string * string list) list ) = 
+  let open Printf in 
+  printf "\n\t *** Note there are %s ambiguities that are not addressable by Greta. *** \n" (string_of_int (List.length non_addr_ambigs));
+  let rec pp_loop (prod_hd: string) (past_qq: bool) (ls: string list) = 
+    match ls with [] -> printf "\n"
+    | h :: tl ->
+      if past_qq then 
+        (if (not (String.equal prod_hd "")) 
+         then (printf "\t%s -> %s\n" prod_hd h; (pp_loop prod_hd past_qq tl)) 
+         else let s_ls = change_to_str_ls h in 
+          let arr_ind = match (index_of "->" s_ls) with Some i -> i | None -> raise (Failure "arr index") in
+          let lhs = s_ls |> List.filteri (fun j _ -> j = (arr_ind - 1)) |> List.hd in 
+          (printf "\t%s\n" h; pp_loop lhs past_qq tl))
+      else if contains h "(?)" 
+      then (printf "\t%s\n\t At this point (??), you can have following productions: \n" h; 
+            pp_loop prod_hd true tl) 
+      else 
+        (printf "\t%s -> \n" h; pp_loop prod_hd past_qq tl)
+  in 
+  non_addr_ambigs |> List.iteri (fun i (tk, lns) -> 
+    printf "\n\tAmbig #%s \n\t* Tokens involved: %s\n\t* How to reach this ambiguity: \n" (string_of_int (i+1)) tk; 
+    pp_loop "" false lns)
+
+
 let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool): 
   ((string list * tree * (bool * bool) * restriction list) * (string list * tree * (bool * bool) * restriction list)) list = 
   let open List in
@@ -34,8 +71,7 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   let ic = open_in filename in
   let ic2 = open_in filename in 
   let try_read () = try Some (input_line ic) with End_of_file -> None in
-  let try_read2 () = try Some (input_line ic2) with End_of_file -> None in
-  let starts str lin = String.starts_with ~prefix:str lin in 
+  let try_read2 () = try Some (input_line ic2) with End_of_file -> None in 
   let contains_atat lin = 
     try 
       (ignore (Str.search_forward (Str.regexp_string "@@") lin 0); true)
@@ -43,18 +79,13 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
       Not_found -> false
   in
   let is_in_alphabet s: bool = 
-    List.mem s syms_ls in
-  let index_of x ls = 
-    let rec aux i = function 
-    | [] -> None
-    | y :: ys -> if x = y then Some i else aux (i+1) ys 
-    in aux 0 ls
+    List.mem s syms_ls 
   in  
   let add_at_at i ls = 
     List.mapi (fun j x -> if j = i then ("@" ^ x) else x) ls in 
   let remove_at i ls =
-  List.filteri (fun j _ -> j <> i) ls in
-  let change_to_str_ls s = Str.split (Str.regexp "[ \t\n\r]+") s in
+  List.filteri (fun j _ -> j <> i) ls 
+  in
   let attach_at_with_nonterm s: string = 
     let s_ls = change_to_str_ls s in
     let at_ind = match (index_of "@@" s_ls) with Some i -> i | None -> raise (Failure "atat index") in
@@ -89,10 +120,7 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   let rec traverse_nonaddr (outside_acc: (string * string list) list) (can_collect_ctxt: bool) (curr_ctxt: string list)
     (can_collect_last_ctxt: bool) (last_ctxt_prods: string list) (tkns: string): (string * string list) list = 
     match try_read2 () with 
-    | None -> 
-      (close_in ic2; if debug_print then (outside_acc |> List.iter (fun (tk, lns) -> 
-        printf "\n=> Tokens involved: %s\n=> Relevant prods: \n" tk; lns |> List.iter (fun x -> printf "\t%s\n" x))); 
-      List.rev outside_acc)
+    | None -> (close_in ic2; List.rev outside_acc)
     | Some s -> 
       (* *** 
          ==> Depending on what other grammars dump for non-addressable case, might have to change logic below
@@ -255,8 +283,8 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
     in gen_texamples combined_trees 0 [] []
   in
   if debug_print then (Pp.pp_combined_trees combined_trees); Pp.pp_exprs tree_expressions;
-  let _non_addr_ambigs: (string * string list) list = traverse_nonaddr [] false [] false [] "" in 
-  printf "\n\tHow many? %s\n" (string_of_int (List.length _non_addr_ambigs));
+  let non_addr_ambigs: (string * string list) list = traverse_nonaddr [] false [] false [] "" in 
+  pp_nonaddr non_addr_ambigs;
   tree_example_pairs 
 
 
