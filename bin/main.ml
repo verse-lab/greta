@@ -82,6 +82,7 @@ let () =
       let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
       E.gen_examples_new tree_file ranked_symbols debug
     in 
+    if (List.is_empty tree_pairs_lst) then () else 
     (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)
     let file_postfix = ref "" in
     let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list):

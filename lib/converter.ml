@@ -599,7 +599,7 @@ let cfg_to_parser (parser_file: string) (sts_rename_map: (state * state) list)
   let rec divide_lines inp before_prod acc_keep acc_prods acc_starts acc_types starts_first types_first: 
     string list * string list * (string * string) list * (string * string) list * (bool * bool) =
     match (read_line inp) with
-    | None -> List.rev acc_keep, List.rev acc_prods, List.rev acc_starts, acc_types, (starts_first, types_first) (* ("" :: acc_keep) *)
+    | None -> List.rev acc_keep, List.rev acc_prods, List.rev acc_starts, acc_types, (starts_first, types_first) 
     | Some s ->
       if (before_prod) 
       then begin

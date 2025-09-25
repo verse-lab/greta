@@ -35,28 +35,38 @@ let index_of x ls =
   | y :: ys -> if x = y then Some i else aux (i+1) ys 
   in aux 0 ls
 
-let pp_nonaddr (non_addr_ambigs: (string * string list) list ) = 
+let rec pp_loop (prod_hd: string) (past_qq: bool) (ls: string list) = 
   let open Printf in 
-  printf "\n\t *** Note there are %s ambiguities that are not addressable by Greta. *** \n" (string_of_int (List.length non_addr_ambigs));
-  let rec pp_loop (prod_hd: string) (past_qq: bool) (ls: string list) = 
-    match ls with [] -> printf "\n"
-    | h :: tl ->
-      if past_qq then 
-        (if (not (String.equal prod_hd "")) 
-         then (printf "\t%s -> %s\n" prod_hd h; (pp_loop prod_hd past_qq tl)) 
-         else let s_ls = change_to_str_ls h in 
-          let arr_ind = match (index_of "->" s_ls) with Some i -> i | None -> raise (Failure "arr index") in
-          let lhs = s_ls |> List.filteri (fun j _ -> j = (arr_ind - 1)) |> List.hd in 
-          (printf "\t%s\n" h; pp_loop lhs past_qq tl))
-      else if contains h "(?)" 
-      then (printf "\t%s\n\t At this point (??), the following set of productions makes parsing ambiguous: \n" h; 
-            pp_loop prod_hd true tl) 
-      else 
-        (printf "\t%s -> \n" h; pp_loop prod_hd past_qq tl)
-  in 
-  non_addr_ambigs |> List.iteri (fun i (_tk, lns) -> 
-    printf "\n\tAmbig #%s " (string_of_int (i+1)); (* printf "\n\t* Tokens involved: %s" tk ; *)
-    printf "\n\t* How to reach this ambiguity: \n"; pp_loop "" false lns)
+  match ls with [] -> printf "\n"
+  | h :: tl ->
+    if past_qq then 
+      (if (not (String.equal prod_hd "")) 
+        then (printf "\t  %s -> %s\n" prod_hd h; (pp_loop prod_hd past_qq tl)) 
+        else let s_ls = change_to_str_ls h in 
+        let arr_ind = match (index_of "->" s_ls) with Some i -> i | None -> raise (Failure "arr index") in
+        let lhs = s_ls |> List.filteri (fun j _ -> j = (arr_ind - 1)) |> List.hd in 
+        (printf "\t  %s\n" h; pp_loop lhs past_qq tl))
+    else if contains h "(?)" 
+    then (printf "\t  %s\n\t   At this point (??), the following set of productions makes parsing ambiguous: \n" h; 
+          pp_loop prod_hd true tl) 
+    else 
+      (printf "\t  %s -> \n" h; pp_loop prod_hd past_qq tl)
+
+let pp_nonaddr (non_addr_ambigs: (string * string list) list ) = 
+  if (List.is_empty non_addr_ambigs) then () else 
+  let open Printf 
+  in printf "\n\t *** Note there are %s ambiguities that are not addressable by Greta. *** \n" (string_of_int (List.length non_addr_ambigs)); 
+    non_addr_ambigs |> List.iteri (fun i (_tk, lns) -> 
+      printf "\n\tAmbig #%s " (string_of_int (i+1)); (* printf "\n\t* Tokens involved: %s" tk ; *)
+      printf "\n\t* How to reach this ambiguity: \n"; pp_loop "" false lns)
+
+let pp_due_to_menhir (ambigs: (string * string list) list) = 
+  if (List.is_empty ambigs) then () else 
+  let open Printf 
+  in printf "\n\t *** Note there are %s ambiguities that are reported due to limitations of Menhir. *** \n" (string_of_int (List.length ambigs));
+    ambigs |> List.iteri (fun i (tk, lns) -> 
+      printf "\n\tAmbig #%s " (string_of_int (i+1)); printf "\n\t* Tokens involved: %s" tk ;
+      printf "\n\t* How to reach this ambiguity: \n"; pp_loop "" false lns)
 
 
 let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool): 
@@ -68,10 +78,13 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   (* *** debug *** *)
   if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); printf "\n");
   (* helpers *)
+  let is_due_to_menhir = ref false in
   let ic = open_in filename in
-  let ic2 = open_in filename in 
+  let ic2 = open_in filename in
+  let ic3 = open_in filename in 
   let try_read () = try Some (input_line ic) with End_of_file -> None in
   let try_read2 () = try Some (input_line ic2) with End_of_file -> None in 
+  let try_read3 () = try Some (input_line ic3) with End_of_file -> None in 
   let contains_atat lin = 
     try 
       (ignore (Str.search_forward (Str.regexp_string "@@") lin 0); true)
@@ -108,13 +121,24 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   (* traverse and acc relevant lines for generating trees from `parser.trees` file *)
   let rec traverse (res_acc: string list): string list = 
     match try_read () with 
-    | None -> (close_in ic; List.rev res_acc)
+    | None -> (close_in ic; res_acc)
     | Some s -> 
       (* <<== NOTE! below added to not address ambigs outside the scope of greta *)
       if (contains_atat s) && (not (starts "@@" s))
       then (let changed_str = attach_at_with_nonterm s
             in traverse (changed_str::res_acc))
       else traverse res_acc
+  in 
+  let filter_out_wrt_menhir_limitations (input_ls: string list): string list = 
+    let ls_sorted = List.sort (fun s1 s2 -> Int.compare (String.length s1) (String.length s2)) input_ls in
+    let rec loop (res_acc: string list) (skip: bool) (ls: string list): string list =  
+    match ls with [] -> res_acc
+    | h :: tl -> 
+      if skip then loop res_acc false tl else
+      if (contains h "@") && ((List.length (change_to_str_ls h)) = 1) 
+      then (is_due_to_menhir := true; loop res_acc true tl )
+      else loop (h::res_acc) skip tl
+    in loop [] false ls_sorted
   in 
   (* traverse_for_nonaddr collects prods that can be useful for non-addressable ambiguities *)
   let rec traverse_nonaddr (outside_acc: (string * string list) list) (can_collect_ctxt: bool) (curr_ctxt: string list)
@@ -133,10 +157,10 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
           else traverse_nonaddr outside_acc can_collect_ctxt (s::curr_ctxt) can_collect_last_ctxt last_ctxt_prods tkns 
         | false -> 
           if can_collect_last_ctxt 
-          (* assumption: only 2 production lines w.r.t. last_cotxt_prods - so set to false while collecting curr 's' *)
+          (* assumption: only 2 production lines w.r.t. last_ctxt_prods - so set to false while collecting curr 's' *)
           then traverse_nonaddr outside_acc can_collect_ctxt curr_ctxt false (s::last_ctxt_prods) tkns 
           else
-          (* if collect_last_ctxt is false, then check if it starts from "* Production" *)
+          (* if 'collect_last_ctxt' is false, then check if it starts from "* Production" *)
           if (starts "* Production" s) 
           then (let curr_prod = extract_prod_line s 
                 in traverse_nonaddr outside_acc can_collect_ctxt curr_ctxt true (curr_prod::last_ctxt_prods) tkns)
@@ -163,6 +187,50 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
           else traverse_nonaddr outside_acc can_collect_ctxt curr_ctxt can_collect_last_ctxt last_ctxt_prods tkns 
       end 
   in 
+  (* traverse_due_to_menhir collects prods that can be useful for due_to_menhir ambiguities *)
+  let rec traverse_due_to_menhir (res_acc: (string * string list) list) (can_collect_ctxt: bool) (curr_ctx: string list)
+    (can_collect_last_ctxt: bool) (last_ctxt_prods: string list) (tkns: string): (string * string list) list = 
+    match try_read3 () with None -> List.rev res_acc
+    | Some s -> 
+      (* *** 
+        ==> Below logic added based on manual inspection of the grammar
+       *** *)
+      begin 
+        match can_collect_ctxt with 
+        | true -> 
+          if (starts ">> ContextEnd" s)
+          then traverse_due_to_menhir res_acc false curr_ctx can_collect_last_ctxt last_ctxt_prods tkns
+          else traverse_due_to_menhir res_acc can_collect_ctxt (s::curr_ctx) can_collect_last_ctxt last_ctxt_prods tkns
+        | false -> 
+          if can_collect_last_ctxt 
+          (* assumption: only 2 prod lines wrt. last_ctxt_prods - so set to false while collecting curr 's' *)
+          then traverse_due_to_menhir res_acc can_collect_ctxt curr_ctx false (s::last_ctxt_prods) tkns
+          else 
+          (* if 'collect_last_ctxt' is false, then check if it starts from "* Production" *)
+          if (starts "* Production" s)
+          then (let curr_prod = extract_prod_line s
+                in traverse_due_to_menhir res_acc can_collect_ctxt curr_ctx true (curr_prod::last_ctxt_prods) tkns)
+          else
+          (* if contains @@ and only one nonterminal, then has to do with menhir *)
+          if (contains_atat s) && (List.length (change_to_str_ls s) = 2)
+          then 
+            traverse_due_to_menhir ((tkns, (List.rev curr_ctx) @ (List.rev last_ctxt_prods))::res_acc) can_collect_ctxt [] can_collect_last_ctxt [] ""
+          else
+          (* if starts from "** Tokens:", then extract tokens and collect *)
+          if (starts "** Tokens:" s) then 
+            (let tkns_from_string = extract_tokens s
+             in traverse_due_to_menhir res_acc can_collect_ctxt curr_ctx can_collect_last_ctxt last_ctxt_prods tkns_from_string)
+          else
+          (* if starts from ">> ContextStart", then set 'can_collect_ctxt' to be true while passing [] to 'curr_ctxt' *)
+          if (starts ">> ContextStart" s)
+          then traverse_due_to_menhir res_acc true [] can_collect_last_ctxt last_ctxt_prods tkns
+          else
+          (* if 's' contains @@ and does not contain only one nonterminal, then not relevant in this loop *)
+          if (contains_atat s) && (not (List.length (change_to_str_ls s) = 2))
+          then traverse_due_to_menhir res_acc false [] false [] ""
+          else traverse_due_to_menhir res_acc can_collect_ctxt curr_ctx can_collect_last_ctxt last_ctxt_prods tkns 
+      end 
+  in
   let convert_to_tree_exprs (str_ls: string list): tree = 
     let rec conv_loop ls nodsym_acc subtrees_acc = 
       match ls with [] -> Node (nodsym_acc, List.rev subtrees_acc)
@@ -246,8 +314,8 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
               combine_loop (List.tl tl) (two_trees_combined @ res_acc))
     in combine_loop e_trees_n_exprs []
   in 
-  let relev_ls: string list = traverse [] in
-    (if debug_print then relev_ls |> (List.iter (fun x -> printf "%s\n" x)));
+  let relev_ls: string list = traverse [] |> filter_out_wrt_menhir_limitations in
+    (if debug_print then printf "\n\t Relevant lines: \n";relev_ls |> (List.iter (fun x -> printf "\t %s\n" x)));
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
   if debug_print then (printf "\tExtracted trees: "; 
     let tls: tree list = extracted_trees_n_exprs |> List.map fst 
@@ -283,8 +351,12 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
     in gen_texamples combined_trees 0 [] []
   in
   if debug_print then (Pp.pp_combined_trees combined_trees); Pp.pp_exprs tree_expressions;
+  (* traverse file again for nonaddressable ambiguities *)
   let non_addr_ambigs: (string * string list) list = traverse_nonaddr [] false [] false [] "" in 
-  pp_nonaddr non_addr_ambigs;
+  (* traverse file again in case there is `is_due_to_menhir` is true *)
+  let due_to_menhir_ambigs: (string * string list) list = traverse_due_to_menhir [] false [] false [] "" in
+  pp_nonaddr non_addr_ambigs; 
+  pp_due_to_menhir due_to_menhir_ambigs;
   tree_example_pairs 
 
 
