@@ -49,7 +49,7 @@ let pp_nonaddr (non_addr_ambigs: (string * string list) list ) =
           let lhs = s_ls |> List.filteri (fun j _ -> j = (arr_ind - 1)) |> List.hd in 
           (printf "\t%s\n" h; pp_loop lhs past_qq tl))
       else if contains h "(?)" 
-      then (printf "\t%s\n\t At this point (??), you can have following productions: \n" h; 
+      then (printf "\t%s\n\t At this point (??), the following set of productions makes parsing ambiguous: \n" h; 
             pp_loop prod_hd true tl) 
       else 
         (printf "\t%s -> \n" h; pp_loop prod_hd past_qq tl)
