@@ -35,6 +35,11 @@ let index_of x ls =
   | y :: ys -> if x = y then Some i else aux (i+1) ys 
   in aux 0 ls
 
+let rec pair_up = function
+  | a :: b :: rest -> (a, b) :: pair_up rest
+  | [] -> []
+  | [_] -> invalid_arg "pair_up: odd number of elements"
+
 let rec pp_loop (prod_hd: string) (past_qq: bool) (ls: string list) = 
   let open Printf in 
   match ls with [] -> printf "\n"
@@ -130,15 +135,15 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
       else traverse res_acc
   in 
   let filter_out_wrt_menhir_limitations (input_ls: string list): string list = 
-    let ls_sorted = List.sort (fun s1 s2 -> Int.compare (String.length s1) (String.length s2)) input_ls in
-    let rec loop (res_acc: string list) (skip: bool) (ls: string list): string list =  
+    let str_paired_ls: (string * string) list = pair_up input_ls in
+    let rec loop (res_acc: string list) (ls: (string * string) list): string list =  
     match ls with [] -> if !is_due_to_menhir then res_acc else input_ls
-    | h :: tl -> 
-      if skip then loop res_acc false tl else
-      if (contains h "@") && ((List.length (change_to_str_ls h)) = 1) 
-      then (is_due_to_menhir := true; loop res_acc true tl )
-      else loop (h::res_acc) skip tl
-    in loop [] false ls_sorted
+    | (s1, s2) :: tl ->
+      if ((contains s1 "@") && ((List.length (change_to_str_ls s1)) = 1)) || 
+          ((contains s2 "@") && ((List.length (change_to_str_ls s2)) = 1))
+      then (is_due_to_menhir := true; loop res_acc tl )
+      else loop (s1::s2::res_acc) tl
+    in loop [] str_paired_ls
   in 
   (* traverse_for_nonaddr collects prods that can be useful for non-addressable ambiguities *)
   let rec traverse_nonaddr (outside_acc: (string * string list) list) (can_collect_ctxt: bool) (curr_ctxt: string list)
