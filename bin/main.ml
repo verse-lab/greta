@@ -25,27 +25,42 @@ module T = Ta
 (* - Repeat these steps until all the ambiguities are resolved       *)
 (*                                                                   *)
 (* ***************************************************************** *)
+let safe_get arr idx =
+  if idx < Array.length arr then Array.get arr idx
+  else ""
 
 let () =
   (** Step 1: Initial inputs provided by the user *)
-  (* let parser_file = Array.get Sys.argv 1 in
-  let conflicts_file = Array.get Sys.argv 2 in
-  let cfg_file = Array.get Sys.argv 3 in *)
-  
-  let parser_file = "./lib/parser.mly" in 
-  let conflicts_file = "./_build/default/lib/parser.conflicts" in 
-  let cfg_file = "./_build/default/lib/parser.cfg" in 
-  let tree_file = "./_build/default/lib/parser.trees" in
-  
+  let parser_file = ref (safe_get Sys.argv 1) in
+  let conflicts_file = ref (safe_get Sys.argv 2) in
+  let cfg_file = ref (safe_get Sys.argv 3) in
+  let tree_file = ref (safe_get Sys.argv 4) in
+
+  let is_empty = String.equal String.empty in
+  if !parser_file |> is_empty && 
+    !conflicts_file |> is_empty && 
+    !cfg_file |> is_empty && 
+    !tree_file |> is_empty
+  then begin
+    parser_file := "./lib/parser.mly";
+    conflicts_file := "./_build/default/lib/parser.conflicts";
+    cfg_file := "./_build/default/lib/parser.cfg";
+    tree_file := "./_build/default/lib/parser.trees";
+  end;
+
   (* Learn TA and O_bp wrt 'parser_file' *)
-  
+  print_string ("Parser file: " ^ !parser_file); print_newline ();
+  print_string ("Conflicts file: " ^ !conflicts_file); print_newline ();
+  print_string ("CFG file: " ^ !cfg_file); print_newline ();
+  print_string ("Tree file: " ^ !tree_file); print_newline ();
+
   (* Check that the path exists *)
-  if (not (Sys.file_exists parser_file)) then 
-    (print_endline "Error: Parser file does not exist. Exiting."; exit 1)
-  else if (not (Sys.file_exists conflicts_file)) then 
-    (print_endline "Error: Conflicts file does not exist. Exiting."; exit 1)
-  else if (not (Sys.file_exists cfg_file)) then 
-    (print_endline "Error: CFG file does not exist. Exiting."; exit 1)
+  if (not (Sys.file_exists !parser_file)) then 
+    (print_endline "Error: Parser file does not exist. Exiting..."; exit 1)
+  else if (not (Sys.file_exists !conflicts_file)) then 
+    (print_endline "Error: Conflicts file does not exist. Exiting..."; exit 1)
+  else if (not (Sys.file_exists !cfg_file)) then 
+    (print_endline "Error: CFG file does not exist. Exiting..."; exit 1)
   else
 
   let debug = true in
@@ -63,13 +78,13 @@ let () =
   let _opt_flag_new: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = true } in 
   
 
-  if (Utils.check_conflicts conflicts_file debug) then
+  if (Utils.check_conflicts !conflicts_file debug) then
   begin
     let convert_start = Sys.time () in
     let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms): 
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
       ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
-      C.convertToTa cfg_file opt_flag_g2e debug in
+      C.convertToTa cfg_file opt_flag debug in
       
     let convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet 
@@ -80,7 +95,7 @@ let () =
     in 
     *)
       let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
-      E.gen_examples_new tree_file ranked_symbols debug
+      E.gen_examples_new !tree_file ranked_symbols debug
     in 
     if (List.is_empty tree_pairs_lst) then () else 
     (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)
@@ -127,7 +142,7 @@ let () =
       "Gaa"  
     in
     let file_written = U.test_results_filepath grammar !file_postfix in  *)
-    C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states parser_file file_written opt_flag_g2e debug;
+    C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states !parser_file file_written opt_flag debug;
     
     Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_written;
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" convert_elapsed;
@@ -137,7 +152,7 @@ let () =
  (* () *) 
   
 end
-else U.no_conflicts_message parser_file
+else U.no_conflicts_message !parser_file
 
 
 (*** Assumptions made on the language designer (user of this tool):

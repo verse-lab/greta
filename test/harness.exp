@@ -12,8 +12,9 @@ proc get_cli_command {path} {
     set grammar_extension ".mly"
     set conflicts_extension ".conflicts"
     set config_extension ".cfg"
+    set tree_extension ".trees"
 
-    set cli_command "$binary_exec $base_grammar_file$grammar_extension $base_grammar_file$conflicts_extension $base_grammar_file$config_extension"
+    set cli_command "$binary_exec $base_grammar_file$grammar_extension $base_grammar_file$conflicts_extension $base_grammar_file$config_extension $base_grammar_file$tree_extension"
     return [list $cli_command $base_grammar_file$grammar_extension]
 }
 

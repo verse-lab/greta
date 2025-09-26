@@ -3,12 +3,12 @@
 import os
 
 grammars = [
-    # "grammars/G0/G0s",
+    "grammars/G0/G0s",
     # "grammars/G1/G1s",
     # "grammars/G2/G2s",
     # "grammars/G3/G3s",
     # "grammars/G4/G4s",
-    "grammars/G5/G5s",
+    # "grammars/G5/G5s",
 ]
 
 # for each grammar in grammars, run the harness script, 
@@ -26,7 +26,7 @@ while exist_unseen:
         # get all files in `folder`
         files = os.listdir(f"{cwd}/{folder}")
         # filter out .mly files
-        files = [f for f in files if f.endswith('.mly') and "G5b" in f ]
+        files = [f for f in files if f.endswith('.mly') and "G0a" in f ]
         # get rid of .mly extension
         files = [f[:-4] for f in files]
 
@@ -38,7 +38,7 @@ while exist_unseen:
             exist_unseen = True
 
         for f in unseen_files:
-            os.system(f"menhir --explain {folder}/{f}.mly")
+            os.system(f"menhir --greta --explain {folder}/{f}.mly")
             os.system(f"./harness.exp {folder}/{f}")
             os.system(f"mv test_results.csv {folder}/{f}.csv")
         
