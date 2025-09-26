@@ -25,13 +25,16 @@ module T = Ta
 (* - Repeat these steps until all the ambiguities are resolved       *)
 (*                                                                   *)
 (* ***************************************************************** *)
+let safe_get arr idx =
+  if idx < Array.length arr then Array.get arr idx
+  else ""
 
 let () =
   (** Step 1: Initial inputs provided by the user *)
-  let parser_file = ref (Array.get Sys.argv 1) in
-  let conflicts_file = ref (Array.get Sys.argv 2) in
-  let cfg_file = ref (Array.get Sys.argv 3) in
-  let tree_file = ref (Array.get Sys.argv 4) in
+  let parser_file = ref (safe_get Sys.argv 1) in
+  let conflicts_file = ref (safe_get Sys.argv 2) in
+  let cfg_file = ref (safe_get Sys.argv 3) in
+  let tree_file = ref (safe_get Sys.argv 4) in
 
   let is_empty = String.equal String.empty in
   if !parser_file |> is_empty && 
@@ -46,12 +49,11 @@ let () =
   end;
 
   (* Learn TA and O_bp wrt 'parser_file' *)
+  print_string ("Parser file: " ^ !parser_file); print_newline ();
+  print_string ("Conflicts file: " ^ !conflicts_file); print_newline ();
+  print_string ("CFG file: " ^ !cfg_file); print_newline ();
+  print_string ("Tree file: " ^ !tree_file); print_newline ();
 
-  print_string !parser_file; print_newline ();
-  print_string !conflicts_file; print_newline ();
-  print_string !cfg_file; print_newline ();
-  print_string !tree_file; print_newline ();
-  
   (* Check that the path exists *)
   if (not (Sys.file_exists !parser_file)) then 
     (print_endline "Error: Parser file does not exist. Exiting..."; exit 1)
