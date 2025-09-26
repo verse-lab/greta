@@ -341,9 +341,8 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
   in
   let raw_trivial_syms_nts : (symbol * nonterminal) list = 
     (* new version: to take all the trivial symbols into account *)
-    ranked_alphabet |> List.filter (fun a -> snd a = 1) |> List.map (fun sym -> 
-      (sym, (find_nonterm_from_prods sym g.productions))
-      ) 
+    ranked_alphabet |> List.filter (fun a -> (snd a = 1) && (not (syms_equals epsilon_symb a)) ) 
+      |> List.map (fun sym -> (sym, (find_nonterm_from_prods sym g.productions))) 
   in 
   let only_consists_of_trivial_trans (sym: symbol) (nt: nonterminal) (raw_triv_syms: symbol list) 
     (p: production2 list): bool = 
