@@ -228,7 +228,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
 
   let find_rhs_lst_lst (s: symbol) (o: int) (max_o: int): sigma list list = 
     (* *** NOTE! *** *)
-    (* [new_new_fix] added another condition for max_o for G2e 0000 -> 00 case *)
+    `(* [new_new_fix] added another condition for max_o for G2e 0000 -> 00 case *)
     (* if (List.mem s versatile_syms) then (Printf.printf "\n\t\t ALRIGHT\n\n";Utils.assoc_all s o_versatile sym_ord_rhs_ls debug) else  *)
     if (triv_opt = false) then Utils.assoc_all s o sym_ord_rhs_ls debug else 
     if (eps_opt = true) then (if (syms_equals s epsilon_symb) then 

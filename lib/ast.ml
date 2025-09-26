@@ -1,27 +1,37 @@
+type 'a loc = {
+    elt : 'a
+  ; loc : Range.t
+}
 
-type t =
-  | Na
-  | Int of int
-  | Bool of bool
-  | Plus of t * t
-  | Mul of t * t
-  | Paren of t
-  | If of t * then_t
-  and then_t = 
-  | Then of t * else_t
-  and else_t = 
-  | Else of t
+let no_loc x = {elt=x; loc=Range.norange}
 
-let rec pp fmt =
-  function
-  | Na -> Format.pp_print_space fmt ()
-  | Int i -> Format.pp_print_int fmt i
-  | Bool b -> Format.pp_print_bool fmt b
-  | Paren v -> Format.fprintf fmt "@{Paren(%a)@}" pp v
-  | Plus (l, r) -> Format.fprintf fmt "@{Plus(%a, %a)@}" pp l pp r
-  | Mul (l, r) -> Format.fprintf fmt "@{Mul(%a, %a)@}" pp l pp r
-  | If (b, (Then (br1, Else Na))) -> Format.fprintf fmt "@{if1 %a then { %a }@}" pp b pp br1
-  | If (b, (Then (br1, Else br2))) -> Format.fprintf fmt "@{if2 %a then { %a } else { %a }@}" pp b pp br1 pp br2
+type id =  string loc (* Identifiers *)
 
-let show expr = Format.asprintf "%a" pp expr
-                  
+type _const =
+  | CInt  of int64
+and const = _const loc
+
+type binop =
+  | Add | Sub | Mul
+
+and _exp =  
+  | Id of id
+  | Const of const 
+  | Bop of binop * exp * exp 
+and exp = _exp loc
+
+type _stmt =
+  | Decl of decl
+  | Assn of id * exp
+  | If of exp * block * block  
+  | While of exp * block
+  | Ret of exp
+  | Block of block
+and stmt = _stmt loc
+
+and _decl = {id : id; init : exp;}
+and decl = _decl loc
+
+and block = stmt list
+
+type prog = block
