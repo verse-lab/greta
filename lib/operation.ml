@@ -593,7 +593,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
     res_trans_ls |> List.iter (fun ((st, sym), sig_ls) -> 
       Hashtbl.add res_trans_tbl (st, sym) [sig_ls]);
   triv_sym_state_ls |> List.iter (fun (sym, st) -> 
-    Hashtbl.add res_trans_tbl (st, sym) [[(Nt epsilon_state)]]);
+    Hashtbl.add res_trans_tbl (st, sym) [[(T (fst sym))]]);
   (if debug_print then pp_upline_new (); printf "##### Step 14 - Converted trans blocks (and trivial trans) to transitions hashtbl : \n";
     Pp.pp_transitions_tbl res_trans_tbl; pp_loline_new ());
 
