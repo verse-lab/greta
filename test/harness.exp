@@ -98,6 +98,10 @@ proc handle_choice {current_path next start} {
             set intersect_time $expect_out(1,string)
             exp_continue
         }
+        -re {reported due to limitations of Menhir} {
+            puts "Menhir limitation error. Path: $current_path"
+            exec echo "$current_path,MENHIR_LIMITATION,,," >> $::results_file
+        }
         -re {Fatal error:.*} {
             puts "Error occurred. Path: $current_path"
             exec echo "$current_path,ERROR,,," >> $::results_file

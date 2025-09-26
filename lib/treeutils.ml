@@ -20,10 +20,14 @@ let is_cond_state (s: state): bool =
   String.starts_with ~prefix:"con" s || String.starts_with ~prefix:"C" s
 
 let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let booltostr x = if x then "true" else "false" in
-  let open Printf in 
-  if debug_print then (printf "\n  >> Are the following trees equal?\n\t";
-  Pp.pp_tree e1; printf "\n\t"; Pp.pp_tree e2); 
+  (wrapped_printf "\n  >> Are the following trees equal?\n\t";
+  Pp.pp_tree e1; wrapped_printf "\n\t"; Pp.pp_tree e2); 
   let rec loop t1 t2 =
     match t1, t2 with
     | Leaf _, Node _ | Node _, Leaf _ -> false
@@ -33,7 +37,7 @@ let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
       List.fold_left2 (fun acc subt1 subt2 -> 
         acc && loop subt1 subt2) true subts1 subts2
   in let res = loop e1 e2 in 
-  if debug_print then (printf "\n  >> Result of equality:\t%s\n" (booltostr res)); 
+  if debug_print then (wrapped_printf "\n  >> Result of equality:\t%s\n" (booltostr res)); 
   res
 
 let is_leaf (t: tree): bool =
@@ -131,8 +135,7 @@ let replace_node_wleaf (ts: tree list): tree list =
 (** combine_trees_aux : combine 'up_t' as upper and 'lo_t' as lower trees *)
 let combine_trees_aux (up_t: tree) (lo_t: tree): tree = 
   match up_t, lo_t with
-  | Leaf _, _ | _, Leaf _ -> 
-    Printf.printf "Cannot combine: either of the trees is Leaf!"; Leaf "dummy"
+  | Leaf _, _ | _, Leaf _ -> Leaf "dummy"
   | Node (up_sym, up_subts), Node (lo_sym, lo_subts) ->
     let last_ind = (List.length up_subts) - 1 in
     let up_subts_new = List.mapi (fun i subt -> 
@@ -153,8 +156,12 @@ let rewrite_syms (tts: (tree * tree) list): (tree * tree) list =
 
 (** rename_states : rename states in ta_res from /\ *)
 let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
-  let open Printf in
-  if debug_print then (printf "\nRename the following tree automaton:\n"; Pp.pp_ta inp_ta);
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
+  (wrapped_printf "\nRename the following tree automaton:\n"; Pp.pp_ta inp_ta);
   let start_old, start_new = inp_ta.start_state, "expr1" in
   let states_mapping_init: (state * state) list = (start_old, start_new) :: [] in
   let eind, cind = ref 2, ref 1 in
@@ -170,7 +177,7 @@ let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
     let stlhs_new = replace_with_new stlhs in 
     let stsrhs_new = stsrhs |> List.map replace_with_new in (stlhs_new, (sym, stsrhs_new))) in
   let ta_res: ta = {states=states_new; alphabet=inp_ta.alphabet; start_state=start_new; transitions=trans_new; trivial_sym_nts=[]} in 
-  if debug_print then (printf "\nResult of renaming:\n"; Pp.pp_ta ta_res; printf "\n");
+  if debug_print then (wrapped_printf "\nResult of renaming:\n"; Pp.pp_ta ta_res; wrapped_printf "\n");
   ta_res
 
 (* let subts_to_list (subts: tree list):  *)
@@ -184,7 +191,7 @@ let tree_to_expr (t: tree) : string list =
   (* 
     (* *** debug *** *)
     let open Printf in 
-    (printf "\n\n\t\t >> Tree_to_expr "; Pp.pp_tree t; printf "\n\n");
+    (wrapped_printf "\n\n\t\t >> Tree_to_expr "; Pp.pp_tree t; wrapped_printf "\n\n");
   *)
   let is_empty_leaf (ts: tree list) =
     match (hd ts, length ts) with (Leaf "ϵ"), 1 -> true | _ -> false in
@@ -237,7 +244,7 @@ let present_tree_pair_single_operator (trees: tree * tree): unit =
   let expr2 = gen_dual_expr expr1 in 
   printf "Option 0: \n"; print_strs expr1;
   printf "Option 1: \n"; print_strs expr2; printf "\n"
-  (* ;printf "Option 2: \n\tNo preference"; printf "\n\n" *)
+  (* ;wrapped_printf "Option 2: \n\tNo preference"; wrapped_printf "\n\n" *)
 
 let present_tree_pair (trees: tree * tree): unit =
   let open Printf in
@@ -287,13 +294,22 @@ let check_oa_op (e: tree): bool * bool =
 
 let collect_oa_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
 (debug_print: bool): restriction list = 
-let res = example_trees 
-  |> List.fold_left (fun acc (_, _, (oa, _), rls) -> if oa then rls @ acc else acc) [] 
-in if debug_print then (Printf.printf "\n  Collected O_a : "; Pp.pp_restriction_lst res); res
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
+  let res = example_trees 
+    |> List.fold_left (fun acc (_, _, (oa, _), rls) -> if oa then rls @ acc else acc) [] 
+  in if debug_print then (wrapped_printf "\n  Collected O_a : "; Pp.pp_restriction_lst res); res
 
 let update_if_exist_overlapping_symbols_w_diff_order (so_ls: (symbol * int) list) 
   (acc_ls: (symbol * int) list list) (debug: bool): (symbol * int) list list = 
-  let open Printf in 
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let flattened_acc: (symbol * int) list = acc_ls |> List.flatten in
   let syms_ls: symbol list = flattened_acc |> List.map fst in
   let find_ord s': int = List.assoc s' flattened_acc in
@@ -303,12 +319,12 @@ let update_if_exist_overlapping_symbols_w_diff_order (so_ls: (symbol * int) list
       if List.mem s syms_ls then 
         (let ord = find_ord s in 
         if (ord = o) then 
-          (if debug then printf "\n\t Exist in acc so list but same order so leave intact\n"; loop so_tl acc)
+          (if debug then wrapped_printf "\n\t Exist in acc so list but same order so leave intact\n"; loop so_tl acc)
         else 
           (* TODO: change logic here! *)
-          (if debug then printf "\n\t"; loop so_tl acc)) 
+          (if debug then wrapped_printf "\n\t"; loop so_tl acc)) 
       else 
-        (if debug then printf "\n\t Not exist in acc so list\n"; loop so_tl acc)
+        (if debug then wrapped_printf "\n\t Not exist in acc so list\n"; loop so_tl acc)
   in loop so_ls acc_ls 
 
 let refine_raw_rest_lsls_wrt_relativ_order (rlsls: restriction list list) (debug: bool): restriction list = 
@@ -328,18 +344,24 @@ let refine_raw_rest_lsls_wrt_relativ_order (rlsls: restriction list list) (debug
 
 let collect_op_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
   (debug_print: bool): restriction list = 
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
+  
   let raw_rest_lsls: restriction list list = example_trees 
     |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls :: acc else acc) [] 
     |> List.map (fun r_ls -> r_ls 
       |> List.map (fun r -> match r with Prec (sym, o) -> Prec (sym, (o-1)) | Assoc _ -> raise No_assoc_possible))
   in 
   let refined_rest_ls = refine_raw_rest_lsls_wrt_relativ_order raw_rest_lsls debug_print in
-  (Printf.printf "\n\t Refined restriction list : "; Pp.pp_restriction_lst refined_rest_ls);
+  (wrapped_printf "\n\t Refined restriction list : "; Pp.pp_restriction_lst refined_rest_ls);
   let res = example_trees 
     |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls @ acc else acc) [] 
     |> List.map (fun r -> match r with Prec (sym, o) -> Prec (sym, (o-1)) | Assoc _ -> raise No_assoc_possible)
   in 
-  if debug_print then (Printf.printf "\n  Collected O_p : "; Pp.pp_restriction_lst res); res
+  if debug_print then (wrapped_printf "\n  Collected O_p : "; Pp.pp_restriction_lst res); res
 
 (* helper for 'combine_op_restrictions'
  - find all occurrences of (s, o) for sym 's' in o_tmp and combine all the matching o's *)
@@ -363,6 +385,11 @@ let reorder_op (o_p: restriction list): restriction list =
                         | Some i -> i in Prec (s, new_order))
 
 let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list =
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let rec traverse_o_bp ls acc = 
     match ls with [] -> List.rev acc 
     | Assoc (_, _) :: _ -> raise No_assoc_possible
@@ -371,7 +398,7 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
       in traverse_o_bp tl (Prec (sym, op_order_combined)::acc)
   in let combined_op = traverse_o_bp o_bp [] 
   in let reordered_combined_op = reorder_op combined_op in
-  (if debug_print then Printf.printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
+  (if debug_print then wrapped_printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
 let update_op_w_restrictions (hi_sym: symbol) (lo_sym: symbol) (init_op: restriction list): restriction list = 
@@ -391,6 +418,11 @@ let update_op_w_restrictions (hi_sym: symbol) (lo_sym: symbol) (init_op: restric
     end 
 
 let combine_op_restrictions_in_pairs (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list =
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+  
   let rec traverse_o_tmp_in_pairs ls op_acc = 
     match ls with [] -> op_acc 
     | Prec (sym1, bo1) :: Prec (sym2, bo2) :: tl ->
@@ -401,7 +433,7 @@ let combine_op_restrictions_in_pairs (o_bp: restriction list) (o_tmp: restrictio
     | _ -> raise (Failure "Op restrictions in pairs")
   in let combined_op = traverse_o_tmp_in_pairs o_tmp o_bp
   in let reordered_combined_op = reorder_op combined_op in
-  (if debug_print then Printf.printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
+  (wrapped_printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
 let sym_in_oa_lst (s: symbol) (oa_ls: restriction list): bool =
@@ -463,12 +495,17 @@ let order_trans_ls (st_ls: state list) (trans_ls: transition list): transition l
   st_ls |> List.fold_left (fun acc st ->  acc @ (find_all_trans_starting_from st trans_ls)) []
 
 let find_rhs_states_from_state_with_sym (st: state) (sym: symbol) (trans_ls: transition list) (debug: bool): state list =
-  if debug then Printf.printf "\nFinding transition starting from %s for symbol (%s, %i) ..\n" st (fst sym) (snd sym);
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
+  wrapped_printf "\nFinding transition starting from %s for symbol (%s, %i) ..\n" st (fst sym) (snd sym);
   let rec interm_sts_loop (ls': state list) (rhs_sts_ls: state list): state list * state list = 
     match ls' with 
     | [] -> rhs_sts_ls, []
     | interm_hd :: interm_tl -> 
-      Printf.printf "\n\tNow looking for RHS states starting from %s for symbol (%s, %i)\n" interm_hd (fst sym) (snd sym);
+      wrapped_printf "\n\tNow looking for RHS states starting from %s for symbol (%s, %i)\n" interm_hd (fst sym) (snd sym);
       let i_rhs, next_interm_ls = find_rhs_states trans_ls interm_hd []
       in if (i_rhs = []) then interm_sts_loop interm_tl [] else i_rhs, next_interm_ls
   and 
@@ -477,7 +514,7 @@ let find_rhs_states_from_state_with_sym (st: state) (sym: symbol) (trans_ls: tra
     | [] ->
       if interm_sts = []
       then [], []
-      else (Printf.printf "\n\tInterm states not empty: "; Pp.pp_states interm_sts; 
+      else (wrapped_printf "\n\tInterm states not empty: "; Pp.pp_states interm_sts; 
            interm_sts_loop interm_sts [])
     | (lft_st, (s, rhs_sts)) :: tl -> 
       if (lft_st = from_st) && (syms_equals s sym)
@@ -487,7 +524,7 @@ let find_rhs_states_from_state_with_sym (st: state) (sym: symbol) (trans_ls: tra
             in find_rhs_states tl from_st (next_st::interm_sts))
       else find_rhs_states tl from_st interm_sts
   in let res_rhs_sts, _ (* res_interm_sts*) = find_rhs_states trans_ls st [] in
-  (if debug then Printf.printf "\n\t\t >> .. Found RHS states: "; Pp.pp_states res_rhs_sts);
+  (if debug then wrapped_printf "\n\t\t >> .. Found RHS states: "; Pp.pp_states res_rhs_sts);
   res_rhs_sts
 
 let cross_product_state_lists (st_ls1: state list) (st_ls2: state list): state list =
@@ -553,16 +590,20 @@ let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_
 
 let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsls_ls2: (sigma list list) list) 
   (triv_states: state list) (debug: bool): (sigma * sigma) list list =
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let open List in
-  let open Printf in 
-  if debug then (printf "\n\tFinding cross product of sigma_lsls's first sig_lsls : \n"; 
-    sig_lsls_ls1 |> List.iter Pp.pp_sigma_listlist; printf "\n\tThen second sig_lsls : \n"; sig_lsls_ls2 |> List.iter Pp.pp_sigma_listlist);
+  if debug then (wrapped_printf "\n\tFinding cross product of sigma_lsls's first sig_lsls : \n"; 
+    sig_lsls_ls1 |> List.iter Pp.pp_sigma_listlist; wrapped_printf "\n\tThen second sig_lsls : \n"; sig_lsls_ls2 |> List.iter Pp.pp_sigma_listlist);
   (* --- helper --- *)
   let rec cross_loop lsls1 lsls2 (acc: (sigma * sigma) list list) = 
     match lsls1 with [] -> acc
     | sig_ls_hd1 :: tl1 -> 
       let sig_ls2: sigma list = find_corresponding_sigls sig_ls_hd1 lsls2 triv_states in
-      (if debug then printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
+      (if debug then wrapped_printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
       if (is_empty sig_ls2) then cross_loop tl1 lsls2 acc
       else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 triv_states [] in
             if (mem cross_product_siglsls acc)
@@ -598,7 +639,7 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
                 let sig_lsls_ls1' = sig_lsls_ls1 |> List.flatten in
                 let sig_lsls_ls2' = sig_lsls_ls2 |> List.flatten in
                 let len1', len2' = length (sig_lsls_ls1'), length (sig_lsls_ls2') in
-                Printf.printf "\n\t\t What's new len(sig_lsls_ls1) %d vs. leng(sig_lsls_ls2) %d\n" len1' len2';
+                wrapped_printf "\n\t\t What's new len(sig_lsls_ls1) %d vs. leng(sig_lsls_ls2) %d\n" len1' len2';
                 if (len1' = len2') 
                 then 
                   (let _sig_lsls1_hd = hd sig_lsls_ls1 in 
@@ -615,18 +656,18 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
                       in
                       res_here |> List.iter Pp.pp_sigma_sigma_list; res_here)
                 else 
-                  (Printf.printf"\n\tCross product bug position!\n";
+                  (wrapped_printf"\n\tCross product bug position!\n";
                    raise No_cross_product_sigls_possible)))
       end
     in 
     let reslsls_refined = reslsls |> filter (fun ls -> not (is_empty ls)) in 
-    if debug then (printf "\n\n\n  >> Result of cross product:\n\t"; reslsls_refined |> iter Pp.pp_sigma_sigma_list; printf "\n\n\n"); 
+    if debug then (wrapped_printf "\n\n\n  >> Result of cross product:\n\t"; reslsls_refined |> iter Pp.pp_sigma_sigma_list; wrapped_printf "\n\n\n"); 
       reslsls_refined
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
-  (* Printf.printf "\n Is Symbol %s in tbl? \n" (fst sym); *)
-  match Hashtbl.find_opt tbl (st, sym) with None -> (* Printf.printf "\tNO\n";*) false
-  | Some _ -> (* Printf.printf "\tYES\n";*) true
+  (* wrapped_printf "\n Is Symbol %s in tbl? \n" (fst sym); *)
+  match Hashtbl.find_opt tbl (st, sym) with None -> (* wrapped_printf "\tNO\n";*) false
+  | Some _ -> (* wrapped_printf "\tYES\n";*) true
 
 let state_pair_append (st_pair: state * state): state = 
   let st1, st2 = (fst st_pair), (snd st_pair) in 
@@ -655,7 +696,12 @@ let cons_uniq xs x = if List.mem x xs then xs else x :: xs
 let remove_dup_symbols (sym_ls: symbol list): symbol list = 
   List.rev (List.fold_left cons_uniq [] sym_ls)
 
-let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list = 
+let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list =
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+  
   let check_subset_of_fst_in_snd (syms1: symbol list) (syms2: symbol list): symbol list = 
     let rec loop ls acc = 
       match ls with [] -> acc
@@ -668,7 +714,7 @@ let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool):
   let a1_len, a2_len = List.length a1, List.length a2 in 
   let res = if (a1_len > a2_len) then check_subset_of_fst_in_snd a1 a2
             else check_subset_of_fst_in_snd a2 a1 in 
-  if debug then (Printf.printf "\n\t >> Smaller symbols : "; res |> List.iter Pp.pp_symbol; Printf.printf "\n\n");res
+  if debug then (wrapped_printf "\n\t >> Smaller symbols : "; res |> List.iter Pp.pp_symbol; wrapped_printf "\n\n");res
 
 let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls: ((state * state) * (symbol * (state * state) list)) list): 
   ((state * state) * (symbol * (state * state) list)) list =
@@ -704,6 +750,11 @@ let find_renamed_state (st_pair: state * state)
 let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)) list)
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
   (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let rec rename_raw_trans ls' acc' =
     match ls' with [] -> List.rev acc'
     | (lhs_st_pair, (sym, rhs_sig_pair_ls)) :: tl' -> 
@@ -725,12 +776,17 @@ let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)
       let to_acc = ((find_renamed_state st_pair states_renaming_map), renamed_raw_trans) in 
       rename_blocks_loop tl (to_acc :: acc)
   in let res_trans_blocks = rename_blocks_loop trans_blocks [] in 
-  if debug then (Printf.printf "\n\t >> Results of renaming in trans in blocks : \n"; 
+  if debug then (wrapped_printf "\n\t >> Results of renaming in trans in blocks : \n"; 
   res_trans_blocks |> Pp.pp_raw_trans_blocks);
   res_trans_blocks
 
 let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
   (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let rec remove_dup_trans ls' acc' = 
     match ls' with [] -> List.rev acc'
     | tran :: tl' -> 
@@ -744,7 +800,7 @@ let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * 
       let removed_dups_trans = remove_dup_trans trans_ls [] in 
       remove_dups_blocks tl ((st_pair, removed_dups_trans) :: acc)
   in let res_trans_blocks = remove_dups_blocks trans_blocks [] in 
-  if debug then (Printf.printf "\n\t >> Results of removing duplicates in trans in blocks : \n"; 
+  if debug then (wrapped_printf "\n\t >> Results of removing duplicates in trans in blocks : \n"; 
   res_trans_blocks |> Pp.pp_raw_trans_blocks);
   res_trans_blocks
 
@@ -757,9 +813,7 @@ let find_trans_block_for_states_pair (st_pair: (state * state))
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list):
   ((state * state) * (symbol * (sigma * sigma) list)) list =
   match List.assoc_opt st_pair trans_blocks with None -> raise Invalid_transitions
-  | Some ls -> (Printf.printf "\n--- debug ----\n"; 
-  ls |> List.iter (fun ((st1, st2), (sym, sig_sig_ls)) -> 
-    Printf.printf "\n\t Sts %s %s ->_" st1 st2; Pp.pp_symbol sym; Pp.pp_sigma_sigma_list sig_sig_ls); ls)
+  | Some ls -> ls
   
 let trans_mem (sym_rhs_sts: symbol * (sigma * sigma) list) (trans_rhs_lst: (symbol * (sigma * sigma) list) list): bool = 
   let exists_in_sigsigls (sig_pair: sigma * sigma) (sig_sig_ls: (sigma * sigma) list): bool = 
@@ -781,8 +835,13 @@ let trans_mem (sym_rhs_sts: symbol * (sigma * sigma) list) (trans_rhs_lst: (symb
 
 let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair2: (state * state))
   (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
-  (debug: bool): bool = 
-  if debug then Printf.printf "\n\tIs (%s, %s) subset of (%s, %s)?\n" (fst st_pair1) (snd st_pair1) (fst st_pair2) (snd st_pair2);
+  (debug: bool): bool =
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
+  wrapped_printf "\n\tIs (%s, %s) subset of (%s, %s)?\n" (fst st_pair1) (snd st_pair1) (fst st_pair2) (snd st_pair2);
   let st1_trans_rhs_lst: (symbol * (sigma * sigma) list) list =
     find_trans_block_for_states_pair st_pair1 trans_blocks |> List.map (fun (_, rhs_lst) -> rhs_lst) in
   let st2_trans_rhs_lst: (symbol * (sigma * sigma) list) list =
@@ -793,18 +852,23 @@ let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair
     let rec traverse_rhs (ls: (symbol * (sigma * sigma) list) list): bool = 
       match ls with [] -> true
       | hsym_rhs_sts :: tl -> 
-        Printf.printf "\n\t symbol %s and rhs \n" (fst (fst hsym_rhs_sts)); Pp.pp_sigma_sigma_list (snd hsym_rhs_sts);
+        wrapped_printf "\n\t symbol %s and rhs \n" (fst (fst hsym_rhs_sts)); Pp.pp_sigma_sigma_list (snd hsym_rhs_sts);
         if (trans_mem hsym_rhs_sts st2_trans_rhs_lst) (*(List.mem hsym_rhs_sts st2_trans_rhs_lst)*)
-        then (Printf.printf "\n\tYES MEM\n";traverse_rhs tl)
-        else (Printf.printf "\n\tNO, NOT MEM\n"; false)
+        then (wrapped_printf "\n\tYES MEM\n";traverse_rhs tl)
+        else (wrapped_printf "\n\tNO, NOT MEM\n"; false)
     in traverse_rhs st1_trans_rhs_lst 
-  in if debug then (Printf.printf "\t %b" res_bool); 
+  in (wrapped_printf "\t %b" res_bool); 
   res_bool
 
 let simplify_trans_blocks_with_epsilon_transitions 
   (input_trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
   (st_pair_ls: (state * state) list) (debug: bool): 
   ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let replace_st1_transkblock_in_st2_transblock_with_eps (st1: state * state) (st2: state * state) 
     (blocks_ls: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
     ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
@@ -830,7 +894,7 @@ let simplify_trans_blocks_with_epsilon_transitions
       if (st1_transblock_subset_of_st2_transblock st_pair comp_st_pair blocks_acc debug)
       then (let new_trans_blocks = (replace_st1_transkblock_in_st2_transblock_with_eps st_pair comp_st_pair blocks_acc) in 
             let new_trans_blocks_wo_dups = remove_dup_trans_for_each_block new_trans_blocks false 
-            in if debug then (Printf.printf "\n\tAfter Replacing State %s trans with State %s trans\n" (fst comp_st_pair) (fst st_pair);
+            in (wrapped_printf "\n\tAfter Replacing State %s trans with State %s trans\n" (fst comp_st_pair) (fst st_pair);
             Pp.pp_raw_trans_blocks new_trans_blocks_wo_dups);
             simplify_trans_blocks st_pair tl new_trans_blocks_wo_dups)
       else (simplify_trans_blocks st_pair tl blocks_acc)
@@ -843,7 +907,7 @@ let simplify_trans_blocks_with_epsilon_transitions
       let new_trans_blocks = simplify_trans_blocks st_pair tl blocks_acc in
       traverse_states tl new_trans_blocks
   in let simplified_res = traverse_states st_pair_ls input_trans_blocks in 
-  if debug then (Printf.printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
+  if debug then (wrapped_printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
   simplified_res
 
 let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
@@ -863,21 +927,31 @@ let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * s
   trans_blocks |> List.map (fun (st_pair, blocks) -> st_pair, (remove_meaningless_trans blocks))
 
 let optimize_sym_list (syms: symbol list) (eps_optimize: bool) (paren_optimize: bool) (debug: bool): symbol list = 
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let syms_opt1 = 
     if eps_optimize then syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms in 
   let syms_opt2 = 
     if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPARENRPAREN", 1))) else syms_opt1 in 
-  if debug then (Printf.printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
+  if debug then (wrapped_printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
     syms_opt2
 
 let optimize_sym_list_new (syms: symbol list) (eps_optimize: bool) (paren_optimize: bool) 
   (curr_o: int) (max_o: int) (debug: bool): symbol list = 
+  let wrapped_printf fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let syms_opt1 = 
-    if (curr_o = max_o) then (Printf.printf "\n\t Curr order = %d vs. Max order = %d\n" curr_o max_o;syms) else 
+    if (curr_o = max_o) then (wrapped_printf "\n\t Curr order = %d vs. Max order = %d\n" curr_o max_o;syms) else 
     if eps_optimize then syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms in 
   let syms_opt2 = 
     if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPARENRPAREN", 1))) else syms_opt1 in 
-  if debug then (Printf.printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
+  if debug then (wrapped_printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
     syms_opt2
 
 let ask_again (filename: string): unit = 
@@ -896,18 +970,14 @@ let run_again (filename: string): unit =
   Printf.printf "\nNew grammar is written on the file %s. Run 'make' again.\n\n" filename
 
   (* "./test/grammars/G0/G0_results/G0a000.mly" in *)
-let test_results_filepath (grammar: string) (postfix: string): string = 
-  let except_for_last g = 
-    let len = String.length grammar 
-    in Str.string_before g (len-1) 
-  in
-  let grammar_type: string = except_for_last grammar in
-  let path = "./test/grammars/" ^ grammar_type ^ "/" ^ grammar_type ^ "_results/" in 
-  path ^ grammar ^ postfix ^ ".mly"
-  (* grammar ^ "_" ^ postfix ^ ".mly" *)
-
+let test_results_filepath (grammar: string) (postfix: string): string = grammar ^ "_" ^ postfix ^ ".mly"
 
 let update_flag (current_ta: ta2) (triv_states: state list) (opt: optimization) (debug_print: bool): optimization = 
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   (* traverse the TA and if encounter multiple eps transitions then turn on the eps_opt *)
   let only_triv_states (siglsls: sigma list list): bool = 
     siglsls |> List.fold_left (fun acc sigls -> 
@@ -920,7 +990,7 @@ let update_flag (current_ta: ta2) (triv_states: state list) (opt: optimization) 
       if (syms_equals sy epsilon_symb) && not (only_triv_states siglsls)
       then siglsls::acc else acc
       ) current_ta.transitions [] in
-  if debug_print then (Printf.printf "\n\t\t Updating the flag!\n";
+  (wrapped_printf "\n\t\t Updating the flag!\n";
   coll_lst |> List.iter (fun x -> Pp.pp_sigma_listlist x));
     if ((List.length coll_lst) >= 3) && opt.onoff_opt 
   then { eps_opt = true; paren_opt = opt.paren_opt; triv_opt = opt.triv_opt; onoff_opt = opt.onoff_opt }

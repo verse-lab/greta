@@ -25,16 +25,16 @@ module T = Ta
 (* - Repeat these steps until all the ambiguities are resolved       *)
 (*                                                                   *)
 (* ***************************************************************** *)
-let safe_get arr idx =
-  if idx < Array.length arr then Array.get arr idx
+let safe_arg idx =
+  if idx < Array.length Sys.argv then Array.get Sys.argv idx
   else ""
 
 let () =
   (** Step 1: Initial inputs provided by the user *)
-  let parser_file = ref (safe_get Sys.argv 1) in
-  let conflicts_file = ref (safe_get Sys.argv 2) in
-  let cfg_file = ref (safe_get Sys.argv 3) in
-  let tree_file = ref (safe_get Sys.argv 4) in
+  let parser_file = ref (safe_arg 1) in
+  let conflicts_file = ref (safe_arg 2) in
+  let cfg_file = ref (safe_arg 3) in
+  let tree_file = ref (safe_arg 4) in
 
   let is_empty = String.equal String.empty in
   if !parser_file |> is_empty && 
@@ -49,6 +49,7 @@ let () =
   end;
 
   (* Learn TA and O_bp wrt 'parser_file' *)
+  Array.to_list Sys.argv |> List.iter (fun arg -> print_string (arg ^ " ")); print_newline ();
   print_string ("Parser file: " ^ !parser_file); print_newline ();
   print_string ("Conflicts file: " ^ !conflicts_file); print_newline ();
   print_string ("CFG file: " ^ !cfg_file); print_newline ();
@@ -63,7 +64,7 @@ let () =
     (print_endline "Error: CFG file does not exist. Exiting..."; exit 1)
   else
 
-  let debug = true in
+  let debug = false in
   let _debug_prev = false in 
   let opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in (* g0s, g1s *)
   let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false; onoff_opt = false } in
@@ -136,12 +137,12 @@ let () =
     in     
     let intersect_elapsed = Sys.time () -. intersect_start in
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
-    let file_written = "./test/grammars/Ga/Ga_results/Gaa" in 
-    (* let grammar = 
-      (* String.split_on_char '.' parser_file |> List.hd  *)
-      "Gaa"  
+    (* let file_written = "./test/grammars/Ga/Ga_results/Gaa" in  *)
+    let grammar = 
+      String.split_on_char '.' !parser_file |> List.hd 
+      (* "Gaa"   *)
     in
-    let file_written = U.test_results_filepath grammar !file_postfix in  *)
+    let file_written = U.test_results_filepath grammar !file_postfix in 
     C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states !parser_file file_written opt_flag debug;
     
     Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_written;

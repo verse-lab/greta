@@ -60,9 +60,9 @@ let rec pp_loop (prod_hd: string) (past_qq: bool) (ls: string list) =
 let pp_nonaddr (non_addr_ambigs: (string * string list) list ) = 
   if (List.is_empty non_addr_ambigs) then () else 
   let open Printf 
-  in printf "\n\t *** Note there are %s ambiguities that are not addressable by Greta. *** \n" (string_of_int (List.length non_addr_ambigs)); 
-    non_addr_ambigs |> List.iteri (fun i (_tk, lns) -> 
-      printf "\n\tAmbig #%s " (string_of_int (i+1)); (* printf "\n\t* Tokens involved: %s" tk ; *)
+  in printf "\n\t *** Note there are %s ambiguities that are not addressable by Greta. *** \n" (string_of_int (List.length non_addr_ambigs));
+    non_addr_ambigs |> List.iteri (fun i (_tk, lns) ->
+      printf "\n\tAmbig #%s " (string_of_int (i+1)); (* wrapped_printf "\n\t* Tokens involved: %s" tk ; *)
       printf "\n\t* How to reach this ambiguity: \n"; pp_loop "" false lns)
 
 let pp_due_to_menhir (ambigs: (string * string list) list) = 
@@ -76,12 +76,16 @@ let pp_due_to_menhir (ambigs: (string * string list) list) =
 
 let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool): 
   ((string list * tree * (bool * bool) * restriction list) * (string list * tree * (bool * bool) * restriction list)) list = 
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let open List in
-  let open Printf in
   let syms_ls: string list = a |> List.map fst in
-  printf "\nGenerate examples from conflicts in file %s\n" filename; 
+  wrapped_printf "\nGenerate examples from conflicts in file %s\n" filename; 
   (* *** debug *** *)
-  if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); printf "\n");
+  if debug_print then (wrapped_printf "\tGiven alphabet: "; syms_ls |> List.iter (wrapped_printf "%s "); wrapped_printf "\n");
   (* helpers *)
   let is_due_to_menhir = ref false in
   let ic = open_in filename in
@@ -256,7 +260,7 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
       | shd :: stl -> 
         let s_ls = shd |> String.split_on_char ' ' in
         let s_tree = convert_to_tree_exprs s_ls in 
-        (if debug_print then (Pp.pp_tree s_tree; printf "\n\n");
+        (if debug_print then (Pp.pp_tree s_tree; wrapped_printf "\n\n");
         extract_loop stl ((s_tree, s_ls) :: res_acc))
     in extract_loop relev_lines []
   in
@@ -315,19 +319,19 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
               let two_trees_combined: (tree * (bool * bool) * restriction list) list = 
                   combine_two_trees texpr1 texpr2 in 
                   (* *** debug *** *)
-                  if debug_print then (printf "\n\nCombined tree: "; 
+                  if debug_print then (wrapped_printf "\n\nCombined tree: "; 
                     let (fst_tree, _, _) = List.nth two_trees_combined 0 in 
                     let (snd_tree, _, _) = List.nth two_trees_combined 1
-                    in Pp.pp_tree fst_tree; printf "\n"; Pp.pp_tree snd_tree);
+                    in Pp.pp_tree fst_tree; wrapped_printf "\n"; Pp.pp_tree snd_tree);
               combine_loop (List.tl tl) (two_trees_combined @ res_acc))
     in combine_loop e_trees_n_exprs []
   in 
   let relev_ls: string list = traverse [] |> filter_out_wrt_menhir_limitations in
-    (if debug_print then printf "\n\t Relevant lines: \n";relev_ls |> (List.iter (fun x -> printf "\t %s\n" x)));
+    (if debug_print then wrapped_printf "\n\t Relevant lines: \n";relev_ls |> (List.iter (fun x -> wrapped_printf "\t %s\n" x)));
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
-  if debug_print then (printf "\tExtracted trees: "; 
+  if debug_print then (wrapped_printf "\tExtracted trees: "; 
     let tls: tree list = extracted_trees_n_exprs |> List.map fst 
-    in List.iter (fun x -> (Pp.pp_tree x; printf "\n\t")) tls; printf "\n"); 
+    in List.iter (fun x -> (Pp.pp_tree x; wrapped_printf "\n\t")) tls; wrapped_printf "\n"); 
     
   let combined_trees: (tree * (bool * bool) * restriction list) list = 
                                                 combine_tree_exprs extracted_trees_n_exprs in
@@ -358,33 +362,37 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
               gen_texamples tl 0 [] (to_acc::res_acc))
     in gen_texamples combined_trees 0 [] []
   in
-  if debug_print then (Pp.pp_combined_trees combined_trees); Pp.pp_exprs tree_expressions;
+  if debug_print then begin (Pp.pp_combined_trees combined_trees); Pp.pp_exprs tree_expressions end;
   (* traverse file again for nonaddressable ambiguities *)
   let non_addr_ambigs: (string * string list) list = traverse_nonaddr [] false [] false [] "" in 
   (* traverse file again in case there is `is_due_to_menhir` is true *)
   let due_to_menhir_ambigs: (string * string list) list = traverse_due_to_menhir [] false [] false [] "" in
-  pp_nonaddr non_addr_ambigs; 
-  pp_due_to_menhir due_to_menhir_ambigs;
-  tree_example_pairs 
+  if debug_print then begin pp_nonaddr non_addr_ambigs end;
+  if debug_print then begin pp_due_to_menhir due_to_menhir_ambigs end;
+  tree_example_pairs
 
 
 
 (** gen_examples_prev : gen examples from parser.conflicts in CFG *)
 let gen_examples (filename: string) (a: symbol list) (debug_print: bool): 
   ((string list * tree * (bool * bool) * restriction list) * (string list * tree * (bool * bool) * restriction list)) list = 
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let open List in
   let open String in
-  let open Printf in
   let syms_ls: string list = a |> List.map fst in
-  printf "\nGenerate examples from conflicts in file %s\n" filename; 
+  wrapped_printf "\nGenerate examples from conflicts in file %s\n" filename; 
     (* *** debug *** *)
-    if debug_print then (printf "\tGiven alphabet: "; syms_ls |> List.iter (printf "%s "); printf "\n");
+    if debug_print then (wrapped_printf "\tGiven alphabet: "; syms_ls |> List.iter (wrapped_printf "%s "); wrapped_printf "\n");
   (* helpers *)
   let ic = open_in filename in
   let try_read () = try Some (input_line ic) with End_of_file -> None in
   let starts str lin = starts_with ~prefix:str lin in
   (* let arity_of_sym sym: int = match List.assoc_opt sym a_new with 
-    | None -> printf "Symbol %s not found in alphabet" sym; -1 | Some n -> n in *)
+    | None -> wrapped_printf "Symbol %s not found in alphabet" sym; -1 | Some n -> n in *)
   let is_in_alphabet s: bool = List.mem s syms_ls in
   (* traverse and acc relevant lines for generating trees *)
   let rec traverse (cnt: int) (count_started: bool) (res_acc: string list): string list =
@@ -501,23 +509,23 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
               let two_trees_combined: (tree * (bool * bool) * restriction list) list = 
                   combine_two_trees texpr1 texpr2 in 
                   (* *** debug *** *)
-                  if debug_print then (printf "\n\nCombined tree: "; 
+                  if debug_print then (wrapped_printf "\n\nCombined tree: "; 
                     let (fst_tree, _, _) = List.nth two_trees_combined 0 in 
                     let (snd_tree, _, _) = List.nth two_trees_combined 1
-                    in Pp.pp_tree fst_tree; printf "\n"; Pp.pp_tree snd_tree);
+                    in Pp.pp_tree fst_tree; wrapped_printf "\n"; Pp.pp_tree snd_tree);
               combine_loop (List.tl tl) (two_trees_combined @ res_acc))
     in combine_loop e_trees_n_exprs []
   in
   let relev_ls: string list = traverse 1 false [] in 
     (* *** debug *** *)
     
-    if debug_print then (printf "\tRel lines: "; relev_ls |> List.iteri (fun i l -> (printf "#%d %s \n" (i+1) l)); printf "\n"); 
+    if debug_print then (wrapped_printf "\tRel lines: "; relev_ls |> List.iteri (fun i l -> (wrapped_printf "#%d %s \n" (i+1) l)); wrapped_printf "\n"); 
     
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
     (* *** debug *** *)
-    if debug_print then (printf "\tExtracted trees: "; 
+    if debug_print then (wrapped_printf "\tExtracted trees: "; 
     let tls: tree list = extracted_trees_n_exprs |> List.map fst 
-    in List.iter (fun x -> (Pp.pp_tree x; printf "\n\t")) tls; printf "\n"); 
+    in List.iter (fun x -> (Pp.pp_tree x; wrapped_printf "\n\t")) tls; wrapped_printf "\n"); 
   let combined_trees: (tree * (bool * bool) * restriction list) list = 
                                                 combine_tree_exprs extracted_trees_n_exprs in
   (* generate tree expressions by splitting per every two combined ones *)
@@ -562,9 +570,13 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
   *        (2) in each level, there is at most 1 subtree
   *        (3) whether a subtree is a left or right child does not matter *)
 let negate_pat (debug_print: bool) (pat: tree): tree =
-  let open Printf in 
-  if debug_print then (printf "\n  >> Negating the following pattern:\n\t";
-  Pp.pp_tree pat; printf "\n");
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
+  if debug_print then (wrapped_printf "\n  >> Negating the following pattern:\n\t";
+  Pp.pp_tree pat; wrapped_printf "\n");
   (* traverse from top to bottom and store trees in reverse order *)
   let rec traverse_tree e acc =
     (* if height <= 1 then no hierarchy to reverse *)
@@ -589,8 +601,8 @@ let negate_pat (debug_print: bool) (pat: tree): tree =
       else let rev_combined = combine_trees_aux (List.hd prevt) h in 
       traverse_lst [rev_combined] tl rev_combined
   in let res_t = if (List.length rev_ls <= 1) then List.hd rev_ls else traverse_lst [] rev_ls (Leaf "") in 
-  if debug_print then (printf "\n  >> Result of reversing hierarchy of tree:\n\t";
-  Pp.pp_tree res_t; printf "\n"); res_t
+  if debug_print then (wrapped_printf "\n  >> Result of reversing hierarchy of tree:\n\t";
+  Pp.pp_tree res_t; wrapped_printf "\n"); res_t
 
 
 
@@ -602,14 +614,18 @@ let negate_pat (debug_print: bool) (pat: tree): tree =
 
 (** generator of random trees with a specific pattern *)
 let rand_tree_wpat (a: symbol list) (debug_print: bool) (pat: tree): tree = 
+  let wrapped_printf fmt =
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+  in
+
   let open Pp in
-  let open Printf in 
   let open Random in
   let len = List.length a in
   let pat_depth = height pat in
-  if debug_print then (printf "\nGenerating a random tree with a pattern:\n\t"; pp_tree pat;
-  printf "\n\t.. whose height is %d\n" pat_depth;
-  printf "\n\tGiven following alphabet:\n\t"; pp_alphabet a);
+  if debug_print then (wrapped_printf "\nGenerating a random tree with a pattern:\n\t"; pp_tree pat;
+  wrapped_printf "\n\t.. whose height is %d\n" pat_depth;
+  wrapped_printf "\n\tGiven following alphabet:\n\t"; pp_alphabet a);
   (* TODO: To revise below to make generated random tree w/ pattern non-trivial *)
   (* run loop until the randomly chosen sym is non-trivial *)
   (* randomly select a symbol from alphabet and append 'pat' to it *)
@@ -617,7 +633,7 @@ let rand_tree_wpat (a: symbol list) (debug_print: bool) (pat: tree): tree =
   let rec loop a dep =
     let rind = self_init (); int len in
     let sym = List.nth a rind in
-    if debug_print then (printf "\n\tRandomly selected symbol is "; pp_symbol sym);
+    if debug_print then (wrapped_printf "\n\tRandomly selected symbol is "; pp_symbol sym);
     dep_fin := dep;
     let ar = arity sym in match ar with 
     | 0 -> Node (sym, [pat]) 
@@ -629,7 +645,7 @@ let rand_tree_wpat (a: symbol list) (debug_print: bool) (pat: tree): tree =
         let trees_ls = List.init num (fun _ -> loop a (dep+1)) in 
         Node (sym, trees_ls))
   in let tree_res = loop a 0 in if debug_print then 
-    (printf "\n\n >> Tree generated: \n"; pp_repeat !dep_fin "  "; pp_tree tree_res; printf "\n"); 
+    (wrapped_printf "\n\n >> Tree generated: \n"; pp_repeat !dep_fin "  "; pp_tree tree_res; wrapped_printf "\n"); 
   tree_res
 
 
