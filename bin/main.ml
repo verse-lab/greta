@@ -66,11 +66,11 @@ let () =
 
   let debug = false in
   let _debug_prev = false in 
-  let opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in (* g0s, g1s *)
+  let _opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in (* g0s, g1s *)
   let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false; onoff_opt = false } in
-  let _opt_flag_g2: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = false } in (* g2b - g2e *)
+  let _opt_flag_g2: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = false } in (* g2b - g2d *)
 
-  let _opt_flag_g2e: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = true } in 
+  let opt_flag_g2e: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = true } in 
   let _opt_flag_g3: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in
   let _opt_flag_g5: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = false; onoff_opt = false } in
   let _opt_flag_g6: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in
@@ -85,7 +85,7 @@ let () =
     let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms): 
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
       ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
-      C.convertToTa !cfg_file opt_flag debug in
+      C.convertToTa !cfg_file _opt_flag debug in
       
     let convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet 
@@ -125,7 +125,7 @@ let () =
     in 
     let ta_learned: T.ta2 = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
-      opt_flag debug
+      opt_flag_g2e debug
     in
     let learn_ta_elapsed = Sys.time () -. learn_start in
 
@@ -133,7 +133,7 @@ let () =
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let intersect_start = Sys.time () in
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
-      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag debug 
+      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag_g2e debug 
     in     
     let intersect_elapsed = Sys.time () -. intersect_start in
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
@@ -143,7 +143,7 @@ let () =
       (* "Gaa"   *)
     in
     let file_written = U.test_results_filepath grammar !file_postfix in 
-    C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states !parser_file file_written opt_flag debug;
+    C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states !parser_file file_written _opt_flag debug;
     
     Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_written;
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" convert_elapsed;
