@@ -2,10 +2,10 @@
  (modules lexer))
 
 (menhir
- (flags --explain --dump) 	
+ (flags --table --inspection --dump --explain --reference-graph --greta) 	
  (modules parser))
 
 (library
   (name g3)
   (modes byte native)
-  (libraries assert num menhirLib str))
+  (libraries menhirLib str core graphics qcheck num))
