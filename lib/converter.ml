@@ -517,10 +517,12 @@ let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 =
     List.fold_right unique_cons ls [] in
   let nonterms_excl_eps: nonterminal list = a.states |> List.filter (fun x -> not (x = "ϵ")) in
   let unranked_terminals: terminal list = a.alphabet |> List.filter (fun s -> not (sym_equals s "ε"))
-    |> List.fold_left (fun acc (name, _rnk) -> match name with
+    |> 
+    List.fold_left (fun acc (name, _rnk) -> match name with
     | "LBRACERBRACE" -> acc @ ["LBRACE"; "RBRACE"]
     | "LBRACKETRBRACKET" -> acc @ ["LBRACKET"; "RBRACKET"]
-    | s -> acc @ [s] ) [] |> remove_dups in
+    | s -> acc @ [s] ) [] 
+    |> remove_dups in
   let prods: p list = 
     Hashtbl.fold (fun (st, _sym) sig_lsls acc -> 
       (* wrapped_printf "\n\t For state %s and symbol " st; Pp.pp_symbol sym; wrapped_printf "\n"; *)

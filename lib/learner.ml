@@ -37,7 +37,8 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let trivial_syms = triv_syms_nonterms |> List.map fst in
   let nontrivial_syms = a |> List.filter (fun (_, rnk) -> not (rnk = 1) ) in 
   let versatile_syms = a |> List.filter (fun s -> more_than_one_transitions s sym_ord_rhs_ls) in
-  (wrapped_printf "\n Trivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); wrapped_printf "\n";
+  (wrapped_printf "\n O_p list: \n\t"; Pp.pp_restriction_lst op_ls; wrapped_printf "\n";
+   wrapped_printf "\n Trivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); wrapped_printf "\n";
    wrapped_printf "\n Nontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s); wrapped_printf "\n";
    wrapped_printf "\n Versatile symbols :\n\t"; versatile_syms |> List.iter (fun s -> Pp.pp_symbol s); wrapped_printf "\n");
     
@@ -123,8 +124,8 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     match (List.assoc_opt max_lvl lvl_state_pairs_new) with 
     None -> raise Max_level_state | Some st -> st 
   in 
-  (* Step 1 - add last state ->_{<(), 1>} start state to 'trans_tbl' *)
-  add trans_tbl (last_state, ("LPARENRPAREN", 1)) [[(T "LPAREN"); (Nt start); (T "RPAREN")]];
+  (* Step 1 - add last state ->_{<LPAREN, 3>} for <(), 3> start state to 'trans_tbl' *)
+  add trans_tbl (last_state, ("LPAREN", 3)) [[(T "LPAREN"); (Nt start); (T "RPAREN")]];
   (* Step 2 - add epsilon transitions *)
   for i = 1 to (max_lvl-1) do 
     begin 

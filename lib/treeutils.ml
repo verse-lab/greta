@@ -203,9 +203,9 @@ let tree_to_expr (t: tree) : string list =
       | _, 0 -> 
         if is_empty_leaf subts then [s'] 
         else raise (Failure "tree_to_expr : no trivial case should be presented as a tree")
-      | "LPARENRPAREN", 1 -> 
+      | "LPAREN", 3 -> 
         ["("; "LPAREN"] @ tree_loop (nth subts 1) @ ["RPAREN"; ")"]
-      | "LBRACERBRACE", 1 -> 
+      | "LBRACER", 3 -> 
         ["("; "LBRACE"] @ tree_loop (nth subts 1) @ ["RBRACE"; ")"]
         (* TODO: Make the rank below to be generalizable *)
       | _, 2 -> 
@@ -400,6 +400,80 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
   in let reordered_combined_op = reorder_op combined_op in
   (if debug_print then wrapped_printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
+
+let _combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list = 
+  let wrapped_printf fmt = 
+    if debug_print then Printf.printf fmt
+    else Printf.ifprintf stdout fmt 
+  in
+  
+  let raw_lvl_sym_ls: (int * symbol) list = 
+      o_bp |> List.map (fun rst -> match rst with 
+        | Assoc _ -> raise (Failure "combine_op_new: No assoc possible")
+        | Prec (s, o) -> (o, s)) 
+  in 
+  let raw_sym_lvl_ls: (symbol * int) list = 
+      o_bp |> List.map (fun rst -> match rst with 
+        | Assoc _ -> raise (Failure "combine_op_new: No assoc possible")
+        | Prec (s, o) -> (s, o)) 
+  in 
+
+  let orig_lvl_syms_ls: (int * symbol list) list = 
+    
+    let rec collect_loop (ls: (int * symbol) list) (acc: (int * symbol list) list): (int * symbol list) list = 
+      match ls with 
+      | [] -> List.rev acc
+      | (lvl, s) :: tl -> 
+        begin 
+          let new_lvl_syms: symbol list = 
+            match (List.assoc_opt lvl acc) with None -> s::[]
+            | Some curr_ls -> s::curr_ls in 
+          let new_acc = 
+            if (List.mem_assoc lvl acc) 
+            then (lvl, new_lvl_syms)::(List.remove_assoc lvl acc)
+            else (lvl, new_lvl_syms)::acc in 
+          collect_loop tl new_acc 
+        end
+      in collect_loop raw_lvl_sym_ls []
+  in
+  let is_neg_restriction (rest: restriction): bool = 
+    match rest with Assoc _ -> raise (Failure "is_neg_restriction : No assoc possible") 
+    | Prec (_s, o) -> (o = -1)
+  in 
+  let sym_of_restrction (rest: restriction): symbol = 
+    match rest with Assoc _ -> raise (Failure "sym_of_restrction : No assoc possible")
+    | Prec (s, _o) -> s
+  in
+  let update_wrt_pair (rest: restriction) (lvl_syms_lst: (int * symbol list) list): (int * symbol list) list =
+    let curr_sym: symbol = sym_of_restrction rest in
+    let _orig_sym_lvl: int = List.assoc curr_sym raw_sym_lvl_ls in []
+    (* To resume here!  *)
+    (* let update_loop (lvl_syms_lst: (int * symbol list) list) (acc: (int * symbol list) list) = 
+      match lvl_syms_lst with 
+      | [] -> List.rev acc
+      | (curr_lvl, curr_syms) :: tl -> 
+        (* if lvl < sym's lvl, then reduce lvl by 1 *)
+        if (curr_lvl < orig_sym_lvl) 
+        then ((curr_lvl-1, curr_syms)::acc)
+        else if (curr_lvl )
+    in update_loop lvl_syms_lst [] *)
+  in
+
+  let rec update_per_o_tmp_pair (otmp_ls: restriction list) (lvl_syms_acc: (int * symbol list) list) = 
+    match otmp_ls with
+    | [] -> lvl_syms_acc
+    | _hd :: [] -> raise (Failure "combine_op_restrictions_new : o_tmp cannot be paired up\n")
+    | rest1 :: rest2 :: tl -> 
+      let new_acc: (int * symbol list) list = 
+        if (is_neg_restriction rest1) 
+        then update_wrt_pair rest1 lvl_syms_acc 
+        else update_wrt_pair rest2 lvl_syms_acc 
+      in
+        update_per_o_tmp_pair tl new_acc
+  in let reordered_combined_op = update_per_o_tmp_pair o_tmp orig_lvl_syms_ls |> lvl_syms_to_rstriction_ls in 
+  (if debug_print then wrapped_printf "\n  (NEW) Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op);
+  reordered_combined_op
+
 
 let update_op_w_restrictions (hi_sym: symbol) (lo_sym: symbol) (init_op: restriction list): restriction list = 
   let find_order (s: symbol): int = 
