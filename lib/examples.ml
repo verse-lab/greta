@@ -367,8 +367,8 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   let non_addr_ambigs: (string * string list) list = traverse_nonaddr [] false [] false [] "" in 
   (* traverse file again in case there is `is_due_to_menhir` is true *)
   let due_to_menhir_ambigs: (string * string list) list = traverse_due_to_menhir [] false [] false [] "" in
-  if debug_print then begin pp_nonaddr non_addr_ambigs end;
-  if debug_print then begin pp_due_to_menhir due_to_menhir_ambigs end;
+  pp_nonaddr non_addr_ambigs;
+  pp_due_to_menhir due_to_menhir_ambigs;
   tree_example_pairs
 
 
