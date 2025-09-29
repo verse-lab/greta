@@ -534,7 +534,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
           (if (List.mem st_hd1 triv_states_linked_sts1) || (List.mem st_hd2 triv_states_linked_sts2) 
             then (wrapped_printf "\n\t Eps_Opt AND w.r.t. triv-linked states\n!"; syms_overlapped) 
             else (wrapped_printf "\n\t Eps_Opt but not w.r.t. triv-linked states\n"; 
-                  if onoff_opt then syms_overlapped |> List.filter (fun s -> not (syms_equals s ("LPARENRPAREN", 1))) 
+                  if onoff_opt then syms_overlapped |> List.filter (fun s -> not (syms_equals s ("LPAREN", 3))) 
                   else syms_overlapped |> List.filter (fun s -> not (syms_equals s epsilon_symb)))
             )
         (* syms_overlapped |> List.filter (fun s -> not (syms_equals s epsilon_symb))  *)

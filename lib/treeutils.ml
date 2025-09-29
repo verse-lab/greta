@@ -401,7 +401,7 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
   (if debug_print then wrapped_printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
-let _combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list = 
+let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list = 
   let wrapped_printf fmt = 
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt 
@@ -1033,7 +1033,7 @@ let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * s
     | _ -> false in
     match sym_sigsigls with 
     | sym, siglsls -> 
-      (syms_equals sym ("LPARENRPAREN", 1)) && (paren_to_sts siglsls st_pr)
+      (syms_equals sym ("LPAREN", 3)) && (paren_to_sts siglsls st_pr)
   in
   let remove_meaningless_trans (blocks: ((state * state) * (symbol * (sigma * sigma) list)) list) =
     blocks |> List.filter (fun (sts, sym_sig_sig_ls) -> 
@@ -1050,7 +1050,7 @@ let optimize_sym_list (syms: symbol list) (eps_optimize: bool) (paren_optimize: 
   let syms_opt1 = 
     if eps_optimize then syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms in 
   let syms_opt2 = 
-    if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPARENRPAREN", 1))) else syms_opt1 in 
+    if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPAREN", 3))) else syms_opt1 in 
   if debug then (wrapped_printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
     syms_opt2
 
@@ -1065,7 +1065,7 @@ let optimize_sym_list_new (syms: symbol list) (eps_optimize: bool) (paren_optimi
     if (curr_o = max_o) then (wrapped_printf "\n\t Curr order = %d vs. Max order = %d\n" curr_o max_o;syms) else 
     if eps_optimize then syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms in 
   let syms_opt2 = 
-    if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPARENRPAREN", 1))) else syms_opt1 in 
+    if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPAREN", 3))) else syms_opt1 in 
   if debug then (wrapped_printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
     syms_opt2
 
