@@ -36,7 +36,7 @@ def process_csv_tree(base_dir, base_file):
             return
         
         # Check if this is a leaf node (contains ERROR)
-        if df.shape[0] == 1 and str(df.iloc[0]['Path']).strip() == 'ERROR':
+        if df.shape[0] == 1 and str(df.iloc[0]['Result']).strip() == 'ERROR':
             results.append({
                 'grammar_file': current_file.stem,
                 'status': 'ERROR',
@@ -47,10 +47,43 @@ def process_csv_tree(base_dir, base_file):
             return
 
         # Check if this is a timeout
-        if df.shape[0] == 1 and str(df.iloc[0]['Path']).strip() == 'TIMEOUT':
+        if df.shape[0] == 1 and str(df.iloc[0]['Result']).strip() == 'TIMEOUT':
             results.append({
                 'grammar_file': current_file.stem,
                 'status': 'TIMEOUT',
+                'convert_time': times_so_far.get('convert', 0),
+                'learn_time': times_so_far.get('learn', 0),
+                'intersect_time': times_so_far.get('intersect', 0),
+            })
+            return
+        
+        # Check if this is a menhir limitation
+        if df.shape[0] == 1 and str(df.iloc[0]['Result']).strip() == 'MENHIR_LIMITATION':
+            results.append({
+                'grammar_file': current_file.stem,
+                'status': 'MENHIR_LIMITATION',
+                'convert_time': times_so_far.get('convert', 0),
+                'learn_time': times_so_far.get('learn', 0),
+                'intersect_time': times_so_far.get('intersect', 0),
+            })
+            return
+    
+        # Check if this is a greta unaddressable error
+        if df.shape[0] == 1 and str(df.iloc[0]['Result']).strip() == 'GRETA_UNADDRESSABLE':
+            results.append({
+                'grammar_file': current_file.stem,
+                'status': 'GRETA_UNADDRESSABLE',
+                'convert_time': times_so_far.get('convert', 0),
+                'learn_time': times_so_far.get('learn', 0),
+                'intersect_time': times_so_far.get('intersect', 0),
+            })
+            return
+        
+        # Check if this was a repeated output
+        if df.shape[0] == 1 and str(df.iloc[0]['Result']).strip() == 'REPEATED_OUTPUT':
+            results.append({
+                'grammar_file': current_file.stem,
+                'status': 'REPEATED_OUTPUT',
                 'convert_time': times_so_far.get('convert', 0),
                 'learn_time': times_so_far.get('learn', 0),
                 'intersect_time': times_so_far.get('intersect', 0),
@@ -100,4 +133,4 @@ def process_csv_tree(base_dir, base_file):
     print(f"Results saved to {output_file}")
 
 # Example usage:
-process_csv_tree("grammars/G6/G6e_results", "G6e.csv")
+process_csv_tree("grammars/G0/G0b_25_09_29", "G0b.csv")
