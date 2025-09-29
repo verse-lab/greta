@@ -27,3 +27,8 @@ setup.log
 
 # Local OPAM switch
 _opam/
+
+# Python Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
