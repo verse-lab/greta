@@ -1,0 +1,29 @@
+
+** Conflict (shift/reduce) in state 10.
+** Token involved: AMPER
+** This state is reached from toplevel after reading:
+
+x3 AMPER x3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+e1 EOF 
+x1 
+x2 
+x3 ARR x2 
+(?)
+
+** In state 10, looking ahead at AMPER, shifting is permitted..
+** because of the following sub-derivation:
+
+x3 AMPER x3 
+         x3 . AMPER x3 
+
+** In state 10, looking ahead at AMPER, reducing production..
+** x3 -> x3 AMPER x3
+** is permitted because of the following sub-derivation:
+
+x3 AMPER x3 // lookahead token appears
+x3 AMPER x3 . 

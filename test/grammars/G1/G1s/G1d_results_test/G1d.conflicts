@@ -1,0 +1,81 @@
+
+** Conflict (shift/reduce) in state 14.
+** Tokens involved: BAR ARR AMPER
+** The following explanations concentrate on token BAR.
+** This state is reached from toplevel after reading:
+
+bexp1 AMPER bexp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp1 EOF 
+(?)
+
+** In state 14, looking ahead at BAR, shifting is permitted..
+** because of the following sub-derivation:
+
+bexp1 AMPER bexp1 
+            bexp1 . BAR bexp1 
+
+** In state 14, looking ahead at BAR, reducing production..
+** bexp1 -> bexp1 AMPER bexp1
+** is permitted because of the following sub-derivation:
+
+bexp1 BAR bexp1 // lookahead token appears
+bexp1 AMPER bexp1 . 
+
+** Conflict (shift/reduce) in state 12.
+** Tokens involved: BAR ARR AMPER
+** The following explanations concentrate on token BAR.
+** This state is reached from toplevel after reading:
+
+bexp1 ARR bexp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp1 EOF 
+(?)
+
+** In state 12, looking ahead at BAR, reducing production..
+** bexp1 -> bexp1 ARR bexp1
+** is permitted because of the following sub-derivation:
+
+bexp1 BAR bexp1 // lookahead token appears
+bexp1 ARR bexp1 . 
+
+** In state 12, looking ahead at BAR, shifting is permitted..
+** because of the following sub-derivation:
+
+bexp1 ARR bexp1 
+          bexp1 . BAR bexp1 
+
+** Conflict (shift/reduce) in state 10.
+** Tokens involved: BAR ARR AMPER
+** The following explanations concentrate on token BAR.
+** This state is reached from toplevel after reading:
+
+bexp1 BAR bexp1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp1 EOF 
+(?)
+
+** In state 10, looking ahead at BAR, shifting is permitted..
+** because of the following sub-derivation:
+
+bexp1 BAR bexp1 
+          bexp1 . BAR bexp1 
+
+** In state 10, looking ahead at BAR, reducing production..
+** bexp1 -> bexp1 BAR bexp1
+** is permitted because of the following sub-derivation:
+
+bexp1 BAR bexp1 // lookahead token appears
+bexp1 BAR bexp1 . 

@@ -1,0 +1,53 @@
+
+** Conflict (shift/reduce) in state 12.
+** Token involved: ARR
+** This state is reached from toplevel after reading:
+
+x2 BAR e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+e1 EOF 
+(?)
+
+** In state 12, looking ahead at ARR, reducing production..
+** e1 -> x2 BAR e1
+** is permitted because of the following sub-derivation:
+
+e1 ARR x1 // lookahead token appears
+x2 BAR e1 . 
+
+** In state 12, looking ahead at ARR, shifting is permitted..
+** because of the following sub-derivation:
+
+x2 BAR e1 
+       e1 . ARR x1 
+
+** Conflict (shift/reduce) in state 11.
+** Token involved: AMPER
+** This state is reached from toplevel after reading:
+
+x1 AMPER x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+e1 EOF 
+x1 
+(?)
+
+** In state 11, looking ahead at AMPER, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 AMPER x1 
+         x1 . AMPER x1 
+
+** In state 11, looking ahead at AMPER, reducing production..
+** x1 -> x1 AMPER x1
+** is permitted because of the following sub-derivation:
+
+x1 AMPER x1 // lookahead token appears
+x1 AMPER x1 . 
