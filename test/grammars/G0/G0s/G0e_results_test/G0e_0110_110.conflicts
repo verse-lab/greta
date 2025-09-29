@@ -1,0 +1,56 @@
+
+** Conflict (shift/reduce) in state 18.
+** Token involved: PLUS
+** This state is reached from program after reading:
+
+IF cond THEN e1 ELSE e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 18, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond THEN e1 ELSE e1 
+                     e1 . PLUS x2 
+
+** In state 18, looking ahead at PLUS, reducing production..
+** e1 -> IF cond THEN e1 ELSE e1
+** is permitted because of the following sub-derivation:
+
+e1 PLUS x2 // lookahead token appears
+IF cond THEN e1 ELSE e1 . 
+
+** Conflict (reduce/reduce) in state 12.
+** Tokens involved: PLUS ELSE
+** The following explanations concentrate on token PLUS.
+** This state is reached from program after reading:
+
+IF cond THEN x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 12, looking ahead at PLUS, reducing production..
+** e1 -> x1
+** is permitted because of the following sub-derivation:
+
+IF cond THEN e1 ELSE e1 
+             e1 PLUS x2 // lookahead token appears
+             x1 . 
+
+** In state 12, looking ahead at PLUS, reducing production..
+** x1 -> IF cond THEN x1
+** is permitted because of the following sub-derivation:
+
+e1 PLUS x2 // lookahead token appears
+x1 // lookahead token is inherited
+IF cond THEN x1 . 

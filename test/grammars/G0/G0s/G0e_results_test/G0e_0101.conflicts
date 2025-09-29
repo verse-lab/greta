@@ -1,0 +1,54 @@
+
+** Conflict (shift/reduce) in state 20.
+** Tokens involved: PLUS MUL
+** The following explanations concentrate on token PLUS.
+** This state is reached from program after reading:
+
+e1 MUL e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 20, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+e1 MUL e1 
+       e1 . PLUS x1 
+
+** In state 20, looking ahead at PLUS, reducing production..
+** e1 -> e1 MUL e1
+** is permitted because of the following sub-derivation:
+
+e1 PLUS x1 // lookahead token appears
+e1 MUL e1 . 
+
+** Conflict (shift/reduce) in state 15.
+** Tokens involved: PLUS MUL
+** The following explanations concentrate on token PLUS.
+** This state is reached from program after reading:
+
+IF cond THEN e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 15, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond THEN e1 
+             e1 . PLUS x1 
+
+** In state 15, looking ahead at PLUS, reducing production..
+** e1 -> IF cond THEN e1
+** is permitted because of the following sub-derivation:
+
+e1 PLUS x1 // lookahead token appears
+IF cond THEN e1 . 

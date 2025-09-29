@@ -1,0 +1,31 @@
+
+** Conflict (reduce/reduce) in state 8.
+** Token involved: ELSE
+** This state is reached from program after reading:
+
+IF cond THEN IF cond THEN x3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+x1 PLUS e1 
+x2 
+(?)
+
+** In state 8, looking ahead at ELSE, reducing production..
+** x2 -> x3
+** is permitted because of the following sub-derivation:
+
+IF cond THEN x2 ELSE x2 
+             IF cond THEN x2 ELSE x2 // lookahead token appears
+                          x3 . 
+
+** In state 8, looking ahead at ELSE, reducing production..
+** x3 -> IF cond THEN x3
+** is permitted because of the following sub-derivation:
+
+IF cond THEN x2 ELSE x2 // lookahead token appears
+             x3 // lookahead token is inherited
+             IF cond THEN x3 . 

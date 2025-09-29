@@ -1,0 +1,85 @@
+
+** Conflict (shift/reduce) in state 22.
+** Token involved: PLUS
+** This state is reached from program after reading:
+
+IF cond_expr THEN e1 ELSE e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 22, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond_expr THEN e1 ELSE e1 
+                          e1 . PLUS x3 
+
+** In state 22, looking ahead at PLUS, reducing production..
+** e1 -> IF cond_expr THEN e1 ELSE e1
+** is permitted because of the following sub-derivation:
+
+e1 PLUS x3 // lookahead token appears
+IF cond_expr THEN e1 ELSE e1 . 
+
+** Conflict (shift/reduce) in state 17.
+** Token involved: MUL
+** This state is reached from program after reading:
+
+x1 MUL x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+x1 
+(?)
+
+** In state 17, looking ahead at MUL, shifting is permitted..
+** because of the following sub-derivation:
+
+x1 MUL x1 
+       x1 . MUL x1 
+
+** In state 17, looking ahead at MUL, reducing production..
+** x1 -> x1 MUL x1
+** is permitted because of the following sub-derivation:
+
+x1 MUL x1 // lookahead token appears
+x1 MUL x1 . 
+
+** Conflict (reduce/reduce) in state 9.
+** Tokens involved: PLUS MUL ELSE
+** The following explanations concentrate on token PLUS.
+** This state is reached from program after reading:
+
+IF cond_expr THEN x2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 9, looking ahead at PLUS, reducing production..
+** x1 -> x2
+** is permitted because of the following sub-derivation:
+
+IF cond_expr THEN e1 ELSE e1 
+                  e1 PLUS x3 // lookahead token appears
+                  x1 // lookahead token is inherited
+                  x2 . 
+
+** In state 9, looking ahead at PLUS, reducing production..
+** x2 -> IF cond_expr THEN x2
+** is permitted because of the following sub-derivation:
+
+e1 PLUS x3 // lookahead token appears
+x1 // lookahead token is inherited
+x2 // lookahead token is inherited
+IF cond_expr THEN x2 . 
