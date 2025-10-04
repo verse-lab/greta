@@ -739,7 +739,7 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
     match lsls1 with [] -> acc
     | sig_ls_hd1 :: tl1 -> 
       let sig_ls2: sigma list = find_corresponding_sigls sig_ls_hd1 lsls2 triv_states in
-      (if debug then wrapped_printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list2 sig_ls2);
+      (if debug then wrapped_printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list sig_ls2);
       if (is_empty sig_ls2) then cross_loop tl1 lsls2 acc
       else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 triv_states [] in
             if (mem cross_product_siglsls acc)

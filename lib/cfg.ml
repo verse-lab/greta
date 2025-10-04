@@ -4,7 +4,6 @@ type sigma = Term of terminal | Nt of nonterminal
 
 type production = 
   nonterminal             (* lhs *)
-  * (terminal * int)      (* symbol = (first occurring terminal, rank) *)
   * sigma list            (* full ordered rhs - set of terminals and nonterminals *)
 
 type cfg = (* CFG := (V, \Sigma, S, P) *)

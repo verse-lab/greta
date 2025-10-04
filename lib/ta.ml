@@ -8,16 +8,6 @@ type load = string
 type tree = Leaf of load | Node of (symbol * (tree list))
 type restriction = Assoc of (symbol * string) | Prec of (symbol * int)
 
-exception Failure of string
-exception Assoc_either_left_or_right
-exception No_other_trivial_symbols
-exception Invalid_transitions
-exception Invalid_state_lists
-exception Invalid_symbol_list
-exception Invalid_sigma_list
-exception Not_same_sym_and_rhs_state_pairs
-exception No_state_in_renaming_map
-
 (* Top-down TA := (Q, F, Q_f, \Del) *)
 type ta =
   { mutable states : state list;
@@ -27,6 +17,16 @@ type ta =
     mutable transitions : ((state * symbol), beta list list) Hashtbl.t;
     mutable trivial_sym_nts : (symbol * state) list;
   }
+
+exception Failure of string
+exception Assoc_either_left_or_right
+exception No_other_trivial_symbols
+exception Invalid_transitions
+exception Invalid_state_lists
+exception Invalid_symbol_list
+exception Invalid_sigma_list
+exception Not_same_sym_and_rhs_state_pairs
+exception No_state_in_renaming_map
 
 let null_ta : ta = 
   { states = []; alphabet = []; final_states = []; terminals = [] ; transitions = Hashtbl.create 0; trivial_sym_nts = [] }

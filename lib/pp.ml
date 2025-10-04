@@ -37,21 +37,18 @@ let pp_beta (s: T.beta) = match s with
   | T.S s' -> noprintf "%s " s'
 
 let pp_sigma_list sls =
-  sls |> iter pp_sigma
+  noprintf "[ "; sls |> iter pp_sigma; noprintf "] "
 
 let pp_beta_list (sls: T.beta list) =
   noprintf "[ "; sls |> iter pp_beta; noprintf "] "
-
-let pp_sigma_list2 sls = 
-  noprintf "[ "; sls |> iter pp_sigma; noprintf "] "
 
 let pp_nonterminals (ns: C.nonterminal list) =
   noprintf "\tNonterminals : { "; ns |> iter (noprintf "%s "); noprintf "}\n"
 
 let pp_productions (ps: C.production list) =
-  noprintf "\tSet of productions : { \n"; ps |> iter (fun (nt, s, sls) -> 
-    noprintf "\t\t\t\t%s -> ( %s " nt (fst s);
-    sls|> pp_sigma_list; noprintf ")\n"); noprintf "\t\t\t     }\n"
+  noprintf "\tSet of productions : { \n"; ps |> iter (fun (nt, sig_ls) -> 
+    noprintf "\t\t\t\t%s -> ( " nt ;
+    pp_sigma_list sig_ls; noprintf ")\n"); noprintf "\t\t\t     }\n"
 
 let pp_cfg (c: C.cfg) = 
   pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms); pp_starts (c.starts); 
@@ -90,12 +87,7 @@ let pp_sigma_sigma_list (ssls: (C.sigma * C.sigma) list) =
     noprintf "( "; pp_sigma sig1; noprintf ", "; pp_sigma sig2; noprintf ") "); noprintf "] \n"
 
 let pp_sigma_listlist (slsls: C.sigma list list) = 
-  noprintf "\t\t\t\t\t  [     "; slsls |> iter pp_sigma_list2; noprintf "     ]\n"
-
-let pp_productions (ps: C.production list) =
-  noprintf "\tSet of productions2 : { \n"; ps |> iter (fun (nt, sym, sig_ls) -> 
-    noprintf "\t\t\t\t%s -> " nt; pp_symbol sym; 
-    pp_sigma_list sig_ls; noprintf " \n"); noprintf "\t\t\t     }\n"
+  noprintf "\t\t\t\t\t  [     "; slsls |> iter pp_sigma_list; noprintf "     ]\n"
 
 let pp_alphabet (a: T.symbol list) =
   noprintf "\tAlphabet : { "; a |> iter (fun x -> pp_symbol x); noprintf "}\n"

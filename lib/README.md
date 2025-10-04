@@ -5,16 +5,21 @@
 - [ ] **Converter from CFG to TA**
      - Start from cleaner data structures (CFG, TA)
      - Learning O_bp
+
 - [ ] **Tree example generation** - _To reuse for now_
      - (Later) Update logic for identifying nonaddreaable ambiguities 
+
 - [ ] **TA Learner from tree examples**
      - Learning O_a
      - Learning O_p - _Logic changed from earlier version!_
+
 - [ ] **Intersection** - _To reuse_
      - Update based on revised data structures
-- [ ] **Converter from TA to CFG**
-- [ ] **Formatter for CFG** - _To reuse for now_
 
+- [ ] **Converter from TA to CFG**
+
+- [ ] **Formatter for CFG** - _To reuse for now_
+xw
 ### Testing 
 
 (6 existing + 2-3 Real Grammars)

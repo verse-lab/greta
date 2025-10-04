@@ -1,7 +1,7 @@
 open Cfg
 open Ta
 open Utils
-open Treeutils
+(* open Treeutils *)
 
 exception State_with_no_matching_order
 exception Trivial_symbols_not_found_in_prods
@@ -35,7 +35,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
   in
   let clean lines = 
     List.map sanitize lines
-    |> List.filter (fun x -> x <> "" && x <> "EOF")
+    |> List.filter (fun x -> x <> "") (*  && x <> "EOF" *)
   in
   (* extract sections *)
   let sectionToLine = Hashtbl.create 5 in
@@ -64,7 +64,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
   let terms= clean $ Hashtbl.find sectionToLine "t" in
   let t_prods = clean $ Hashtbl.find sectionToLine "p" in
   let added_eps = ref false in
-  let productions = List.mapi (fun i x -> 
+  let raw_productions = List.mapi (fun i x -> 
       let split = Str.bounded_split (Str.regexp "->") x 2 in
       let lhs, rhs = 
         List.hd split, 
@@ -77,7 +77,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
       (sanitize lhs, i,
       List.map (fun x ->
         if List.exists (fun y -> y = x) terms
-          then T x
+          then Term x
         else if List.exists (fun y -> y = x) !nonterms
           then Nt x
         else 
@@ -85,6 +85,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
           raise (Failure "RHS contains unknown symbols"))) rhs)
     ) t_prods
   in
+  let prods: production list = raw_productions |> List.map (fun (lhs, _i, rhs) -> (lhs, rhs)) in
   let nonterms = !nonterms in
   if debug_print then begin
     Printf.printf "CFG extracted from %s:\n" filename;
@@ -92,99 +93,25 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
     Printf.printf "Nonterminals: %s\n" (String.concat " " nonterms);
     Printf.printf "Terminals: %s\n" (String.concat " " terms);
     Printf.printf "Productions:\n";
-    List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function T x -> x | Nt x -> x) rhs))) productions;
+    List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function Term x -> x | Nt x -> x) rhs))) raw_productions;
   end;
-  { nonterms; terms; starts; productions }
+  { nonterms; terms; starts; productions=prods }
 
-let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
-  { 
-    nonterms = cfg2.nonterms; 
-    terms = cfg2.terms; 
-    starts = cfg2.starts; 
-    productions = cfg2.productions
-      |> List.map (fun (lhs, _, rhs) ->
-        let rec remove_first_t = function
-          | [] -> (None, [])
-          | T a :: t -> (Some (T a), t)
-          | h :: t -> (match remove_first_t t with
-            | (a, l) -> (a, h :: l))
-        in
-        let len = List.length rhs in
-        let first_t, rhs' = match remove_first_t rhs with 
-        | (Some (T x), l) when x = "LPAREN" 
-          -> (("LPAREN", len), l)
-        | (Some (T x), l) -> ((x, len), l)
-        | (None, l) -> (("ε", len), l)
-        | _ -> assert false
-        in
-        let proj = List.fold_right (fun a acc -> match a with
-          T _ -> acc | Nt x -> x :: acc) rhs' []
-        in
-        (lhs, (first_t, proj), rhs)
-      );
-      triv_term_nonterm_list = cfg2.triv_term_nonterm_list;
-  }
 
-let optimize_cfg_starts (g: cfg3) (level: int) =
-  let open List in
-  let rec h (nts: nonterminal list) (starts: nonterminal list) (prods: production2 list) level =
-    if level = 0 then (nts, starts, prods)
-    else
-      let next_starts = map
-        (fun s -> filter 
-          (fun (lhs, _, _) -> lhs = s) 
-          prods
-          |> partition (fun (_, (sym, _), _) -> sym = ("ε", 1))
-          |> fun a -> (s, a)
-        )
-        starts
-      in
-      let (nts_to_remove, start_to_keep) = next_starts
-        |> partition (fun (_, (_, nontrivial_prods)) -> nontrivial_prods = [])
-        |> fun (a, b) -> (map fst a, map fst b)
-      in
-      let new_prods = filter
-        (fun (lhs, _, _) -> not (mem lhs nts_to_remove))
-        prods
-      in
-      let new_nts = filter 
-        (fun nt -> not (mem nt nts_to_remove)) 
-        nts 
-      in
-      let new_starts = next_starts
-        |> map (fun (_, (trivial_prods, _)) -> trivial_prods)
-        |> flatten
-        |> map (fun (_, _, rhs) -> match hd rhs with Nt x -> x | _ -> assert false)
-      in
-      let (rec_nts, rec_starts, rec_prods) =
-        h new_nts new_starts new_prods (level - 1)
-      in
-      (rec_nts, start_to_keep @ rec_starts, rec_prods)
-  in h g.nonterms g.starts g.productions level
-
-let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3): 
-  ta2 * restriction list * ((symbol * int) * sigma list) list * 
-  ((int, symbol list) Hashtbl.t) * (symbol * state) list * symbol list * 
-  ((int * state) * symbol list) list =
-  let wrapped_printf fmt =
+let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbol list) Hashtbl.t) =
+  let _wrapped_printf fmt =
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt
   in  
-
   let open List in
   let open Printf in
-  let triv_opt = opt.triv_opt in
-  let (nonterms, starts, prods) = optimize_cfg_starts g 2 in
   if debug_print then begin
-    (printf "\n\t Extracted following nonterminals\n\t"; nonterms |> Pp.pp_nonterminals; printf "\n";
-    printf "\n\t Extracted following prods\n\t"; prods |> Pp.pp_productions2) end;
-  let ranked_alphabet = map 
-    (fun (_, (a, _), _) -> a)
-    prods
-    |> remove_dups
-  in
+    (printf "\n\t Converting CFG to TA given the following TA \n";
+    Pp.pp_cfg g) 
+  end;
   (* helper to get restrictions from transitions *)
 
+  (* 
   let trans_to_restrictions trans_ls nt_ls init_sts: 
     (restriction * (state * sigma list)) list * ((int * state) * symbol list) list =
     let rec fixpoint f (x: (nonterminal, int) Hashtbl.t ref) =
@@ -448,7 +375,7 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
   (* *** debug *** *)
   if debug_print then printf "\n\t *** Check restrictions (modified) \n";Pp.pp_restriction'_lst restrictions;
   
-  let _find_symbol_from_productions (nt: nonterminal) (p: production2 list): symbol = 
+  let _find_symbol_from_productions (nt: nonterminal) (p: production list): symbol = 
     let rec loop prods =
       match prods with [] -> raise Trivial_symbols_not_found_in_prods
       | (n, ((term, i), _), _) :: tl -> 
@@ -456,7 +383,7 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
         else loop tl
     in loop p
   in 
-  let find_nonterm_from_prods (sym: symbol) (p: production2 list): nonterminal = 
+  let find_nonterm_from_prods (sym: symbol) (p: production list): nonterminal = 
     let rec loop prods = 
       match prods with [] -> raise Trivial_symbols_not_found_in_prods
       | (nt, ((term, i), _), _) :: tl -> 
@@ -541,16 +468,16 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
     ) restrictions);
     Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl; 
   (* ********************************************** *)
-  let ta_res: ta2 =
+  let ta_res: ta =
     { 
       states = nonterms;
       alphabet = ranked_alphabet;
-      start_states = starts;
+      final_states = starts;
+      terminals = []; (* To update!*)
       transitions = transitions_tbl;
-      trivial_sym_nts = trivial_syms_nts
+      trivial_sym_nts = []; (* To update!*)
     } 
   in
-  (* *** debug *** *)
   let trivial_syms = trivial_syms_nts |> map fst |> filter (fun x -> not (syms_equals epsilon_symb x)) in 
   if debug_print then begin
     wrapped_printf "\n >> Trivial non-terminals: [ ";
@@ -558,7 +485,7 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
     wrapped_printf "\n >> Restrictions restriction'_lst O_bp obtained from the TA_g : \n"; Pp.pp_restriction'_lst restrictions_new;
     wrapped_printf "\n >> Order -> symbol list O_bp map : \n"; Pp.pp_obp_tbl o_bp_tbl;
     wrapped_printf "\n >> Transitions hashmap : \n"; Pp.pp_transitions_tbl transitions_tbl;
-    wrapped_printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta2 ta_res;
+    wrapped_printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
     wrapped_printf "\nTrivial symbols: [ "; trivial_syms |> List.iter Pp.pp_symbol; wrapped_printf " ] \n";
     wrapped_printf "\n((Lvl, State), Symbols): \n"; sts_order_syms_lsls |> List.iter (fun ((lvl, sts), syms) -> 
       printf "\t(%d, %s) -> " lvl sts; syms |> List.iter Pp.pp_symbol; printf "\n");wrapped_printf " \n";
@@ -567,7 +494,6 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
     (restrictions |> split |> fst) |> filter (fun x -> match x with Prec (s, _) | Assoc (s, _) -> 
         List.fold_left (fun acc tsym -> acc && not (syms_equals s tsym)) true trivial_syms)
   in 
-  
   (* restrictions : (restriction * (load * sigma list)) list *)
   let rec to_sym_ord_rhs_lst (rls: (restriction * (state * sigma list)) list) (acc: ((symbol * int) * sigma list) list) = 
     match rls with [] -> List.rev acc 
@@ -590,29 +516,67 @@ let cfg_to_ta (opt: optimization) (debug_print: bool) (g: cfg3):
   in 
 
 
-  ta_res, restrictions_without_trivials, sym_ord_to_rhs_lst, o_bp_tbl, trivial_syms_nts, trivial_syms, sts_order_syms_lsls
+  ta_res, restrictions_without_trivials, sym_ord_to_rhs_lst, o_bp_tbl, trivial_syms_nts, trivial_syms, sts_order_syms_lsls 
+   *)
+  null_ta, [], Hashtbl.create 0
 
-let convertToTa (file: string) (opt: optimization) (debug_print: bool):
-  ta2 * restriction list * ((symbol * int) * sigma list) list * 
-  ((int, symbol list) Hashtbl.t) * (symbol * state) list * symbol list * 
-  ((int * state) * symbol list) list = 
+
+
+
+
+
+let convertToTa (file: string) (debug_print: bool):
+  ta * restriction list * ((int, symbol list) Hashtbl.t) = 
   let wrapped_printf fmt =
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt
   in
-
-  (* Pass in terminals which can have multiple arities, eg, "IF" *)
-  (* "./lib/parser.mly" |> parser_to_cfg debug_print |> cfg_to_ta versatiles debug_print *)
-  file
-  |>
+  file |> 
   (runIf debug_print (fun _ -> wrapped_printf "\n\nConvert parser.mly to its corresponding CFG\n");
-  extract_cfg debug_print)
-  |>
-  (runIf debug_print (fun _ -> wrapped_printf "\n\nConvert between CFG formats\n");
-  cfg3_of_cfg2)
+  extract_cfg debug_print) 
   |>
   (runIf debug_print (fun _ -> wrapped_printf "\n\nConverting CFG to TA\n");
-  cfg_to_ta opt debug_print)
+  cfg_to_ta debug_print)
+
+
+
+
+(* 
+
+
+
+let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
+  { 
+    nonterms = cfg2.nonterms; 
+    terms = cfg2.terms; 
+    starts = cfg2.starts; 
+    productions = cfg2.productions
+      |> List.map (fun (lhs, _, rhs) ->
+        let rec remove_first_t = function
+          | [] -> (None, [])
+          | T a :: t -> (Some (T a), t)
+          | h :: t -> (match remove_first_t t with
+            | (a, l) -> (a, h :: l))
+        in
+        let len = List.length rhs in
+        let first_t, rhs' = match remove_first_t rhs with 
+        | (Some (T x), l) when x = "LPAREN" 
+          -> (("LPAREN", len), l)
+        | (Some (T x), l) -> ((x, len), l)
+        | (None, l) -> (("ε", len), l)
+        | _ -> assert false
+        in
+        let proj = List.fold_right (fun a acc -> match a with
+          T _ -> acc | Nt x -> x :: acc) rhs' []
+        in
+        (lhs, (first_t, proj), rhs)
+      );
+      triv_term_nonterm_list = cfg2.triv_term_nonterm_list;
+  }
+
+
+
+
 
 
 (* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)
@@ -1343,4 +1307,4 @@ let specify_associativity (parser_file: string) (ind: int) (trees: tree * tree) 
   let oc = open_out parser_file in 
   lines_prior @ [""; line_to_add] @ lines_latter |> List.iter (fun l -> fprintf oc "%s\n" l);
   close_out oc
-
+ *)

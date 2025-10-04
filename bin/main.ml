@@ -74,8 +74,7 @@ let () =
     let _convert_start = Sys.time () in
     (* Step 1: Input CFG is converted to TA and learn O_bp wrt CFG *)
 
-    let (ta_initial, o_bp, o_bp_tbl): 
-      T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) = 
+    let (ta_initial, o_bp, o_bp_tbl): T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) = 
       C.convertToTa !cfg_file debug in
       
     let _convert_elapsed = Sys.time () -. _convert_start in
