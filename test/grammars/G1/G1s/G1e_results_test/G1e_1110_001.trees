@@ -1,0 +1,19 @@
+
+
+****************************** Conflict type shift/reduce.
+** Tokens: BAR ARR
+** NumTokens: 2
+
+
+>> ContextStart 
+toplevel 
+e1 EOF 
+(?)
+>> ContextEnd 
+
+e1 ARR e1 
+e1 @@ BAR x2 
+
+* Production e1 -> e1 ARR e1
+e1 BAR x2 
+e1 ARR e1 @@ 

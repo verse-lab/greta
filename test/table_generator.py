@@ -54,7 +54,7 @@ def process_grammar_files(grammar_id: str, files_data: pd.DataFrame) -> Dict:
         'avg_intersect': f"{int(round(success_files['intersect_time'].mean() * 1000000))}"
     }
 
-def create_latex_table(data_dir: str, tokens_map: Dict, terms_map: Dict, 
+def create_latex_table(filepaths: Dict, tokens_map: Dict, terms_map: Dict, 
                       nonterms_map: Dict, prods_map: Dict, ambiguities_map: Dict) -> str:
     """Generate LaTeX table with grammar statistics."""
     results = []
@@ -67,9 +67,13 @@ def create_latex_table(data_dir: str, tokens_map: Dict, terms_map: Dict,
             grammar_id = f"G{g}{variant}"
             
             # Construct full file path
-            filename = os.path.join(data_dir, f"{grammar_id}_aggregate.csv")
+            if grammar_id not in filepaths:
+                continue
             
-            # Check if file exists
+            filename = filepaths[grammar_id]
+            # filename = os.path.join(data_dir, f"{grammar_id}_aggregate.csv")
+            
+            # Check if file existsf"{grammar_id}_aggregate.csv
             if not os.path.exists(filename):
                 continue
             
@@ -145,7 +149,9 @@ ambiguities_map = {
     'G6a': 2, 'G6b': 3, 'G6c': 6, 'G6d': 8, 'G6e': 13
 }
 
-latex_table = create_latex_table('.', 
-                               tokens_map, terms_map, nonterms_map, 
-                               prods_map, ambiguities_map)
-print(latex_table)
+def generate_tables(grammars):
+    latex_table = create_latex_table(grammars, 
+                                tokens_map, terms_map, nonterms_map, 
+                                prods_map, ambiguities_map)
+    print(latex_table)
+

@@ -1,0 +1,26 @@
+
+** Conflict (shift/reduce) in state 15.
+** Token involved: ELSE
+** This state is reached from program after reading:
+
+IF cond_expr THEN IF cond_expr THEN e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 15, looking ahead at ELSE, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond_expr THEN e1 ELSE e1 
+                  IF cond_expr THEN e1 . ELSE e1 
+
+** In state 15, looking ahead at ELSE, reducing production..
+** e1 -> IF cond_expr THEN e1
+** is permitted because of the following sub-derivation:
+
+IF cond_expr THEN e1 ELSE e1 // lookahead token appears
+                  IF cond_expr THEN e1 . 

@@ -1,0 +1,21 @@
+
+
+****************************** Conflict type shift/reduce.
+** Tokens: PLUS ELSE
+** NumTokens: 2
+
+
+>> ContextStart 
+program 
+e1 EOF 
+(?)
+>> ContextEnd 
+
+IF cond THEN e1 ELSE e1 
+x1 
+x2 @@ PLUS x1 
+
+* Production x2 -> IF cond THEN x2
+x1 
+x2 PLUS x1 
+IF cond THEN x2 @@ 

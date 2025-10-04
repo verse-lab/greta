@@ -1,0 +1,56 @@
+
+** Conflict (shift/reduce) in state 22.
+** Token involved: MUL
+** This state is reached from program after reading:
+
+IF cond_expr THEN e1 ELSE e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 22, looking ahead at MUL, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond_expr THEN e1 ELSE e1 
+                          e1 . MUL x1 
+
+** In state 22, looking ahead at MUL, reducing production..
+** e1 -> IF cond_expr THEN e1 ELSE e1
+** is permitted because of the following sub-derivation:
+
+e1 MUL x1 // lookahead token appears
+IF cond_expr THEN e1 ELSE e1 . 
+
+** Conflict (reduce/reduce) in state 12.
+** Tokens involved: MUL ELSE
+** The following explanations concentrate on token MUL.
+** This state is reached from program after reading:
+
+IF cond_expr THEN x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+(?)
+
+** In state 12, looking ahead at MUL, reducing production..
+** e1 -> x1
+** is permitted because of the following sub-derivation:
+
+IF cond_expr THEN e1 ELSE e1 
+                  e1 MUL x1 // lookahead token appears
+                  x1 . 
+
+** In state 12, looking ahead at MUL, reducing production..
+** x1 -> IF cond_expr THEN x1
+** is permitted because of the following sub-derivation:
+
+e1 MUL x1 // lookahead token appears
+x1 // lookahead token is inherited
+IF cond_expr THEN x1 . 

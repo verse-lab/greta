@@ -1,0 +1,27 @@
+
+** Conflict (shift/reduce) in state 15.
+** Token involved: MUL
+** This state is reached from program after reading:
+
+IF cond THEN x1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+e1 EOF 
+x1 
+(?)
+
+** In state 15, looking ahead at MUL, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond THEN x1 
+             x1 . MUL x2 
+
+** In state 15, looking ahead at MUL, reducing production..
+** x1 -> IF cond THEN x1
+** is permitted because of the following sub-derivation:
+
+x1 MUL x2 // lookahead token appears
+IF cond THEN x1 . 

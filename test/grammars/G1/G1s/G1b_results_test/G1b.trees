@@ -1,0 +1,59 @@
+
+
+****************************** Conflict type shift/reduce.
+** Tokens: ARR
+** NumTokens: 1
+
+
+>> ContextStart 
+toplevel 
+bexp1 EOF 
+bexp2 
+(?)
+>> ContextEnd 
+
+TILDE bexp2 
+bexp2 @@ ARR bexp2 
+
+* Production bexp2 -> TILDE bexp2
+bexp2 ARR bexp2 
+TILDE bexp2 @@ 
+
+
+****************************** Conflict type shift/reduce.
+** Tokens: BAR AMPER
+** NumTokens: 2
+
+
+>> ContextStart 
+toplevel 
+bexp1 EOF 
+(?)
+>> ContextEnd 
+
+bexp1 AMPER bexp1 
+bexp1 @@ BAR bexp2 
+
+* Production bexp1 -> bexp1 AMPER bexp1
+bexp1 BAR bexp2 
+bexp1 AMPER bexp1 @@ 
+
+
+****************************** Conflict type shift/reduce.
+** Tokens: ARR
+** NumTokens: 1
+
+
+>> ContextStart 
+toplevel 
+bexp1 EOF 
+bexp2 
+(?)
+>> ContextEnd 
+
+bexp2 ARR bexp2 
+bexp2 @@ ARR bexp2 
+
+* Production bexp2 -> bexp2 ARR bexp2
+bexp2 ARR bexp2 
+bexp2 ARR bexp2 @@ 

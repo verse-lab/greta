@@ -1,0 +1,26 @@
+
+
+****************************** Conflict type reduce/reduce.
+** Tokens: PLUS MUL ELSE
+** NumTokens: 3
+
+
+>> ContextStart 
+program 
+e1 EOF 
+(?)
+>> ContextEnd 
+
+* Production x2 -> x3
+IF cond THEN e1 ELSE e1 
+x1 
+x1 PLUS x2 
+x2 
+x3 @@ 
+
+* Production x3 -> IF cond THEN x3
+x1 
+x1 PLUS x2 
+x2 
+x3 
+IF cond THEN x3 @@ 

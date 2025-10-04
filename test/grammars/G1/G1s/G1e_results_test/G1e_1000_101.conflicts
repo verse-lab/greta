@@ -1,0 +1,27 @@
+
+** Conflict (shift/reduce) in state 16.
+** Tokens involved: BAR AMPER
+** The following explanations concentrate on token BAR.
+** This state is reached from toplevel after reading:
+
+e1 AMPER e1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+e1 EOF 
+(?)
+
+** In state 16, looking ahead at BAR, shifting is permitted..
+** because of the following sub-derivation:
+
+e1 AMPER e1 
+         e1 . BAR x2 
+
+** In state 16, looking ahead at BAR, reducing production..
+** e1 -> e1 AMPER e1
+** is permitted because of the following sub-derivation:
+
+e1 BAR x2 // lookahead token appears
+e1 AMPER e1 . 

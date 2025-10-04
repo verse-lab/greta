@@ -29,7 +29,7 @@ proc rerun_path {path spawn_id} {
         if {[catch {
             expect {
                 -re {Choose your preference!.*Option 0:.*Option 1:.*} {
-                    sleep 0.2
+                    sleep 0.1
                     exp_send "$choice\r"
                 }
                 timeout {
@@ -62,7 +62,7 @@ proc handle_choice {current_path next start} {
     set result ""
     if {$start eq 0} {
         set current_path [lappend current_path $next]
-        sleep 0.5
+        sleep 0.3
         set result [rerun_path $current_path $spawn_id]
     }
     set convert_time ""
@@ -101,6 +101,10 @@ proc handle_choice {current_path next start} {
         -re {reported due to limitations of Menhir} {
             puts "Menhir limitation error. Path: $current_path"
             exec echo "$current_path,MENHIR_LIMITATION,,," >> $::results_file
+        }
+        -re {not addressable by Greta} {
+            puts "Greta not addressible error. Path: $current_path"
+            exec echo "$current_path,GRETA_UNADDRESSABLE,,," >> $::results_file
         }
         -re {Fatal error:.*} {
             puts "Error occurred. Path: $current_path"

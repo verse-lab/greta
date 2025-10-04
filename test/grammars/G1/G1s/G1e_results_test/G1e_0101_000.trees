@@ -1,0 +1,38 @@
+
+
+****************************** Conflict type shift/reduce.
+** Tokens: AMPER
+** NumTokens: 1
+
+
+>> ContextStart 
+toplevel 
+e1 EOF 
+(?)
+>> ContextEnd 
+
+e1 AMPER e1 
+e1 @@ AMPER e1 
+
+* Production e1 -> e1 AMPER e1
+e1 AMPER e1 
+e1 AMPER e1 @@ 
+
+
+****************************** Conflict type shift/reduce.
+** Tokens: AMPER
+** NumTokens: 1
+
+
+>> ContextStart 
+toplevel 
+e1 EOF 
+(?)
+>> ContextEnd 
+
+* Production e1 -> x1 ARR e1
+e1 AMPER e1 
+x1 ARR e1 @@ 
+
+x1 ARR e1 
+e1 @@ AMPER e1 
