@@ -1,6 +1,6 @@
-# Execution plan and To-do's
+# Implementation and Testing
 
-### Implementation to revamp
+### Implementation
 
 - [ ] Converter from CFG to TA
      - Start from cleaner data structures (CFG, TA)
@@ -19,14 +19,14 @@
 
 (6 existing + 2-3 Real Grammars)
 
-  - Grammar 0 (Running paper example)
-  - Grammar 1 (Compiler - Boolean language)
-  - Grammar 2 (Compiler)
-  - Grammar 3 (Compiler)
-  - Grammar 4 (StackOverflow)
-  - Grammar 5 (StackOVerflow)
-  - Grammar 6 (Michelson)
-  - Grammar 7 (KaiTai)
-  - Grammar 8 (Scilla? - likely to be nonaddressable or SQL)
+- [ ] Grammar 0 (Running paper example)
+- [ ] Grammar 1 (Compiler - Boolean language)
+- [ ] Grammar 2 (Compiler)
+- [ ] Grammar 3 (Compiler)
+- [ ] Grammar 4 (StackOverflow)
+- [ ] Grammar 5 (StackOVerflow)
+- [ ] Grammar 6 (Michelson)
+- [ ] Grammar 7 (KaiTai)
+- [ ] Grammar 8 (Scilla? - likely to be nonaddressable or SQL)
 
 
