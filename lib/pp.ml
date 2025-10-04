@@ -80,7 +80,8 @@ let pp_raw_states (ss: (T.state * T.state) list) =
 let pp_raw_pair_of_state_pairs ((ss1, ss2): (T.state * T.state) * (T.state * T.state)) = 
   noprintf " ((%s, %s), (%s, %s)) " (fst ss1) (snd ss1) (fst ss2) (snd ss2); noprintf "\n"
 
-let pp_symbol (s: T.symbol) = noprintf " <%s, %d> " (fst s) (snd s)
+let pp_symbol (s: T.symbol) = 
+  noprintf " <%d: %s, %d> " (T.id_of_sym s) (T.term_of_sym s) (T.arity_of_sym s)
 
 let pp_sigma_sigma_list (ssls: (C.sigma * C.sigma) list) = 
   noprintf "[ "; ssls |> iter (fun (sig1, sig2) -> 
@@ -98,12 +99,11 @@ let pp_roots (ss: T.state list) =
   noprintf "\tStart States : { "; ss |> iter (noprintf "%s "); noprintf "}\n"
 
 let pp_transitions (ts: T.transition list) =
-  noprintf "\tTransitions : { \n"; ts |> iter (fun x -> 
-    noprintf "\t\t\t%s ->_{%s} " (fst x) (fst (fst (snd x))); 
-    (snd (snd x)) |> iter (noprintf "%s "); noprintf "\n"); noprintf " \t\t      }\n"
+  noprintf "\tTransitions : { \n"; ts |> iter (fun ((st, sy), bls) -> 
+    noprintf "\t\t\t%s ->_{ " st; pp_symbol sy; noprintf " } -> ";
+    pp_beta_list bls; noprintf "\n"); noprintf " \t\t      }\n"
 
-
-let pp_raw_transitions (ts: ((T.state * T.state) * (T.symbol * (T.state * T.state) list)) list) = 
+(* let pp_raw_transitions (ts: ((T.state * T.state) * (T.symbol * (T.state * T.state) list)) list) = 
   noprintf "\tRaw Transitions : { \n"; ts |> iter (fun ((st1, st2), (sym, st_pairs_ls)) -> 
     noprintf "\t\t\t(%s, %s) ->_{<%s, %i>} [ " st1 st2 (fst sym) (snd sym); 
     st_pairs_ls |> iter (fun (rst1, rst2) -> noprintf "(%s, %s) " rst1 rst2); noprintf "]\n");
@@ -135,17 +135,13 @@ let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) =
   obp_tbl |> Hashtbl.iter (fun o_idx s_ls -> noprintf "\n\tOrder %i -> " o_idx; 
     s_ls |> iter pp_symbol; noprintf "\n"); noprintf "\n"
 
-let pp_transitions_tbl (tbl: ((T.state * T.symbol), T.beta list list) Hashtbl.t) = 
+ *)
+
+let pp_transitions_tbl (tbl: ((T.state * T.symbol), T.beta list) Hashtbl.t) = 
   noprintf "\n\tTransitions (htbl): { ";
-  tbl |> Hashtbl.iter (fun (lhs, s) lsls ->  (* prev below "\n\t\t\t\t( State %s, " *)
+  tbl |> Hashtbl.iter (fun (lhs, s) ls ->  (* prev below "\n\t\t\t\t( State %s, " *)
     let print_lhs_st_sym () = noprintf "\n( State %s, " lhs; pp_symbol s; noprintf ") -> " in 
-      let num_rhs_ls = List.length lsls in 
-      if (num_rhs_ls = 1) then 
-        (let rhs_ls = List.hd lsls in 
-        print_lhs_st_sym (); noprintf "[ "; rhs_ls |> pp_beta_list; noprintf "] ")
-      else 
-        (lsls |> iter (fun ls -> 
-        print_lhs_st_sym (); noprintf "[ "; ls |> pp_beta_list; noprintf "] "))); 
+      print_lhs_st_sym (); noprintf "[ "; ls |> pp_beta_list; noprintf "] "); 
       noprintf "\n\t\t\t    }\n"
 
 let pp_sym_nts (sn: (T.symbol * T.state)) = 
@@ -154,7 +150,6 @@ let pp_sym_nts (sn: (T.symbol * T.state)) =
 let pp_sym_nts_ls (sns: (T.symbol * T.state) list) =
   noprintf "\n\t(Trivial symbol, Trivial state) list: {";
   sns |> List.iter (fun sn -> noprintf "\n\t  "; pp_sym_nts sn); noprintf "   }\n"
-
 let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
   pp_roots (a.final_states); pp_transitions_tbl (a.transitions); pp_sym_nts_ls (a.trivial_sym_nts); pp_loline ()
@@ -188,7 +183,7 @@ let pp_tree_to_expr (e: T.tree) =
     | Node (sym, subts) -> 
       (* TO FIX: example trees gen with versatiles sometimes have arities not equal to (length subts) 
        *         so instead of using (length subts) should be able to use (snd sym) *)
-      let s', rnk = fst sym, snd sym in (* (length subts) *)
+      let s', rnk = (T.term_of_sym sym), (T.arity_of_sym sym) in 
       match s', rnk with 
       | _, 0 -> 
         if (rnk = 0 && is_empty_leaf subts) then (noprintf "%s " s')

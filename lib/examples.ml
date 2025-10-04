@@ -1,11 +1,11 @@
 open Ta
 open Treeutils
 
-let ex03 = Node (("+", 2), [Leaf "expr"; Node (("*", 2), [Leaf "expr"; Leaf "expr"])])
-let t03: tree = Node (("+", 2), [ Node (("+", 2),  [Leaf "expr2" ;  Leaf "@expr2" ]);  Leaf "expr2" ])
-let ex04 = Node (("IF", 2), [Leaf "cond_expr"; Leaf "expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
-let ex04_neg = Node (("+", 2), [Leaf "expr"; Node (("IF", 2), [Leaf "cond_expr"; Leaf "expr"; Leaf "expr"])])
-let ex05 = Node (("IF", 2), [Leaf "cond_expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
+let ex03 = Node ((0, "+", 2), [Leaf "expr"; Node ((0, "*", 2), [Leaf "expr"; Leaf "expr"])])
+let t03: tree = Node ((0, "+", 2), [ Node ((0, "+", 2),  [Leaf "expr2" ;  Leaf "@expr2" ]);  Leaf "expr2" ])
+let ex04 = Node ((0, "IF", 2), [Leaf "cond_expr"; Leaf "expr"; Node ((0, "+", 2), [Leaf "expr"; Leaf "expr"])])
+let ex04_neg = Node ((0, "+", 2), [Leaf "expr"; Node ((0, "IF", 2), [Leaf "cond_expr"; Leaf "expr"; Leaf "expr"])])
+let ex05 = Node ((0, "IF", 2), [Leaf "cond_expr"; Node ((0, "+", 2), [Leaf "expr"; Leaf "expr"])])
 
 (* 
   Steps to generate example trees based on conflicts:
@@ -80,7 +80,7 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
   in
 
   let open List in
-  let syms_ls: string list = a |> List.map fst in
+  let syms_ls: string list = a |> List.map term_of_sym in
   wrapped_printf "\nGenerate examples from conflicts in file %s\n" filename; 
   (* *** debug *** *)
   if debug_print then (wrapped_printf "\tGiven alphabet: "; syms_ls |> List.iter (wrapped_printf "%s "); wrapped_printf "\n");
@@ -243,13 +243,13 @@ let gen_examples_new (filename: string) (a: symbol list) (debug_print: bool):
       match ls with [] -> Node (nodsym_acc, List.rev subtrees_acc)
       | (sh: string) :: stl -> 
         if (is_in_alphabet sh)
-        then (if (syms_equals ("", -1) nodsym_acc) 
+        then (if (syms_equals (0, "", -1) nodsym_acc) 
               then 
                 let sym_rank = (List.length str_ls)
-                in conv_loop stl (sh, sym_rank) (Leaf sh :: subtrees_acc)
+                in conv_loop stl (0, sh, sym_rank) (Leaf sh :: subtrees_acc)
               else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc))
         else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc)
-    in conv_loop str_ls ("", -1) []
+    in conv_loop str_ls (0, "", -1) []
   in 
   let extract_tree_exprs (relev_lines: string list): (tree * string list) list = 
     let rec extract_loop (ls: string list) (res_acc: (tree * string list) list): (tree * string list) list = 
@@ -381,7 +381,7 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
 
   let open List in
   let open String in
-  let syms_ls: string list = a |> List.map fst in
+  let syms_ls: string list = a |> List.map term_of_sym in
   wrapped_printf "\nGenerate examples from conflicts in file %s\n" filename; 
     (* *** debug *** *)
     if debug_print then (wrapped_printf "\tGiven alphabet: "; syms_ls |> List.iter (wrapped_printf "%s "); wrapped_printf "\n");
@@ -423,9 +423,9 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
         if (is_in_alphabet sh) 
           (* *** debug *** *)
         then (let sym_rank = (List.length str_ls) - 1
-              in conv_loop stl (sh, sym_rank) subtrees_acc)
+              in conv_loop stl (0, sh, sym_rank) subtrees_acc)
         else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc)
-    in conv_loop str_ls ("", -1) []
+    in conv_loop str_ls (0, "", -1) []
   in 
   (* extract trees to combine and corresponding symbol list *)
   let extract_tree_exprs (relev_lines: string list): (tree * string list) list =
@@ -633,10 +633,10 @@ let rand_tree_wpat (a: symbol list) (debug_print: bool) (pat: tree): tree =
     let sym = List.nth a rind in
     if debug_print then (wrapped_printf "\n\tRandomly selected symbol is "; pp_symbol sym);
     dep_fin := dep;
-    let ar = arity sym in match ar with 
+    let ar = arity_of_sym sym in match ar with 
     | 0 -> Node (sym, [pat]) 
     | num -> 
-      (match fst sym with "IF" -> 
+      (match term_of_sym sym with "IF" -> 
         if (ar = 2) then Node (sym, [Leaf "cond_expr"; pat])
         else Node (sym, [Leaf "cond_expr"; Leaf "expr"; pat])
       | _ -> 

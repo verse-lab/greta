@@ -56,11 +56,11 @@ let return_state (t: tree): state =
 let gen_state_list (sym_arity: int) (st: state): state list = 
   List.init sym_arity (fun _ -> st)
 
-let gen_rhs_states (sym: symbol) (st: state): state list =
-  let sym_arity = snd sym in 
-  if syms_equals sym ("IF", 2)
+(* let gen_rhs_states (sym: symbol) (st: state): state list =
+  let sym_arity = (arity_of_sym sym) in 
+  if syms_equals sym (_, "IF", 2)
   then ["C"; st]
-  else if syms_equals sym ("IF", 3)
+  else if syms_equals sym (_, "IF", 3)
   then ["C"; st; st]
   else List.init sym_arity (fun _ -> st)
 
@@ -74,7 +74,7 @@ let subts_state_list (sym: symbol) (ts: tree list) (default_state: state)
   in let stats = loop ts [] 
   in if (List.mem (fst sym) versatile_syms) 
     then stats |> List.mapi(fun i x -> if (i = 0) then cond_state else x)
-    else stats
+    else stats *)
 
 (** height : find the height (maximum depth) of tree *)
 let height (e: tree): int =
@@ -88,15 +88,15 @@ let height (e: tree): int =
 
 let node_symbol (e: tree): string =
   match e with Leaf _ -> "dummy"
-  | Node (s, _) -> fst s
+  | Node (s, _) -> (term_of_sym s)
 
 let node_symbol_full (e: tree): symbol =
-  match e with Leaf _ -> ("no_symbol", 0)
+  match e with Leaf _ -> (-1, "no_symbol", 0)
   | Node (s, _) -> s
 
-let change_node_symbol_with (e: tree) (sym: string): tree =
+(* let change_node_symbol_with (e: tree) (sym: string): tree =
   match e with Leaf v -> Leaf v
-  | Node ((_, ar), subts) -> Node ((sym, ar), subts)
+  | Node ((_, ar), subts) -> Node ((sym, ar), subts) *)
 
 let branches_of_tree (e:tree): int =
   match e with Leaf _ -> 0
@@ -142,17 +142,6 @@ let combine_trees_aux (up_t: tree) (lo_t: tree): tree =
       if (i = last_ind) then Node (lo_sym, lo_subts) else subt) up_subts in
     Node (up_sym, up_subts_new)
 
-(** rewrite_syms : rewrite "PLUS" / "MUL" with "+" / "*" respectively *)
-let rewrite_syms (tts: (tree * tree) list): (tree * tree) list =
-  let rec rewrite_syms_aux (t: tree): tree = match t with 
-    | Leaf v -> Leaf v
-    | Node (sym, subts) -> 
-      let sym_new = 
-        if (sym_equals sym "PLUS") then ("+", 2) else 
-        if (sym_equals sym "MUL") then ("*", 2) else sym in
-      let subts_new = subts |> List.map (fun t' -> rewrite_syms_aux t') in
-      Node (sym_new, subts_new) in
-  tts |> List.map (fun (t1, t2) -> rewrite_syms_aux t1, rewrite_syms_aux t2)
 
 (** rename_states : rename states in ta_res from /\ *)
 (* let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
@@ -198,7 +187,7 @@ let tree_to_expr (t: tree) : string list =
   let rec tree_loop t: string list =
     match t with Leaf s -> [s]
     | Node (sym, subts) ->
-      let s', rnk = fst sym, snd sym in 
+      let s', rnk = (term_of_sym sym), (arity_of_sym sym) in 
       match s', rnk with 
       | _, 0 -> 
         if is_empty_leaf subts then [s'] 
@@ -276,7 +265,7 @@ let subtrees_of (e:tree): tree list =
   | Node (_, subts) -> subts
 
 let tree_symbol (e: tree): symbol = 
-  match e with Leaf _ -> ("dummy", -1) (*raise Leaf_has_no_symbol*)
+  match e with Leaf _ -> (-1, "dummy", -1) (*raise Leaf_has_no_symbol*)
   | Node (s, _) -> s
 
 let collect_syms (e: tree): symbol list =
@@ -619,7 +608,7 @@ let levels_in_op_ls (op_ls: restriction list): int =
   op_ls |> List.map (fun op -> match op with Assoc (_, _) -> raise No_assoc_possible 
   | Prec (_, o) -> o) |> List.sort_uniq compare |> List.length
 
-let find_all_trans_starting_from (st: state) (trans_ls: transition list) = 
+(* let find_all_trans_starting_from (st: state) (trans_ls: transition list) = 
   let rec loop ls acc = 
     match ls with [] -> List.rev acc
     | (lft_st, (_, _)) as tran :: tl -> 
@@ -798,7 +787,7 @@ let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsl
     in 
     let reslsls_refined = reslsls |> filter (fun ls -> not (is_empty ls)) in 
     if debug then (wrapped_printf "\n\n\n  >> Result of cross product:\n\t"; reslsls_refined |> iter Pp.pp_sigma_sigma_list; wrapped_printf "\n\n\n"); 
-      reslsls_refined
+      reslsls_refined *)
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
   (* wrapped_printf "\n Is Symbol %s in tbl? \n" (fst sym); *)
@@ -832,7 +821,7 @@ let cons_uniq xs x = if List.mem x xs then xs else x :: xs
 let remove_dup_symbols (sym_ls: symbol list): symbol list = 
   List.rev (List.fold_left cons_uniq [] sym_ls)
 
-let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list =
+(* let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list =
   let wrapped_printf fmt =
     if debug then Printf.printf fmt
     else Printf.ifprintf stdout fmt
@@ -1088,7 +1077,7 @@ let optimize_sym_list_new (syms: symbol list) (eps_optimize: bool) (paren_optimi
   let syms_opt2 = 
     if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPAREN", 3))) else syms_opt1 in 
   if debug then (wrapped_printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
-    syms_opt2
+    syms_opt2 *)
 
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename

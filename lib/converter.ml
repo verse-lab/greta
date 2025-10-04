@@ -26,6 +26,10 @@ let read_file filename =
 
 let ( $ ) a b = a b
 
+let wrapped_printf debug fmt =
+    if debug then Printf.printf fmt
+    else Printf.ifprintf stdout fmt
+
 let extract_cfg (debug_print: bool) (filename : string) : cfg =
   let lines = read_file filename in
   let sanitize line = 
@@ -98,18 +102,44 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
   { nonterms; terms; starts; productions=prods }
 
 
+let collect_ta_trans_symbols_from_cfg (g: cfg) (debug: bool): ((state * symbol) * beta list) list * symbol list =
+  let rec collect_loop (ls: production list) (trans_acc: ((state * symbol) * beta list) list) (syms_acc: symbol list) = 
+    match ls with 
+    | [] -> List.rev trans_acc, List.rev syms_acc 
+    | curr_prod :: rest_prods ->
+      let nt, _sigls = (fst curr_prod), (snd curr_prod) in
+      let _curr_sym = [] in
+      let curr_beta_ls: beta list = [] in
+      let trans_to_acc = ((nt, (1, "", 1)), curr_beta_ls) in 
+      collect_loop rest_prods (trans_to_acc::trans_acc) syms_acc
+  in let trans_res, syms_res = collect_loop g.productions [] [] 
+  in 
+  if debug then (wrapped_printf debug "\nCollected transitions for TA:\n\n"; 
+    Pp.pp_transitions trans_res; Pp.pp_alphabet syms_res);
+  trans_res, syms_res
+
+
 let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbol list) Hashtbl.t) =
-  let _wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in  
   let open List in
   let open Printf in
-  if debug_print then begin
-    (printf "\n\t Converting CFG to TA given the following TA \n";
-    Pp.pp_cfg g) 
-  end;
-  (* helper to get restrictions from transitions *)
+  if debug_print then
+    (printf "\n\t Converting CFG to TA given the following TA \n"; Pp.pp_cfg g);
+  
+    (* Go through prods to collect alphabet and transitions *)
+  let (_trans, _cfg_symbols): ((state * symbol) * beta list) list * symbol list = 
+    collect_ta_trans_symbols_from_cfg g debug_print
+  in
+    (* alphabet, transitions, and O_bp *)
+  let res_ta: ta = {
+    states = g.nonterms;
+    alphabet = [];
+    final_states = g.starts;
+    terminals = g.terms;
+    transitions = Hashtbl.create 0;
+    trivial_sym_nts = []
+    } 
+  in res_ta , [], Hashtbl.create 0
+
 
   (* 
   let trans_to_restrictions trans_ls nt_ls init_sts: 
@@ -128,23 +158,23 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
     (* 
     Hashtbl.add !nt_to_order "ϵ" (num_nt + 1); (* pseudo nt *)
      *)
-    (* Hashtbl.iter (fun s ord -> wrapped_printf "\n\t\t Nonterm %s Order %i" s ord) !nt_to_order; *)
+    (* Hashtbl.iter (fun s ord -> wrapped_printf debug_print "\n\t\t Nonterm %s Order %i" s ord) !nt_to_order; *)
     let get_order table =
       fold_left (fun acc (st, (curr_sym, rhs), _) ->
           let changed = ref false in
           iter 
             (fun s ->
                 (* *** debugging *** *)
-                (* if debug_print then wrapped_printf "\n\t *** Getting order for nonterminal %s" s; *)
+                (* if debug_print then wrapped_printf debug_print "\n\t *** Getting order for nonterminal %s" s; *)
                 if (String.equal s "ϵ") then 
                   (* Temporary fix *)
                   (Hashtbl.replace !table s (-1);
                   changed := false)
                 else 
                   (let ord = Hashtbl.find !table s in
-                  (* wrapped_printf "\n\t  For %s found ord %d \n" s ord; *)
+                  (* wrapped_printf debug_print "\n\t  For %s found ord %d \n" s ord; *)
                   let ord' = Hashtbl.find !table st in
-                  (* wrapped_printf "\n\t  For %s found ord' %d \n" st ord'; *)
+                  (* wrapped_printf debug_print "\n\t  For %s found ord' %d \n" st ord'; *)
                   if ord > (ord' + 1) then (
                     (* [Recent debug fix] *)
                     (* if lhs_state ->_<eps, 1> rhs_state, then keep ord *)
@@ -156,7 +186,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
                       end
                     else
                       begin 
-                        (* wrapped_printf "\n\t  !! ord %d > ord' %d + 1\n" ord ord'; *)
+                        (* wrapped_printf debug_print "\n\t  !! ord %d > ord' %d + 1\n" ord ord'; *)
                         Hashtbl.replace !table s (ord' + 1);
                         changed := true
                       end)
@@ -169,7 +199,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
     in
     let nt_to_order' = fixpoint get_order nt_to_order in
     (* *** debugging *** *)
-    Hashtbl.iter (fun s ord -> wrapped_printf "\n\t\t  Nonterm %s Order %i" s ord) !nt_to_order';
+    Hashtbl.iter (fun s ord -> wrapped_printf debug_print "\n\t\t  Nonterm %s Order %i" s ord) !nt_to_order';
     let states_ordered: (state * int) list = Hashtbl.fold
       (fun st o acc -> (st, o) :: acc) 
       !nt_to_order' [] 
@@ -219,14 +249,14 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
                 then _fix_sts_order prods_tl sts_orders covered
                 else
                   begin 
-                    wrapped_printf "\n\n\t\t LHS state %s order %d ->_<eps_symb> RHS state %s \n" lhs_st lhs_ord rhs_st;
+                    wrapped_printf debug_print "\n\n\t\t LHS state %s order %d ->_<eps_symb> RHS state %s \n" lhs_st lhs_ord rhs_st;
                     (* --- [fix] --- *)
                     (let covered' = lhs_st::covered in
                     let new_sts_orders: (state * int) list = 
                         replace_st_and_upper sts_orders covered' rhs_st lhs_ord 
                     in 
-                        wrapped_printf "\n\t Intermediate States orders : \n\t"; 
-                        new_sts_orders |> List.iter (fun (st, lvl) -> wrapped_printf " (%s, %i) " st lvl);
+                        wrapped_printf debug_print "\n\t Intermediate States orders : \n\t"; 
+                        new_sts_orders |> List.iter (fun (st, lvl) -> wrapped_printf debug_print " (%s, %i) " st lvl);
                       _fix_sts_order prods_tl new_sts_orders (lhs_st::rhs_st::covered))
                     end)
           end
@@ -444,17 +474,17 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
             then begin 
               (* If key already exists, then simply add to existing ones *)
               let exist_val = Hashtbl.find_opt o_bp_tbl o in
-              wrapped_printf "\n\nWhich symbol?? "; Pp.pp_symbol s; wrapped_printf"\n\n";
+              wrapped_printf debug_print "\n\nWhich symbol?? "; Pp.pp_symbol s; wrapped_printf debug_print "\n\n";
               match exist_val with None -> add o_bp_tbl o s 
               | Some ls -> 
                 (* *** debugging *** *)
-                (if debug_print then wrapped_printf "\n\t   For order %i" o;
+                (if debug_print then wrapped_printf debug_print "\n\t   For order %i" o;
                 wrapped_printf "\n\t *** already exist sym_lst so add this symbol to symbol list "; 
-                if debug_print then begin ls |> List.iter Pp.pp_symbol end; wrapped_printf "\n";
+                if debug_print then begin ls |> List.iter Pp.pp_symbol end; wrapped_printf debug_print "\n";
                 Hashtbl.replace o_bp_tbl o (s::ls))
             end;
-            (wrapped_printf "\n\t ****** Add (State %s, " lhs; Pp.pp_symbol s;
-            wrapped_printf ") ---> RHS list "; if debug_print then begin rhss |> List.iter Pp.pp_sigma end);
+            (wrapped_printf debug_print "\n\t ****** Add (State %s, " lhs; Pp.pp_symbol s;
+            wrapped_printf debug_print ") ---> RHS list "; if debug_print then begin rhss |> List.iter Pp.pp_sigma end);
           let exist_in_trantbl = Hashtbl.find_opt transitions_tbl (lhs, s) in
           let triv_syms = trivial_syms_nts |> List.map fst 
           in match exist_in_trantbl with 
@@ -480,15 +510,15 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
   in
   let trivial_syms = trivial_syms_nts |> map fst |> filter (fun x -> not (syms_equals epsilon_symb x)) in 
   if debug_print then begin
-    wrapped_printf "\n >> Trivial non-terminals: [ ";
-    trivial_syms_nts |> iter (fun (s, x) -> wrapped_printf " ("; Pp.pp_symbol s; wrapped_printf ", %s ) " x); wrapped_printf "]\n";
-    wrapped_printf "\n >> Restrictions restriction'_lst O_bp obtained from the TA_g : \n"; Pp.pp_restriction'_lst restrictions_new;
-    wrapped_printf "\n >> Order -> symbol list O_bp map : \n"; Pp.pp_obp_tbl o_bp_tbl;
-    wrapped_printf "\n >> Transitions hashmap : \n"; Pp.pp_transitions_tbl transitions_tbl;
-    wrapped_printf "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
-    wrapped_printf "\nTrivial symbols: [ "; trivial_syms |> List.iter Pp.pp_symbol; wrapped_printf " ] \n";
-    wrapped_printf "\n((Lvl, State), Symbols): \n"; sts_order_syms_lsls |> List.iter (fun ((lvl, sts), syms) -> 
-      printf "\t(%d, %s) -> " lvl sts; syms |> List.iter Pp.pp_symbol; printf "\n");wrapped_printf " \n";
+    wrapped_printf debug_print "\n >> Trivial non-terminals: [ ";
+    trivial_syms_nts |> iter (fun (s, x) -> wrapped_printf debug_print " ("; Pp.pp_symbol s; wrapped_printf debug_print ", %s ) " x); wrapped_printf debug_print "]\n";
+    wrapped_printf debug_print "\n >> Restrictions restriction'_lst O_bp obtained from the TA_g : \n"; Pp.pp_restriction'_lst restrictions_new;
+    wrapped_printf debug_print "\n >> Order -> symbol list O_bp map : \n"; Pp.pp_obp_tbl o_bp_tbl;
+    wrapped_printf debug_print "\n >> Transitions hashmap : \n"; Pp.pp_transitions_tbl transitions_tbl;
+    wrapped_printf debug_print "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
+    wrapped_printf debug_print "\nTrivial symbols: [ "; trivial_syms |> List.iter Pp.pp_symbol; wrapped_printf debug_print " ] \n";
+    wrapped_printf debug_print "\n((Lvl, State), Symbols): \n"; sts_order_syms_lsls |> List.iter (fun ((lvl, sts), syms) -> 
+      printf "\t(%d, %s) -> " lvl sts; syms |> List.iter Pp.pp_symbol; printf "\n");wrapped_printf debug_print " \n";
   end;
   let restrictions_without_trivials : restriction list = 
     (restrictions |> split |> fst) |> filter (fun x -> match x with Prec (s, _) | Assoc (s, _) -> 
@@ -518,24 +548,15 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
 
   ta_res, restrictions_without_trivials, sym_ord_to_rhs_lst, o_bp_tbl, trivial_syms_nts, trivial_syms, sts_order_syms_lsls 
    *)
-  null_ta, [], Hashtbl.create 0
-
-
-
-
 
 
 let convertToTa (file: string) (debug_print: bool):
   ta * restriction list * ((int, symbol list) Hashtbl.t) = 
-  let wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
   file |> 
-  (runIf debug_print (fun _ -> wrapped_printf "\n\nConvert parser.mly to its corresponding CFG\n");
+  (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConvert parser.mly to its corresponding CFG\n");
   extract_cfg debug_print) 
   |>
-  (runIf debug_print (fun _ -> wrapped_printf "\n\nConverting CFG to TA\n");
+  (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConverting CFG to TA\n");
   cfg_to_ta debug_print)
 
 
@@ -598,7 +619,7 @@ let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 =
     else Printf.ifprintf stdout fmt
   in
 
-  if debug_print then wrapped_printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta2 a;
+  if debug_print then wrapped_printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta a;
   (* helpers *)
   let remove_dups ls =
   let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
