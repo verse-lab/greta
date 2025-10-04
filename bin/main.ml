@@ -6,7 +6,6 @@ module O = Operation
 module E = Examples
 module L = Learner
 module U = Treeutils
-module D = Draw
 module G = Cfg
 module T = Ta
 

@@ -1,0 +1,32 @@
+# Execution plan and To-do's
+
+### Implementation to revamp
+
+- [ ] Converter from CFG to TA
+     - Start from cleaner data structures (CFG, TA)
+     - Learning O_bp
+- [ ] **Tree example generation** - _To reuse for now_
+     - (Later) Update logic for identifying nonaddreaable ambiguities 
+- [ ] TA Learner from tree examples
+     - Learning O_a
+     - Learning O_p
+- [ ] **Intersection** - _To reuse_
+     - Update based on revised data structures
+- [ ] **Converter from TA to CFG**
+- [ ] **Formatter for CFG** - _To reuse for now_
+
+### Testing 
+
+(6 existing + 2-3 Real Grammars)
+
+  - Grammar 0 (Running paper example)
+  - Grammar 1 (Compiler - Boolean language)
+  - Grammar 2 (Compiler)
+  - Grammar 3 (Compiler)
+  - Grammar 4 (StackOverflow)
+  - Grammar 5 (StackOVerflow)
+  - Grammar 6 (Michelson)
+  - Grammar 7 (KaiTai)
+  - Grammar 8 (Scilla? - likely to be nonaddressable or SQL)
+
+
