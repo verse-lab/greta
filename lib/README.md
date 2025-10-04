@@ -2,11 +2,11 @@
 
 ### Implementation
 
-- [x] **Converter from CFG to TA** - Yunjeong WIP
+- [x] **Converter from CFG to TA** 
      - Start from cleaner data structures (CFG, TA)
      - Learning O_bp
 
-- [ ] **Tree example generation** 
+- [ ] **Tree example generation** - Yunjeong WIP
      - (Later) Update logic for identifying nonaddreaable ambiguities 
 
 - [ ] **TA Learner from tree examples** - 

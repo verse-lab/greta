@@ -197,9 +197,20 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
  
   (* 2. Collect O_bp *)
   let nonterms_ordered: (nonterminal * int) list = 
-    collect_nonterm_orders g.starts g.nonterms g.productions debug_print in 
-  let _nonterm_order_symls: (nonterminal * int * symbol list) list = 
-    collect_sym_orders_wrt_nonterm_order nonterms_ordered trans_from_cfg debug_print in
+    collect_nonterm_orders g.starts g.nonterms g.productions debug_print 
+  in 
+  let nonterm_order_symls: (nonterminal * int * symbol list) list = 
+    collect_sym_orders_wrt_nonterm_order nonterms_ordered trans_from_cfg debug_print 
+  in
+  let rest_ls: restriction list = 
+    nonterm_order_symls |> List.fold_left (fun acc (_nt, lvl, sym_ls) -> 
+      let sym_precedence_ls: restriction list = 
+        sym_ls |> List.map (fun s -> Prec (s, lvl))
+      in acc @ sym_precedence_ls) []
+  in
+  let rest_tbl = Hashtbl.create (List.length rest_ls) in 
+  (nonterm_order_symls |> List.iter (fun (_nt, lvl, sym_ls) -> 
+    Hashtbl.add rest_tbl lvl sym_ls));
 
   (* 3. Find trivial symbol and nontrminal  *)
   let res_ta: ta = {
@@ -210,7 +221,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
     transitions = trans_tbl;
     trivial_sym_states = []
     } 
-  in res_ta , [], Hashtbl.create 0
+  in res_ta , rest_ls, rest_tbl
 
 
 
