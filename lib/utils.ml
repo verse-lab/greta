@@ -162,4 +162,4 @@ let sigma_to_beta (s: Cfg.sigma): Ta.beta =
 let sigma_list_to_beta_list (sigls: Cfg.sigma list): Ta.beta list = 
   sigls |> List.map sigma_to_beta  
 
-
+(* let prods_starting_from_nonterm () *)

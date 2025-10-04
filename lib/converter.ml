@@ -120,25 +120,48 @@ let collect_ta_trans_symbols_from_cfg (g: cfg) (debug: bool): ((state * symbol) 
   trans_res, syms_res
 
 
+let collect_nonterm_orders (_nonterms: nonterminal list) (_prods: production list) (_debug: bool): 
+  (int * nonterminal) list = 
+  (* First grouop productions based on nonterminals *)
+  (* let prods_grouped: (nonterminal * production list) list = 
+    nonterms |> List.map (fun nt -> nt, (prods_starting_from_nonterm nt prods))
+  in 
+  let rec loop (ls: production list) (acc: (int * nonterminal) list) = 
+    match ls with [] -> List.rev acc
+    | _curr_prod :: rest_prods -> 
+      loop rest_prods acc 
+  in let nt_orders_res = loop prods [] 
+  in 
+  if debug then (wrapped_printf debug "\nCollected (order, nonterminal):\n\n"; 
+    nt_orders_res |> List.iter (fun (l, nt) -> wrapped_printf debug "Order %d  ->  Nonterminal  %s" l nt));
+  nt_orders_res *) []
+
+
 let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbol list) Hashtbl.t) =
+  let open Printf in
   if debug_print then
-    (Printf.printf "\n\t Converting CFG to TA given the following TA \n"; Pp.pp_cfg g);
+    (printf "\n\t Converting CFG to TA given the following TA \n"; Pp.pp_cfg g);
   
-    (* Go through prods to collect alphabet and transitions *)
+  (* 1. Go through prods to collect alphabet and transitions *)
   let (trans_from_cfg, symbols_from_cfg): ((state * symbol) * beta list) list * symbol list = 
     collect_ta_trans_symbols_from_cfg g debug_print
   in
   let trans_tbl = Hashtbl.create (List.length g.productions) in 
   (trans_from_cfg |> List.iter (fun ((nt, sym), bls) -> 
     Hashtbl.add trans_tbl (nt, sym) bls));
-    (* alphabet, transitions, and O_bp *)
+ 
+  (* 2. Collect O_bp *)
+  let nonterms_ordered: (int * nonterminal) list = collect_nonterm_orders g.nonterms g.productions debug_print in 
+  (nonterms_ordered |> List.iter (fun (i, nt) -> printf "%d %s" i nt));
+
+  (* 3. Find trivial symbol and nontrminal  *)
   let res_ta: ta = {
     states = g.nonterms;
     alphabet = symbols_from_cfg;
     final_states = g.starts;
     terminals = g.terms;
     transitions = trans_tbl;
-    trivial_sym_nts = []
+    trivial_sym_states = []
     } 
   in res_ta , [], Hashtbl.create 0
 
