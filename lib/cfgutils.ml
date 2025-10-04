@@ -52,3 +52,10 @@ let group_productions (nonterms: G.nonterminal list) (prods: G.production list) 
   in if debug then (wrapped_printf debug "\n\t* Prods grouped:\n"; 
   prods_grouped |> List.iter (fun (nt, prods) -> wrapped_printf debug "\tLHS nonterm: %s\n" nt; 
   Pp.pp_productions prods));prods_grouped
+
+let sigma_of_beta (b: A.beta): G.sigma = 
+  match b with A.T t ->  G.Term t | A.S s -> G.Nt s
+
+let production_of_beta_list (bls: A.beta list): G.sigma list = 
+  bls |> List.map sigma_of_beta
+  

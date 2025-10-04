@@ -74,15 +74,15 @@ let () =
     let _convert_start = Sys.time () in
     (* Step 1: Input CFG is converted to TA and learn O_bp wrt CFG *)
 
-    let (ta_initial, o_bp, o_bp_tbl): T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) = 
+    let (ta_initial, o_bp, o_bp_tbl, prods_map): 
+      T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) * (int * G.production) list = 
       C.convertToTa !cfg_file debug in
       
     let _convert_elapsed = Sys.time () -. _convert_start in
-    let _ranked_symbols = ta_initial.alphabet 
+    let ranked_symbols = ta_initial.alphabet 
     in
     
-    (* 
-      let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
+    let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
       E.gen_examples !tree_file ranked_symbols debug
     in 
     if (List.is_empty tree_pairs_lst) then () else 
@@ -107,9 +107,10 @@ let () =
 
     (* Time output *)
     let _learn_start = Sys.time () in
-    let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
+    let _learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
         interact_with_user tree_pairs_lst 
     in 
+    (* 
     let ta_learned: T.ta2 = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
       sts_order_syms_lsls opt_flag debug

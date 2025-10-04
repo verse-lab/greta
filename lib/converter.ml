@@ -182,10 +182,10 @@ let collect_sym_orders_wrt_nonterm_order (nts_ordered: (nonterminal * int) list)
   nt_sym_orders
 
 
-let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbol list) Hashtbl.t) =
-  let open Printf in
+let cfg_to_ta (debug_print: bool) (g: cfg): 
+  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list =
   if debug_print then
-    (printf "\n\t Converting CFG to TA given the following TA \n"; Pp.pp_cfg g);
+    (wrapped_printf debug_print "\n\t Converting CFG to TA given the following TA \n"; Pp.pp_cfg g);
   
   (* 1. Go through prods to collect alphabet and transitions *)
   let (trans_from_cfg, symbols_from_cfg): ((state * symbol) * beta list) list * symbol list = 
@@ -212,7 +212,19 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
   (nonterm_order_symls |> List.iter (fun (_nt, lvl, sym_ls) -> 
     Hashtbl.add rest_tbl lvl sym_ls));
 
-  (* 3. Find trivial symbol and nontrminal  *)
+  (* 3. Find trivial symbol and nontrminal - Ignore for now *)
+  (* 4. Create a map (assoc list) from ID to production *)
+  let prods_map_res: (int * production) list =
+    trans_from_cfg |> List.map (fun ((lhs_nt, sym), bls) -> 
+      let sym_id = (id_of_sym sym) in 
+      let curr_sigls: sigma list = production_of_beta_list bls in
+      let curr_prod: production = (lhs_nt, curr_sigls) in
+      (sym_id, curr_prod)
+      )
+  in 
+  if debug_print then
+    (wrapped_printf debug_print "\n\t ID -> Production Map \n"; 
+    prods_map_res |> List.iter (fun (i, p) -> wrapped_printf debug_print "\t  %d -> " i; Pp.pp_production p));
   let res_ta: ta = {
     states = g.nonterms;
     alphabet = symbols_from_cfg;
@@ -220,14 +232,12 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
     terminals = g.terms;
     transitions = trans_tbl;
     trivial_sym_states = []
-    } 
-  in res_ta , rest_ls, rest_tbl
+    }
+  in res_ta , rest_ls, rest_tbl, prods_map_res
 
-
-
-
-let convertToTa (file: string) (debug_print: bool): ta * restriction list * ((int, symbol list) Hashtbl.t) = 
-  let ta_res, obp_res, obp_tbl = file |> 
+let convertToTa (file: string) (debug_print: bool): 
+  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list = 
+  let ta_res, obp_res, obp_tbl, prods_map_res = file |> 
   (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConvert parser.mly to its corresponding CFG\n");
   extract_cfg debug_print) 
   |>
@@ -241,8 +251,7 @@ let convertToTa (file: string) (debug_print: bool): ta * restriction list * ((in
     wrapped_printf debug_print "\n >> Order -> symbol list O_bp map : \n"; Pp.pp_obp_tbl obp_tbl;
     
   end;
-  ta_res, obp_res, obp_tbl
-  
+  ta_res, obp_res, obp_tbl, prods_map_res
 
 (* 
 

@@ -31,3 +31,12 @@ let first_terminal_of (sls: sigma list): string =
   let term_ls = sls |> List.filter (fun x -> is_terminal x) in
   if List.is_empty term_ls then "" 
   else term_ls |> List.hd |> terminal_of
+
+let production_of_id (i: int) (prods_map: (int * production) list): production = 
+  match (List.assoc_opt i prods_map) with Some p -> p
+  | None -> raise (Failure "production_of_id : no corresponding production")
+
+let id_of_production (p: production) (prods_map: (int * production) list): int = 
+  let rev_prods_map = prods_map |> List.map (fun x -> (snd x), (fst x)) in
+  match (List.assoc_opt p rev_prods_map) with Some i -> i
+  | None -> raise (Failure "id_of_production : no corresponding id")

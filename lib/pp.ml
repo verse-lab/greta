@@ -45,10 +45,11 @@ let pp_beta_list (sls: T.beta list) =
 let pp_nonterminals (ns: C.nonterminal list) =
   noprintf "\tNonterminals : { "; ns |> iter (noprintf "%s "); noprintf "}\n"
 
+let pp_production (p: C.production) = 
+  noprintf "\t\t %s  ->  (" (fst p); pp_sigma_list (snd p); noprintf ")\n"
+
 let pp_productions (ps: C.production list) =
-  noprintf "\tSet of productions : { \n"; ps |> iter (fun (nt, sig_ls) -> 
-    noprintf "\t\t\t\t%s -> ( " nt ;
-    pp_sigma_list sig_ls; noprintf ")\n"); noprintf "\t\t\t     }\n"
+  noprintf "\tSet of productions : { \n"; ps |> iter pp_production; noprintf "\t\t\t     }\n"
 
 let pp_cfg (c: C.cfg) = 
   pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms); pp_starts (c.starts); 
