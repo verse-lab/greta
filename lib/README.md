@@ -2,23 +2,23 @@
 
 ### Implementation
 
-- [ ] **Converter from CFG to TA**
+- [ ] **Converter from CFG to TA** - Yunjeong WIP
      - Start from cleaner data structures (CFG, TA)
      - Learning O_bp
 
-- [ ] **Tree example generation** - _To reuse for now_
+- [ ] **Tree example generation** - Gokul WIP 
      - (Later) Update logic for identifying nonaddreaable ambiguities 
 
-- [ ] **TA Learner from tree examples**
+- [ ] **TA Learner from tree examples** - 
      - Learning O_a
      - Learning O_p - _Logic changed from earlier version!_
 
-- [ ] **Intersection** - _To reuse_
+- [ ] **Intersection** - _To reuse_ 
      - Update based on revised data structures
 
 - [ ] **Converter from TA to CFG**
 
-- [ ] **Formatter for CFG** - _To reuse for now_
+- [ ] **Formatter for CFG** - _To reuse for now but may have to modify_
 xw
 ### Testing 
 
