@@ -1,8 +1,6 @@
 open Ta
 open Treeutils
 
-module D = Draw
-
 let ex03 = Node (("+", 2), [Leaf "expr"; Node (("*", 2), [Leaf "expr"; Leaf "expr"])])
 let t03: tree = Node (("+", 2), [ Node (("+", 2),  [Leaf "expr2" ;  Leaf "@expr2" ]);  Leaf "expr2" ])
 let ex04 = Node (("IF", 2), [Leaf "cond_expr"; Leaf "expr"; Node (("+", 2), [Leaf "expr"; Leaf "expr"])])
