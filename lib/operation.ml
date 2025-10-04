@@ -1,3 +1,4 @@
+(* 
 open Ta
 open Treeutils
 open Cfg
@@ -631,7 +632,7 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
 
 
 
-
+ *)
 
 
   

@@ -26,7 +26,7 @@ let read_file filename =
 
 let ( $ ) a b = a b
 
-let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
+let extract_cfg (debug_print: bool) (filename : string) : cfg =
   let lines = read_file filename in
   let sanitize line = 
     let line = String.trim line in
@@ -94,7 +94,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg2 =
     Printf.printf "Productions:\n";
     List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function T x -> x | Nt x -> x) rhs))) productions;
   end;
-  { nonterms; terms; starts; productions; triv_term_nonterm_list = [] }
+  { nonterms; terms; starts; productions }
 
 let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
   { 

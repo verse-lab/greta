@@ -155,14 +155,14 @@ let rewrite_syms (tts: (tree * tree) list): (tree * tree) list =
   tts |> List.map (fun (t1, t2) -> rewrite_syms_aux t1, rewrite_syms_aux t2)
 
 (** rename_states : rename states in ta_res from /\ *)
-let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
+(* let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
   let wrapped_printf fmt =
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt
   in
 
   (wrapped_printf "\nRename the following tree automaton:\n"; Pp.pp_ta inp_ta);
-  let start_old, start_new = inp_ta.start_state, "expr1" in
+  let start_old, start_new = inp_ta.start_states, "expr1" in
   let states_mapping_init: (state * state) list = (start_old, start_new) :: [] in
   let eind, cind = ref 2, ref 1 in
   let states_mapping: (state * state) list = inp_ta.states |> List.fold_left (fun acc st_curr ->
@@ -172,13 +172,13 @@ let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
     states_mapping_init in
   let replace_with_new (stat_old: state): state = match List.assoc_opt stat_old states_mapping with
     | Some v -> v | None -> raise (Failure "Old state is not found") in
-  let states_new = inp_ta.states |> List.map (fun st -> if (st = "ϵ") then st else replace_with_new st) in
+  let finals_new = inp_ta.states |> List.map (fun st -> if (st = "ϵ") then st else replace_with_new st) in
   let trans_new = inp_ta.transitions |> List.map (fun (stlhs, (sym, stsrhs)) ->
     let stlhs_new = replace_with_new stlhs in 
     let stsrhs_new = stsrhs |> List.map replace_with_new in (stlhs_new, (sym, stsrhs_new))) in
-  let ta_res: ta = {states=states_new; alphabet=inp_ta.alphabet; start_state=start_new; transitions=trans_new; trivial_sym_nts=[]} in 
+  let ta_res: ta = {states=finals_new; alphabet=inp_ta.alphabet; final_states=[start_new]; terminals = []; transitions=trans_new; trivial_sym_nts=[]} in 
   if debug_print then (wrapped_printf "\nResult of renaming:\n"; Pp.pp_ta ta_res; wrapped_printf "\n");
-  ta_res
+  ta_res *)
 
 (* let subts_to_list (subts: tree list):  *)
 
@@ -714,7 +714,7 @@ let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_
   (sigma * sigma) list = 
   let open String in
   match sig_ls1, sig_ls2 with [], [] -> List.rev acc
-  | T t1 :: stl1, T t2 :: stl2 -> cross_product_siglsls stl1 stl2 triv_states ((T t1, T t2)::acc)
+  | Term t1 :: stl1, Term t2 :: stl2 -> cross_product_siglsls stl1 stl2 triv_states ((Term t1, Term t2)::acc)
   | Nt nt1 :: stl1, Nt nt2 :: stl2 -> 
     if ((equal nt1 epsilon_state) && (not (List.mem nt2 triv_states))) || ((equal nt2 epsilon_state) && (not (List.mem nt1 triv_states)))
     then cross_product_siglsls stl1 stl2 triv_states ((Nt epsilon_state, Nt epsilon_state)::acc) 
@@ -722,7 +722,7 @@ let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_
       if ((List.mem nt1 triv_states) && not (List.mem nt2 triv_states)) || ((List.mem nt2 triv_states) && not (List.mem nt1 triv_states))
       then cross_product_siglsls stl1 stl2 triv_states acc
       else cross_product_siglsls stl1 stl2 triv_states ((Nt nt1, Nt nt2)::acc)
-  | (T _)::_, (Nt _)::_ | (Nt _)::_, (T _)::_ | _, [] | [], _ -> raise No_cross_product_sigls_possible
+  | (Term _)::_, (Nt _)::_ | (Nt _)::_, (Term _)::_ | _, [] | [], _ -> raise No_cross_product_sigls_possible
 
 let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsls_ls2: (sigma list list) list) 
   (triv_states: state list) (debug: bool): (sigma * sigma) list list =
@@ -900,7 +900,7 @@ let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)
           match sig_pr with 
           | Nt s1, Nt s2 -> let (new_st1, new_st2) = find_renamed_state (s1, s2) states_renaming_map in 
             (Nt new_st1, Nt new_st2)
-          | T t1, T _t2 -> (T t1, T "")
+          | Term t1, Term _t2 -> (Term t1, Term "")
           | _, _ -> raise Not_possible) in
       let renamed_tran = (lhs_renamed, (sym, rhs_renamed)) in 
       rename_raw_trans tl' (renamed_tran :: acc')
@@ -1050,7 +1050,7 @@ let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * s
   ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
   let parenthesis_trans_to_itself (sym_sigsigls: (symbol * (sigma * sigma) list)) (st_pr: (state * state)) =
     let paren_to_sts (siglsls: (sigma * sigma) list) (sts: (state * state)) = match siglsls with 
-    | ((T "LPAREN"), _) :: ((Nt sts'), _) :: ((T "RPAREN"), _) :: [] -> String.equal (fst sts) sts'
+    | ((Term "LPAREN"), _) :: ((Nt sts'), _) :: ((Term "RPAREN"), _) :: [] -> String.equal (fst sts) sts'
     | _ -> false in
     match sym_sigsigls with 
     | sym, siglsls -> 
@@ -1108,7 +1108,7 @@ let run_again (filename: string): unit =
   (* "./test/grammars/G0/G0_results/G0a000.mly" in *)
 let test_results_filepath (grammar: string) (postfix: string): string = grammar ^ "_" ^ postfix ^ ".mly"
 
-let update_flag (current_ta: ta2) (triv_states: state list) (opt: optimization) (debug_print: bool): optimization = 
+(* let update_flag (current_ta: ta) (triv_states: state list) (opt: optimization) (debug_print: bool): optimization = 
   let wrapped_printf fmt =
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt
@@ -1130,4 +1130,4 @@ let update_flag (current_ta: ta2) (triv_states: state list) (opt: optimization) 
   coll_lst |> List.iter (fun x -> Pp.pp_sigma_listlist x));
     if ((List.length coll_lst) >= 3) && opt.onoff_opt 
   then { eps_opt = true; paren_opt = opt.paren_opt; triv_opt = opt.triv_opt; onoff_opt = opt.onoff_opt }
-  else opt
+  else opt *)

@@ -29,16 +29,18 @@ let pp_starts (ss: C.nonterminal list) =
   noprintf "\tStart symbols : { "; ss |> iter (noprintf "%s "); noprintf "}\n"
 
 let pp_sigma s = match s with 
-  | C.T s' -> noprintf "%s " s'
+  | C.Term s' -> noprintf "%s " s'
   | C.Nt s' -> noprintf "%s " s'
 
+let pp_beta (s: T.beta) = match s with 
+  | T.T s' -> noprintf "%s " s'
+  | T.S s' -> noprintf "%s " s'
+
 let pp_sigma_list sls =
-  noprintf "%s " (fst sls);
-  noprintf "[ "; 
-  iter (fun s -> match s with 
-    | C.T s' -> noprintf "%s " s'
-    | C.Nt s' -> noprintf "%s " s') (snd sls); 
-  noprintf "]\n"
+  sls |> iter pp_sigma
+
+let pp_beta_list (sls: T.beta list) =
+  noprintf "[ "; sls |> iter pp_beta; noprintf "] "
 
 let pp_sigma_list2 sls = 
   noprintf "[ "; sls |> iter pp_sigma; noprintf "] "
@@ -47,29 +49,13 @@ let pp_nonterminals (ns: C.nonterminal list) =
   noprintf "\tNonterminals : { "; ns |> iter (noprintf "%s "); noprintf "}\n"
 
 let pp_productions (ps: C.production list) =
-  noprintf "\tSet of productions : { \n"; ps |> iter (fun x -> 
-    noprintf "\t\t\t\t%s -> ( %s " (fst x) (fst (snd x));
-    (snd (snd x))|> iter (noprintf "%s "); noprintf ")\n"); noprintf "\t\t\t     }\n"
+  noprintf "\tSet of productions : { \n"; ps |> iter (fun (nt, s, sls) -> 
+    noprintf "\t\t\t\t%s -> ( %s " nt (fst s);
+    sls|> pp_sigma_list; noprintf ")\n"); noprintf "\t\t\t     }\n"
 
-let pp_cfg (c: C.cfg) =
-  pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms);
-  pp_start (c.start); pp_productions (c.productions); pp_loline ()
-
-let pp_p (p: C.p) = 
-  match p with 
-  | (nt, _i, sig_ls) -> noprintf "%s  ->  " nt; sig_ls |> pp_sigma_list2
-
-let pp_ps (ps: C.p list) = 
-  noprintf "\tSet of productions : { \n"; ps |> iter (fun (nt, i, sig_ls) -> 
-    noprintf "\t\t\t\t"; pp_p (nt, i, sig_ls); noprintf "\n"); noprintf "\t\t\t     }\n"
-
-let pp_triv_tnts (tns: (C.t * C.nt) list) =
-  noprintf "\tSet of trivial (terminal * nonterminal) pairs : { "; tns |> iter (fun (t, nt) -> 
-    noprintf "\n\t\t\t\t\t\t\t   %s   ->   %s" t nt); noprintf "\n\t\t\t\t\t\t\t}\n"
-
-let pp_cfg2 (c: C.cfg2) = 
+let pp_cfg (c: C.cfg) = 
   pp_upline (); pp_nonterminals (c.nonterms); pp_terminals (c.terms); pp_starts (c.starts); 
-  pp_ps (c.productions); pp_triv_tnts (c.triv_term_nonterm_list); pp_loline ()
+  pp_productions (c.productions); pp_loline ()
 
 (* let pp_prods_mapping1 (pms: ((string list * string) * string list) list) = 
   noprintf "\n\t (changed) Nontrivial productions mapping \n"; 
@@ -106,10 +92,10 @@ let pp_sigma_sigma_list (ssls: (C.sigma * C.sigma) list) =
 let pp_sigma_listlist (slsls: C.sigma list list) = 
   noprintf "\t\t\t\t\t  [     "; slsls |> iter pp_sigma_list2; noprintf "     ]\n"
 
-let pp_productions2 (ps: C.production2 list) =
-  noprintf "\tSet of productions2 : { \n"; ps |> iter (fun (nt, (sym, nt_ls), sig_ls) -> 
-    noprintf "\t\t\t\t%s -> " nt; pp_symbol sym; pp_nonterminals nt_ls; 
-    pp_sigma_list ("", sig_ls); noprintf " \n"); noprintf "\t\t\t     }\n"
+let pp_productions (ps: C.production list) =
+  noprintf "\tSet of productions2 : { \n"; ps |> iter (fun (nt, sym, sig_ls) -> 
+    noprintf "\t\t\t\t%s -> " nt; pp_symbol sym; 
+    pp_sigma_list sig_ls; noprintf " \n"); noprintf "\t\t\t     }\n"
 
 let pp_alphabet (a: T.symbol list) =
   noprintf "\tAlphabet : { "; a |> iter (fun x -> pp_symbol x); noprintf "}\n"
@@ -157,22 +143,18 @@ let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) =
   obp_tbl |> Hashtbl.iter (fun o_idx s_ls -> noprintf "\n\tOrder %i -> " o_idx; 
     s_ls |> iter pp_symbol; noprintf "\n"); noprintf "\n"
 
-let pp_transitions_tbl (tbl: ((T.state * T.symbol), C.sigma list list) Hashtbl.t) = 
+let pp_transitions_tbl (tbl: ((T.state * T.symbol), T.beta list list) Hashtbl.t) = 
   noprintf "\n\tTransitions (htbl): { ";
   tbl |> Hashtbl.iter (fun (lhs, s) lsls ->  (* prev below "\n\t\t\t\t( State %s, " *)
     let print_lhs_st_sym () = noprintf "\n( State %s, " lhs; pp_symbol s; noprintf ") -> " in 
       let num_rhs_ls = List.length lsls in 
       if (num_rhs_ls = 1) then 
         (let rhs_ls = List.hd lsls in 
-        print_lhs_st_sym (); noprintf "[ "; rhs_ls |> iter pp_sigma; noprintf "] ")
+        print_lhs_st_sym (); noprintf "[ "; rhs_ls |> pp_beta_list; noprintf "] ")
       else 
         (lsls |> iter (fun ls -> 
-        print_lhs_st_sym (); noprintf "[ "; ls |> iter pp_sigma; noprintf "] "))); 
+        print_lhs_st_sym (); noprintf "[ "; ls |> pp_beta_list; noprintf "] "))); 
       noprintf "\n\t\t\t    }\n"
-
-let pp_ta (a: T.ta) =
-  pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
-  pp_root (a.start_state); pp_transitions (a.transitions); pp_loline ()
 
 let pp_sym_nts (sn: (T.symbol * T.state)) = 
   noprintf "( "; pp_symbol (fst sn); noprintf "  --->  State %s )" (snd sn) 
@@ -181,9 +163,9 @@ let pp_sym_nts_ls (sns: (T.symbol * T.state) list) =
   noprintf "\n\t(Trivial symbol, Trivial state) list: {";
   sns |> List.iter (fun sn -> noprintf "\n\t  "; pp_sym_nts sn); noprintf "   }\n"
 
-let pp_ta2 (a: T.ta2) =
-  pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); pp_roots (a.start_states); 
-  pp_transitions_tbl (a.transitions); pp_sym_nts_ls (a.trivial_sym_nts); pp_loline ()
+let pp_ta (a: T.ta) =
+  pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
+  pp_roots (a.final_states); pp_transitions_tbl (a.transitions); pp_sym_nts_ls (a.trivial_sym_nts); pp_loline ()
 
 let pp_tree (e: T.tree) =
   let rec loop (e: T.tree) =
@@ -240,7 +222,7 @@ let pp_restriction_lst (rls:T.restriction list) =
       | T.Prec (s, i) -> noprintf "("; pp_symbol s; noprintf ", %i) " i); noprintf "\n\n"
 
 
-let pp_restriction'_lst (rls:(T.restriction * (C.nonterminal * C.sigma list)) list) =
+let pp_restriction'_lst (rls:(T.restriction * C.sigma list) list) =
   rls |> iter (fun r -> match r with 
       | T.Assoc (s, a), sg -> (noprintf "("; pp_symbol s; noprintf ", %s) " a);pp_sigma_list sg
       | T.Prec (s, i), sg -> noprintf "("; pp_symbol s; noprintf ", %i) " i;pp_sigma_list sg)

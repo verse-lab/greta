@@ -1,4 +1,4 @@
-open Ta
+(* open Ta
 open Treeutils
 
 (* accept : TA starts in start_state at the root and 
@@ -48,4 +48,4 @@ let accept (a: ta) (e: tree) (debug_print: bool): bool =
   if debug_print then printf "\n\nAcceptance result: %b\n\n" accepted; 
   accepted
     
-
+ *)

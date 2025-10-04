@@ -1,4 +1,4 @@
-open Ta
+(* open Ta
 open Treeutils
 open Cfg
 
@@ -26,7 +26,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   (o_bp_tbl: (int, symbol list) Hashtbl.t) (sym_lhs_ls: (symbol * state) list)
   (a: symbol list) (lvl_state_pairs: (int * state) list) (start: state) 
   (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_syms_nonterms: (symbol * state) list) 
-  (sts_order_syms_lsls: ((int * state) * symbol list) list) (opt: optimization) (debug: bool): 
+  (sts_order_syms_lsls: ((int * state) * symbol list) list) (debug: bool): 
   ((state * symbol), sigma list list) Hashtbl.t =
   let wrapped_printf fmt =
     if debug then Printf.printf fmt
@@ -46,8 +46,6 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
       wrapped_printf "\t ( <%d , %s> ,  " lvl lhs_st; syms |> List.iter (fun x -> Pp.pp_symbol x); wrapped_printf ")\n");
    );
     
-  let (eps_opt, paren_opt, triv_opt) = opt.eps_opt, opt.paren_opt, opt.triv_opt
-  in
   let trans_tbl : ((state * symbol), sigma list list) Hashtbl.t = 
     create (length o_bp_tbl) (* size guessed wrt. # of transitions in o_bp_tbl *) in
   (* --- helpers --- *)
@@ -327,7 +325,7 @@ let learn_ta (example_trees: (string list * tree * (bool * bool) * restriction l
   (sym_state_ls: (symbol * state) list) (a: symbol list) 
   (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_syms_nonterms: (symbol * state) list) 
   (sts_order_syms_lsls: ((int * state) * symbol list) list)
-  (opt: optimization) (debug_print: bool): ta2 = 
+  (debug_print: bool): ta = 
   let wrapped_printf fmt =
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt
@@ -353,10 +351,11 @@ let learn_ta (example_trees: (string list * tree * (bool * bool) * restriction l
   let (lvl_state_pairs, init_state): (int * state) list * state = get_states op_ls in
   let state_ls: state list = lvl_state_pairs |> List.map snd in
   let raw_trans_ls: ((state * symbol), sigma list list) Hashtbl.t = 
-    get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_ord_rhs_ls triv_syms_nonterms sts_order_syms_lsls opt debug_print in
+    get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_ord_rhs_ls triv_syms_nonterms sts_order_syms_lsls debug_print in
   (* let ordered_trans_ls = order_trans_ls state_ls raw_trans_ls in *)
-  let ta_res: ta2 = { states = state_ls; alphabet = a; start_states = [init_state]; 
+  (* To update terminals later! *)
+  let ta_res: ta = { states = state_ls; alphabet = a; final_states = [init_state]; terminals=[];
   transitions = raw_trans_ls; trivial_sym_nts=triv_syms_nonterms } in 
-  wrapped_printf "\n\nLearned TA:\n"; Pp.pp_ta2 ta_res; ta_res
+  wrapped_printf "\n\nLearned TA:\n"; Pp.pp_ta ta_res; ta_res
 
-
+ *)
