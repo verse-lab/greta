@@ -1,80 +1,55 @@
-/* *** G2e *** */
 %{
-open Ast;;
-
-let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
-  { elt ; loc=Range.mk_lex_range startpos endpos }
-
+    open Syntax
+    open Ast_helper
+    open MySupport
 %}
 
+%token PARAM 
+%token STORAGE 
+%token CODE 
+%token LPAREN 
+%token RPAREN 
+%token LBRACE 
+%token RBRACE 
+%token SEMI 
 %token EOF
-%token <int64>  INT
-%token <string> IDENT
-%token <string> STRING
-%token ELSE     /* else */
-%token IF       /* if */
-%token TINT     /* int */
-%token RETURN   /* return */
-%token WHILE    /* while */
-%token SEMI     /* ; */
-%token LBRACE   /* { */
-%token RBRACE   /* } */
-%token PLUS     /* + */
-%token DASH     /* - */
-%token STAR     /* * */
-%token EQ       /* = */
-%token LPAREN   /* ( */
-%token RPAREN   /* ) */
+%token UNIT
+%token PAIR
+%token LPAREN_PAIR 
+%token LPAREN_LEFT 
+%token LPAREN_RIGHT 
+%token SOME 
+%token NONE
+%token ELT 
+%token TYS
+
+%token <string> INTV
+%token <bool> BOOL
+%token <string> STR
+%token <string> MNEMONIC
+%token <string> MNEMONIC_OTY
+%token <string> MNEMONIC_TTY
+%token <string> MNEMONIC_TYL
+
+%token <string> LCID
 
 %start toplevel
-%type <Ast.prog> toplevel
-%type <Ast.exp> x3
-%type <Ast.const> const
+%type <Syntax.program> toplevel
 %%
 
 toplevel:
-  | p=e1 EOF  { p }
-
-ident:
-  | id=IDENT  { loc $startpos $endpos id }
-
-const:
-  | i=INT { loc $startpos $endpos @@ CInt i }
-
-x6:
-  | TINT id=ident EQ init=x4 { loc $startpos $endpos @@ {id; init} }
-
-x5:
-  | id=ident            { loc $startpos $endpos @@ Id (id) }
-  | c=const             { loc $startpos $endpos @@ Const (c) }
-  | LPAREN e=x5 RPAREN { e }
+  | sc=e1 EOF { sc }
 
 e1:
-  |   /* empty */   { [] }
-  | s=x1 ss=e1   { s::ss }
-
-x4:
-  | x5 { $1 }
-  | e1=x4 PLUS e2=x4  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
-  | e1=x4 DASH e2=x4  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  ;
-
-x3:
-  | e1=x4 STAR e2=x3  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
-  | x4 { $1 }
-  ;
+  | CODE LBRACE is=x3 RBRACE { Code (None, is) }
+  | PARAM pty=x1 SEMI STORAGE stty=x1 SEMI CODE LBRACE is=x3 RBRACE { Code (Some (pty, stty), is) }
 
 x2:
-  | d=x6 SEMI                      { loc $startpos $endpos @@ Decl(d) }
-  | id=ident EQ e=x3 SEMI           { loc $startpos $endpos @@ Assn(id, e) }
-  | WHILE LPAREN e=x3 RPAREN s=x2 { loc $startpos $endpos @@ While(e, [s]) }
-  | RETURN e=x3 SEMI                { loc $startpos $endpos @@ Ret(e) }
-  | LBRACE ss=e1 RBRACE           { loc $startpos $endpos @@ Block(ss) }
-  | IF LPAREN e=x3 RPAREN s1=x2 ELSE s2=x2 { loc $startpos $endpos @@ If(e, [s1], [s2]) }
-  ;
+  | /* empty */ { [] }
+  | TYS ty=x3 tyds=x2 { ty::tyds }
 
 x1:
-  | x2 { $1 }
-  | IF LPAREN e=x3 RPAREN s1=x1   { loc $startpos $endpos @@ If(e, [s1], []) }
+  | x3 { $1 }
+  | LPAREN ty=LCID tail=x2 RPAREN { let ty = if ty = "or" then "or_" else ty in Typ.constr (Location.mknoloc (Longident.Lident ty)) tail }
   ;
 

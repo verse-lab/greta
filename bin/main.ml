@@ -64,22 +64,21 @@ let () =
     (print_endline "Error: CFG file does not exist. Exiting..."; exit 1)
   else
 
-  let debug = false in
+  let debug = true in
   let _opt_flag: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in (* g0s, g1s *)
   let _opt_flag_g2a: T.optimization = { eps_opt = false; paren_opt = false; triv_opt = false; onoff_opt = false } in
   let _opt_flag_g2: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = false } in (* g2b - g2d *)
-
   let _opt_flag_g2e: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = true } in 
   let _opt_flag_g3: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in
   let _opt_flag_g5: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = false; onoff_opt = false } in
   let _opt_flag_g6: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in
   let _opt_flag_gx: T.optimization = { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } in
 
-  let _opt_flag_new: T.optimization = { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = true } in 
+  let opt_flag_new: T.optimization = { eps_opt = true; paren_opt = false; triv_opt = false; onoff_opt = true } in 
   let contains lin s = 
     try (ignore (Str.search_forward (Str.regexp_string s) lin 0); true) with Not_found -> false 
   in
-  let opt_flag: T.optimization =
+  let _opt_flag: T.optimization =
     if (contains !parser_file "G0") || (contains !parser_file "G1") then { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } 
     else if (contains !parser_file "G2a") then { eps_opt = false; paren_opt = false; triv_opt = false; onoff_opt = false }
     else if (contains !parser_file "G2e") then { eps_opt = false; paren_opt = true; triv_opt = true; onoff_opt = true } 
@@ -87,16 +86,17 @@ let () =
     else if (contains !parser_file "G3") then { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } 
     else if (contains !parser_file "G5") then { eps_opt = false; paren_opt = true; triv_opt = false; onoff_opt = false }
     else if (contains !parser_file "G6") then { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false } 
+    else if (contains !parser_file "Ga") then { eps_opt = true; paren_opt = false; triv_opt = false; onoff_opt = true } 
     else { eps_opt = true; paren_opt = true; triv_opt = false; onoff_opt = false }
   in 
 
   if (Utils.check_conflicts !conflicts_file debug) then
   begin
     let convert_start = Sys.time () in
-    let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms): 
+    let (ta_initial, o_bp, sym_ord_rhs_lst, o_bp_tbl, triv_syms_states, triv_syms, sts_order_syms_lsls): 
       T.ta2 * T.restriction list * ((T.symbol * int) * G.sigma list) list * 
-      ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list = 
-      C.convertToTa !cfg_file opt_flag debug in
+      ((int, T.symbol list) Hashtbl.t) * (T.symbol * T.state) list * T.symbol list * ((int * T.state) * T.symbol list) list = 
+      C.convertToTa !cfg_file opt_flag_new debug in
       
     let convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet 
@@ -136,32 +136,32 @@ let () =
     in 
     let ta_learned: T.ta2 = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
-      opt_flag debug
+      sts_order_syms_lsls opt_flag_new debug
     in
     let learn_ta_elapsed = Sys.time () -. learn_start in
-
 
     (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
     let intersect_start = Sys.time () in
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
-      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag debug 
+      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag_new debug 
     in     
     let intersect_elapsed = Sys.time () -. intersect_start in
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
-    let file_written = "./test/grammars/Ga/Ga_results/Gaa" in 
+    let file_written = "./test/grammars/Ga/Ga_results/Gaa.mly" in 
     let grammar = 
       String.split_on_char '.' !parser_file |> List.hd 
       (* "Gaa"   *)
     in
     let _file_written = U.test_results_filepath grammar !file_postfix in 
-    C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states !parser_file file_written opt_flag debug;
+    C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states !parser_file file_written opt_flag_new debug;
     
     Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_written;
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" convert_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" learn_ta_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed;
     (* Time for convering back to CFG *)
- (* () *) 
+  (* () *) 
+    
   
 end
 else U.no_conflicts_message !parser_file

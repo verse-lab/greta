@@ -11,6 +11,7 @@
 %token RPAREN 
 %token LBRACE 
 %token RBRACE 
+%token LIT
 %token SEMI 
 %token EOF
 %token UNIT
@@ -21,7 +22,7 @@
 %token SOME 
 %token NONE
 %token ELT 
-%token TYS
+
 
 %token <string> INTV
 %token <bool> BOOL
@@ -38,18 +39,17 @@
 %%
 
 toplevel:
-  | sc=script EOF { sc }
+  | sc=e1 EOF { sc }
 
-script:
-  | CODE LBRACE is=instlist RBRACE { Code (None, is) }
-  | PARAM pty=tyy SEMI STORAGE stty=tyy SEMI CODE LBRACE is=instlist RBRACE { Code (Some (pty, stty), is) }
+e1:
+  | CODE LBRACE is=x3 RBRACE { Code (None, is) }
+  | PARAM pty=x7 SEMI STORAGE stty=x7 SEMI CODE LBRACE is=x3 RBRACE { Code (Some (pty, stty), is) }
 
-tyy :
-  // | head_ann=annots ty=LCID { let _ = head_ann in Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }
+x7 :
   | LPAREN ty=LCID tail=tys RPAREN { let ty = if ty = "or" then "or_" else ty in Typ.constr (Location.mknoloc (Longident.Lident ty)) tail }
 tys :
   | /* empty */ { [] }
-  | TYS ty=tyy tyds=tys { ty::tyds }
+  | ty=x7 tyds=tys { ty::tyds }
 
 literal:
   | const { $1 }
@@ -75,11 +75,9 @@ kvlists:
 
 singleinst:
   | m=MNEMONIC { Simple m }
-  | m=MNEMONIC_OTY tyy { Simple m }
-  | m=MNEMONIC_TTY tyy tyy { Simple m }
-  | m=MNEMONIC_TYL tyy l=literal { SimpleArgCon (m, l) }
+  | m=MNEMONIC_OTY x7 { Simple m }
+  | m=MNEMONIC_TTY x7 x7 { Simple m }
+  | m=MNEMONIC_TYL x7 l=literal { SimpleArgCon (m, l) }
 
-instlist:
-  | /* empty */ { [] }
+x3:
   | i=singleinst { [ i ] }
-  | i=singleinst SEMI is=instlist { i :: is }

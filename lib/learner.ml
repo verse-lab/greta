@@ -26,7 +26,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   (o_bp_tbl: (int, symbol list) Hashtbl.t) (sym_lhs_ls: (symbol * state) list)
   (a: symbol list) (lvl_state_pairs: (int * state) list) (start: state) 
   (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_syms_nonterms: (symbol * state) list) 
-  (opt: optimization) (debug: bool): 
+  (sts_order_syms_lsls: ((int * state) * symbol list) list) (opt: optimization) (debug: bool): 
   ((state * symbol), sigma list list) Hashtbl.t =
   let wrapped_printf fmt =
     if debug then Printf.printf fmt
@@ -40,7 +40,11 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   (wrapped_printf "\n O_p list: \n\t"; Pp.pp_restriction_lst op_ls; wrapped_printf "\n";
    wrapped_printf "\n Trivial symbols :\n\t"; trivial_syms |> List.iter (fun s -> Pp.pp_symbol s); wrapped_printf "\n";
    wrapped_printf "\n Nontrivial symbols :\n\t"; nontrivial_syms |> List.iter (fun s -> Pp.pp_symbol s); wrapped_printf "\n";
-   wrapped_printf "\n Versatile symbols :\n\t"; versatile_syms |> List.iter (fun s -> Pp.pp_symbol s); wrapped_printf "\n");
+   wrapped_printf "\n Versatile symbols :\n\t"; versatile_syms |> List.iter (fun s -> Pp.pp_symbol s); wrapped_printf "\n";
+  (* *** New fix introduced for not losing symbols accessibility *** *)
+   wrapped_printf "\n Lvl_lhs_syms_lsls: \n"; sts_order_syms_lsls |> List.iter (fun ((lvl, lhs_st), syms) -> 
+      wrapped_printf "\t ( <%d , %s> ,  " lvl lhs_st; syms |> List.iter (fun x -> Pp.pp_symbol x); wrapped_printf ")\n");
+   );
     
   let (eps_opt, paren_opt, triv_opt) = opt.eps_opt, opt.paren_opt, opt.triv_opt
   in
@@ -48,10 +52,10 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
     create (length o_bp_tbl) (* size guessed wrt. # of transitions in o_bp_tbl *) in
   (* --- helpers --- *)
   let find_lhs (sym: symbol): state = 
-    if debug then wrapped_printf "\n\tlooking for lhs state of symbol "; Pp.pp_symbol sym;
+    if debug then wrapped_printf "\n\t Looking for lhs state of symbol "; Pp.pp_symbol sym;
     let sym_sigma = 
-      let correct_sym = if (sym_equals sym "LBRACE") then ("LBRACERBRACE", 1) else sym in
-      sym_lhs_ls |> List.assoc_opt correct_sym in
+      (* let correct_sym = if (sym_equals sym "LBRACE") then ("LBRACERBRACE", 1) else sym in *)
+      sym_lhs_ls |> List.assoc_opt sym in
     match sym_sigma with None -> raise No_lhs_state
     | Some st -> st 
   in 
@@ -135,7 +139,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   (* Step 3 - add transitions for trivial symbols (eg, INT, BOOL) *)
   trivial_syms |> List.iter (fun sym -> let triv_state = find_lhs sym 
     in add trans_tbl (triv_state, sym) [[(T (fst sym))]]); (* [prev] (Nt epsilon_state) *)
-  if debug then wrapped_printf "\n  >> After adding trivial transitions \n"; 
+  if debug then wrapped_printf "\n  --->> After adding trivial transitions \n"; 
     Pp.pp_transitions_tbl trans_tbl;
   (* Step 4 - add transitions for nontrivial symbols level by level *)
   
@@ -322,6 +326,7 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
 let learn_ta (example_trees: (string list * tree * (bool * bool) * restriction list) list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
   (sym_state_ls: (symbol * state) list) (a: symbol list) 
   (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_syms_nonterms: (symbol * state) list) 
+  (sts_order_syms_lsls: ((int * state) * symbol list) list)
   (opt: optimization) (debug_print: bool): ta2 = 
   let wrapped_printf fmt =
     if debug_print then Printf.printf fmt
@@ -333,7 +338,8 @@ let learn_ta (example_trees: (string list * tree * (bool * bool) * restriction l
   in
   let oa_ls: restriction list = collect_oa_restrictions example_trees debug_print in 
   let o_tmp: restriction list = collect_op_restrictions example_trees debug_print in 
-  let op_ls: restriction list = combine_op_restrictions_in_pairs o_bp o_tmp debug_print in 
+  (* let op_ls: restriction list = combine_op_restrictions_in_pairs o_bp o_tmp debug_print in  *)
+  let op_ls: restriction list = combine_op_restrictions_new o_bp o_tmp sts_order_syms_lsls debug_print in 
     
   ( 
    (wrapped_printf "\n\nLearn a tree automaton based on:\n";
@@ -347,7 +353,7 @@ let learn_ta (example_trees: (string list * tree * (bool * bool) * restriction l
   let (lvl_state_pairs, init_state): (int * state) list * state = get_states op_ls in
   let state_ls: state list = lvl_state_pairs |> List.map snd in
   let raw_trans_ls: ((state * symbol), sigma list list) Hashtbl.t = 
-    get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_ord_rhs_ls triv_syms_nonterms opt debug_print in
+    get_transitions oa_ls op_ls o_bp_tbl sym_state_ls a lvl_state_pairs init_state sym_ord_rhs_ls triv_syms_nonterms sts_order_syms_lsls opt debug_print in
   (* let ordered_trans_ls = order_trans_ls state_ls raw_trans_ls in *)
   let ta_res: ta2 = { states = state_ls; alphabet = a; start_states = [init_state]; 
   transitions = raw_trans_ls; trivial_sym_nts=triv_syms_nonterms } in 

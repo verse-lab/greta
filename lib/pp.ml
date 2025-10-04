@@ -5,7 +5,7 @@ open Printf
 open List
 
 (* hack fix because there are too many such uses to fix... *)
-let debug = false
+let debug = true
 let noprintf fmt = if debug then printf fmt else ifprintf stdout fmt
 
 let pp_upline () = 
@@ -133,14 +133,16 @@ let pp_raw_transitions (ts: ((T.state * T.state) * (T.symbol * (T.state * T.stat
 
 let pp_raw_transitions_new (ts: (((T.state * T.state) * T.symbol) * (C.sigma * C.sigma) list list) list) = 
   noprintf "\tRaw Transitions (new) : { \n"; ts |> iter (fun (((st1, st2), sym), sig_pairs_lsls) -> 
-    noprintf "\t\t\t(%s, %s) ->_{<%s, %i>} [ " st1 st2 (fst sym) (snd sym); 
+    (* [prev] "\t\t\t(%s, %s) ->_{<%s, %i>} [ " *)
+    noprintf "(%s, %s) ->_{<%s, %i>} [ " st1 st2 (fst sym) (snd sym); 
     sig_pairs_lsls |> iter (fun sig_pairs_ls -> sig_pairs_ls 
       |> iter (fun (rsig1, rsig2) -> noprintf " ( "; pp_sigma rsig1; noprintf ", "; pp_sigma rsig2; noprintf ")  ")); 
       noprintf "]\n"); noprintf " \t\t      }\n"
 
 let pp_raw_trans_simplified (ts: (((T.state * T.state) * T.symbol) * (C.sigma * C.sigma) list) list) =
   noprintf "\tRaw Transitions (new) : { \n"; ts |> iter (fun (((st1, st2), sym), sig_pairs_ls) -> 
-    noprintf "\t\t\t(%s, %s)  ->_{<%s, %i>}  " st1 st2 (fst sym) (snd sym); 
+    (* [prev] "\t\t\t(%s, %s)  ->_{<%s, %i>}  " *)
+    noprintf "(%s, %s)  ->_{<%s, %i>}  " st1 st2 (fst sym) (snd sym); 
     sig_pairs_ls |> pp_sigma_sigma_list; noprintf "\n") ; noprintf " \t\t      }\n"
 
 let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) list) list) =
@@ -157,8 +159,8 @@ let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) =
 
 let pp_transitions_tbl (tbl: ((T.state * T.symbol), C.sigma list list) Hashtbl.t) = 
   noprintf "\n\tTransitions (htbl): { ";
-  tbl |> Hashtbl.iter (fun (lhs, s) lsls -> 
-    let print_lhs_st_sym () = noprintf "\n\t\t\t\t( State %s, " lhs; pp_symbol s; noprintf ") -> " in 
+  tbl |> Hashtbl.iter (fun (lhs, s) lsls ->  (* prev below "\n\t\t\t\t( State %s, " *)
+    let print_lhs_st_sym () = noprintf "\n( State %s, " lhs; pp_symbol s; noprintf ") -> " in 
       let num_rhs_ls = List.length lsls in 
       if (num_rhs_ls = 1) then 
         (let rhs_ls = List.hd lsls in 

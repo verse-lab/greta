@@ -125,3 +125,30 @@ let find_assoc_all (terms: string list) (num_nonterms: int) (prods_mapping: ((st
   if debug then (printf "\n\t\t Mapped (nts, prod) list -> \n"; 
     nts_prod_ls |> List.iter (fun (nts, prod) -> nts |> List.iter (fun x -> printf " %s" x); 
     printf "\n\t\t mapped to production: %s \n" prod)); nts_prod_ls
+
+module StringMap = Map.Make (String)
+
+let min_by_key (ls: (Ta.state * int) list): (Ta.state * int) list =
+  let update key v acc =
+    match StringMap.find_opt key acc with
+    | None -> StringMap.add key v acc
+    | Some old -> StringMap.add key (min v old) acc
+  in
+  let map = List.fold_left (fun acc (k, v) -> update k v acc) StringMap.empty ls in
+  StringMap.bindings map
+
+module PairOrd = struct
+  type t = int * Ta.state
+  let compare = compare
+end
+
+module PairMap = Map.Make(PairOrd)
+
+(* group_by_lvl_state: ((int * state) * symbol) list -> ((int * state) * symbol list) list *)
+let group_by_lvl_state ls =
+  ls |> List.fold_left (fun acc (k, v) -> 
+    let vs = match PairMap.find_opt k acc with
+             | Some xs -> v :: xs
+             | None -> [v]
+    in PairMap.add k vs acc) PairMap.empty |> PairMap.bindings
+

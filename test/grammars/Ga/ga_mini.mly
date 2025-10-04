@@ -23,6 +23,31 @@
 %token ELT 
 %token TYS
 
+// %token LIT
+// %token INST
+// %token EMP
+
+// %token AT
+// %token PCT 
+// %token COLON
+
+// %token LOOP
+// %token LOOP_LEFT
+// %token ITER 
+// %token MAP
+// %token LAMBDA
+// %token EXEC
+// %token DIP
+
+// %token <string> MNEMONIC_NUM
+// %token <string> MNEMONIC_SC
+
+// %token IF
+// %token IF_LEFT 
+// %token IF_RIGHT 
+// %token IF_NONE
+
+
 %token <string> INTV
 %token <bool> BOOL
 %token <string> STR
@@ -43,6 +68,15 @@ toplevel:
 script:
   | CODE LBRACE is=instlist RBRACE { Code (None, is) }
   | PARAM pty=tyy SEMI STORAGE stty=tyy SEMI CODE LBRACE is=instlist RBRACE { Code (Some (pty, stty), is) }
+
+// annot :
+//   | PCT LCID     { (* %field *) () }
+//   | AT  LCID     { (* @var   *) () }
+//   | COLON LCID   { (* :type  *) () }
+
+// annots :
+//   | /* empty */  { [] }
+//   | an=annot ans=annots { an :: ans }
 
 tyy :
   // | head_ann=annots ty=LCID { let _ = head_ann in Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }

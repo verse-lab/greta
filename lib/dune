@@ -2,15 +2,14 @@
  (modules parser)
  (flags --table --inspection --dump --explain --reference-graph --greta))
 
-(ocamllex
- (modules lexer))
- 
+(ocamllex lexer)
+
 (library 
  (name greta)
  (public_name greta)
  (modes byte native)
- (libraries sedlex menhirLib str core graphics qcheck)
- (preprocess (pps ppx_deriving.std))
+ (libraries sedlex menhirLib str core graphics qcheck num compiler-libs.common)
+ (preprocess (pps ppx_deriving.std ppx_sexp_conv))
  (flags (:standard -rectypes)))
 
 

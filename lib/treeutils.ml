@@ -401,7 +401,11 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
   (if debug_print then wrapped_printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
-let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list = 
+let sort_by_fst_element ls =
+  List.sort (fun (f1, _) (f2, _) -> Int.compare f1 f2) ls
+
+let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction list) 
+  (sts_order_syms_lsls: ((int * state) * symbol list) list) (debug_print: bool): restriction list = 
   let wrapped_printf fmt = 
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt 
@@ -418,6 +422,11 @@ let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction lis
         | Prec (s, o) -> (s, o)) 
   in 
   let orig_sym_level (s: symbol): int = List.assoc s raw_sym_lvl_ls in 
+  let orig_lhs_st_of_sym (s: symbol): state = 
+   sts_order_syms_lsls |> List.fold_left (fun ac ((_lvl, st), syms) -> 
+    (* assume 'orig_lhs_st_of_sym' is not going to be used for eps_symb  *)
+    if (List.mem s syms) then st::ac else ac) [] |> List.hd in
+  
 
   let orig_lvl_syms_ls: (int * symbol list) list = 
     
@@ -445,8 +454,14 @@ let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction lis
     match rest with Assoc _ -> raise (Failure "sym_of_restrction : No assoc possible")
     | Prec (s, _o) -> s
   in
-  let update_wrt_pair (rests: restriction list) (lvl_syms_lst: (int * symbol list) list): (int * symbol list) list =
+
+  (* helper for below *)
+  let same_lhs_st_symbol (sym: symbol) (lhs_st: state): bool = 
+    (orig_lhs_st_of_sym sym) = lhs_st
+  in
+  let update_wrt_rests (rests: restriction list) (lvl_syms_lst: (int * symbol list) list): (int * symbol list) list =
     let curr_syms: symbol list = rests |> List.map sym_of_restrction in
+    let curr_lhs_st: state = orig_lhs_st_of_sym (List.hd curr_syms) in
     let orig_sym_lvl: int = orig_sym_level (List.hd curr_syms) in 
     let rec update_loop (lvl_syms_lst: (int * symbol list) list) (acc: (int * symbol list) list) = 
       match lvl_syms_lst with 
@@ -457,32 +472,37 @@ let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction lis
         then update_loop tl ((lvl-1, syms)::acc)
         (* if lvl = sym's lvl, then take out the sym and append *) 
         else if (lvl = orig_sym_lvl) 
-        then (let syms_wo_curr_sym = syms |> List.filter (fun x -> not (List.mem x curr_syms)) in  
-              update_loop tl ((lvl, syms_wo_curr_sym) :: (lvl-1, curr_syms) :: acc))
+        then (let same_lhs_syms_wo_curr_sym: symbol list = 
+                syms |> List.filter (fun sym -> not (List.mem sym curr_syms) && (same_lhs_st_symbol sym curr_lhs_st)) in 
+              let diff_lhs_same_ord_syms: symbol list = 
+                syms |> List.filter (fun s -> not (same_lhs_st_symbol s curr_lhs_st) && ((orig_sym_level s) = orig_sym_lvl)) in 
+              update_loop tl ((lvl, same_lhs_syms_wo_curr_sym) :: (lvl-1, diff_lhs_same_ord_syms) :: (lvl-1, curr_syms) :: acc))
         (* if lvl > sym's lvl, then just append existing ones *)
         else update_loop tl ((lvl, syms)::acc)
     in update_loop lvl_syms_lst []
   in
 
-  let update_per_o_tmp_pair (otmp_ls: restriction list) (init_lvl_syms_ls: (int * symbol list) list): 
+  let update_per_o_tmp_rests (otmp_ls: restriction list) (init_lvl_syms_ls: (int * symbol list) list): 
     (int * symbol list) list = 
-    let _is_even n = if n mod 2 = 0 then true else false in 
     let relev_rest_ls = otmp_ls |> List.filter is_neg_restriction in
-    (* Sort relev_rest_ls based on the symbols' original level *)
+    (* Sort relev_rest_ls based on the symbols' original level (x) -> symbols' lhs_state! *)
     let sort_rest_ls (rest_ls: restriction list): restriction list list =
-      let rec sort_loop (ls: restriction list) (rest_lsls_acc: (int * restriction list) list): restriction list list = 
+      let rec sort_loop (ls: restriction list) (rest_lsls_acc: (state * restriction list) list): restriction list list = 
         match ls with [] -> rest_lsls_acc |> List.map snd
         | rest_hd :: rtl -> 
-          let curr_rsym_orig_lvl = orig_sym_level (sym_of_restrction rest_hd) in 
-          if (List.mem_assoc curr_rsym_orig_lvl rest_lsls_acc)
+          (* *** fix *** based on whether their corr. lhs_sts are equal *)
+          let curr_rsym_orig_lhs_st = orig_lhs_st_of_sym (sym_of_restrction rest_hd) in
+          let _curr_rsym_orig_lvl = orig_sym_level (sym_of_restrction rest_hd) in 
+          if (List.mem_assoc curr_rsym_orig_lhs_st rest_lsls_acc)
           then 
-            (let old_rest_ls = List.assoc curr_rsym_orig_lvl rest_lsls_acc in 
-             let new_rest_lsls_acc = (curr_rsym_orig_lvl, rest_hd::old_rest_ls)::(List.remove_assoc curr_rsym_orig_lvl rest_lsls_acc) in
+            (let old_rest_ls = List.assoc curr_rsym_orig_lhs_st rest_lsls_acc in 
+             let new_rest_lsls_acc = (curr_rsym_orig_lhs_st, rest_hd::old_rest_ls)::(List.remove_assoc curr_rsym_orig_lhs_st rest_lsls_acc) in
              sort_loop rtl new_rest_lsls_acc)
-          else sort_loop rtl ((curr_rsym_orig_lvl, [rest_hd]) ::rest_lsls_acc)
+          else sort_loop rtl ((curr_rsym_orig_lhs_st, [rest_hd]) ::rest_lsls_acc)
       in sort_loop rest_ls []
-    in let relev_rest_lsls = sort_rest_ls relev_rest_ls in 
-    relev_rest_lsls |> List.fold_left (fun lvl_syms_acc rest_ls -> update_wrt_pair rest_ls lvl_syms_acc) init_lvl_syms_ls 
+    in let relev_rest_lsls: restriction list list = sort_rest_ls relev_rest_ls in 
+    (* (Printf.printf "\n\t (WIP) Checking"; relev_rest_lsls |> List.iter (fun restls -> Pp.pp_restriction_lst restls); Printf.printf "\n"); *)
+    relev_rest_lsls |> List.fold_left (fun lvl_syms_acc rest_ls -> update_wrt_rests rest_ls lvl_syms_acc) init_lvl_syms_ls 
   in
   (* helper for below *)
   let min_list ls = 
@@ -492,6 +512,7 @@ let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction lis
   in
   (* rearrange_lvl_syms_from_zero : rearrange (lvl, syms) list to start from zero *)
   let rearrange_lvl_syms_from_zero (lvl_syms_ls: (int * symbol list) list): (int * symbol list) list = 
+	  (* lvl_syms_ls |> sort_by_fst_element |> List.mapi (fun i (_, sls) -> (i, sls)) *)
     let min_lvl = lvl_syms_ls |> List.map fst |> min_list in
     let to_add = 0 - min_lvl in 
     lvl_syms_ls |> List.map (fun (l, syms) -> ((l+to_add), syms))
@@ -510,7 +531,7 @@ let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction lis
       acc @ (gen_rest_per_lvl curr_lvl curr_syms [])
       ) []
   in
-  let reordered_combined_op = update_per_o_tmp_pair o_tmp orig_lvl_syms_ls 
+  let reordered_combined_op = update_per_o_tmp_rests o_tmp orig_lvl_syms_ls 
     |> rearrange_lvl_syms_from_zero |> lvl_syms_to_rest_ls in 
   (if debug_print then wrapped_printf "\n  (NEW) Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op);
   reordered_combined_op
