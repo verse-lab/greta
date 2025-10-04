@@ -37,6 +37,12 @@ let rec pair_up = function
   | [] -> []
   | [_] -> invalid_arg "pair_up: odd number of elements"
 
+let rec pair_up_alt (xs: (string * string) list): ((string * string) * (string * string)) list = 
+  match xs with 
+  | (a1, a2) :: (b1, b2) :: rest -> ((a1, a2), (b1, b2)) :: pair_up_alt rest
+  | [] -> []
+  | [_] -> invalid_arg "pair_up_alt: odd number of elements"
+
 let rec pp_loop (prod_hd: string) (past_qq: bool) (ls: string list) = 
   let open Printf in 
   match ls with [] -> printf "\n"
@@ -125,26 +131,31 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
     String.concat " " new_sls_filtered
   in
   (* traverse and acc relevant lines for generating trees from `parser.trees` file *)
-  let rec traverse (res_acc: string list): string list = 
+  let rec traverse (prev_ln: string) (lhs_nt: string) (res_acc: (string * string) list): (string * string) list = 
     match try_read () with 
     | None -> (close_in ic; res_acc)
     | Some s -> 
-      (* <<== NOTE! below added to not address ambigs outside the scope of greta *)
-      if (contains_atat s) && (not (starts "@@" s))
-      then (let changed_str = attach_at_with_nonterm s
-            in traverse (changed_str::res_acc))
-      else traverse res_acc
+      (* NOTE: below added to pass in lhs nonterminal string to infer production correctly later
+         which is then used to correctly generate symbol for each tree *)
+      if (contains s "(?)") 
+      then (wrapped_printf "Now continas (?) in %s \n What is prev_ln? %s" s prev_ln; traverse s prev_ln res_acc)
+      else
+        (* NOTE: below added to not address ambigs outside the scope of greta *)
+        if (contains_atat s) && (not (starts "@@" s))
+        then (let changed_str = attach_at_with_nonterm s
+              in traverse s lhs_nt ((lhs_nt, changed_str)::res_acc))
+        else traverse s lhs_nt res_acc
   in 
-  let filter_out_wrt_menhir_limitations (input_ls: string list): string list = 
-    let str_paired_ls: (string * string) list = pair_up input_ls in
-    let rec loop (res_acc: string list) (ls: (string * string) list): string list =  
+  let filter_out_wrt_menhir_limitations (input_ls: (string * string) list): (string * string) list = 
+    let str_str_paired_ls: ((string * string) * (string * string)) list = pair_up_alt input_ls in
+    let rec loop (res_acc: (string * string) list) (ls: ((string * string) * (string * string)) list): (string * string) list =  
     match ls with [] -> if !is_due_to_menhir then res_acc else input_ls
-    | (s1, s2) :: tl ->
+    | ((a1, s1), (a2, s2)) :: tl ->
       if ((contains s1 "@") && ((List.length (change_to_str_ls s1)) = 1)) || 
           ((contains s2 "@") && ((List.length (change_to_str_ls s2)) = 1))
       then (is_due_to_menhir := true; loop res_acc tl )
-      else loop (s1::s2::res_acc) tl
-    in loop [] str_paired_ls
+      else loop ((a1,s1)::(a2,s2)::res_acc) tl
+    in loop [] str_str_paired_ls
   in 
   (* traverse_for_nonaddr collects prods that can be useful for non-addressable ambiguities *)
   let rec traverse_nonaddr (outside_acc: (string * string list) list) (can_collect_ctxt: bool) (curr_ctxt: string list)
@@ -250,11 +261,12 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
         else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc)
     in conv_loop str_ls (0, "", -1) []
   in 
-  let extract_tree_exprs (relev_lines: string list): (tree * string list) list = 
-    let rec extract_loop (ls: string list) (res_acc: (tree * string list) list): (tree * string list) list = 
+  let extract_tree_exprs (relev_lines: (string * string) list): (tree * string list) list = 
+    let rec extract_loop (ls: (string * string) list) (res_acc: (tree * string list) list): (tree * string list) list = 
       match ls with 
       | [] -> List.rev res_acc
-      | shd :: stl -> 
+      (* To resume here: Pass nt to 'convert_to_tree_exprs' *)
+      | (_nt, shd) :: stl -> 
         let s_ls = shd |> String.split_on_char ' ' in
         let s_tree = convert_to_tree_exprs s_ls in 
         (if debug_print then (Pp.pp_tree s_tree; wrapped_printf "\n\n");
@@ -323,8 +335,9 @@ let gen_examples (filename: string) (a: symbol list) (debug_print: bool):
               combine_loop (List.tl tl) (two_trees_combined @ res_acc))
     in combine_loop e_trees_n_exprs []
   in 
-  let relev_ls: string list = traverse [] |> filter_out_wrt_menhir_limitations in
-    (if debug_print then wrapped_printf "\n\t Relevant lines: \n";relev_ls |> (List.iter (fun x -> wrapped_printf "\t %s\n" x)));
+  let relev_ls: (string * string) list = traverse "" "" [] |> filter_out_wrt_menhir_limitations in
+    (if debug_print then wrapped_printf "\n\t Relevant lines: \n";
+    relev_ls |> (List.iter (fun (nt, x) -> wrapped_printf "\t %s   =>   %s\n" nt x)));
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
   if debug_print then (wrapped_printf "\tExtracted trees: "; 
     let tls: tree list = extracted_trees_n_exprs |> List.map fst 

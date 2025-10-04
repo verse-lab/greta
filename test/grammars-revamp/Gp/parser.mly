@@ -1,3 +1,4 @@
+// This one is exactly like the running example in paper
 %{
   open Ast
 %}

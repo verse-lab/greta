@@ -6,7 +6,7 @@
      - Start from cleaner data structures (CFG, TA)
      - Learning O_bp
 
-- [ ] **Tree example generation**
+- [x] **Tree example generation**
      - (Later) Update logic for identifying nonaddreaable ambiguities 
 
 - [ ] **TA Learner from tree examples** - Yunjeong WIP
