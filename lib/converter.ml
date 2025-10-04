@@ -1,6 +1,7 @@
 open Cfg
 open Ta
 open Utils
+open Cfgutils
 (* open Treeutils *)
 
 exception State_with_no_matching_order
@@ -26,9 +27,7 @@ let read_file filename =
 
 let ( $ ) a b = a b
 
-let wrapped_printf debug fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
+
 
 let extract_cfg (debug_print: bool) (filename : string) : cfg =
   let lines = read_file filename in
@@ -63,7 +62,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
   assert (Hashtbl.mem sectionToLine "t");
   assert (Hashtbl.mem sectionToLine "p");
   (* extract cfg *)
-  let starts = clean $ Hashtbl.find sectionToLine "s" in
+  let start_nonterms = clean $ Hashtbl.find sectionToLine "s" in
   let nonterms = ref (clean $ Hashtbl.find sectionToLine "nt") in
   let terms= clean $ Hashtbl.find sectionToLine "t" in
   let t_prods = clean $ Hashtbl.find sectionToLine "p" in
@@ -93,14 +92,13 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
   let nonterms = !nonterms in
   if debug_print then begin
     Printf.printf "CFG extracted from %s:\n" filename;
-    Printf.printf "Start nonterminals: %s\n" (String.concat " " starts);
+    Printf.printf "Start nonterminals: %s\n" (String.concat " " start_nonterms);
     Printf.printf "Nonterminals: %s\n" (String.concat " " nonterms);
     Printf.printf "Terminals: %s\n" (String.concat " " terms);
     Printf.printf "Productions:\n";
     List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function Term x -> x | Nt x -> x) rhs))) raw_productions;
   end;
-  { nonterms; terms; starts; productions=prods }
-
+  { nonterms=(start_nonterms@nonterms) ; terms=terms; starts=start_nonterms; productions=prods }
 
 let collect_ta_trans_symbols_from_cfg (g: cfg) (debug: bool): ((state * symbol) * beta list) list * symbol list =
   let rec collect_loop (ls: production list) (trans_acc: ((state * symbol) * beta list) list) (syms_acc: symbol list) = 
@@ -119,22 +117,69 @@ let collect_ta_trans_symbols_from_cfg (g: cfg) (debug: bool): ((state * symbol) 
     Pp.pp_transitions trans_res; Pp.pp_alphabet syms_res);
   trans_res, syms_res
 
-
-let collect_nonterm_orders (_nonterms: nonterminal list) (_prods: production list) (_debug: bool): 
-  (int * nonterminal) list = 
-  (* First grouop productions based on nonterminals *)
-  (* let prods_grouped: (nonterminal * production list) list = 
-    nonterms |> List.map (fun nt -> nt, (prods_starting_from_nonterm nt prods))
+let collect_nonterm_orders (start_nonterms: nonterminal list) (nonterms: nonterminal list) (prods: production list) (debug: bool): 
+  (nonterminal * int) list = 
+  (* First group productions based on nonterminals *)
+  let prods_grouped: (nonterminal * production list) list = group_productions nonterms prods debug
+  in
+  if debug then (wrapped_printf debug "\n\t* Prods grouped:\n"; prods_grouped |> List.iter (fun (nt, prods) -> wrapped_printf debug "\tLHS nonterm: %s\n" nt; Pp.pp_productions prods));
+  (* helper to find productions *)
+  let prods_of_nonterm (nt: nonterminal): production list = 
+    let nt_prods: (nonterminal * production list) list = 
+      prods_grouped |> List.filter (fun (x, _prods_from_x) -> x = nt)
+    in let res_prods_of_nonterm = if (List.is_empty nt_prods) then [] else nt_prods |> List.hd |> snd in
+    if debug then (wrapped_printf debug "\nProds for LHS nonterm %s" nt; res_prods_of_nonterm |> Pp.pp_productions); res_prods_of_nonterm
   in 
-  let rec loop (ls: production list) (acc: (int * nonterminal) list) = 
-    match ls with [] -> List.rev acc
-    | _curr_prod :: rest_prods -> 
-      loop rest_prods acc 
-  in let nt_orders_res = loop prods [] 
+  (* Start from [(start, 0)] *)
+  let init_sts_orders = start_nonterms |> List.map (fun s -> (s, 0)) 
+  in
+  (* Reasoning: 
+     RHS nonterms that are diff from LHS nonterm get (order of LHS nonterm) + 1, as long as these nonterms have not been seen before
+   *)
+  let rec collect_nts_orders (nts_visited: nonterminal list) (nts_left: nonterminal list) (nt_orders_acc: (nonterminal * int) list): (nonterminal * int) list = 
+    match nts_left with 
+    | [] -> nt_orders_acc |> remove_dups
+    | nt_hd :: nt_tl -> 
+      if debug then (wrapped_printf debug "\nFinding order for RHS starting from LHS nonterm %s" nt_hd);
+      let curr_nt_prods = (prods_of_nonterm nt_hd) in
+      let lhs_nonterm = (lhs_nonterm_of_prods curr_nt_prods) in
+      let lhs_nonterm_order = (List.assoc lhs_nonterm nt_orders_acc) in
+      let rhs_nonterms_from_prods = (rhs_nonterms_of_prods lhs_nonterm curr_nt_prods) in
+      let rhs_nonterms_unvisited = rhs_nonterms_from_prods |> List.filter (fun x -> not (List.mem x nts_visited)) in
+      let rhs_nonterms_orders_to_acc = rhs_nonterms_unvisited |> List.map (fun nt -> (nt, lhs_nonterm_order + 1)) in 
+      collect_nts_orders (nt_hd::nts_visited) (nt_tl@rhs_nonterms_unvisited) (nt_orders_acc @ rhs_nonterms_orders_to_acc) 
+  in let nt_orders_res = collect_nts_orders [] start_nonterms init_sts_orders 
   in 
   if debug then (wrapped_printf debug "\nCollected (order, nonterminal):\n\n"; 
-    nt_orders_res |> List.iter (fun (l, nt) -> wrapped_printf debug "Order %d  ->  Nonterminal  %s" l nt));
-  nt_orders_res *) []
+    nt_orders_res |> List.iter (fun (nt, l) -> wrapped_printf debug "\t  Nonterminal  %s => Order %d\n" nt l));
+  nt_orders_res
+
+let collect_sym_orders_wrt_nonterm_order (nts_ordered: (nonterminal * int) list) (trans_from_cfg: ((state * symbol) * beta list) list) (debug: bool):
+ (nonterminal * int * symbol list) list =
+ (* helper to find order of nonterm based on 'nts_ordered' *)
+  let order_of_nonterm (nt: nonterminal): int = List.assoc nt nts_ordered 
+  in
+  let rec collect_sym_orders (trans_ls: ((state * symbol) * beta list) list) (acc: (nonterminal * symbol list) list) = 
+    match trans_ls with [] -> acc
+    | ((nt, sym), _bls) :: trans_tl -> 
+      let new_acc: (nonterminal * symbol list) list = 
+        if (List.mem_assoc nt acc) 
+        then 
+          begin 
+            let old_syms = List.assoc nt acc in 
+            let after_removing_nt_old_syms: (nonterminal * symbol list) list = (List.remove_assoc nt acc) in 
+            (nt, sym::old_syms) :: after_removing_nt_old_syms
+          end
+        else (nt, [sym])::acc
+      in 
+        collect_sym_orders trans_tl new_acc
+  in let raw_nt_sym_orders: (nonterminal * symbol list) list = collect_sym_orders trans_from_cfg [] 
+  in let nt_sym_orders: (nonterminal * int * symbol list) list = 
+    raw_nt_sym_orders |> List.map (fun (nt, sls) -> (nt, (order_of_nonterm nt), sls)) in
+  if debug then 
+    (wrapped_printf debug "\nCollected (order, nonterminal):\n\n"; nt_sym_orders |> List.iter (fun (nt, i, sym_ls) -> 
+      wrapped_printf debug "\t  Nonterminal %s  Order %d  =>  \t" nt i; sym_ls |> List.iter Pp.pp_symbol; wrapped_printf debug "\n"));
+  nt_sym_orders
 
 
 let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbol list) Hashtbl.t) =
@@ -151,8 +196,10 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
     Hashtbl.add trans_tbl (nt, sym) bls));
  
   (* 2. Collect O_bp *)
-  let nonterms_ordered: (int * nonterminal) list = collect_nonterm_orders g.nonterms g.productions debug_print in 
-  (nonterms_ordered |> List.iter (fun (i, nt) -> printf "%d %s" i nt));
+  let nonterms_ordered: (nonterminal * int) list = 
+    collect_nonterm_orders g.starts g.nonterms g.productions debug_print in 
+  let _nonterm_order_symls: (nonterminal * int * symbol list) list = 
+    collect_sym_orders_wrt_nonterm_order nonterms_ordered trans_from_cfg debug_print in
 
   (* 3. Find trivial symbol and nontrminal  *)
   let res_ta: ta = {
@@ -166,389 +213,6 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
   in res_ta , [], Hashtbl.create 0
 
 
-  (* 
-  let trans_to_restrictions trans_ls nt_ls init_sts: 
-    (restriction * (state * sigma list)) list * ((int * state) * symbol list) list =
-    let rec fixpoint f (x: (nonterminal, int) Hashtbl.t ref) =
-      let changed = f x in
-      if changed then fixpoint f x else x
-    in
-    let nt_to_order = ref (Hashtbl.create 10) in
-    let num_nt = length nt_ls in
-    iter
-      (fun st -> Hashtbl.add !nt_to_order st (num_nt + 1))
-      nt_ls;
-    (* *** debugging (TODO) Below logic of updating 'nt_to_order' can be improved *** *)
-    iter (fun st -> Hashtbl.replace !nt_to_order st 0) init_sts;
-    (* 
-    Hashtbl.add !nt_to_order "ϵ" (num_nt + 1); (* pseudo nt *)
-     *)
-    (* Hashtbl.iter (fun s ord -> wrapped_printf debug_print "\n\t\t Nonterm %s Order %i" s ord) !nt_to_order; *)
-    let get_order table =
-      fold_left (fun acc (st, (curr_sym, rhs), _) ->
-          let changed = ref false in
-          iter 
-            (fun s ->
-                (* *** debugging *** *)
-                (* if debug_print then wrapped_printf debug_print "\n\t *** Getting order for nonterminal %s" s; *)
-                if (String.equal s "ϵ") then 
-                  (* Temporary fix *)
-                  (Hashtbl.replace !table s (-1);
-                  changed := false)
-                else 
-                  (let ord = Hashtbl.find !table s in
-                  (* wrapped_printf debug_print "\n\t  For %s found ord %d \n" s ord; *)
-                  let ord' = Hashtbl.find !table st in
-                  (* wrapped_printf debug_print "\n\t  For %s found ord' %d \n" st ord'; *)
-                  if ord > (ord' + 1) then (
-                    (* [Recent debug fix] *)
-                    (* if lhs_state ->_<eps, 1> rhs_state, then keep ord *)
-                    if (syms_equals curr_sym epsilon_symb) 
-                    then 
-                      begin 
-                        Hashtbl.replace !table s ord';
-                        changed := true
-                      end
-                    else
-                      begin 
-                        (* wrapped_printf debug_print "\n\t  !! ord %d > ord' %d + 1\n" ord ord'; *)
-                        Hashtbl.replace !table s (ord' + 1);
-                        changed := true
-                      end)
-                    )
-            ) rhs;
-          acc || !changed
-        )
-        false
-        trans_ls
-    in
-    let nt_to_order' = fixpoint get_order nt_to_order in
-    (* *** debugging *** *)
-    Hashtbl.iter (fun s ord -> wrapped_printf debug_print "\n\t\t  Nonterm %s Order %i" s ord) !nt_to_order';
-    let states_ordered: (state * int) list = Hashtbl.fold
-      (fun st o acc -> (st, o) :: acc) 
-      !nt_to_order' [] 
-    in
-    (runIf debug_print (fun _ -> 
-      printf "\nOrder of states : \n";
-      iter
-        (fun (st, lvl) -> printf "(%s, %i)\n" st lvl) 
-        states_ordered) (* fixed based on 'fix_sts_order' *)
-    );
-    (* *** [Tentative fix] to optimize the process later *** *)
-    (* *** not very efficient so can do better *** *)
-    let state_order st st_ord_ls = 
-      match List.assoc_opt st st_ord_ls with Some o -> o | None -> raise Not_possible
-    in 
-    let replace_st_and_upper st_ord_ls covered rhs_st ord = 
-      let order_st = ref 0 in
-      st_ord_ls |> List.map (fun (s, o) -> 
-        if (List.mem s covered) then (s, o) else
-        if (String.equal s rhs_st) then (order_st := ord; (s, (ord+1))) else  (* (ord+1) *)
-        (* --- [fix] --- if (o >= ord) then (s, (o+1)) else  *)
-          (s, o)) 
-        (* Traverse again to update anything higher than o *)
-        (* |> List.map (fun (s, o) -> 
-            if (o > !order_st) then (s, (o-1)) else (s, o)) *)
-    in 
-    let one_non_epsilon_nonterminal_list (sig_ls: sigma list): bool = 
-      if (List.length sig_ls) = 1
-      then 
-        (match (List.hd sig_ls) with 
-        | T _ -> false
-        | Nt nt -> not (nt = epsilon_state))
-      else false
-    in
-    let rec _fix_sts_order (ls: production2 list) sts_orders covered =
-      match ls with [] -> sts_orders
-      | (lhs_st, ((ter, rnk), rhs_ntls), rhs_sigls) :: prods_tl -> 
-        if (String.equal ter (fst epsilon_symb)) && (rnk = 1) && (one_non_epsilon_nonterminal_list rhs_sigls)
-        then
-          begin 
-            if (List.mem lhs_st init_sts)
-            then _fix_sts_order prods_tl sts_orders covered
-            else 
-              (let lhs_ord = state_order lhs_st sts_orders in 
-              let rhs_st = List.hd rhs_ntls in
-                if (rhs_st = epsilon_state)
-                then _fix_sts_order prods_tl sts_orders covered
-                else
-                  begin 
-                    wrapped_printf debug_print "\n\n\t\t LHS state %s order %d ->_<eps_symb> RHS state %s \n" lhs_st lhs_ord rhs_st;
-                    (* --- [fix] --- *)
-                    (let covered' = lhs_st::covered in
-                    let new_sts_orders: (state * int) list = 
-                        replace_st_and_upper sts_orders covered' rhs_st lhs_ord 
-                    in 
-                        wrapped_printf debug_print "\n\t Intermediate States orders : \n\t"; 
-                        new_sts_orders |> List.iter (fun (st, lvl) -> wrapped_printf debug_print " (%s, %i) " st lvl);
-                      _fix_sts_order prods_tl new_sts_orders (lhs_st::rhs_st::covered))
-                    end)
-          end
-        else 
-          _fix_sts_order prods_tl sts_orders covered 
-    in
-    let states_ordered_incr = states_ordered |> List.filter (fun x -> not ((fst x) = epsilon_state)) 
-        |> List.sort (fun st_pair1 st_pair2 -> Int.compare (snd st_pair1) (snd st_pair2)) 
-    in 
-       
-    (* Line up prods2 list as prod2 list list wrt. lhs_st order 
-       to traverse from lowest level to highest level nonterminal *)
-    let line_up_prods2_lsls (orig_prods: production2 list): 
-      production2 list list * (state * symbol) list = 
-      let find_st_prods (st: state): production2 list = 
-        orig_prods |> List.filter (fun (lhs_st, _, _rhs_sigls) -> 
-            lhs_st = st) 
-      in
-      let states_incr_ordered = states_ordered_incr |> List.map fst in
-        (* (WIP) To comment out after debugging! *) 
-        (* (printf "\n\n\t (Lined up WIP) States ordered: \n"; states_incr_ordered |> List.iter (fun x -> printf "\t %s\n" x) ); *)
-      let res_prods2_lsls = states_incr_ordered |> List.fold_left (fun acc st -> 
-        let st_prods: production2 list = find_st_prods st in
-          st_prods :: acc) [] |> List.rev in
-      let res_sts_sym_ls: (state * symbol) list = 
-        orig_prods |> List.fold_left (fun acc (lhs_st, (sym, _ntsls), _rhs_sigls) -> (lhs_st, sym) :: acc) [] |> List.rev
-      in
-        res_prods2_lsls, res_sts_sym_ls
-    in
-    (* helper 'nonterms_of_sigls' : collect nonterminals from sigma list *)
-    let rec nonterms_of_sigls (acc: state list) (sigls: sigma list) = 
-      match sigls with [] -> List.rev acc
-      | sig_hd :: sig_tl -> 
-        (match sig_hd with T _ -> nonterms_of_sigls acc sig_tl 
-        | Nt nt -> nonterms_of_sigls (nt::acc) sig_tl)
-    in
-
-    let res_sts_syms_ls: (state * symbol) list ref = ref [] in
-    let fix_sts_order_new (transls: production2 list) (init_sts_orders: (state * int) list) = 
-    init_sts_orders |> List.iter (fun (s, i) -> printf "\t (%s, %d)\n" s i);
-      let init_st_ord: state * int = init_sts_orders |> List.hd in
-      let _orig_order_of_state (st: state): int = 
-        init_sts_orders |> List.filter (fun x -> (fst x) = st) |> List.hd |> snd in
-      let order_of_state_in (st: state) (sts_orders: (state * int) list): int = 
-        let st_ord_ls = sts_orders |> List.filter (fun x -> (fst x) = st) in 
-        if (List.is_empty st_ord_ls) then raise (Failure "order_of_state_in: empty") else st_ord_ls |> List.hd |> snd
-      in 
-      let prods2_lsls_sorted, sts_sym_ls = line_up_prods2_lsls transls in
-      res_sts_syms_ls := sts_sym_ls;
-      (* (WIP) To comment out after debugging! *)
-      (* (printf "\n\n\t (Prods2 list list WIP)\n"; prods2_lsls_sorted 
-        |> List.iter (fun prods_ls -> printf "\n\n"; Pp.pp_productions2 prods_ls)); *)
-    
-      let rec fix_loop (trans_ls: production2 list) (internal_sts_orders_acc: (state * int) list) =
-        match trans_ls with 
-        | [] -> internal_sts_orders_acc |> min_by_key
-        | (lhs_st, (curr_sym, rhs_ntls), rhs_sigls) :: prods_tl -> 
-          (* if lhs ->_<eps, 1> rhs prod then fix sts *)
-          if (syms_equals epsilon_symb curr_sym) && (one_non_epsilon_nonterminal_list rhs_sigls)
-          then
-            (let lhs_st_ord = order_of_state_in lhs_st internal_sts_orders_acc in
-             if (List.is_empty rhs_ntls) then 
-               fix_loop prods_tl internal_sts_orders_acc
-             else 
-               let rhs_st = rhs_ntls |> List.hd in
-               fix_loop prods_tl (internal_sts_orders_acc @ [(rhs_st, lhs_st_ord)]))
-          else 
-            (* at this point 'lhs_st' should be a member of 'internal_sts_orders_acc' *)
-            (* (List.mem_assoc lhs_st internal_sts_orders_acc) *)
-            begin 
-              let all_rhs_sts_ls: state list = rhs_sigls |> nonterms_of_sigls []
-                (* Note rhs_sts_ls should not contain lhs_st here *)
-                |> List.filter (fun s -> not (s = lhs_st)) in 
-              let sts_ords_to_acc: (state * int) list = all_rhs_sts_ls 
-                |> List.fold_left (fun ac st -> ac @ [(st, (order_of_state_in lhs_st internal_sts_orders_acc) + 1)]) [] 
-              in fix_loop prods_tl (internal_sts_orders_acc @ sts_ords_to_acc)
-            end
-      in  
-      let rec traverse_loop (trans_lsls: production2 list list) (sts_orders_acc: (state * int) list) = 
-        match trans_lsls with [] -> sts_orders_acc
-        | prods_ls_hd :: prods_lsls_tl -> 
-          (* printf "\n\t\t HERE! (WIP) Sts_orders_acc:\n"; sts_orders_acc |> List.iter (fun (s, i) -> printf "\t (%s, %d)\n" s i); *)
-          let sts_orders_acc_new = fix_loop prods_ls_hd sts_orders_acc 
-          in 
-            (* (WIP) To comment out after debugging! *)
-            (* printf "\n\t\t (WIP) Accumulated!"; sts_orders_acc_new |> List.iter (fun (s, i) -> printf "\t (%s, %d)\n" s i); *)
-            traverse_loop prods_lsls_tl sts_orders_acc_new
-      in traverse_loop prods2_lsls_sorted [init_st_ord]
-    in 
-    
-    let new_states_ordered: (state * int) list = fix_sts_order_new trans_ls states_ordered_incr in 
-    (runIf debug_print (fun _ -> 
-      printf "\nNew Order of states : \n";
-      iter
-        (fun (st, lvl) -> printf "(%s, %i)\n" st lvl) 
-        new_states_ordered)
-    );
-    (* sts_sym_ls: (state * symbol) list *)
-    (*  new_states_ordered -> (sts_order_syms_lsls: ((int * state) * symbol list) list) *)
-    let sts_order_syms_lsls: ((int * state) * symbol list) list = 
-      !res_sts_syms_ls |> List.map (fun (lhs_st, sym) -> 
-        let lvl = List.assoc lhs_st new_states_ordered in
-        ((lvl, lhs_st), sym)) |> group_by_lvl_state
-    in
-
-    let rec get_o_base_precedence trans acc_res =
-      match trans with
-      | [] -> List.rev acc_res, sts_order_syms_lsls
-      | (lhs_st, (sym, _), rhs) :: tl ->
-        let ord = match (assoc_opt lhs_st new_states_ordered) with (* fixed based on 'fix_sts_order' *)
-          | None ->
-            (runIf debug_print (fun _ -> 
-              printf "\n\nState %s has no matching order.\n" lhs_st));
-            raise State_with_no_matching_order
-          | Some o -> o
-        in
-        get_o_base_precedence tl ((Prec (sym, ord), (lhs_st, rhs))::acc_res)
-    in get_o_base_precedence trans_ls []
-  in
-  let (restrictions, sts_order_syms_lsls): 
-    ((restriction * (nonterminal * sigma list)) list) * ((int * state) * symbol list) list = 
-    trans_to_restrictions prods nonterms starts
-  in 
-  (* trivial nts are nts with only zero arity productions *)
-  let trivial_nts : state list = g.nonterms
-    |> filter (fun nt ->
-      filter (fun (lhs, _, _) -> lhs = nt) g.productions
-      |> for_all (fun (_, ((_, a), _), _) -> a = 1) 
-    ) |> filter (fun x -> (not (String.equal epsilon_state x)))
-  in
-  (* --- helper to identify level-changing eps-trasition --- *)
-  let level_changing_eps_transition (s: symbol) (sigls: sigma list): bool = 
-    if (syms_equals s epsilon_symb) && (List.length sigls) = 1
-    then (let sig_elem = List.hd sigls in 
-          match sig_elem with T _ -> false | Nt st' -> not (List.mem st' trivial_nts) && not (String.equal st' epsilon_state))
-    else false
-  in
-  let restrictions_new = 
-    if triv_opt then 
-      restrictions |> List.filter (fun (r, (_lhs_nt, sigls)) -> 
-        match r with Prec (sym, _o) -> not (level_changing_eps_transition sym sigls)
-        | Assoc _ -> false)
-    else restrictions
-  in
-  let find_nonterm_from_prods (sym: symbol) (p: production list): nonterminal = 
-    let rec loop prods = 
-      match prods with [] -> raise Trivial_symbols_not_found_in_prods
-      | (nt, ((term, i), _), _) :: tl -> 
-        if (Ta.syms_equals sym (term, i)) then nt 
-        else loop tl
-    in loop p
-  in
-  let raw_trivial_syms_nts : (symbol * nonterminal) list = 
-    (* new version: to take all the trivial symbols into account *)
-    ranked_alphabet |> List.filter (fun a -> (snd a = 1) && (not (syms_equals epsilon_symb a)) ) 
-      |> List.map (fun sym -> (sym, (find_nonterm_from_prods sym g.productions))) 
-  in 
-  let only_consists_of_trivial_trans (sym: symbol) (nt: nonterminal) (raw_triv_syms: symbol list) 
-    (p: production2 list): bool = 
-    let rec loop prods acc = 
-      match prods with [] -> acc 
-      | (lhs_n, ((term, i), _rhs_nts), _rhs_sigs) :: tl -> 
-        if (lhs_n = nt) 
-        then 
-          (if (syms_equals (term, i) sym) || (List.mem (term, i) raw_triv_syms)
-           then loop tl (true && acc)
-           else false)
-        else loop tl acc
-    in loop p true
-  in 
-  let trivial_syms_nts : (symbol * nonterminal) list = 
-    let init_triv_syms = raw_trivial_syms_nts |> List.map fst 
-    (* Debugging in progress! *)
-    in
-      raw_trivial_syms_nts |> List.filter (fun (sym, nt) -> 
-      only_consists_of_trivial_trans sym nt init_triv_syms g.productions)
-  in 
-  (* ********************************************** *)
-  (* Uncomment the following maps when ready to use *)
-  (* ********************************************** *)
-  let add htbl k v =
-    if Hashtbl.mem htbl k
-    then Hashtbl.add htbl k (v :: (Hashtbl.find htbl k))
-    else Hashtbl.add htbl k [v]
-  in
-  (* o_bp : order -> symbol list *)
-  let o_bp_tbl : (int, symbol list) Hashtbl.t  = Hashtbl.create (length prods) in
-  (* transitions_tbl : lhs * symbol -> (sigma list) list   ----   (rhs <=> sigma list) *)
-  let transitions_tbl : ((state * symbol), sigma list list) Hashtbl.t = 
-    Hashtbl.create (length prods) in
-    (iter (fun (prc, (lhs, rhss)) ->
-      let s, o = match prc with
-      | Prec x -> x
-      | _ -> assert false
-      in
-      (* Only add non-trivial symbols to o_bp_tbl *)
-      match s with (_, rnk) -> 
-          begin 
-            if ((rnk != 0) || not triv_opt) (*** [fix] for G0a INT triv trans case ***)
-            then begin 
-              (* If key already exists, then simply add to existing ones *)
-              let exist_val = Hashtbl.find_opt o_bp_tbl o in
-              wrapped_printf debug_print "\n\nWhich symbol?? "; Pp.pp_symbol s; wrapped_printf debug_print "\n\n";
-              match exist_val with None -> add o_bp_tbl o s 
-              | Some ls -> 
-                (* *** debugging *** *)
-                (if debug_print then wrapped_printf debug_print "\n\t   For order %i" o;
-                wrapped_printf "\n\t *** already exist sym_lst so add this symbol to symbol list "; 
-                if debug_print then begin ls |> List.iter Pp.pp_symbol end; wrapped_printf debug_print "\n";
-                Hashtbl.replace o_bp_tbl o (s::ls))
-            end;
-            (wrapped_printf debug_print "\n\t ****** Add (State %s, " lhs; Pp.pp_symbol s;
-            wrapped_printf debug_print ") ---> RHS list "; if debug_print then begin rhss |> List.iter Pp.pp_sigma end);
-          let exist_in_trantbl = Hashtbl.find_opt transitions_tbl (lhs, s) in
-          let triv_syms = trivial_syms_nts |> List.map fst 
-          in match exist_in_trantbl with 
-              | None -> if (List.mem s triv_syms) 
-                        then add transitions_tbl (lhs, s) [(T (fst s))] (* [prev] (Nt epsilon_state) *)
-                        else add transitions_tbl (lhs, s) rhss
-              | Some ls' -> if (List.mem s triv_syms)
-                            then Hashtbl.replace transitions_tbl (lhs, s) ([(T (fst s))]::ls') (* [prev] (Nt epsilon_state) *)
-                            else Hashtbl.replace transitions_tbl (lhs, s) (rhss::ls')
-          end
-    ) restrictions);
-    Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl; 
-  (* ********************************************** *)
-  
-  let trivial_syms = trivial_syms_nts |> map fst |> filter (fun x -> not (syms_equals epsilon_symb x)) in 
-  if debug_print then begin
-    wrapped_printf debug_print "\n >> Trivial non-terminals: [ ";
-    trivial_syms_nts |> iter (fun (s, x) -> wrapped_printf debug_print " ("; Pp.pp_symbol s; wrapped_printf debug_print ", %s ) " x); wrapped_printf debug_print "]\n";
-    wrapped_printf debug_print "\n >> Restrictions restriction'_lst O_bp obtained from the TA_g : \n"; Pp.pp_restriction'_lst restrictions_new;
-    wrapped_printf debug_print "\n >> Order -> symbol list O_bp map : \n"; Pp.pp_obp_tbl o_bp_tbl;
-    wrapped_printf debug_print "\n >> Transitions hashmap : \n"; Pp.pp_transitions_tbl transitions_tbl;
-    wrapped_printf debug_print "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
-    wrapped_printf debug_print "\nTrivial symbols: [ "; trivial_syms |> List.iter Pp.pp_symbol; wrapped_printf debug_print " ] \n";
-    wrapped_printf debug_print "\n((Lvl, State), Symbols): \n"; sts_order_syms_lsls |> List.iter (fun ((lvl, sts), syms) -> 
-      printf "\t(%d, %s) -> " lvl sts; syms |> List.iter Pp.pp_symbol; printf "\n");wrapped_printf debug_print " \n";
-  end;
-  let restrictions_without_trivials : restriction list = 
-    (restrictions |> split |> fst) |> filter (fun x -> match x with Prec (s, _) | Assoc (s, _) -> 
-        List.fold_left (fun acc tsym -> acc && not (syms_equals s tsym)) true trivial_syms)
-  in 
-  (* restrictions : (restriction * (load * sigma list)) list *)
-  let rec to_sym_ord_rhs_lst (rls: (restriction * (state * sigma list)) list) (acc: ((symbol * int) * sigma list) list) = 
-    match rls with [] -> List.rev acc 
-    | (r, (_lhs, sig_ls)) :: tl -> begin 
-      match r with 
-      | Prec (sym, o) -> 
-        (* --- added not to account for eps-trans to next-level state (excluding eps-trans to trivial state) --- *)
-        (* if (level_changing_eps_transition sym sig_ls) then acc
-        else  *)
-          (let to_acc = ((sym, o), sig_ls) in to_sym_ord_rhs_lst tl (to_acc::acc))
-      | Assoc _ -> to_sym_ord_rhs_lst tl acc
-    end 
-  in
-  let sym_ord_to_rhs_lst : ((symbol * int) * sigma list) list = to_sym_ord_rhs_lst restrictions_new []
-  (* 
-  List.map (fun (r, (_lhs, sig_ls)) -> 
-      match r with Prec (s, o) -> ((s, o), sig_ls)) |> List.filter (fun ((s, o), _) -> 
-        List.fold_left (fun acc tsym -> acc && not (syms_equals s tsym)) true trivial_syms
-        | Assoc (s, a) -> )  *)
-  in 
-
-
-  ta_res, restrictions_without_trivials, sym_ord_to_rhs_lst, o_bp_tbl, trivial_syms_nts, trivial_syms, sts_order_syms_lsls 
-   *)
 
 
 let convertToTa (file: string) (debug_print: bool): ta * restriction list * ((int, symbol list) Hashtbl.t) = 
@@ -573,18 +237,12 @@ let convertToTa (file: string) (debug_print: bool): ta * restriction list * ((in
 
 (* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)
 
-
 let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 = 
   let wrapped_printf fmt =
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt
   in
 
-  if debug_print then wrapped_printf "\nConvert TA to its corresponding CFG:\n\n  Input TA:\n"; Pp.pp_ta a;
-  (* helpers *)
-  let remove_dups ls =
-  let unique_cons elem ls = if (List.mem elem ls) then ls else elem :: ls in
-    List.fold_right unique_cons ls [] in
   let nonterms_excl_eps: nonterminal list = a.states |> List.filter (fun x -> not (x = "ϵ")) in
   let unranked_terminals: terminal list = a.alphabet |> List.filter (fun s -> not (sym_equals s "ε"))
     |> 

@@ -151,15 +151,3 @@ let group_by_lvl_state ls =
              | None -> [v]
     in PairMap.add k vs acc) PairMap.empty |> PairMap.bindings
 
-
-(* *** Newly added helpers for the revamped version *** *)
-
-let sigma_to_beta (s: Cfg.sigma): Ta.beta = 
-  match s with 
-  | Term t -> T t
-  | Nt n -> S n
-
-let sigma_list_to_beta_list (sigls: Cfg.sigma list): Ta.beta list = 
-  sigls |> List.map sigma_to_beta  
-
-(* let prods_starting_from_nonterm () *)
