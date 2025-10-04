@@ -93,15 +93,19 @@ let pp_sigma_listlist (slsls: C.sigma list list) =
 let pp_alphabet (a: T.symbol list) =
   noprintf "\tAlphabet : { "; a |> iter (fun x -> pp_symbol x); noprintf "}\n"
 
-let pp_root (s: T.state) = noprintf "\tStart State : { %s }\n" s
-
-let pp_roots (ss: T.state list) = 
-  noprintf "\tStart States : { "; ss |> iter (noprintf "%s "); noprintf "}\n"
+let pp_final_states (ss: T.state list) = 
+  noprintf "\tFinal States : { "; ss |> iter (noprintf "%s "); noprintf "}\n"
 
 let pp_transitions (ts: T.transition list) =
   noprintf "\tTransitions : { \n"; ts |> iter (fun ((st, sy), bls) -> 
     noprintf "\t\t\t%s ->_{ " st; pp_symbol sy; noprintf " } -> ";
     pp_beta_list bls; noprintf "\n"); noprintf " \t\t      }\n"
+
+let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) = 
+  noprintf "\n  >> O_p table: \n";
+  obp_tbl |> Hashtbl.iter (fun o_idx s_ls -> noprintf "\n\tOrder %i -> " o_idx; 
+    s_ls |> iter pp_symbol; noprintf "\n"); noprintf "\n"
+
 
 (* let pp_raw_transitions (ts: ((T.state * T.state) * (T.symbol * (T.state * T.state) list)) list) = 
   noprintf "\tRaw Transitions : { \n"; ts |> iter (fun ((st1, st2), (sym, st_pairs_ls)) -> 
@@ -130,10 +134,6 @@ let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) 
     blocks_ls |> iter (fun (((st1', st2'), (sym, sig_sig_ls)): (T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) ->
       noprintf "\t\t\t\t\t  (%s, %s)  ->_{<%s, %i>}  " st1' st2' (fst sym) (snd sym); pp_sigma_sigma_list sig_sig_ls))
 
-let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) = 
-  noprintf "\n  >> O_p table: \n";
-  obp_tbl |> Hashtbl.iter (fun o_idx s_ls -> noprintf "\n\tOrder %i -> " o_idx; 
-    s_ls |> iter pp_symbol; noprintf "\n"); noprintf "\n"
 
  *)
 
@@ -152,7 +152,7 @@ let pp_sym_nts_ls (sns: (T.symbol * T.state) list) =
   sns |> List.iter (fun sn -> noprintf "\n\t  "; pp_sym_nts sn); noprintf "   }\n"
 let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
-  pp_roots (a.final_states); pp_transitions_tbl (a.transitions); pp_sym_nts_ls (a.trivial_sym_nts); pp_loline ()
+  pp_final_states (a.final_states); pp_transitions_tbl (a.transitions); pp_sym_nts_ls (a.trivial_sym_nts); pp_loline ()
 
 let pp_tree (e: T.tree) =
   let rec loop (e: T.tree) =

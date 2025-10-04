@@ -107,11 +107,12 @@ let collect_ta_trans_symbols_from_cfg (g: cfg) (debug: bool): ((state * symbol) 
     match ls with 
     | [] -> List.rev trans_acc, List.rev syms_acc 
     | curr_prod :: rest_prods ->
-      let nt, _sigls = (fst curr_prod), (snd curr_prod) in
-      let _curr_sym = [] in
-      let curr_beta_ls: beta list = [] in
-      let trans_to_acc = ((nt, (1, "", 1)), curr_beta_ls) in 
-      collect_loop rest_prods (trans_to_acc::trans_acc) syms_acc
+      let nt, curr_sigls = (fst curr_prod), (snd curr_prod) in
+      let curr_id = !count in (count := curr_id + 1);
+      let curr_sym = (curr_id, (first_terminal_of curr_sigls), (List.length curr_sigls)) in
+      let curr_beta_ls: beta list = curr_sigls |> sigma_list_to_beta_list in
+      let trans_to_acc = ((nt, curr_sym), curr_beta_ls) in 
+      collect_loop rest_prods (trans_to_acc::trans_acc) (curr_sym::syms_acc)
   in let trans_res, syms_res = collect_loop g.productions [] [] 
   in 
   if debug then (wrapped_printf debug "\nCollected transitions for TA:\n\n"; 
@@ -120,22 +121,23 @@ let collect_ta_trans_symbols_from_cfg (g: cfg) (debug: bool): ((state * symbol) 
 
 
 let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbol list) Hashtbl.t) =
-  let open List in
-  let open Printf in
   if debug_print then
-    (printf "\n\t Converting CFG to TA given the following TA \n"; Pp.pp_cfg g);
+    (Printf.printf "\n\t Converting CFG to TA given the following TA \n"; Pp.pp_cfg g);
   
     (* Go through prods to collect alphabet and transitions *)
-  let (_trans, _cfg_symbols): ((state * symbol) * beta list) list * symbol list = 
+  let (trans_from_cfg, symbols_from_cfg): ((state * symbol) * beta list) list * symbol list = 
     collect_ta_trans_symbols_from_cfg g debug_print
   in
+  let trans_tbl = Hashtbl.create (List.length g.productions) in 
+  (trans_from_cfg |> List.iter (fun ((nt, sym), bls) -> 
+    Hashtbl.add trans_tbl (nt, sym) bls));
     (* alphabet, transitions, and O_bp *)
   let res_ta: ta = {
     states = g.nonterms;
-    alphabet = [];
+    alphabet = symbols_from_cfg;
     final_states = g.starts;
     terminals = g.terms;
-    transitions = Hashtbl.create 0;
+    transitions = trans_tbl;
     trivial_sym_nts = []
     } 
   in res_ta , [], Hashtbl.create 0
@@ -401,18 +403,6 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
         | Assoc _ -> false)
     else restrictions
   in
-
-  (* *** debug *** *)
-  if debug_print then printf "\n\t *** Check restrictions (modified) \n";Pp.pp_restriction'_lst restrictions;
-  
-  let _find_symbol_from_productions (nt: nonterminal) (p: production list): symbol = 
-    let rec loop prods =
-      match prods with [] -> raise Trivial_symbols_not_found_in_prods
-      | (n, ((term, i), _), _) :: tl -> 
-        if nt = n then (term, i)
-        else loop tl
-    in loop p
-  in 
   let find_nonterm_from_prods (sym: symbol) (p: production list): nonterminal = 
     let rec loop prods = 
       match prods with [] -> raise Trivial_symbols_not_found_in_prods
@@ -446,9 +436,6 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
       raw_trivial_syms_nts |> List.filter (fun (sym, nt) -> 
       only_consists_of_trivial_trans sym nt init_triv_syms g.productions)
   in 
-  (* *** debug *** *)
-  if debug_print then begin (printf "\n\t *** (debugging) Check trivial symbols and nonterminals\n"; 
-    trivial_syms_nts |> List.iter (fun (s, nt) -> Pp.pp_symbol s; printf " --- paried with ---> State %s \n" nt )) end;
   (* ********************************************** *)
   (* Uncomment the following maps when ready to use *)
   (* ********************************************** *)
@@ -498,16 +485,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
     ) restrictions);
     Hashtbl.iter (fun k v -> Hashtbl.replace o_bp_tbl k (remove_dups v)) o_bp_tbl; 
   (* ********************************************** *)
-  let ta_res: ta =
-    { 
-      states = nonterms;
-      alphabet = ranked_alphabet;
-      final_states = starts;
-      terminals = []; (* To update!*)
-      transitions = transitions_tbl;
-      trivial_sym_nts = []; (* To update!*)
-    } 
-  in
+  
   let trivial_syms = trivial_syms_nts |> map fst |> filter (fun x -> not (syms_equals epsilon_symb x)) in 
   if debug_print then begin
     wrapped_printf debug_print "\n >> Trivial non-terminals: [ ";
@@ -550,68 +528,28 @@ let cfg_to_ta (debug_print: bool) (g: cfg): ta * restriction list * ((int, symbo
    *)
 
 
-let convertToTa (file: string) (debug_print: bool):
-  ta * restriction list * ((int, symbol list) Hashtbl.t) = 
-  file |> 
+let convertToTa (file: string) (debug_print: bool): ta * restriction list * ((int, symbol list) Hashtbl.t) = 
+  let ta_res, obp_res, obp_tbl = file |> 
   (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConvert parser.mly to its corresponding CFG\n");
   extract_cfg debug_print) 
   |>
   (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConverting CFG to TA\n");
   cfg_to_ta debug_print)
-
-
-
+  in 
+  if debug_print then begin
+    wrapped_printf debug_print "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
+    (* wrapped_printf debug_print "\n >> Trivial non-terminals: [ ";
+    ta_res.trivial_sym_nts |> iter (fun (s, x) -> wrapped_printf debug_print " ("; Pp.pp_symbol s; wrapped_printf debug_print ", %s ) " x); wrapped_printf debug_print "]\n"; *)
+    wrapped_printf debug_print "\n >> Order -> symbol list O_bp map : \n"; Pp.pp_obp_tbl obp_tbl;
+    
+  end;
+  ta_res, obp_res, obp_tbl
+  
 
 (* 
 
-
-
-let cfg3_of_cfg2 (cfg2: cfg2): cfg3 =
-  { 
-    nonterms = cfg2.nonterms; 
-    terms = cfg2.terms; 
-    starts = cfg2.starts; 
-    productions = cfg2.productions
-      |> List.map (fun (lhs, _, rhs) ->
-        let rec remove_first_t = function
-          | [] -> (None, [])
-          | T a :: t -> (Some (T a), t)
-          | h :: t -> (match remove_first_t t with
-            | (a, l) -> (a, h :: l))
-        in
-        let len = List.length rhs in
-        let first_t, rhs' = match remove_first_t rhs with 
-        | (Some (T x), l) when x = "LPAREN" 
-          -> (("LPAREN", len), l)
-        | (Some (T x), l) -> ((x, len), l)
-        | (None, l) -> (("ε", len), l)
-        | _ -> assert false
-        in
-        let proj = List.fold_right (fun a acc -> match a with
-          T _ -> acc | Nt x -> x :: acc) rhs' []
-        in
-        (lhs, (first_t, proj), rhs)
-      );
-      triv_term_nonterm_list = cfg2.triv_term_nonterm_list;
-  }
-
-
-
-
-
-
 (* ******************** Part II. Conversion of TA > CFG > parser.mly ******************** *)
 
-(** undo_enhancement : helper to undo enhancement done on symbols *)
-let undo_enhancement (a: ta): ta =
-  let undo_change_symbol s =
-    let s', s'' = fst s, snd s in if (s' = "*") then "MUL", s'' else
-    if (s' = "+") then "PLUS", s'' else s in
-  let alph_updated = a.alphabet |> List.map (fun sym -> undo_change_symbol sym) in
-  let trans_updated = a.transitions |> List.map (fun (st, (sym, st_ls)) ->
-    let sym_new = undo_change_symbol sym in (st, (sym_new, st_ls))) in 
-  { states = a.states ; alphabet = alph_updated
-  ; start_state = a.start_state ; transitions = trans_updated ; trivial_sym_nts = a.trivial_sym_nts }
 
 let ta_to_cfg (debug_print: bool) (a: ta2): cfg2 = 
   let wrapped_printf fmt =

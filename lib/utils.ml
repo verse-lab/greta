@@ -110,8 +110,7 @@ let string_lists_equal (ls1: string list) (ls2: string list) =
   (List.length ls1 = List.length ls2) &&
   ls1 |> List.fold_left (fun acc s1 -> acc && (List.mem s1 ls2)) true 
 
-
-
+  
 let find_assoc_all (terms: string list) (num_nonterms: int) (prods_mapping: ((string list * int) * (string * string list)) list) 
   (_dummy: string list) (debug: bool): (string list * string) list = 
   let open Printf in 
@@ -151,4 +150,16 @@ let group_by_lvl_state ls =
              | Some xs -> v :: xs
              | None -> [v]
     in PairMap.add k vs acc) PairMap.empty |> PairMap.bindings
+
+
+(* *** Newly added helpers for the revamped version *** *)
+
+let sigma_to_beta (s: Cfg.sigma): Ta.beta = 
+  match s with 
+  | Term t -> T t
+  | Nt n -> S n
+
+let sigma_list_to_beta_list (sigls: Cfg.sigma list): Ta.beta list = 
+  sigls |> List.map sigma_to_beta  
+
 

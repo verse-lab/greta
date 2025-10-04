@@ -23,3 +23,11 @@ let sigmas_equal (a: sigma) (b: sigma): bool =
 
 let is_terminal (x: sigma): bool = 
   match x with Term _ -> true | Nt _ -> false
+
+let terminal_of (x: sigma): terminal = 
+  match x with Term x -> x | Nt _ -> raise (Failure "terminal_of : No Nt possible")
+
+let first_terminal_of (sls: sigma list): string = 
+  let term_ls = sls |> List.filter (fun x -> is_terminal x) in
+  if List.is_empty term_ls then "" 
+  else term_ls |> List.hd |> terminal_of

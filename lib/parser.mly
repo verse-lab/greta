@@ -42,4 +42,3 @@ expr2:
   | INT  { Int $1 }
   | LPAREN expr1 RPAREN { Paren $2 }
   ;
-
