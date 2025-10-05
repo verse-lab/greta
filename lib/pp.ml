@@ -103,9 +103,9 @@ let pp_transitions (ts: T.transition list) =
     pp_beta_list bls; noprintf "\n"); noprintf " \t\t      }\n"
 
 let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) = 
-  noprintf "\n  >> O_p table: \n";
+  noprintf "\n    [\n";
   obp_tbl |> Hashtbl.iter (fun o_idx s_ls -> noprintf "\n\tOrder %i -> " o_idx; 
-    s_ls |> iter pp_symbol; noprintf "\n"); noprintf "\n"
+    s_ls |> iter pp_symbol; noprintf "\n"); noprintf "    ]\n"
 
 
 (* let pp_raw_transitions (ts: ((T.state * T.state) * (T.symbol * (T.state * T.state) list)) list) = 
@@ -153,7 +153,8 @@ let pp_sym_nts_ls (sns: (T.symbol * T.state) list) =
   sns |> List.iter (fun sn -> noprintf "\n\t  "; pp_sym_nts sn); noprintf "   }\n"
 let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
-  pp_final_states (a.final_states); pp_transitions_tbl (a.transitions); pp_sym_nts_ls (a.trivial_sym_states); pp_loline ()
+  pp_final_states (a.final_states); pp_transitions_tbl (a.transitions); 
+  (* pp_sym_nts_ls (a.trivial_sym_states); *) pp_loline ()
 
 let pp_tree (e: T.tree) =
   let rec loop (e: T.tree) =
@@ -216,18 +217,18 @@ let pp_restriction'_lst (rls:(T.restriction * C.sigma list) list) =
       | T.Prec (s, i), sg -> noprintf "("; pp_symbol s; noprintf ", %i) " i;pp_sigma_list sg)
 
 let pp_combined_trees (inp_ls: ((T.tree * (bool * bool) * T.restriction list)) list) =
-  noprintf "\n  >> Resulted example trees: \n\n"; 
+  noprintf "\n\n Resulted example trees: \n\n"; 
   inp_ls |> iter (fun ((t, (oa, op), rls)) -> 
-    noprintf "\t>> Tree : "; pp_tree t;
+    noprintf "\t* Tree : "; pp_tree t;
     noprintf "\n\t\t O_a : %b" oa; noprintf "\n\t\t O_p : %b" op; 
     noprintf "\n\t\t Expression : "; pp_tree_to_expr t;
     noprintf "\n\t\t Restrictions : "; pp_restriction_lst rls; noprintf "\n") 
 
 let pp_exprs (exprs_ls: (string list * string list) list) =
-  noprintf "\n  >> Resulted expressions: \n";
+  noprintf "\n Resulted expressions: \n";
   exprs_ls |> iter (fun (ls1, ls2) -> 
-    noprintf "\n\t>> First expression : "; ls1 |> iter (noprintf "%s ");
-    noprintf "\n\t>> Second expression : "; ls2 |> iter (noprintf "%s "); noprintf "\n"); 
+    noprintf "\n\t * First expression : "; ls1 |> iter (noprintf "%s ");
+    noprintf "\n\t * Second expression : "; ls2 |> iter (noprintf "%s "); noprintf "\n"); 
     noprintf "\n"
 
 

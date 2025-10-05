@@ -16,14 +16,18 @@ module T = Ta
 (*                                                                   *)
 (* Step 1: Input CFG is converted to TA                              *)
 (*                                                                   *)
-(* Step 2: User specifies preferences                                *)
+(* Step 2: Generate trees wrt ambiguities                            *)
+(*                                                                   *)
+(* Step 3: User specifies preferences                                *)
 (* - 0 or 1 given two parsing options                                *)
 (*                                                                   *)
-(* Step 3: TA is learned via original CFG and user preferences       *)
+(* Step 4: Learn O_p, O_a wrt. tree examples                         *)
 (*                                                                   *)
-(* Step 4: Learned TA and TA from original CFG are intersected       *)
+(* Step 5: TA is learned via original CFG and O_p, O_a.              *)
 (*                                                                   *)
-(* Step 5: Resulted TA is converted back to CFG                      *)
+(* Step 6: Learned TA and TA from original CFG are intersected       *)
+(*                                                                   *)
+(* Step 7: Resulted TA is converted back to CFG                      *)
 (* - If ambiguities still exist, repeat Step 2                       *)
 (* - Repeat 2-5 until all addressable ambiguities are resolved       *)
 (*                                                                   *)
@@ -33,7 +37,9 @@ let safe_arg idx =
   else ""
 
 let () =
-  (* *** Step 0: Initial grammar provided by the user *** *)
+  (* ----------------------------------------------------------------- *)
+  (* --------- Step 0: Initial grammar provided by the user ---------- *)
+  (* ----------------------------------------------------------------- *)
   let parser_file = ref (safe_arg 1) in
   let conflicts_file = ref (safe_arg 2) in
   let cfg_file = ref (safe_arg 3) in
@@ -67,26 +73,36 @@ let () =
   else
 
   let debug = true in
-  (* let opt_flag: T.optimization = { eps_opt = true; paren_opt = false; triv_opt = false; onoff_opt = true } in  *)
   
   if (Utils.check_conflicts !conflicts_file debug) then
   begin
-    let _convert_start = Sys.time () in
-    (* Step 1: Input CFG is converted to TA and learn O_bp wrt CFG *)
+    (* ----------------------------------------------------------------- *)
+    (* Step 1: Input CFG is converted to TA and learn O_bp wrt CFG ----- *)
+    (* ----------------------------------------------------------------- *)
 
+    let convert_start = Sys.time () 
+    in
     let (ta_initial, o_bp, o_bp_tbl, prods_map): 
       T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) * (int * G.production) list = 
       C.convertToTa !cfg_file debug in
       
-    let _convert_elapsed = Sys.time () -. _convert_start in
+    let _convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet 
     in
     
+    (* ----------------------------------------------------------------- *)
+    (* Step 2: Generate a set of tree examples wrt ambiguities --------- *)
+    (* ----------------------------------------------------------------- *)
+
     let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
       E.gen_examples !tree_file ranked_symbols prods_map debug
     in 
     if (List.is_empty tree_pairs_lst) then () else 
-    (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)
+    
+    (* ----------------------------------------------------------------- *)
+    (* Step 3: User specifies preferences, and collect trees chosen ---- *)
+    (* ----------------------------------------------------------------- *)
+
     let file_postfix = ref "" in
     let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list):
       (string list * T.tree * (bool * bool) * T.restriction list) list = 
@@ -102,22 +118,37 @@ let () =
             else loop tl ((texpr_ls2, t2, (oa2, op2), rls2)::acc))
         in loop inp_lst []
     in
-    (* let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
-        interact_with_user tree_pairs_lst in  *)
+
+    (* ----------------------------------------------------------------- *)
+    (* Step 4: User specifies preferences, and collect trees chosen ---- *)
+    (* ----------------------------------------------------------------- *)
 
     (* Time output *)
     let _learn_start = Sys.time () in
-    let _learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
+    let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
         interact_with_user tree_pairs_lst 
     in 
-    (* 
-    let ta_learned: T.ta2 = 
+
+    (* ----------------------------------------------------------------- *)
+    (* Step 5: Learn O_p, O_a wrt. tree examples ----------------------- *)
+    (* ----------------------------------------------------------------- *)
+    let _oa_learned: T.restriction list = L.learn_oa learned_example_trees debug in
+    (* let op_learned: ((int, T.symbol list) Hashtbl.t) = L.learn_op learned_example_trees in *)
+    
+
+    (* ----------------------------------------------------------------- *)
+    (* Step 6: Learned TA and TA from original CFG are intersected ----- *)
+    (* ----------------------------------------------------------------- *)
+    
+    (* let _ta_learned: T.ta = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
       sts_order_syms_lsls opt_flag debug
     in
-    let _learn_ta_elapsed = Sys.time () -. _learn_start in
+    let _learn_ta_elapsed = Sys.time () -. learn_start in *)
+    
+    (* 
 
-    (** Step 3: Get disambiguated grammar and write on 'parser_file' *)
+    (** Step X: Get disambiguated grammar and write on 'parser_file' *)
     let intersect_start = Sys.time () in
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
       O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag debug 

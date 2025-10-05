@@ -8,16 +8,17 @@
 
 - [x] **Tree example generation**
 
-- [ ] **TA Learner from tree examples** - Yunjeong WIP
-     - Learning O_a
-     - Learning O_p - _Logic changed from earlier version!_
+- [ ] **TA Learner from tree examples** 
+     - [ ] Update O_a wrt. trees - Based on the index! - Yunjeong WIP
+     - [ ] Update O_p wrt. trees - _Logic changed from earlier version!_ - Yunjeong WIP
+     - [ ] Learn TA wrt. O_p and O_a - double check with Gokul on learning TA wrt. O_a
 
-- [ ] **Intersection** - _To reuse_ 
+- [ ] **Intersection** - _To reuse as much as possible_ 
      - Update based on revised data structures
 
 - [ ] **Converter from TA to CFG**
 
-- [ ] **Formatter for CFG** - _To reuse for now but may have to modify_
+- [ ] **Formatter for CFG** - _To reuse as much as possible, may have to modify_
 xw
 ### Testing 
 

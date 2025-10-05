@@ -100,7 +100,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
   end;
   { nonterms=(start_nonterms@nonterms) ; terms=terms; starts=start_nonterms; productions=prods }
 
-let collect_ta_trans_symbols_from_cfg (g: cfg) (debug: bool): ((state * symbol) * beta list) list * symbol list =
+let collect_ta_trans_symbols_from_cfg (g: cfg) (_debug: bool): ((state * symbol) * beta list) list * symbol list =
   let rec collect_loop (ls: production list) (trans_acc: ((state * symbol) * beta list) list) (syms_acc: symbol list) = 
     match ls with 
     | [] -> List.rev trans_acc, List.rev syms_acc 
@@ -113,8 +113,8 @@ let collect_ta_trans_symbols_from_cfg (g: cfg) (debug: bool): ((state * symbol) 
       collect_loop rest_prods (trans_to_acc::trans_acc) (curr_sym::syms_acc)
   in let trans_res, syms_res = collect_loop g.productions [] [] 
   in 
-  if debug then (wrapped_printf debug "\nCollected transitions for TA:\n\n"; 
-    Pp.pp_transitions trans_res; Pp.pp_alphabet syms_res);
+  (* if debug then (wrapped_printf debug "\nCollected transitions for TA:\n\n"; 
+    Pp.pp_transitions trans_res; Pp.pp_alphabet syms_res); *)
   trans_res, syms_res
 
 let collect_nonterm_orders (start_nonterms: nonterminal list) (nonterms: nonterminal list) (prods: production list) (debug: bool): 
@@ -122,13 +122,21 @@ let collect_nonterm_orders (start_nonterms: nonterminal list) (nonterms: nonterm
   (* First group productions based on nonterminals *)
   let prods_grouped: (nonterminal * production list) list = group_productions nonterms prods debug
   in
-  if debug then (wrapped_printf debug "\n\t* Prods grouped:\n"; prods_grouped |> List.iter (fun (nt, prods) -> wrapped_printf debug "\tLHS nonterm: %s\n" nt; Pp.pp_productions prods));
+  (* 
+  if debug then 
+    (wrapped_printf debug "\n\t* Prods grouped:\n"; prods_grouped |> List.iter (fun (nt, prods) -> 
+      wrapped_printf debug "\tLHS nonterm: %s\n" nt; Pp.pp_productions prods));
+   *)
   (* helper to find productions *)
   let prods_of_nonterm (nt: nonterminal): production list = 
     let nt_prods: (nonterminal * production list) list = 
       prods_grouped |> List.filter (fun (x, _prods_from_x) -> x = nt)
     in let res_prods_of_nonterm = if (List.is_empty nt_prods) then [] else nt_prods |> List.hd |> snd in
-    if debug then (wrapped_printf debug "\nProds for LHS nonterm %s" nt; res_prods_of_nonterm |> Pp.pp_productions); res_prods_of_nonterm
+    (* 
+    if debug then (wrapped_printf debug "\nProds for LHS nonterm %s" nt; 
+      res_prods_of_nonterm |> Pp.pp_productions); 
+    *)
+    res_prods_of_nonterm
   in 
   (* Start from [(start, 0)] *)
   let init_sts_orders = start_nonterms |> List.map (fun s -> (s, 0)) 
@@ -140,7 +148,9 @@ let collect_nonterm_orders (start_nonterms: nonterminal list) (nonterms: nonterm
     match nts_left with 
     | [] -> nt_orders_acc |> remove_dups
     | nt_hd :: nt_tl -> 
+      (* 
       if debug then (wrapped_printf debug "\nFinding order for RHS starting from LHS nonterm %s" nt_hd);
+      *)
       let curr_nt_prods = (prods_of_nonterm nt_hd) in
       let lhs_nonterm = (lhs_nonterm_of_prods curr_nt_prods) in
       let lhs_nonterm_order = (List.assoc lhs_nonterm nt_orders_acc) in
@@ -150,7 +160,7 @@ let collect_nonterm_orders (start_nonterms: nonterminal list) (nonterms: nonterm
       collect_nts_orders (nt_hd::nts_visited) (nt_tl@rhs_nonterms_unvisited) (nt_orders_acc @ rhs_nonterms_orders_to_acc) 
   in let nt_orders_res = collect_nts_orders [] start_nonterms init_sts_orders 
   in 
-  if debug then (wrapped_printf debug "\nCollected (order, nonterminal):\n\n"; 
+  if debug then (wrapped_printf debug "\n Collected (order, nonterminal):\n\n"; 
     nt_orders_res |> List.iter (fun (nt, l) -> wrapped_printf debug "\t  Nonterminal  %s => Order %d\n" nt l));
   nt_orders_res
 
@@ -177,7 +187,7 @@ let collect_sym_orders_wrt_nonterm_order (nts_ordered: (nonterminal * int) list)
   in let nt_sym_orders: (nonterminal * int * symbol list) list = 
     raw_nt_sym_orders |> List.map (fun (nt, sls) -> (nt, (order_of_nonterm nt), sls)) in
   if debug then 
-    (wrapped_printf debug "\nCollected (order, nonterminal):\n\n"; nt_sym_orders |> List.iter (fun (nt, i, sym_ls) -> 
+    (wrapped_printf debug "\n Collected (nonterminal, order, symbols):\n\n"; nt_sym_orders |> List.iter (fun (nt, i, sym_ls) -> 
       wrapped_printf debug "\t  Nonterminal %s  Order %d  =>  \t" nt i; sym_ls |> List.iter Pp.pp_symbol; wrapped_printf debug "\n"));
   nt_sym_orders
 
@@ -223,7 +233,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
       )
   in 
   if debug_print then
-    (wrapped_printf debug_print "\n\t ID -> Production Map \n"; 
+    (wrapped_printf debug_print "\n ID -> Production Map \n"; 
     prods_map_res |> List.iter (fun (i, p) -> wrapped_printf debug_print "\t  %d -> " i; Pp.pp_production p));
   let res_ta: ta = {
     states = g.nonterms;
@@ -248,7 +258,7 @@ let convertToTa (file: string) (debug_print: bool):
     wrapped_printf debug_print "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
     (* wrapped_printf debug_print "\n >> Trivial non-terminals: [ ";
     ta_res.trivial_sym_nts |> iter (fun (s, x) -> wrapped_printf debug_print " ("; Pp.pp_symbol s; wrapped_printf debug_print ", %s ) " x); wrapped_printf debug_print "]\n"; *)
-    wrapped_printf debug_print "\n >> Order -> symbol list O_bp map : \n"; Pp.pp_obp_tbl obp_tbl;
+    wrapped_printf debug_print "\nOrder -> symbol list O_bp map : \n"; Pp.pp_obp_tbl obp_tbl;
     
   end;
   ta_res, obp_res, obp_tbl, prods_map_res

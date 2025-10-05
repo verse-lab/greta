@@ -108,9 +108,10 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
 
   let open List in
   let syms_ls: string list = a |> List.map term_of_sym in
-  wrapped_printf "\nGenerate examples from conflicts in file %s\n" filename; 
-  (* *** debug *** *)
+  wrapped_printf "\n Generate examples from conflicts in file %s\n" filename; 
+  (* 
   if debug_print then (wrapped_printf "\tGiven alphabet: "; syms_ls |> List.iter (wrapped_printf "%s "); wrapped_printf "\n");
+  *)
   (* helpers *)
   let is_due_to_menhir = ref false in
   let ic = open_in filename in
@@ -288,7 +289,9 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
                   let str_ls_wo_at_symbol = remove_at_from_str_ls str_ls in
                   let sym_sigls = str_ls_wo_at_symbol |> Cfg.string_ls_to_sigma_ls in
                   let sym_prod: Cfg.production = (nt_str, sym_sigls) in
+                  (* 
                   (if debug_print then wrapped_printf "\n\t Production to look for its ID: "; Pp.pp_production sym_prod);
+                  *)
                   let sym_id: int = (Cfg.id_of_production sym_prod prods_map)
                   in conv_loop stl (sym_id, sh, sym_rank) (Leaf sh :: subtrees_acc)
                 end
@@ -303,7 +306,7 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
       | (nt, shd) :: stl -> 
         let s_ls = shd |> String.split_on_char ' ' in
         let s_tree = convert_to_tree_exprs nt s_ls in 
-        (if debug_print then (Pp.pp_tree s_tree; wrapped_printf "\n\n");
+        ((* if debug_print then (Pp.pp_tree s_tree; wrapped_printf "\n\n"); *)
         extract_loop stl ((s_tree, s_ls) :: res_acc))
     in extract_loop relev_lines []
   in
@@ -362,18 +365,20 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
               let two_trees_combined: (tree * (bool * bool) * restriction list) list = 
                   combine_two_trees texpr1 texpr2 in 
                   (* *** debug *** *)
-                  if debug_print then (wrapped_printf "\n\nCombined tree: "; 
+                  if debug_print then (wrapped_printf "\n\n Combined tree: "; 
                     let (fst_tree, _, _) = List.nth two_trees_combined 0 in 
                     let (snd_tree, _, _) = List.nth two_trees_combined 1
-                    in Pp.pp_tree fst_tree; wrapped_printf "\n"; Pp.pp_tree snd_tree);
+                    in wrapped_printf "\n\t"; Pp.pp_tree fst_tree; wrapped_printf "\n\t"; Pp.pp_tree snd_tree);
               combine_loop (List.tl tl) (two_trees_combined @ res_acc))
     in combine_loop e_trees_n_exprs []
   in 
   let relev_ls: (string * string) list = traverse "" [] |> filter_out_wrt_menhir_limitations in
+    (* 
     (if debug_print then wrapped_printf "\n\t Relevant lines: \n";
     relev_ls |> (List.iter (fun (nt, x) -> wrapped_printf "\t %s   =>   %s\n" nt x)));
+    *)
   let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
-  if debug_print then (wrapped_printf "\tExtracted trees: "; 
+  if debug_print then (wrapped_printf " Extracted trees: \n\t"; 
     let tls: tree list = extracted_trees_n_exprs |> List.map fst 
     in List.iter (fun x -> (Pp.pp_tree x; wrapped_printf "\n\t")) tls; wrapped_printf "\n"); 
     

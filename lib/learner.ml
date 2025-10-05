@@ -1,11 +1,20 @@
-(* open Ta
-open Treeutils
-open Cfg
+open Ta
+(* open Treeutils
+open Cfg *)
 
 exception No_state_for_sym_order
 exception Max_level_state
 exception No_lhs_state
 
+let learn_oa (_tree_examples: (string list * tree * (bool * bool) * restriction list) list) (_debug_print: bool): 
+  restriction list = 
+  []
+
+
+
+
+
+(* 
 let get_states (op_ls: restriction list): ((int * state) list) * state = 
   let default_states = [(0, "C"); (-1, "ϵ")] in
   let gen_states: (int * state) list = 
