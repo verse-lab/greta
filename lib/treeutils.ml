@@ -268,6 +268,12 @@ let tree_symbol (e: tree): symbol =
   match e with Leaf _ -> (-1, "dummy", -1) (*raise Leaf_has_no_symbol*)
   | Node (s, _) -> s
 
+let find_index_subt_with_same_sym (sym: symbol) (subts: tree list): int = 
+  let count: int ref = ref 0 in 
+  subts |> List.iteri (fun i subt -> 
+    let curr_t_sym = tree_symbol subt in
+    if (syms_equals curr_t_sym sym) then count := i); !count
+
 let collect_syms (e: tree): symbol list =
   let rec collect_loop t acc = 
     match t with Leaf _ -> acc
@@ -574,7 +580,7 @@ let is_left_assoc (s: symbol) (oa_ls: restriction list): bool =
   let rec traverse_oa ls: bool =
     match ls with [] -> raise Assoc_either_left_or_right
     | Assoc (sym, a) :: tl -> 
-      if (syms_equals s sym) then a = "l"
+      if (syms_equals s sym) then a = 0
       else traverse_oa tl
     | Prec (_, _) :: _ -> raise No_prec_possible
   in traverse_oa oa_ls

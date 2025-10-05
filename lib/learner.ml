@@ -1,18 +1,21 @@
 open Ta
-(* open Treeutils
-open Cfg *)
+(* open Treeutils *)
+(* open Cfg *)
 
 exception No_state_for_sym_order
 exception Max_level_state
 exception No_lhs_state
 
-let learn_oa (_tree_examples: (string list * tree * (bool * bool) * restriction list) list) (_debug_print: bool): 
+let wrapped_printf debug fmt =
+  if debug then Printf.printf fmt
+  else Printf.ifprintf stdout fmt
+
+let learn_oa (tree_examples: (string list * tree * (bool * bool) * restriction list) list) (debug_print: bool): 
   restriction list = 
-  []
-
-
-
-
+  let oa_res = 
+    tree_examples |> List.fold_left (fun acc (_, _, (oa, _), rls) -> if oa then rls @ acc else acc) [] in 
+  if debug_print then (wrapped_printf debug_print "\n  Collected O_a : "; Pp.pp_restriction_lst oa_res); 
+  oa_res
 
 (* 
 let get_states (op_ls: restriction list): ((int * state) list) * state = 

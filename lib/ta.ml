@@ -1,13 +1,13 @@
 type state = string
-type symbol = int * string * int (* 1st int to provide unique ID *)
 type terminal = string
-type beta = T of terminal | S of state 
+type symbol = int * string * int (* 1st int to provide unique ID *)
 
+type beta = T of terminal | S of state 
 type transition = (state * symbol) * beta list
 
 type load = string
 type tree = Leaf of load | Node of (symbol * (tree list))
-type restriction = Assoc of (symbol * string) | Prec of (symbol * int)
+type restriction = Assoc of (symbol * int) | Prec of (symbol * int)
 
 (* Top-down TA := (Q, F, Q_f, \Del) *)
 type ta =

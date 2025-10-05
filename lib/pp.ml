@@ -207,14 +207,9 @@ let pp_expr_lst (sls:string list) =
 
 let pp_restriction_lst (rls:T.restriction list) =
   rls |> iter (fun r -> match r with 
-      | T.Assoc (s, a) -> (noprintf "("; pp_symbol s; noprintf ", %s) " a)
+      | T.Assoc (s, i) -> (noprintf "("; pp_symbol s; noprintf ", %d) " i)
       | T.Prec (s, i) -> noprintf "("; pp_symbol s; noprintf ", %i) " i); noprintf "\n\n"
 
-
-let pp_restriction'_lst (rls:(T.restriction * C.sigma list) list) =
-  rls |> iter (fun r -> match r with 
-      | T.Assoc (s, a), sg -> (noprintf "("; pp_symbol s; noprintf ", %s) " a);pp_sigma_list sg
-      | T.Prec (s, i), sg -> noprintf "("; pp_symbol s; noprintf ", %i) " i;pp_sigma_list sg)
 
 let pp_combined_trees (inp_ls: ((T.tree * (bool * bool) * T.restriction list)) list) =
   noprintf "\n\n Resulted example trees: \n\n"; 

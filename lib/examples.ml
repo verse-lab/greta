@@ -321,24 +321,31 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
       | _ -> raise Leaf_is_not_valid
     in replace_loop lvs []
   in
-  (* get_restriction_on_tree gets Oa := [(Assoc (sym, "l"))] or Op := [(sym1, 0); (sym2, 1)] *)
+  (* get_restriction_on_tree gets Oa := [(Assoc (sym, 0))] or Op := [(sym1, 0); (sym2, 1)] *)
   let get_restriction_on_tree (t: tree) (oa: bool) (op: bool): restriction list =
     match t with Leaf _ -> raise Leaf_is_not_valid
     | Node (sym, subts) -> 
-      match subts with [] -> raise Invalid_subtrees
-      | hd :: tl -> 
-        if oa 
-        then (let lft_sym = tree_symbol hd
-              in if syms_equals lft_sym sym 
-                 then [Assoc (sym, "l")]
-                 else let rht_sym = tree_symbol (List.hd (List.tl tl))
-                      in if syms_equals rht_sym sym 
-                      then [Assoc (sym, "r")]
-                      else raise Neither_left_nor_right)
-        else if op
-        then (let subt_sym = subts |> List.filter (fun t -> not (is_leaf t)) |> List.hd |> tree_symbol
+      if oa 
+      then 
+        begin 
+          let index_of_subt_with_same_sym: int = find_index_subt_with_same_sym sym subts in 
+          [Assoc (sym, index_of_subt_with_same_sym)]
+        end
+      else if op
+      then (let subt_sym = subts |> List.filter (fun t -> not (is_leaf t)) |> List.hd |> tree_symbol
               in [Prec (sym, 0); Prec (subt_sym, 1)])
-        else raise Tree_specifies_oa_or_op
+      else raise Tree_specifies_oa_or_op
+
+      
+            (* let lft_sym = tree_symbol hd
+            in if syms_equals lft_sym sym 
+               then [Assoc (sym, "l")]
+               else let rht_sym = tree_symbol (List.hd (List.tl tl))
+                    in if syms_equals rht_sym sym 
+                    then [Assoc (sym, "r")]
+                    else raise Neither_left_nor_right) *)
+         
+      
   in
   (* combine_two_trees  *)
   let combine_two_trees (te1: tree * string list) (te2: tree * string list): 

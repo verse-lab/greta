@@ -9,30 +9,37 @@
 - [x] **Tree example generation**
 
 - [ ] **TA Learner from tree examples** 
-     - [ ] Update O_a wrt. trees - Based on the index! - Yunjeong WIP
+     - [x] Update O_a wrt. trees - Based on the index 
      - [ ] Update O_p wrt. trees - _Logic changed from earlier version!_ - Yunjeong WIP
+     <!-- by 12/1 pm -->
      - [ ] Learn TA wrt. O_p and O_a - double check with Gokul on learning TA wrt. O_a
+     <!-- by 2/3 pm -->
 
 - [ ] **Intersection** - _To reuse as much as possible_ 
      - Update based on revised data structures
+     <!-- by 5/6pm -->
 
 - [ ] **Converter from TA to CFG**
+<!-- by 7.30pm -->
 
 - [ ] **Formatter for CFG** - _To reuse as much as possible, may have to modify_
-xw
+<!-- by 10.30pm -->
+<!-- Test G_paper end-to-end -->
+
 ### Testing 
 
 (6 existing + 2-3 Real Grammars)
 
-- [ ] Grammar 0 (Running paper example)
-- [ ] Grammar 1 (Compiler - Boolean language)
-- [ ] Grammar 2 (Compiler)
+- [ ] Grammar 0 (Running paper example) - for demo only (1 variation)
+- [ ] Grammar 1 (Alternte version of Gp) 
+- [ ] Grammar 2 (Compiler - Boolean language)
 - [ ] Grammar 3 (Compiler)
-- [ ] Grammar 4 (StackOverflow)
-- [ ] Grammar 5 (StackOVerflow)
-- [ ] Grammar 6 (Michelson)
-- [ ] Grammar 7 (KaiTai)
-- [ ] Grammar 8 (Scilla? - likely to be nonaddressable or SQL)
+- [ ] Grammar 4 (Compiler)
+- [ ] Grammar 5 (StackOverflow)
+- [ ] Grammar 6 (StackOVerflow)
+- [ ] Grammar 7 (Michelson)
+- [ ] Grammar 8 (KaiTai)
+- [ ] Grammar 9 (Scilla? - likely to be nonaddressable or SQL)
 
 
 ### Room for improvement
