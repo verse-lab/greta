@@ -11,6 +11,10 @@ exception Reachable_states_not_matching
 exception No_terminal_possible
 exception Not_possible
 
+let wrapped_printf debug fmt =
+  if debug then Printf.printf fmt
+  else Printf.ifprintf stdout fmt
+
 (** is_cond_expr : check if state is representing boolean state *)
 let is_cond_expr (s: state): bool =
   let open Str in
@@ -20,14 +24,9 @@ let is_cond_state (s: state): bool =
   String.starts_with ~prefix:"con" s || String.starts_with ~prefix:"C" s
 
 let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
-  let wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
   let booltostr x = if x then "true" else "false" in
-  (wrapped_printf "\n  >> Are the following trees equal?\n\t";
-  Pp.pp_tree e1; wrapped_printf "\n\t"; Pp.pp_tree e2); 
+  (wrapped_printf debug_print "\n  >> Are the following trees equal?\n\t";
+  Pp.pp_tree e1; wrapped_printf debug_print "\n\t"; Pp.pp_tree e2); 
   let rec loop t1 t2 =
     match t1, t2 with
     | Leaf _, Node _ | Node _, Leaf _ -> false
@@ -37,7 +36,7 @@ let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
       List.fold_left2 (fun acc subt1 subt2 -> 
         acc && loop subt1 subt2) true subts1 subts2
   in let res = loop e1 e2 in 
-  if debug_print then (wrapped_printf "\n  >> Result of equality:\t%s\n" (booltostr res)); 
+  if debug_print then (wrapped_printf debug_print "\n  >> Result of equality:\t%s\n" (booltostr res)); 
   res
 
 let is_leaf (t: tree): bool =
@@ -145,12 +144,12 @@ let combine_trees_aux (up_t: tree) (lo_t: tree): tree =
 
 (** rename_states : rename states in ta_res from /\ *)
 (* let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
-  let wrapped_printf fmt =
+  let wrapped_printf debug_print fmt =
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt
   in
 
-  (wrapped_printf "\nRename the following tree automaton:\n"; Pp.pp_ta inp_ta);
+  (wrapped_printf debug_print "\nRename the following tree automaton:\n"; Pp.pp_ta inp_ta);
   let start_old, start_new = inp_ta.start_states, "expr1" in
   let states_mapping_init: (state * state) list = (start_old, start_new) :: [] in
   let eind, cind = ref 2, ref 1 in
@@ -293,21 +292,12 @@ let check_oa_op (e: tree): bool * bool * bool =
 
 let collect_oa_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
 (debug_print: bool): restriction list = 
-  let wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
   let res = example_trees 
     |> List.fold_left (fun acc (_, _, (oa, _), rls) -> if oa then rls @ acc else acc) [] 
-  in if debug_print then (wrapped_printf "\n  Collected O_a : "; Pp.pp_restriction_lst res); res
+  in if debug_print then (wrapped_printf debug_print "\n  Collected O_a : "; Pp.pp_restriction_lst res); res
 
 let update_if_exist_overlapping_symbols_w_diff_order (so_ls: (symbol * int) list) 
   (acc_ls: (symbol * int) list list) (debug: bool): (symbol * int) list list = 
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
 
   let flattened_acc: (symbol * int) list = acc_ls |> List.flatten in
   let syms_ls: symbol list = flattened_acc |> List.map fst in
@@ -318,12 +308,12 @@ let update_if_exist_overlapping_symbols_w_diff_order (so_ls: (symbol * int) list
       if List.mem s syms_ls then 
         (let ord = find_ord s in 
         if (ord = o) then 
-          (if debug then wrapped_printf "\n\t Exist in acc so list but same order so leave intact\n"; loop so_tl acc)
+          (if debug then wrapped_printf debug "\n\t Exist in acc so list but same order so leave intact\n"; loop so_tl acc)
         else 
           (* TODO: change logic here! *)
-          (if debug then wrapped_printf "\n\t"; loop so_tl acc)) 
+          (if debug then wrapped_printf debug "\n\t"; loop so_tl acc)) 
       else 
-        (if debug then wrapped_printf "\n\t Not exist in acc so list\n"; loop so_tl acc)
+        (if debug then wrapped_printf debug "\n\t Not exist in acc so list\n"; loop so_tl acc)
   in loop so_ls acc_ls 
 
 let refine_raw_rest_lsls_wrt_relativ_order (rlsls: restriction list list) (debug: bool): restriction list = 
@@ -347,7 +337,6 @@ let collect_op_restrictions (example_trees: (string list * tree * (bool * bool) 
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt
   in
-
   
   let raw_rest_lsls: restriction list list = example_trees 
     |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls :: acc else acc) [] 
@@ -384,11 +373,6 @@ let reorder_op (o_p: restriction list): restriction list =
                         | Some i -> i in Prec (s, new_order))
 
 let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list =
-  let wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
   let rec traverse_o_bp ls acc = 
     match ls with [] -> List.rev acc 
     | Assoc (_, _) :: _ -> raise No_assoc_possible
@@ -397,11 +381,55 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
       in traverse_o_bp tl (Prec (sym, op_order_combined)::acc)
   in let combined_op = traverse_o_bp o_bp [] 
   in let reordered_combined_op = reorder_op combined_op in
-  (if debug_print then wrapped_printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
+  (if debug_print then wrapped_printf debug_print "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
 let sort_by_fst_element ls =
   List.sort (fun (f1, _) (f2, _) -> Int.compare f1 f2) ls
+
+let sym_of_restrction (rest: restriction): symbol = 
+  match rest with Assoc _ -> raise (Failure "sym_of_restrction : No assoc possible")
+  | Prec (s, _o) -> s
+
+(* orders_of_sym_in_op_tbl : find all the orders associated with the symbol *)
+let orders_of_sym_in_op_tbl (sym: symbol) (op_tbl: (int, symbol list) Hashtbl.t ) (debug: bool): int list = 
+  let orders_res = ref [] in 
+  op_tbl |> Hashtbl.iter (fun o sym_ls -> 
+    if (List.mem sym sym_ls) then (orders_res := o::!orders_res)); 
+  if debug then (wrapped_printf debug "\n  Orders of "; Pp.pp_symbol sym; wrapped_printf debug " [ "; 
+    !orders_res |> List.iter (fun x -> wrapped_printf debug " %d " x); wrapped_printf debug " ] \n\n");
+  !orders_res
+
+let sym_top_sym_bot_of_restrictions (r1: restriction) (r2: restriction) (debug: bool): (symbol * symbol) = 
+  let (sym_top, sym_bot) = 
+    match r1, r2 with 
+    | Prec (sym1, o1), Prec (sym2, o2) -> 
+      (* order higher means it's sym_bot -> returning (sym_top, sym_bot) pair *)
+      if (o1 > o2) then (sym2, sym1) else (sym1, sym2)
+    | Assoc _, Prec _ | Prec _, Assoc _ | Assoc _, Assoc _ -> raise (Failure "")
+  in if debug then (wrapped_printf debug "\t  Sym_top : "; Pp.pp_symbol sym_top; 
+    wrapped_printf debug "\n\t  Sym_bot : "; Pp.pp_symbol sym_bot); 
+  (sym_top, sym_bot)
+
+let move_keys_if tbl threshold f =
+  let to_move =
+    Hashtbl.fold (fun k v acc ->
+      if k >= threshold then (k, f k, v) :: acc else acc
+    ) tbl []
+  in
+  List.iter (fun (oldk, newk, v) ->
+    Hashtbl.remove tbl oldk;
+    Hashtbl.replace tbl newk v
+  ) to_move
+
+let push_keys_higher_than_order (ord: int) (tbl: (int, symbol list) Hashtbl.t): (int, symbol list) Hashtbl.t = 
+  move_keys_if tbl ord (fun curr_lvl -> curr_lvl + 1); tbl
+
+let update_op_tbl_per_syms (_sym_top: symbol) (_sym_bot: symbol) (ord: int) (op_tbl: (int, symbol list) Hashtbl.t) (debug: bool):
+ (int, symbol list) Hashtbl.t =
+ let new_op_tbl: (int, symbol list) Hashtbl.t = push_keys_higher_than_order ord op_tbl in
+ if debug then (wrapped_printf debug "\n\t  Pushed levels >= Order %d : " ord; Pp.pp_obp_tbl new_op_tbl); 
+ new_op_tbl
 
 let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction list) 
   (sts_order_syms_lsls: ((int * state) * symbol list) list) (debug_print: bool): restriction list = 
@@ -448,10 +476,6 @@ let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction lis
   let is_neg_restriction (rest: restriction): bool = 
     match rest with Assoc _ -> raise (Failure "is_neg_restriction : No assoc possible") 
     | Prec (_s, o) -> (o = -1)
-  in 
-  let sym_of_restrction (rest: restriction): symbol = 
-    match rest with Assoc _ -> raise (Failure "sym_of_restrction : No assoc possible")
-    | Prec (s, _o) -> s
   in
 
   (* helper for below *)
@@ -553,11 +577,6 @@ let update_op_w_restrictions (hi_sym: symbol) (lo_sym: symbol) (init_op: restric
     end 
 
 let combine_op_restrictions_in_pairs (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list =
-  let wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-  
   let rec traverse_o_tmp_in_pairs ls op_acc = 
     match ls with [] -> op_acc 
     | Prec (sym1, bo1) :: Prec (sym2, bo2) :: tl ->
@@ -568,7 +587,7 @@ let combine_op_restrictions_in_pairs (o_bp: restriction list) (o_tmp: restrictio
     | _ -> raise (Failure "Op restrictions in pairs")
   in let combined_op = traverse_o_tmp_in_pairs o_tmp o_bp
   in let reordered_combined_op = reorder_op combined_op in
-  (wrapped_printf "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
+  (wrapped_printf debug_print "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
 let sym_in_oa_lst (s: symbol) (oa_ls: restriction list): bool =

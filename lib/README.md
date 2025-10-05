@@ -3,13 +3,14 @@
 ### Implementation
 
 - [x] **Converter from CFG to TA** 
-     - Start from cleaner data structures (CFG, TA)
-     - Learning O_bp
+     - [x] Start from cleaner data structures (CFG, TA)
+     - [x] Learning O_bp
 
 - [x] **Tree example generation**
+     - [x] Correctly populate symbols (ID) in trees
 
 - [ ] **TA Learner from tree examples** 
-     - [x] Update O_a wrt. trees - Index-based; collect both positive and negatives
+     - [x] Update O_a wrt. trees - _Index-based; collect both positive and negatives_
      - [ ] Update O_p wrt. trees - _Logic changed from earlier version!_ - Yunjeong WIP
      - [ ] Learn TA wrt. O_p and O_a - double check with Gokul on learning TA wrt. O_a
 

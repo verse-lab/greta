@@ -1,5 +1,5 @@
 open Ta
-(* open Treeutils *)
+open Treeutils
 (* open Cfg *)
 
 exception No_state_for_sym_order
@@ -25,19 +25,37 @@ let learn_oa_neg (tree_examples: (string list * tree * (bool * bool * bool) * re
   oa_res
 
 
-let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) (debug_print: bool): 
-  (int, symbol list) Hashtbl.t = 
+let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) 
+  (debug_print: bool): (int, symbol list) Hashtbl.t = 
   let open List in
   let op_related_ls: restriction list list = 
     tree_examples |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) |> map (fun (_sls, _t, (_, _, _), rls) -> rls)
   in 
-  let o_tmp: (restriction * restriction) list = 
+  let o_tmp_ls: (restriction * restriction) list = 
     op_related_ls |> map (fun rls -> if (length rls) = 2 
       then (nth rls 0), (nth rls 1) else raise (Failure "op_relatd_ls should contain only 2 restrictions"))
   in 
   if debug_print then (wrapped_printf debug_print "\n\t O_tmp pair list:\n\t"; 
-    o_tmp |> List.iter (fun (r1, r2) -> Pp.pp_restriction r1; Pp.pp_restriction r2; wrapped_printf debug_print "\n\t"); wrapped_printf debug_print "\n\n");
-  o_bp_tbl
+    o_tmp_ls |> List.iter (fun (r1, r2) -> Pp.pp_restriction r1; Pp.pp_restriction r2; wrapped_printf debug_print "\n\t"); 
+    wrapped_printf debug_print "\n\n");
+  let res_op_tbl: (int, symbol list) Hashtbl.t = 
+    o_tmp_ls |> fold_left (fun op_tbl_acc (r1, r2) -> 
+      begin 
+        let sym1 = sym_of_restrction r1 in (* r1 and r2 symbols should have same order *)
+        let orders_ls: int list = orders_of_sym_in_op_tbl sym1 op_tbl_acc debug_print in 
+        if (List.length orders_ls) = 1 
+        then 
+          begin 
+            let ord: int = orders_ls |> hd in 
+            let sym_top, sym_bot = sym_top_sym_bot_of_restrictions r1 r2 debug_print in
+            update_op_tbl_per_syms sym_top sym_bot ord op_tbl_acc debug_print
+          end
+        else 
+          (* If there are more than 1 orders for these symbols, then run in reverse order *)
+          op_tbl_acc
+      end
+    ) o_bp_tbl in
+  res_op_tbl
 
 (* (* let op_ls: restriction list = combine_op_restrictions_in_pairs o_bp o_tmp debug_print in  *)
   let op_ls: restriction list = combine_op_restrictions_new o_bp o_tmp sts_order_syms_lsls debug_print in  
