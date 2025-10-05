@@ -212,6 +212,9 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
   let nonterm_order_symls: (nonterminal * int * symbol list) list = 
     collect_sym_orders_wrt_nonterm_order nonterms_ordered trans_from_cfg debug_print 
   in
+  let order_symls: (int * symbol list) list = 
+    nonterm_order_symls |> List.map (fun (_nt, lvl, sym_ls) -> (lvl, sym_ls)) |> combine_syms_of_same_order
+  in 
   let rest_ls: restriction list = 
     nonterm_order_symls |> List.fold_left (fun acc (_nt, lvl, sym_ls) -> 
       let sym_precedence_ls: restriction list = 
@@ -219,7 +222,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
       in acc @ sym_precedence_ls) []
   in
   let rest_tbl = Hashtbl.create (List.length rest_ls) in 
-  (nonterm_order_symls |> List.iter (fun (_nt, lvl, sym_ls) -> 
+  (order_symls |> List.iter (fun (lvl, sym_ls) -> 
     Hashtbl.add rest_tbl lvl sym_ls));
 
   (* 3. Find trivial symbol and nontrminal - Ignore for now *)

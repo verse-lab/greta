@@ -41,12 +41,4 @@ let term_of_sym (sym: symbol): string = match sym with _, x, _ -> x
 let syms_equals s1 s2 = 
   (id_of_sym s1) = (id_of_sym s2) && (arity_of_sym s1) = (arity_of_sym s2) && (term_of_sym s1) = (term_of_sym s2) 
 
-(* type optimization = 
- {
-   mutable eps_opt : bool;   (* true if there is no non-trivial <eps, 1> transition               *)
-   mutable paren_opt : bool; (* true if there is no non-trivial <(), 1> transition                *)
-   mutable triv_opt : bool;  (* true if there is no non-trivial <eps, 1> to triv_state transition *)
-   mutable onoff_opt : bool   (* flag created for a special case where you need to turn on and off the eps flag *)
- } *)
-
 let count = ref 0

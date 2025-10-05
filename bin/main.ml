@@ -38,7 +38,7 @@ let safe_arg idx =
 
 let () =
   (* ----------------------------------------------------------------- *)
-  (* --------- Step 0: Initial grammar provided by the user ---------- *)
+  (* Step 0: Initial grammar provided by the user -------------------- *)
   (* ----------------------------------------------------------------- *)
   let parser_file = ref (safe_arg 1) in
   let conflicts_file = ref (safe_arg 2) in
@@ -133,12 +133,7 @@ let () =
     (* Step 5: Learn O_p, O_a wrt. tree examples ----------------------- *)
     (* ----------------------------------------------------------------- *)
     let _oa_learned: T.restriction list = L.learn_oa learned_example_trees debug in
-    (* let op_learned: ((int, T.symbol list) Hashtbl.t) = L.learn_op learned_example_trees in *)
-    
-
-    (* ----------------------------------------------------------------- *)
-    (* Step 6: Learned TA and TA from original CFG are intersected ----- *)
-    (* ----------------------------------------------------------------- *)
+    let _op_learned: ((int, T.symbol list) Hashtbl.t) = L.learn_op learned_example_trees debug in
     
     (* let _ta_learned: T.ta = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
@@ -146,15 +141,28 @@ let () =
     in
     let _learn_ta_elapsed = Sys.time () -. learn_start in *)
     
+    
+    (* ----------------------------------------------------------------- *)
+    (* Step 6: Intersect learned TA and TA from original CFG ----------- *)
+    (* ----------------------------------------------------------------- *)
+    
     (* 
 
     (** Step X: Get disambiguated grammar and write on 'parser_file' *)
     let intersect_start = Sys.time () in
     let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
       O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag debug 
-    in     
+    in
     let intersect_elapsed = Sys.time () -. intersect_start in
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
+    
+    *) 
+    
+    (* ----------------------------------------------------------------- *)
+    (* Step 7: Resulted TA is converted back to CFG -------------------- *)
+    (* ----------------------------------------------------------------- *)
+
+    (*
     let file_written = "./test/grammars/Ga/Ga_results/Gaa.mly" in 
     let grammar = 
       String.split_on_char '.' !parser_file |> List.hd 
@@ -169,7 +177,7 @@ let () =
     Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed;
     (* Time for convering back to CFG *)
    *) 
-    ()
+  ()
   
 end
 else U.no_conflicts_message !parser_file
