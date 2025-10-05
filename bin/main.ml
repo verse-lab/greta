@@ -83,7 +83,7 @@ let () =
     in
     
     let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
-      E.gen_examples !tree_file ranked_symbols debug
+      E.gen_examples !tree_file ranked_symbols prods_map debug
     in 
     if (List.is_empty tree_pairs_lst) then () else 
     (** Step 2: Interact with the user to learn user-preferred T (and T to O_a and O_p) *)

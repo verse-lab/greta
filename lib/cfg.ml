@@ -40,3 +40,12 @@ let id_of_production (p: production) (prods_map: (int * production) list): int =
   let rev_prods_map = prods_map |> List.map (fun x -> (snd x), (fst x)) in
   match (List.assoc_opt p rev_prods_map) with Some i -> i
   | None -> raise (Failure "id_of_production : no corresponding id")
+
+let is_all_caps s =
+  s = String.uppercase_ascii s
+
+let string_to_sigma (s: string): sigma = 
+  if (is_all_caps s) then Term s else Nt s
+
+let string_ls_to_sigma_ls (sls: string list): sigma list = 
+  sls |> List.map string_to_sigma

@@ -7,7 +7,6 @@
      - Learning O_bp
 
 - [x] **Tree example generation**
-     - (Later) Update logic for identifying nonaddreaable ambiguities 
 
 - [ ] **TA Learner from tree examples** - Yunjeong WIP
      - Learning O_a
@@ -33,5 +32,12 @@ xw
 - [ ] Grammar 6 (Michelson)
 - [ ] Grammar 7 (KaiTai)
 - [ ] Grammar 8 (Scilla? - likely to be nonaddressable or SQL)
+
+
+### Room for improvement
+
+* Logic for identifying nonaddreaable ambiguities in tree example
+  generation is not exhaustive
+
 
 
