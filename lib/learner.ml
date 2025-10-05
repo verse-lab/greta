@@ -91,40 +91,44 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
     Pp.pp_obp_tbl res_tbl_wrt_op);  *)
   res_tbl_wrt_op_oa
 
+let populate_trans_tbl_with (trans_tbl: ((state * symbol), beta list) Hashtbl.t) (curr_st: state) (sym: symbol) (prod: production) = 
+  let sig_ls = snd prod in 
+  let trans: beta list = 
+    sig_ls |> Cfgutils.sigma_list_to_beta_list |> List.map (fun b -> match b with | T t -> T t | S _old_st -> S curr_st) in
+  Hashtbl.add trans_tbl (curr_st, sym) trans
 
-let learn_ta (_op_learned: (int, symbol list) Hashtbl.t) (_oa_neg: restriction list) (_prods_map: (int * production) list) 
+
+let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (_oa_neg: restriction list) (prods_map: (int * production) list) 
   (debug_print: bool): ta = 
 
-  (* To resume here! *)
+  let states_res: state list ref = ref [] in 
+  let alph: symbol list ref = ref [] in
+  let trans_tbl = Hashtbl.create (List.length prods_map) in
+  Hashtbl.iter (fun lvl sls ->
+    let curr_state = "e" ^ (string_of_int lvl) in
+    states_res := (curr_state):: !states_res;
+    alph := !alph @ sls;
+    (* To resume here! *)
+    sls |> List.iter (fun sym -> 
+      let sym_prod = production_of_id (id_of_sym sym) prods_map in
+      populate_trans_tbl_with trans_tbl curr_state sym sym_prod);
+    ) op_learned;
+  let alph_res = !alph |> remove_dup_symbols in
+
   let res_ta: ta = 
-  { states = []; alphabet = []; final_states = []; terminals=[]; transitions = Hashtbl.create 0 }
+  { states = !states_res ; alphabet = alph_res ; final_states = ["e0"] ;
+    terminals = []; transitions = trans_tbl }
   in if debug_print then (wrapped_printf debug_print "\n\nLearned TA: \n"; Pp.pp_ta res_ta);
   res_ta
 
 
 (* 
-let get_states (op_ls: restriction list): ((int * state) list) * state = 
-  let default_states = [(0, "C"); (-1, "ϵ")] in
-  let gen_states: (int * state) list = 
-    let num_levels = levels_in_op_ls op_ls in
-    let rec gen_loop lvl curr_idx acc =
-      if (lvl = 0) then List.rev acc
-      else (let new_state = "e" ^ (string_of_int curr_idx)
-            in gen_loop (lvl-1) (curr_idx+1) ((curr_idx, new_state)::acc))
-    in gen_loop num_levels 1 []
-  in
-  (gen_states @ default_states), (List.hd gen_states |> snd)
-
 let get_transitions (oa_ls: restriction list) (op_ls: restriction list) 
   (o_bp_tbl: (int, symbol list) Hashtbl.t) (sym_lhs_ls: (symbol * state) list)
   (a: symbol list) (lvl_state_pairs: (int * state) list) (start: state) 
   (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_syms_nonterms: (symbol * state) list) 
   (sts_order_syms_lsls: ((int * state) * symbol list) list) (debug: bool): 
   ((state * symbol), sigma list list) Hashtbl.t =
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
   
   (* if sym specified in oas happens to have the max ord (o_m), *)
   (* then increase all other sym's of this level to (o_m + 1)   *)
@@ -150,14 +154,5 @@ let get_transitions (oa_ls: restriction list) (op_ls: restriction list)
   let max_lvl = 
     let max_starting_from_zero = sym_ord_ls_wrt_op_new |> List.map snd |> List.fold_left max 0 
     in max_starting_from_zero + 1
-  in
-let learn_ta (example_trees: (string list * tree * (bool * bool) * restriction list) list) (o_bp_tbl: (int, symbol list) Hashtbl.t) 
-  (sym_state_ls: (symbol * state) list) (a: symbol list) 
-  (sym_ord_rhs_ls: ((symbol * int) * sigma list) list) (triv_syms_nonterms: (symbol * state) list) 
-  (sts_order_syms_lsls: ((int * state) * symbol list) list)
-  (debug_print: bool): ta = 
-  let o_bp: restriction list = Hashtbl.fold (fun o syms acc -> 
-    let to_add = syms |> List.fold_left (fun acc' s -> (Prec (s, o))::acc') [] in to_add @ acc) o_bp_tbl [] 
-  in
-  
+
  *)

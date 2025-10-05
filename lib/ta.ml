@@ -42,7 +42,6 @@ let term_of_sym (sym: symbol): string = match sym with _, x, _ -> x
 
 let syms_equals s1 s2 = 
   (id_of_sym s1) = (id_of_sym s2) && (arity_of_sym s1) = (arity_of_sym s2) && (term_of_sym s1) = (term_of_sym s2) 
-
 let is_dummy_sym (s: symbol): bool = 
   syms_equals dummy_sym s
 let count = ref 0
