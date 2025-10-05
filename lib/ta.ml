@@ -32,6 +32,8 @@ exception No_state_in_renaming_map
 let null_ta : ta = 
   { states = []; alphabet = []; final_states = []; terminals = [] ; transitions = Hashtbl.create 0; trivial_sym_states = [] }
 
+let dummy_sym : symbol = (-1, "", -1)
+
 let epsilon_state: state = "ϵ"
 
 let arity_of_sym (sym: symbol): int = match sym with _, _, n -> n
@@ -41,4 +43,6 @@ let term_of_sym (sym: symbol): string = match sym with _, x, _ -> x
 let syms_equals s1 s2 = 
   (id_of_sym s1) = (id_of_sym s2) && (arity_of_sym s1) = (arity_of_sym s2) && (term_of_sym s1) = (term_of_sym s2) 
 
+let is_dummy_sym (s: symbol): bool = 
+  syms_equals dummy_sym s
 let count = ref 0

@@ -11,8 +11,9 @@
 
 - [ ] **TA Learner from tree examples** 
      - [x] Update O_a wrt. trees - _Index-based; collect both positive and negatives_
-     - [ ] Update O_p wrt. trees - _Logic changed from earlier version!_ - Yunjeong WIP
-     - [ ] Learn TA wrt. O_p and O_a - double check with Gokul on learning TA wrt. O_a
+     - [x] Update O_p wrt. trees - _Logic changed from earlier version, updated O_p wrt. O_a_ 
+     - [ ] Update O_p wrt. O_a as needed  - Yunjeong WIP
+     - [ ] Learn TA wrt. O_p and O_a
 
 - [ ] **Intersection** - _To reuse as much as possible_ 
      - Update based on revised data structures

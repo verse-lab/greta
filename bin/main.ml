@@ -129,7 +129,7 @@ let () =
         in loop inp_lst []
     in
     (* Time output *)
-    let _learn_start = Sys.time () in
+    let learn_start = Sys.time () in
     let learned_example_trees: (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
         interact_with_user tree_pairs_lst 
     in 
@@ -137,17 +137,15 @@ let () =
     (* ----------------------------------------------------------------- *)
     (* Step 5: Learn O_a, O_p wrt. tree examples ----------------------- *)
     (* ----------------------------------------------------------------- *)
-    let _oa_positives_learned: T.restriction list = L.learn_oa_pos learned_example_trees debug in
-    let _oa_negatives_learned: T.restriction list = L.learn_oa_neg learned_example_trees debug in
-    let _op_learned: ((int, T.symbol list) Hashtbl.t) = L.learn_op o_bp_tbl learned_example_trees debug in
+    let _oa_pos_learned: T.restriction list = L.learn_oa_pos learned_example_trees debug in
+    let oa_neg_learned: T.restriction list = L.learn_oa_neg learned_example_trees debug in
+    let op_learned: (int, T.symbol list) Hashtbl.t = L.learn_op o_bp_tbl learned_example_trees debug in
     
-    (* let _ta_learned: T.ta = 
-      L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 
-      sts_order_syms_lsls opt_flag debug
+    let _ta_learned: T.ta = 
+      L.learn_ta op_learned oa_neg_learned prods_map debug
     in
-    let _learn_ta_elapsed = Sys.time () -. learn_start in *)
+    let _learn_ta_elapsed = Sys.time () -. learn_start in
     
-
     (* ----------------------------------------------------------------- *)
     (* Step 6: Intersect learned TA and TA from original CFG ----------- *)
     (* ----------------------------------------------------------------- *)

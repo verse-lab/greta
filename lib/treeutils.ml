@@ -15,10 +15,24 @@ let wrapped_printf debug fmt =
   if debug then Printf.printf fmt
   else Printf.ifprintf stdout fmt
 
-(** is_cond_expr : check if state is representing boolean state *)
-let is_cond_expr (s: state): bool =
-  let open Str in
-  string_match (regexp "cond") s 0 || string_match (regexp "Cond") s 0  
+let cons_uniq xs x = if List.mem x xs then xs else x :: xs
+
+let remove_dup_symbols (sym_ls: symbol list): symbol list = 
+  List.rev (List.fold_left cons_uniq [] sym_ls)
+
+let rec chars_of_string ch: char list = 
+  match ch with
+  | "" -> []
+  | ch -> String.get ch 0 :: chars_of_string (String.sub ch 1 (String.length ch - 1))
+
+(* let find_order_of_symbol (tbl: (int, symbol list) Hashtbl.t) (sym: symbol): int =
+  let res_opt = Hashtbl.fold
+    (fun key sym_ls acc ->
+       if List.mem sym sym_ls then Some key else acc)
+    tbl None in 
+  match res_opt with Some i -> i | None -> raise (Failure "find_order_of_symbol : no symbol in tbl") *)
+
+
 
 let is_cond_state (s: state): bool =
   String.starts_with ~prefix:"con" s || String.starts_with ~prefix:"C" s
@@ -41,10 +55,6 @@ let trees_equal (e1: tree) (e2: tree) (debug_print: bool): bool =
 
 let is_leaf (t: tree): bool =
   match t with Leaf _ -> true
-  | Node (_, _) -> false
-
-let is_conditional_leaf (t: tree): bool =
-  match t with Leaf v -> (is_cond_expr v)
   | Node (_, _) -> false
 
 (** return_state : return state (load of Leaf) *)
@@ -113,7 +123,7 @@ let return_node_index (ts: tree list): int =
       if (is_leaf h) then loop tl (ind+1) else ind
   in loop ts 0
 
-let replace_node_wleaf (ts: tree list): tree list =
+(* let replace_node_wleaf (ts: tree list): tree list =
   let open Str in
   let is_cond_expr (s: string): bool =
     string_match (regexp "cond") s 0 || string_match (regexp "Cond") s 0 in
@@ -129,7 +139,7 @@ let replace_node_wleaf (ts: tree list): tree list =
       else if (is_cond_expr prev) 
       then loop tl prev (cnt+1) ((Leaf "expr")::acc) 
       else loop tl prev (cnt+1) ((Leaf prev)::acc)
-  in loop ts ("dummy") 0 []
+  in loop ts ("dummy") 0 [] *)
 
 (** combine_trees_aux : combine 'up_t' as upper and 'lo_t' as lower trees *)
 let combine_trees_aux (up_t: tree) (lo_t: tree): tree = 
@@ -140,7 +150,6 @@ let combine_trees_aux (up_t: tree) (lo_t: tree): tree =
     let up_subts_new = List.mapi (fun i subt -> 
       if (i = last_ind) then Node (lo_sym, lo_subts) else subt) up_subts in
     Node (up_sym, up_subts_new)
-
 
 (** rename_states : rename states in ta_res from /\ *)
 (* let rename_w_parser_friendly_states_in_ta (debug_print: bool) (inp_ta: ta): ta =
@@ -167,8 +176,6 @@ let combine_trees_aux (up_t: tree) (lo_t: tree): tree =
   let ta_res: ta = {states=finals_new; alphabet=inp_ta.alphabet; final_states=[start_new]; terminals = []; transitions=trans_new; trivial_sym_nts=[]} in 
   if debug_print then (wrapped_printf "\nResult of renaming:\n"; Pp.pp_ta ta_res; wrapped_printf "\n");
   ta_res *)
-
-(* let subts_to_list (subts: tree list):  *)
 
 (** tree_to_expr : helper to make the dual tree expression easier
  *                 works for the tree combining 2 trees each of which has height 1
@@ -203,37 +210,6 @@ let tree_to_expr (t: tree) : string list =
         ["("] @ treeexprs_for_subts @ [")"] (* prev version ["("; s] @ *)
   in tree_loop t
 
-(* (TODO) After fixing UI, remove 'gen_dual_expr' and 'present_tree_pair_single_operator' *)
-(** gen_dual_expr : needed only when operators are the same in combined trees
- *                  e.g., (expr + expr) + expr vs. expr + (expr + expr) *)
-let gen_dual_expr (strs: string list): string list =
-  let is_operation (s: string): bool = (s = "+") || (s = "*") in
-  let rec str_loop ls passed_outer to_switch fst_op inner_closed acc =
-    match ls with [] -> acc
-    | h :: tl -> 
-      if (h = ")" && not passed_outer) 
-      then str_loop tl true to_switch fst_op inner_closed (h::acc)
-      else if (h = ")" && passed_outer)
-      then str_loop tl passed_outer true fst_op inner_closed acc
-      else if (is_operation h && to_switch && fst_op)
-      then str_loop tl passed_outer to_switch false inner_closed (")"::h::acc)
-      else if (h = "(" && not inner_closed)
-      then str_loop tl passed_outer to_switch fst_op true acc
-      else if (h = "(" && inner_closed)
-      then str_loop tl passed_outer to_switch fst_op inner_closed ("("::h::acc)
-      else str_loop tl passed_outer to_switch fst_op inner_closed (h::acc)
-  in str_loop (List.rev strs) false false true false []
-
-let present_tree_pair_single_operator (trees: tree * tree): unit =
-  let open Printf in
-  printf "\n\nChoose your preference! \n(Type either 0 or 1.)\n\n";
-  let print_strs ls = printf "\t"; ls |> List.iter (printf "%s "); printf "\n" in 
-  let expr1 = fst trees |> tree_to_expr in 
-  let expr2 = gen_dual_expr expr1 in 
-  printf "Option 0: \n"; print_strs expr1;
-  printf "Option 1: \n"; print_strs expr2; printf "\n"
-  (* ;wrapped_printf "Option 2: \n\tNo preference"; wrapped_printf "\n\n" *)
-
 let present_tree_pair (trees: tree * tree): unit =
   let open Printf in
   printf "\n\nChoose your preference! \n(Type either 0 or 1.)\n\n";
@@ -242,17 +218,6 @@ let present_tree_pair (trees: tree * tree): unit =
   let expr2 = snd trees |> tree_to_expr in (* [fix] instead of 'gen_dual_expr' *)
   printf "Option 0: \n"; print_strs expr1;
   printf "Option 1: \n"; print_strs expr2; printf "\n"
-
-(* (TODO) To remove redundancies wrt figuring out Oa-related trees *)
-let tree_with_single_operator (e: tree): bool =
-  let fst_sym = node_symbol_full e in
-  let bool_ls ls = List.fold_left (fun x acc -> x && acc) true ls in
-  let rec traverse t prev_sym res = 
-    match t with Leaf _ -> res
-    | Node (sym, subts) -> subts 
-      |> List.map (fun t -> traverse t sym ((syms_equals sym prev_sym) && res))
-      |> bool_ls
-  in traverse e fst_sym true
 
 let same_syms ls = 
   let fst_sym = List.hd ls in 
@@ -316,41 +281,6 @@ let update_if_exist_overlapping_symbols_w_diff_order (so_ls: (symbol * int) list
         (if debug then wrapped_printf debug "\n\t Not exist in acc so list\n"; loop so_tl acc)
   in loop so_ls acc_ls 
 
-let refine_raw_rest_lsls_wrt_relativ_order (rlsls: restriction list list) (debug: bool): restriction list = 
-  let sym_ord_lsls: (symbol * int) list list = 
-    rlsls |> List.map (fun rls -> 
-      let fst_elem, snd_elem = List.nth rls 0, List.nth rls 1 in
-      match fst_elem, snd_elem with 
-      | Prec (sym1, o1), Prec (sym2, o2) -> [(sym1, o1); (sym2, o2)]
-      | _ -> raise No_assoc_possible) in 
-  let rec refine_loop (ls: (symbol * int) list list) (map_acc: (symbol * int) list list): (symbol * int) list = 
-    match ls with [] -> List.flatten map_acc 
-    | sols_hd :: sols_tl -> 
-      let new_acc = update_if_exist_overlapping_symbols_w_diff_order sols_hd map_acc debug 
-      in refine_loop sols_tl new_acc
-  in let sym_ord_ls = refine_loop sym_ord_lsls [] 
-  in sym_ord_ls |> List.map (fun (s, o) -> Prec (s, o))
-
-let collect_op_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
-  (debug_print: bool): restriction list = 
-  let wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-  
-  let raw_rest_lsls: restriction list list = example_trees 
-    |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls :: acc else acc) [] 
-    |> List.map (fun r_ls -> r_ls 
-      |> List.map (fun r -> match r with Prec (sym, o) -> Prec (sym, (o-1)) | Assoc _ -> raise No_assoc_possible))
-  in 
-  let refined_rest_ls = refine_raw_rest_lsls_wrt_relativ_order raw_rest_lsls debug_print in
-  (wrapped_printf "\n\t Refined restriction list : "; Pp.pp_restriction_lst refined_rest_ls);
-  let res = example_trees 
-    |> List.fold_left (fun acc (_, _, (_, op), rls) -> if op then rls @ acc else acc) [] 
-    |> List.map (fun r -> match r with Prec (sym, o) -> Prec (sym, (o-1)) | Assoc _ -> raise No_assoc_possible)
-  in 
-  if debug_print then (wrapped_printf "\n  Collected O_p : "; Pp.pp_restriction_lst res); res
-
 (* helper for 'combine_op_restrictions'
  - find all occurrences of (s, o) for sym 's' in o_tmp and combine all the matching o's *)
 let find_in_o_tmp (sym: symbol) (bo: int) (o_tmp: restriction list): int =
@@ -387,16 +317,21 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
 let sort_by_fst_element ls =
   List.sort (fun (f1, _) (f2, _) -> Int.compare f1 f2) ls
 
-let sym_of_restrction (rest: restriction): symbol = 
-  match rest with Assoc _ -> raise (Failure "sym_of_restrction : No assoc possible")
+let sym_of_op_restriction (rest: restriction): symbol = 
+  match rest with Assoc _ -> raise (Failure "sym_of_op_restriction : No assoc possible")
   | Prec (s, _o) -> s
+
+let sym_of_oa_restriction (rest: restriction): symbol = 
+  match rest with Assoc (s, _) -> s
+  | Prec _ -> raise (Failure "sym_of_oa_restriction : No Prec possible")
 
 (* orders_of_sym_in_op_tbl : find all the orders associated with the symbol *)
 let orders_of_sym_in_op_tbl (sym: symbol) (_sym: symbol) (op_tbl: (int, symbol list) Hashtbl.t ) (debug: bool): int list = 
   let orders_res = ref [] in 
   op_tbl |> Hashtbl.iter (fun o sym_ls -> 
     if (List.mem sym sym_ls) then (orders_res := o::!orders_res)); 
-  if debug then (wrapped_printf debug "\n  Orders of "; Pp.pp_symbol sym; Pp.pp_symbol _sym; 
+  if debug then (wrapped_printf debug "\n  Orders of "; Pp.pp_symbol sym; 
+    Pp.pp_symbol _sym; 
     wrapped_printf debug " [ "; !orders_res |> List.iter (fun x -> wrapped_printf debug " %d " x); 
     wrapped_printf debug " ] \n\n"); !orders_res
 
@@ -432,7 +367,8 @@ let remove_sym_at_lvl (tbl: (int, symbol list) Hashtbl.t) (lvl: int) (sym: symbo
       let new_sym_ls = List.filter (fun s -> not (syms_equals sym s)) sym_ls in
       Hashtbl.replace tbl lvl new_sym_ls
 
-let update_op_tbl_per_syms (sym_top: symbol) (sym_bot: symbol) (ord: int) (op_tbl: (int, symbol list) Hashtbl.t) (debug: bool):
+(* Update_op_tbl_per_op_syms : update based on syms wrt. O_p *)
+let update_op_tbl_per_op_syms (sym_top: symbol) (sym_bot: symbol) (ord: int) (op_tbl: (int, symbol list) Hashtbl.t) (debug: bool):
   (int, symbol list) Hashtbl.t =
   
   (* Store the current ord -> symbol list in a temporary list *)
@@ -455,196 +391,13 @@ let update_op_tbl_per_syms (sym_top: symbol) (sym_bot: symbol) (ord: int) (op_tb
     Pp.pp_symbol sym_top; Pp.pp_symbol sym_bot; wrapped_printf debug "\n"; Pp.pp_obp_tbl op_tbl); 
   op_tbl
 
-let combine_op_restrictions_new (o_bp: restriction list) (o_tmp: restriction list) 
-  (sts_order_syms_lsls: ((int * state) * symbol list) list) (debug_print: bool): restriction list = 
-  let wrapped_printf fmt = 
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt 
-  in
+(* Update_op_tbl_per_oa_syms : update based on syms wrt. O_a *)
+let update_op_tbl_per_oa_sym (tbl: (int, symbol list) Hashtbl.t) (_oa_sym: symbol) 
+  (_debug_print: bool): (int, symbol list) Hashtbl.t =
   
-  let raw_lvl_sym_ls: (int * symbol) list = 
-      o_bp |> List.map (fun rst -> match rst with 
-        | Assoc _ -> raise (Failure "combine_op_new: No assoc possible")
-        | Prec (s, o) -> (o, s)) 
-  in 
-  let raw_sym_lvl_ls: (symbol * int) list = 
-      o_bp |> List.map (fun rst -> match rst with 
-        | Assoc _ -> raise (Failure "combine_op_new: No assoc possible")
-        | Prec (s, o) -> (s, o)) 
-  in 
-  let orig_sym_level (s: symbol): int = List.assoc s raw_sym_lvl_ls in 
-  let orig_lhs_st_of_sym (s: symbol): state = 
-   sts_order_syms_lsls |> List.fold_left (fun ac ((_lvl, st), syms) -> 
-    (* assume 'orig_lhs_st_of_sym' is not going to be used for eps_symb  *)
-    if (List.mem s syms) then st::ac else ac) [] |> List.hd in
-  
-
-  let orig_lvl_syms_ls: (int * symbol list) list = 
-    
-    let rec collect_loop (ls: (int * symbol) list) (acc: (int * symbol list) list): (int * symbol list) list = 
-      match ls with 
-      | [] -> List.rev acc
-      | (lvl, s) :: tl -> 
-        begin 
-          let new_lvl_syms: symbol list = 
-            match (List.assoc_opt lvl acc) with None -> s::[]
-            | Some curr_ls -> s::curr_ls in 
-          let new_acc = 
-            if (List.mem_assoc lvl acc) 
-            then (lvl, new_lvl_syms)::(List.remove_assoc lvl acc)
-            else (lvl, new_lvl_syms)::acc in 
-          collect_loop tl new_acc 
-        end
-      in collect_loop raw_lvl_sym_ls []
-  in
-  let is_neg_restriction (rest: restriction): bool = 
-    match rest with Assoc _ -> raise (Failure "is_neg_restriction : No assoc possible") 
-    | Prec (_s, o) -> (o = -1)
-  in
-
-  (* helper for below *)
-  let same_lhs_st_symbol (sym: symbol) (lhs_st: state): bool = 
-    (orig_lhs_st_of_sym sym) = lhs_st
-  in
-  let update_wrt_rests (rests: restriction list) (lvl_syms_lst: (int * symbol list) list): (int * symbol list) list =
-    let curr_syms: symbol list = rests |> List.map sym_of_restrction in
-    let curr_lhs_st: state = orig_lhs_st_of_sym (List.hd curr_syms) in
-    let orig_sym_lvl: int = orig_sym_level (List.hd curr_syms) in 
-    let rec update_loop (lvl_syms_lst: (int * symbol list) list) (acc: (int * symbol list) list) = 
-      match lvl_syms_lst with 
-      | [] -> List.rev acc
-      | (lvl, syms) :: tl -> 
-        (* if lvl < sym's lvl, then reduce lvl by 1 *)
-        if (lvl < orig_sym_lvl) 
-        then update_loop tl ((lvl-1, syms)::acc)
-        (* if lvl = sym's lvl, then take out the sym and append *) 
-        else if (lvl = orig_sym_lvl) 
-        then (let same_lhs_syms_wo_curr_sym: symbol list = 
-                syms |> List.filter (fun sym -> not (List.mem sym curr_syms) && (same_lhs_st_symbol sym curr_lhs_st)) in 
-              let diff_lhs_same_ord_syms: symbol list = 
-                syms |> List.filter (fun s -> not (same_lhs_st_symbol s curr_lhs_st) && ((orig_sym_level s) = orig_sym_lvl)) in 
-              update_loop tl ((lvl, same_lhs_syms_wo_curr_sym) :: (lvl-1, diff_lhs_same_ord_syms) :: (lvl-1, curr_syms) :: acc))
-        (* if lvl > sym's lvl, then just append existing ones *)
-        else update_loop tl ((lvl, syms)::acc)
-    in update_loop lvl_syms_lst []
-  in
-
-  let update_per_o_tmp_rests (otmp_ls: restriction list) (init_lvl_syms_ls: (int * symbol list) list): 
-    (int * symbol list) list = 
-    let relev_rest_ls = otmp_ls |> List.filter is_neg_restriction in
-    (* Sort relev_rest_ls based on the symbols' original level (x) -> symbols' lhs_state! *)
-    let sort_rest_ls (rest_ls: restriction list): restriction list list =
-      let rec sort_loop (ls: restriction list) (rest_lsls_acc: (state * restriction list) list): restriction list list = 
-        match ls with [] -> rest_lsls_acc |> List.map snd
-        | rest_hd :: rtl -> 
-          (* *** fix *** based on whether their corr. lhs_sts are equal *)
-          let curr_rsym_orig_lhs_st = orig_lhs_st_of_sym (sym_of_restrction rest_hd) in
-          let _curr_rsym_orig_lvl = orig_sym_level (sym_of_restrction rest_hd) in 
-          if (List.mem_assoc curr_rsym_orig_lhs_st rest_lsls_acc)
-          then 
-            (let old_rest_ls = List.assoc curr_rsym_orig_lhs_st rest_lsls_acc in 
-             let new_rest_lsls_acc = (curr_rsym_orig_lhs_st, rest_hd::old_rest_ls)::(List.remove_assoc curr_rsym_orig_lhs_st rest_lsls_acc) in
-             sort_loop rtl new_rest_lsls_acc)
-          else sort_loop rtl ((curr_rsym_orig_lhs_st, [rest_hd]) ::rest_lsls_acc)
-      in sort_loop rest_ls []
-    in let relev_rest_lsls: restriction list list = sort_rest_ls relev_rest_ls in 
-    (* (Printf.printf "\n\t (WIP) Checking"; relev_rest_lsls |> List.iter (fun restls -> Pp.pp_restriction_lst restls); Printf.printf "\n"); *)
-    relev_rest_lsls |> List.fold_left (fun lvl_syms_acc rest_ls -> update_wrt_rests rest_ls lvl_syms_acc) init_lvl_syms_ls 
-  in
-  (* helper for below *)
-  let min_list ls = 
-    match ls with 
-    | [] -> invalid_arg "min_list: empty list"
-    | x :: xs -> List.fold_left min x xs
-  in
-  (* rearrange_lvl_syms_from_zero : rearrange (lvl, syms) list to start from zero *)
-  let rearrange_lvl_syms_from_zero (lvl_syms_ls: (int * symbol list) list): (int * symbol list) list = 
-	  (* lvl_syms_ls |> sort_by_fst_element |> List.mapi (fun i (_, sls) -> (i, sls)) *)
-    let min_lvl = lvl_syms_ls |> List.map fst |> min_list in
-    let to_add = 0 - min_lvl in 
-    lvl_syms_ls |> List.map (fun (l, syms) -> ((l+to_add), syms))
-  in 
-  (* lvl_syms_to_rest_ls : convert (lvl, syms) list to restriction list *)
-  let lvl_syms_to_rest_ls (lvl_syms_ls: (int * symbol list) list): restriction list = 
-    let rec gen_rest_per_lvl (lvl: int) (ls: symbol list) (acc: restriction list): restriction list = 
-      match ls with [] -> List.rev acc 
-      | shd :: stl -> 
-        let curr_rest = Prec (shd, lvl) in 
-        gen_rest_per_lvl lvl stl (curr_rest::acc)
-    in
-    lvl_syms_ls |> List.fold_left (fun acc lvl_syms -> 
-      let curr_lvl = fst lvl_syms in 
-      let curr_syms = snd lvl_syms in 
-      acc @ (gen_rest_per_lvl curr_lvl curr_syms [])
-      ) []
-  in
-  let reordered_combined_op = update_per_o_tmp_rests o_tmp orig_lvl_syms_ls 
-    |> rearrange_lvl_syms_from_zero |> lvl_syms_to_rest_ls in 
-  (if debug_print then wrapped_printf "\n  (NEW) Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op);
-  reordered_combined_op
+  tbl
 
 
-let update_op_w_restrictions (hi_sym: symbol) (lo_sym: symbol) (init_op: restriction list): restriction list = 
-  let find_order (s: symbol): int = 
-    init_op |> List.map (fun op -> match op with Assoc _ -> raise (Failure "update_op - Assoc not possible")
-      | Prec (s', o') -> (s', o')) |> List.find (fun (sym, _o) -> syms_equals s sym) |> snd 
-  in
-  let (hi_o, lo_o) = find_order hi_sym, find_order lo_sym in
-  (* if hi_sym's ord > lo_sym's ord then no need to update *)
-  if (hi_o > lo_o) then init_op else 
-    (* otherwise, push lo_sym below hi_sym *)
-    begin 
-      init_op |> List.map (fun rst -> match rst with Assoc _ -> raise (Failure "update_op - Assoc not possible")
-      | Prec (s, o) -> 
-        if (syms_equals s lo_sym) 
-        then (let corr_lo_o = hi_o - 1 in Prec (s, corr_lo_o)) else Prec (s, o))
-    end 
-
-let combine_op_restrictions_in_pairs (o_bp: restriction list) (o_tmp: restriction list) (debug_print: bool): restriction list =
-  let rec traverse_o_tmp_in_pairs ls op_acc = 
-    match ls with [] -> op_acc 
-    | Prec (sym1, bo1) :: Prec (sym2, bo2) :: tl ->
-      let updated_op = if (bo1 > bo2) 
-        then update_op_w_restrictions sym1 sym2 op_acc 
-        else update_op_w_restrictions sym2 sym1 op_acc 
-      in traverse_o_tmp_in_pairs tl updated_op
-    | _ -> raise (Failure "Op restrictions in pairs")
-  in let combined_op = traverse_o_tmp_in_pairs o_tmp o_bp
-  in let reordered_combined_op = reorder_op combined_op in
-  (wrapped_printf debug_print "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
-  reordered_combined_op
-
-let sym_in_oa_lst (s: symbol) (oa_ls: restriction list): bool =
-  let rec traverse_oa ls =
-    match ls with [] -> false
-    | Assoc (sym, _) :: tl -> 
-      if (syms_equals s sym) then true 
-      else traverse_oa tl
-    | Prec (_, _) :: _ -> raise No_prec_possible
-  in traverse_oa oa_ls
-
-let is_left_assoc (s: symbol) (oa_ls: restriction list): bool = 
-  let rec traverse_oa ls: bool =
-    match ls with [] -> raise Assoc_either_left_or_right
-    | Assoc (sym, a) :: tl -> 
-      if (syms_equals s sym) then a = 0
-      else traverse_oa tl
-    | Prec (_, _) :: _ -> raise No_prec_possible
-  in traverse_oa oa_ls
-
-let order_in_op_lst (s: symbol) (op_ls: restriction list): int =
-  let rec traverse_op ls =
-    match ls with [] -> raise Op_has_trivial_symbol
-    | Prec (sym, o) :: tl -> 
-      if (syms_equals s sym) then o
-      else traverse_op tl
-    | Assoc (_, _) :: _ -> raise No_assoc_possible
-  in traverse_op op_ls
-
-let rec chars_of_string ch = 
-  match ch with
-  | "" -> []
-  | ch -> String.get ch 0 :: chars_of_string (String.sub ch 1 (String.length ch - 1))
 
 (* Note! Below works under the assumption that you don't need more than 9 states *)
 let get_higher_state (st: state): state = 
@@ -657,11 +410,12 @@ let get_higher_state (st: state): state =
     else ch) 
   in (new_char_lst) |> List.to_seq |> String.of_seq
 
-let levels_in_op_ls (op_ls: restriction list): int = 
+(* 
+  let levels_in_op_ls (op_ls: restriction list): int = 
   op_ls |> List.map (fun op -> match op with Assoc (_, _) -> raise No_assoc_possible 
   | Prec (_, o) -> o) |> List.sort_uniq compare |> List.length
 
-(* let find_all_trans_starting_from (st: state) (trans_ls: transition list) = 
+let find_all_trans_starting_from (st: state) (trans_ls: transition list) = 
   let rec loop ls acc = 
     match ls with [] -> List.rev acc
     | (lft_st, (_, _)) as tran :: tl -> 
@@ -869,12 +623,8 @@ let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) 
       if (st1 = comp_st1) && (st2 = comp_st2) then true else traverse_pairs tl
   in traverse_pairs st_pairs_ls
 
-let cons_uniq xs x = if List.mem x xs then xs else x :: xs
-
-let remove_dup_symbols (sym_ls: symbol list): symbol list = 
-  List.rev (List.fold_left cons_uniq [] sym_ls)
-
-(* let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list =
+(* 
+let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list =
   let wrapped_printf fmt =
     if debug then Printf.printf fmt
     else Printf.ifprintf stdout fmt
@@ -1150,26 +900,3 @@ let run_again (filename: string): unit =
   (* "./test/grammars/G0/G0_results/G0a000.mly" in *)
 let test_results_filepath (grammar: string) (postfix: string): string = grammar ^ "_" ^ postfix ^ ".mly"
 
-(* let update_flag (current_ta: ta) (triv_states: state list) (opt: optimization) (debug_print: bool): optimization = 
-  let wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
-  (* traverse the TA and if encounter multiple eps transitions then turn on the eps_opt *)
-  let only_triv_states (siglsls: sigma list list): bool = 
-    siglsls |> List.fold_left (fun acc sigls -> 
-      match sigls with 
-      | Nt st' :: [] -> (List.mem st' triv_states) || acc
-      | _ -> false || acc ) false
-  in
-  let coll_lst: sigma list list list = 
-    Hashtbl.fold (fun (_lhs_nt, sy) siglsls acc -> 
-      if (syms_equals sy epsilon_symb) && not (only_triv_states siglsls)
-      then siglsls::acc else acc
-      ) current_ta.transitions [] in
-  (wrapped_printf "\n\t\t Updating the flag!\n";
-  coll_lst |> List.iter (fun x -> Pp.pp_sigma_listlist x));
-    if ((List.length coll_lst) >= 3) && opt.onoff_opt 
-  then { eps_opt = true; paren_opt = opt.paren_opt; triv_opt = opt.triv_opt; onoff_opt = opt.onoff_opt }
-  else opt *)
