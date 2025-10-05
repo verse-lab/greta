@@ -97,23 +97,33 @@ let populate_trans_tbl_with (trans_tbl: ((state * symbol), beta list) Hashtbl.t)
     sig_ls |> Cfgutils.sigma_list_to_beta_list |> List.map (fun b -> match b with | T t -> T t | S _old_st -> S curr_st) in
   Hashtbl.add trans_tbl (curr_st, sym) trans
 
+(* To resume here!
+let update_oa_sym_prod_for_index (sym: symbol) (ind: int) (trans_tbl: ((state * symbol), beta list) Hashtbl.t) = 
+  trans_tbl |> Hashtbl.iter (fun (st, curr_sym) bls ->
+    if (syms_equals curr_sym sym) then let new_beta_ls = update_beta_list_at_index bls st in 
+     ) *)
 
-let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (_oa_neg: restriction list) (prods_map: (int * production) list) 
+let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (oa_neg: restriction list) (prods_map: (int * production) list) 
   (debug_print: bool): ta = 
 
   let states_res: state list ref = ref [] in 
   let alph: symbol list ref = ref [] in
-  let trans_tbl = Hashtbl.create (List.length prods_map) in
-  Hashtbl.iter (fun lvl sls ->
-    let curr_state = "e" ^ (string_of_int lvl) in
-    states_res := (curr_state):: !states_res;
-    alph := !alph @ sls;
-    (* To resume here! *)
-    sls |> List.iter (fun sym -> 
-      let sym_prod = production_of_id (id_of_sym sym) prods_map in
-      populate_trans_tbl_with trans_tbl curr_state sym sym_prod);
-    ) op_learned;
+  let trans_tbl: ((state * symbol), beta list) Hashtbl.t = 
+    Hashtbl.create (List.length prods_map) 
+  in
+    Hashtbl.iter (fun lvl sls ->
+      let curr_state = "e" ^ (string_of_int lvl) in
+      states_res := (curr_state):: !states_res;
+      alph := !alph @ sls;
+      (* To resume here! *)
+      sls |> List.iter (fun sym -> 
+        let sym_prod = production_of_id (id_of_sym sym) prods_map in
+        populate_trans_tbl_with trans_tbl curr_state sym sym_prod);
+      ) op_learned;
   let alph_res = !alph |> remove_dup_symbols in
+  (* oa_neg |> List.iter (fun r -> 
+    match r with Prec _ -> raise (Failure "update trans wrt. oa_neg : o_p not possible")
+    | Assoc (sym, ind) -> update_oa_sym_prod_for_index sym ind trans_tbl); *)
 
   let res_ta: ta = 
   { states = !states_res ; alphabet = alph_res ; final_states = ["e0"] ;
