@@ -17,6 +17,9 @@ let wrapped_printf debug fmt =
 
 let cons_uniq xs x = if List.mem x xs then xs else x :: xs
 
+let is_subset_of small_ls big_ls: bool =
+  List.for_all (fun x -> List.mem x big_ls) small_ls
+
 let remove_dup_symbols (sym_ls: symbol list): symbol list = 
   List.rev (List.fold_left cons_uniq [] sym_ls)
 
@@ -331,7 +334,7 @@ let orders_of_sym_in_op_tbl (sym: symbol) (_sym: symbol) (op_tbl: (int, symbol l
   op_tbl |> Hashtbl.iter (fun o sym_ls -> 
     if (List.mem sym sym_ls) then (orders_res := o::!orders_res)); 
   if debug then (wrapped_printf debug "\n  Orders of "; Pp.pp_symbol sym; 
-    Pp.pp_symbol _sym; 
+    (if (not (is_dummy_sym _sym)) then Pp.pp_symbol _sym); 
     wrapped_printf debug " [ "; !orders_res |> List.iter (fun x -> wrapped_printf debug " %d " x); 
     wrapped_printf debug " ] \n\n"); !orders_res
 
@@ -371,31 +374,63 @@ let remove_sym_at_lvl (tbl: (int, symbol list) Hashtbl.t) (lvl: int) (sym: symbo
 let update_op_tbl_per_op_syms (sym_top: symbol) (sym_bot: symbol) (ord: int) (op_tbl: (int, symbol list) Hashtbl.t) (debug: bool):
   (int, symbol list) Hashtbl.t =
   
-  (* Store the current ord -> symbol list in a temporary list *)
+  (* 0. Store the current ord -> symbol list in a temporary list *)
   let temp_ord_symbols: symbol list = 
     Hashtbl.find op_tbl ord 
   in 
-  (* Push levels >= ord by one and their values (symbol list) also get moved accordingly *)
+  (* 1. Push levels >= ord by one and their values (symbol list) also get moved accordingly *)
   push_keys_higher_than_order ord op_tbl;
 
-  (* Insert the copied symbols in 'temp_ord_symbols' back at level 'ord' *)
+  (* 2. Insert the copied symbols in 'temp_ord_symbols' back at level 'ord' *)
   Hashtbl.add op_tbl ord temp_ord_symbols;
 
-  (* Remove sym_bot at Level 'ord' *)
+  (* 3. Remove sym_bot at Level 'ord' *)
   remove_sym_at_lvl op_tbl ord sym_bot;
 
-  (* Remove sym_top at Level 'ord + 1' *)
+  (* 4. Remove sym_top at Level 'ord + 1' *)
   remove_sym_at_lvl op_tbl (ord+1) sym_top;
 
   if debug then (wrapped_printf debug "\n\t  Updated O_p tbl for symbols : "; 
     Pp.pp_symbol sym_top; Pp.pp_symbol sym_bot; wrapped_printf debug "\n"; Pp.pp_obp_tbl op_tbl); 
   op_tbl
 
+
 (* Update_op_tbl_per_oa_syms : update based on syms wrt. O_a *)
-let update_op_tbl_per_oa_sym (tbl: (int, symbol list) Hashtbl.t) (_oa_sym: symbol) 
-  (_debug_print: bool): (int, symbol list) Hashtbl.t =
+let update_op_tbl_per_oa_sym (oa_sym: symbol) (ord: int) (op_tbl: (int, symbol list) Hashtbl.t) (debug: bool): 
+  (int, symbol list) Hashtbl.t =
   
-  tbl
+  (* 0. Store the current ord -> symbol list in a temporary list *)
+  let temp_ord_symbols: symbol list = 
+    Hashtbl.find op_tbl ord
+  in 
+
+  (* 1. Store S \ sym - symbols of 'ord' without 'oa_sym' *)
+  let ord_symbols_without_oa_sym: symbol list = 
+    temp_ord_symbols |> List.filter (fun x -> not (syms_equals x oa_sym))
+  in 
+  
+  (* 2. Store symbols of 'ord + 1' *)
+  let ord_plus_one_symbols: symbol list = 
+    match (Hashtbl.find_opt op_tbl (ord+1)) with Some sls -> sls | None -> []
+  in
+
+  (* 3. Does symbols of 'ord + 1' have all the 'ord_symbols_without_curr_sym'? *)
+  if (is_subset_of ord_symbols_without_oa_sym ord_plus_one_symbols) 
+  then 
+    (if debug (* 3.1. If it does, then no need to change the current Op_tbl *)
+     then (wrapped_printf debug "\n\t 'order+1' symbols include all the symbols S \ sym_oa \n")) 
+  else 
+    (* 3.2. Otherwise, do the following steps *)
+    begin 
+      (* 4. Push levels >= ord by one and their valies (symbol list) also get moved accordingly *)
+      push_keys_higher_than_order ord op_tbl;
+      
+      (* 5. Insert S\sym 'ord_symbols_without_curr_sym' back at level 'ord + 1' *)
+      Hashtbl.add op_tbl (ord+1) ord_symbols_without_oa_sym;
+    end;
+  if debug then (wrapped_printf debug "\n\t  Updated O_p tbl for symbol : "; 
+    Pp.pp_symbol oa_sym; wrapped_printf debug "\n"; Pp.pp_obp_tbl op_tbl);
+  op_tbl
 
 
 

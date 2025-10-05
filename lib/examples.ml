@@ -427,45 +427,6 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
   pp_due_to_menhir due_to_menhir_ambigs;
   tree_example_pairs
 
-  
-(** negate the pattern (tree) by reversing the hierarchy of an input tree
-  * assume (1) at least 2 or more trees are nested in the input tree
-  *        (2) in each level, there is at most 1 subtree
-  *        (3) whether a subtree is a left or right child does not matter *)
-let negate_pat (debug_print: bool) (pat: tree): tree =
-  let wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
-  if debug_print then (wrapped_printf "\n  >> Negating the following pattern:\n\t";
-  Pp.pp_tree pat; wrapped_printf "\n");
-  (* traverse from top to bottom and store trees in reverse order *)
-  let rec traverse_tree e acc =
-    (* if height <= 1 then no hierarchy to reverse *)
-    if (height pat <= 1) then [pat] else
-      match e with
-      | Leaf _ -> acc
-      | Node (sym, subts) as t_curr ->
-        if (is_there_node subts) then 
-          (let ind = return_node_index subts in
-          let subt_nxt = List.nth subts ind in
-          let subts_new = replace_node_wleaf subts in
-          let t_new = Node (sym, subts_new) in
-          traverse_tree subt_nxt (t_new::acc)) 
-        else traverse_tree (Leaf "dum") (t_curr::acc)
-  in
-  let rev_ls = traverse_tree pat [] in 
-  let rec traverse_lst (prevt: tree list) (ls: tree list) (res: tree) =
-    let is_empty lst = match lst with [] -> true | _ -> false in
-      match ls with
-      | [] -> res
-      | h :: tl -> if (is_empty prevt) then traverse_lst (h::prevt) tl res
-      else let rev_combined = combine_trees_aux (List.hd prevt) h in 
-      traverse_lst [rev_combined] tl rev_combined
-  in let res_t = if (List.length rev_ls <= 1) then List.hd rev_ls else traverse_lst [] rev_ls (Leaf "") in 
-  if debug_print then (wrapped_printf "\n  >> Result of reversing hierarchy of tree:\n\t";
-  Pp.pp_tree res_t; wrapped_printf "\n"); res_t
 
 
 

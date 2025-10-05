@@ -52,11 +52,11 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
         else 
           if (List.length orders_ls) > 1 
           then
-            ((* If there are more than 1 orders for these symbols, then run in reverse order *) 
+            ((* If there are multiple orders for these symbols, then run in reverse order *) 
             let orders_sorted_decr = 
               orders_ls |> List.sort (fun x y -> Int.compare y x) 
-            in orders_sorted_decr |> List.fold_left (fun tlb_acc curr_ord -> 
-              update_op_tbl_per_op_syms sym_top sym_bot curr_ord tlb_acc debug_print) op_tbl_acc)
+            in orders_sorted_decr |> List.fold_left (fun tbl_acc curr_ord -> 
+              update_op_tbl_per_op_syms sym_top sym_bot curr_ord tbl_acc debug_print) op_tbl_acc)
           else 
             (* If length is not >= 1, simply pass op_tbl_acc *) 
             op_tbl_acc
@@ -67,12 +67,29 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
   let oa_ls: restriction list = learn_oa_neg tree_examples debug_print in
   let syms_oa: symbol list = oa_ls |> List.map sym_of_oa_restriction in 
   let res_tbl_wrt_op_oa: (int, symbol list) Hashtbl.t = 
-    syms_oa |> List.fold_left (fun acc_tbl sym -> 
-      let new_acc_tbl = update_op_tbl_per_oa_sym acc_tbl sym debug_print in
-      if debug_print then (wrapped_printf debug_print "\n O_p map after updating wrt O_a: \n"; 
-      Pp.pp_obp_tbl res_tbl_wrt_op); new_acc_tbl) res_tbl_wrt_op 
+    syms_oa |> List.fold_left (fun op_tbl_acc sym -> 
+      let orders_ls: int list = orders_of_sym_in_op_tbl sym dummy_sym op_tbl_acc debug_print in
+      if (List.length orders_ls) = 1
+      then 
+        (let curr_ord = orders_ls |> hd in
+         update_op_tbl_per_oa_sym sym curr_ord op_tbl_acc debug_print)
+      else 
+        if (List.length orders_ls) > 1
+        then 
+          ((* If there are multiple orders for these symbols, then run in reverse order *) 
+          let orders_sorted_decr = 
+            orders_ls |> List.sort (fun x y -> Int.compare y x) 
+          in orders_sorted_decr |> List.fold_left (fun tbl_acc curr_ord -> 
+            update_op_tbl_per_oa_sym sym curr_ord tbl_acc debug_print) op_tbl_acc)
+        else
+          (* If length is not >= 1, simply pass op_tbl_acc *)
+          op_tbl_acc
+      
+      ) res_tbl_wrt_op 
   in
-    res_tbl_wrt_op_oa
+  (* if debug_print then (wrapped_printf debug_print "\n O_p map after updating wrt O_a: \n"; 
+    Pp.pp_obp_tbl res_tbl_wrt_op);  *)
+  res_tbl_wrt_op_oa
 
 let learn_ta (_op_learned: (int, symbol list) Hashtbl.t) (_oa_neg: restriction list) (_prods_map: (int * production) list) 
   (_debug_print: bool): ta = 
