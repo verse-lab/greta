@@ -27,6 +27,9 @@ let rec nonterms_of_sigls (sigls: G.sigma list) (acc: G.nonterminal list): G.non
     | Term _ -> nonterms_of_sigls sig_tl acc 
     | Nt nt -> nonterms_of_sigls sig_tl (nt::acc))
 
+let start_nonterm_of_sigls (sigls: G.sigma list): G.nonterminal = 
+  (nonterms_of_sigls sigls []) |> List.hd
+
 (* rhs_nonterms_of_prods : collect nonterminals that  is different from lhs nonterminal *)
 let rhs_nonterms_of_prods (lhs_nonterm: G.nonterminal) (prods: G.production list) = 
   let rec loop (lhs_nt: G.nonterminal) (ls: G.production list) (acc: G.nonterminal list) = 

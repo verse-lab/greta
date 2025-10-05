@@ -62,12 +62,16 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
   assert (Hashtbl.mem sectionToLine "t");
   assert (Hashtbl.mem sectionToLine "p");
   (* extract cfg *)
-  let start_nonterms = clean $ Hashtbl.find sectionToLine "s" in
+  (* Note: raw_start_nonterms is always [start] *)
+  let raw_start_nonterms: string list = clean $ Hashtbl.find sectionToLine "s" in
+  let raw_start_nonterm: string = 
+    if ((List.length raw_start_nonterms) = 1) then raw_start_nonterms |> List.hd else raise (Failure "") in
+  let start_nonterms = ref [] in
   let nonterms = ref (clean $ Hashtbl.find sectionToLine "nt") in
   let terms= clean $ Hashtbl.find sectionToLine "t" in
   let t_prods = clean $ Hashtbl.find sectionToLine "p" in
   let added_eps = ref false in
-  let raw_productions = List.mapi (fun i x -> 
+  let raw_productions: (string * int * sigma list) list = List.mapi (fun i x -> 
       let split = Str.bounded_split (Str.regexp "->") x 2 in
       let lhs, rhs = 
         List.hd split, 
@@ -88,17 +92,19 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
           raise (Failure "RHS contains unknown symbols"))) rhs)
     ) t_prods
   in
-  let prods: production list = raw_productions |> List.map (fun (lhs, _i, rhs) -> (lhs, rhs)) in
+  let prods: production list = raw_productions |> List.map (fun (lhs, _i, rhs) -> (lhs, rhs))
+    |> List.filter (fun (lhs, rhs) -> if (lhs = raw_start_nonterm) 
+      then (start_nonterms := (start_nonterm_of_sigls rhs)::!start_nonterms); not (lhs = raw_start_nonterm)) in
   let nonterms = !nonterms in
   if debug_print then begin
     Printf.printf "CFG extracted from %s:\n" filename;
-    Printf.printf "Start nonterminals: %s\n" (String.concat " " start_nonterms);
+    Printf.printf "Start nonterminals: %s\n" (String.concat " " !start_nonterms);
     Printf.printf "Nonterminals: %s\n" (String.concat " " nonterms);
     Printf.printf "Terminals: %s\n" (String.concat " " terms);
     Printf.printf "Productions:\n";
     List.iter (fun (lhs, i, rhs) -> Printf.printf "%d: %s -> %s\n" i lhs (String.concat " " (List.map (function Term x -> x | Nt x -> x) rhs))) raw_productions;
   end;
-  { nonterms=(start_nonterms@nonterms) ; terms=terms; starts=start_nonterms; productions=prods }
+  { nonterms = nonterms ; terms = terms ; starts = !start_nonterms ; productions = prods }
 
 let collect_ta_trans_symbols_from_cfg (g: cfg) (_debug: bool): ((state * symbol) * beta list) list * symbol list =
   let rec collect_loop (ls: production list) (trans_acc: ((state * symbol) * beta list) list) (syms_acc: symbol list) = 

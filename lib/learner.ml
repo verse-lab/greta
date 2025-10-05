@@ -95,6 +95,7 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
 let learn_ta (_op_learned: (int, symbol list) Hashtbl.t) (_oa_neg: restriction list) (_prods_map: (int * production) list) 
   (debug_print: bool): ta = 
 
+  (* To resume here! *)
   let res_ta: ta = 
   { states = []; alphabet = []; final_states = []; terminals=[]; transitions = Hashtbl.create 0 }
   in if debug_print then (wrapped_printf debug_print "\n\nLearned TA: \n"; Pp.pp_ta res_ta);

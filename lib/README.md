@@ -16,7 +16,8 @@
      - [ ] Learn TA wrt. O_p and O_a  - Yunjeong WIP
 
 - [ ] **Intersection** - _To reuse as much as possible_ 
-     - Update based on revised data structures
+     - [ ] Update based on revised data structures
+     - [ ] Infer Paren transition back to `e_0` (or other state)
 
 - [ ] **Converter from TA to CFG**
 

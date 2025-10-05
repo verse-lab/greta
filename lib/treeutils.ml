@@ -349,19 +349,19 @@ let sym_top_sym_bot_of_restrictions (r1: restriction) (r2: restriction) (debug: 
     wrapped_printf debug "\n\t  Sym_bot : "; Pp.pp_symbol sym_bot); 
   (sym_top, sym_bot)
 
-let move_keys_if (tbl: (int, symbol list) Hashtbl.t) (threshold: int) (f: int -> int): unit =
-  let to_move =
-    Hashtbl.fold (fun k v acc ->
-      if k >= threshold then (k, f k, v) :: acc else acc
+let move_keys_if (tbl: (int, symbol list) Hashtbl.t) (threshold: int): unit =
+  let to_move: (int * int * symbol list) list =
+    Hashtbl.fold (fun k sls acc ->
+      if k >= threshold then (k, k + 1, sls) :: acc else acc
     ) tbl []
   in
-  List.iter (fun (oldk, newk, v) ->
-    Hashtbl.remove tbl oldk;
-    Hashtbl.replace tbl newk v
-  ) to_move
+  (* Remove all old keys *)
+  List.iter (fun (oldk, _, _) -> Hashtbl.remove tbl oldk) to_move;
+  (* Insert all new keys *)
+  List.iter (fun (_, newk, sls) -> Hashtbl.replace tbl newk sls) to_move
 
-let push_keys_higher_than_order (ord: int) (tbl: (int, symbol list) Hashtbl.t): unit = 
-  move_keys_if tbl ord (fun curr_lvl -> curr_lvl + 1)
+let push_keys_if_gte_order (ord: int) (tbl: (int, symbol list) Hashtbl.t): unit = 
+  move_keys_if tbl ord 
 
 let remove_sym_at_lvl (tbl: (int, symbol list) Hashtbl.t) (lvl: int) (sym: symbol): unit =
   match Hashtbl.find_opt tbl lvl with
@@ -379,10 +379,14 @@ let update_op_tbl_per_op_syms (sym_top: symbol) (sym_bot: symbol) (ord: int) (op
     Hashtbl.find op_tbl ord 
   in 
   (* 1. Push levels >= ord by one and their values (symbol list) also get moved accordingly *)
-  push_keys_higher_than_order ord op_tbl;
+  push_keys_if_gte_order ord op_tbl;
+  (* (if debug then wrapped_printf debug "\n\t  Pushed levels >= ord %d : " ord; 
+    Pp.pp_obp_tbl op_tbl); *)
 
   (* 2. Insert the copied symbols in 'temp_ord_symbols' back at level 'ord' *)
   Hashtbl.add op_tbl ord temp_ord_symbols;
+  (* (if debug then wrapped_printf debug "\n\t  Inserted at ord %d : " ord; 
+    Pp.pp_obp_tbl op_tbl); *)
 
   (* 3. Remove sym_bot at Level 'ord' *)
   remove_sym_at_lvl op_tbl ord sym_bot;
@@ -423,10 +427,15 @@ let update_op_tbl_per_oa_sym (oa_sym: symbol) (ord: int) (op_tbl: (int, symbol l
     (* 3.2. Otherwise, do the following steps *)
     begin 
       (* 4. Push levels >= ord by one and their valies (symbol list) also get moved accordingly *)
-      push_keys_higher_than_order ord op_tbl;
+      push_keys_if_gte_order ord op_tbl;
+      (* (if debug then wrapped_printf debug "\n\t  Pushed levels >= ord %d : " ord; 
+        Pp.pp_obp_tbl op_tbl); *)
       
-      (* 5. Insert S\sym 'ord_symbols_without_curr_sym' back at level 'ord + 1' *)
-      Hashtbl.add op_tbl (ord+1) ord_symbols_without_oa_sym;
+      (* 5. Insert `temp_ord_symbols` at 'ord' *)
+      Hashtbl.add op_tbl ord temp_ord_symbols;
+
+      (* 6. Remove 'oa_sym' at 'ord+1' *)
+      remove_sym_at_lvl op_tbl (ord+1) oa_sym;
     end;
   if debug then (wrapped_printf debug "\n\t  Updated O_p tbl for symbol : "; 
     Pp.pp_symbol oa_sym; wrapped_printf debug "\n"; Pp.pp_obp_tbl op_tbl);
