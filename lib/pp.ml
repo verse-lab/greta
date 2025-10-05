@@ -211,11 +211,11 @@ let pp_restriction_lst (rls:T.restriction list) =
       | T.Prec (s, i) -> noprintf "("; pp_symbol s; noprintf ", %i) " i); noprintf "\n\n"
 
 
-let pp_combined_trees (inp_ls: ((T.tree * (bool * bool) * T.restriction list)) list) =
+let pp_combined_trees (inp_ls: ((T.tree * (bool * bool * bool) * T.restriction list)) list) =
   noprintf "\n\n Resulted example trees: \n\n"; 
-  inp_ls |> iter (fun ((t, (oa, op), rls)) -> 
+  inp_ls |> iter (fun ((t, (oa_pos, _oa_neg, op), rls)) -> 
     noprintf "\t* Tree : "; pp_tree t;
-    noprintf "\n\t\t O_a : %b" oa; noprintf "\n\t\t O_p : %b" op; 
+    noprintf "\n\t\t O_a : %b" oa_pos; noprintf "\n\t\t O_p : %b" op; 
     noprintf "\n\t\t Expression : "; pp_tree_to_expr t;
     noprintf "\n\t\t Restrictions : "; pp_restriction_lst rls; noprintf "\n") 
 

@@ -94,7 +94,7 @@ let () =
     (* Step 2: Generate a set of tree examples wrt ambiguities --------- *)
     (* ----------------------------------------------------------------- *)
 
-    let tree_pairs_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list =
+    let tree_pairs_lst: ((string list * T.tree * (bool * bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool * bool) * T.restriction list)) list =
       E.gen_examples !tree_file ranked_symbols prods_map debug
     in 
     if (List.is_empty tree_pairs_lst) then () else 
@@ -104,35 +104,41 @@ let () =
     (* ----------------------------------------------------------------- *)
 
     let file_postfix = ref "" in
-    let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool) * T.restriction list)) list):
-      (string list * T.tree * (bool * bool) * T.restriction list) list = 
+    let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool * bool) * T.restriction list)) list):
+      (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
         let rec loop lst acc = 
           match lst with [] -> acc
-          | ((texpr_ls1, t1, (oa1, op1), rls1), (texpr_ls2, t2, (oa2, op2), rls2)) :: tl -> 
+          | ((texpr_ls1, t1, (oa1_pos, oa1_neg, op1), rls1), (texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)) :: tl -> 
            (U.present_tree_pair (t1, t2);
             let chosen_index = read_int () in
             file_postfix := !file_postfix ^ (string_of_int chosen_index);
-            if (chosen_index = 0) 
-            then loop tl ((texpr_ls1, t1, (oa1, op1), rls1)::acc)
+            (* Note!
+               If oa, then add logic of whether it's positive or negative based on the choice and collect all trees 
+             *)
+            if (U.is_oa_tree t1) && (U.is_oa_tree t2) 
+            then 
+              begin 
+                if (chosen_index = 0)
+                then loop tl ((texpr_ls1, t1, (true, false, op1), rls1) :: (texpr_ls2, t2, (false, true, op2), rls2) :: acc)
+                else loop tl ((texpr_ls1, t1, (false, true, op1), rls1) :: (texpr_ls2, t2, (true, false, op2), rls2) :: acc)
+              end 
+            else if (chosen_index = 0) 
+            then loop tl ((texpr_ls1, t1, (oa1_pos, oa1_neg, op1), rls1)::acc)
             (* if user selects 1 or any other number, 2nd tree gets selected *)
-            else loop tl ((texpr_ls2, t2, (oa2, op2), rls2)::acc))
+            else loop tl ((texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)::acc))
         in loop inp_lst []
     in
-
-    (* ----------------------------------------------------------------- *)
-    (* Step 4: User specifies preferences, and collect trees chosen ---- *)
-    (* ----------------------------------------------------------------- *)
-
     (* Time output *)
     let _learn_start = Sys.time () in
-    let learned_example_trees: (string list * T.tree * (bool * bool) * T.restriction list) list = 
+    let learned_example_trees: (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
         interact_with_user tree_pairs_lst 
     in 
 
     (* ----------------------------------------------------------------- *)
-    (* Step 5: Learn O_p, O_a wrt. tree examples ----------------------- *)
+    (* Step 5: Learn O_a, O_p wrt. tree examples ----------------------- *)
     (* ----------------------------------------------------------------- *)
-    let _oa_learned: T.restriction list = L.learn_oa learned_example_trees debug in
+    let _oa_positives_learned: T.restriction list = L.learn_oa_pos learned_example_trees debug in
+    let _oa_negatives_learned: T.restriction list = L.learn_oa_neg learned_example_trees debug in
     let _op_learned: ((int, T.symbol list) Hashtbl.t) = L.learn_op learned_example_trees debug in
     
     (* let _ta_learned: T.ta = 
@@ -141,7 +147,7 @@ let () =
     in
     let _learn_ta_elapsed = Sys.time () -. learn_start in *)
     
-    
+
     (* ----------------------------------------------------------------- *)
     (* Step 6: Intersect learned TA and TA from original CFG ----------- *)
     (* ----------------------------------------------------------------- *)

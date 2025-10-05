@@ -10,14 +10,22 @@ let wrapped_printf debug fmt =
   if debug then Printf.printf fmt
   else Printf.ifprintf stdout fmt
 
-let learn_oa (tree_examples: (string list * tree * (bool * bool) * restriction list) list) (debug_print: bool): 
+let learn_oa_pos (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) (debug_print: bool): 
   restriction list = 
   let oa_res = 
-    tree_examples |> List.fold_left (fun acc (_, _, (oa, _), rls) -> if oa then rls @ acc else acc) [] in 
-  if debug_print then (wrapped_printf debug_print "\n  Collected O_a : "; Pp.pp_restriction_lst oa_res); 
+    tree_examples |> List.fold_left (fun acc (_, _, (oa_pos, _oa_neg, _), rls) -> if oa_pos then rls @ acc else acc) [] in 
+  if debug_print then (wrapped_printf debug_print "\n  Collected O_a positives : "; Pp.pp_restriction_lst oa_res); 
   oa_res
 
-let learn_op (_tree_examples: (string list * tree * (bool * bool) * restriction list) list) (_debug_print: bool): 
+let learn_oa_neg (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) (debug_print: bool): 
+  restriction list = 
+  let oa_res = 
+    tree_examples |> List.fold_left (fun acc (_, _, (_oa_pos, oa_neg, _), rls) -> if oa_neg then rls @ acc else acc) [] in 
+  if debug_print then (wrapped_printf debug_print "\n  Collected O_a negatives : "; Pp.pp_restriction_lst oa_res); 
+  oa_res
+
+
+let learn_op (_tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) (_debug_print: bool): 
   ((int, symbol list) Hashtbl.t) = 
   Hashtbl.create 0
 

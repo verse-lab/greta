@@ -282,10 +282,14 @@ let collect_syms (e: tree): symbol list =
         (collect_loop subt []) @ acc') []
       in s::acc @ syms
   in collect_loop e []
+
+let is_oa_tree (t: tree): bool = 
+  let t_syms: symbol list = collect_syms t 
+  in same_syms t_syms
   
-let check_oa_op (e: tree): bool * bool = 
-  let t_syms: symbol list = collect_syms e 
-  in if same_syms t_syms then (true, false) else (false, true)
+(* check_oa_op results in (oa_pos, oa_neg, op) *)
+let check_oa_op (e: tree): bool * bool * bool = 
+  if (is_oa_tree e) then (true, true, false) else (false, false, true)
 
 let collect_oa_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
 (debug_print: bool): restriction list = 

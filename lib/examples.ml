@@ -100,7 +100,7 @@ let pp_due_to_menhir (ambigs: (string * string list) list) =
 
 
 let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.production) list) (debug_print: bool): 
-  ((string list * tree * (bool * bool) * restriction list) * (string list * tree * (bool * bool) * restriction list)) list = 
+  ((string list * tree * (bool * bool * bool) * restriction list) * (string list * tree * (bool * bool * bool) * restriction list)) list = 
   let wrapped_printf fmt =
     if debug_print then Printf.printf fmt
     else Printf.ifprintf stdout fmt
@@ -349,27 +349,27 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
   in
   (* combine_two_trees  *)
   let combine_two_trees (te1: tree * string list) (te2: tree * string list): 
-    (tree * (bool * bool) * restriction list) list =
+    (tree * (bool * bool * bool) * restriction list) list =
     match te1, te2 with 
     | (Leaf _, _), (_, _) | (_, _), (Leaf _, _) -> raise Leaf_is_not_valid
     | (Node (sym1, lvs1), _), (Node (sym2, lvs2), _) -> 
       let lvs1_inserted = insert_tree_in_leaves lvs1 (Node (sym2, lvs2)) in
-      let oa1, op1 = check_oa_op (Node (sym1, lvs1_inserted)) in
-      let r_ls1: restriction list = get_restriction_on_tree (Node (sym1, lvs1_inserted)) oa1 op1 in 
+      let oa1_pos, oa1_neg, op1 = check_oa_op (Node (sym1, lvs1_inserted)) in
+      let r_ls1: restriction list = get_restriction_on_tree (Node (sym1, lvs1_inserted)) oa1_pos op1 in 
       let lvs2_inserted = insert_tree_in_leaves lvs2 (Node (sym1, lvs1)) in
-      let oa2, op2 = check_oa_op (Node (sym2, lvs2_inserted)) in
-      let r_ls2: restriction list = get_restriction_on_tree (Node (sym2, lvs2_inserted)) oa2 op2 in 
-      [Node (sym1, lvs1_inserted), (oa1, op1), r_ls1; Node (sym2, lvs2_inserted), (oa2, op2), r_ls2]
+      let oa2_pos, oa2_neg, op2 = check_oa_op (Node (sym2, lvs2_inserted)) in
+      let r_ls2: restriction list = get_restriction_on_tree (Node (sym2, lvs2_inserted)) oa2_pos op2 in 
+      [Node (sym1, lvs1_inserted), (oa1_pos, oa1_neg, op1), r_ls1; Node (sym2, lvs2_inserted), (oa2_pos, oa2_neg, op2), r_ls2]
   in
   let combine_tree_exprs (e_trees_n_exprs: (tree * string list) list): 
-    (tree * (bool * bool) * restriction list) list = 
+    (tree * (bool * bool * bool) * restriction list) list = 
     let rec combine_loop ls res_acc =
       match ls with 
       | [] -> List.rev res_acc 
       | texpr1 :: tl ->
         if tl = [] then raise Invalid_number_of_trees
         else (let texpr2 = List.hd tl in 
-              let two_trees_combined: (tree * (bool * bool) * restriction list) list = 
+              let two_trees_combined: (tree * (bool * bool * bool) * restriction list) list = 
                   combine_two_trees texpr1 texpr2 in 
                   (* *** debug *** *)
                   if debug_print then (wrapped_printf "\n\n Combined tree: "; 
@@ -389,13 +389,13 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
     let tls: tree list = extracted_trees_n_exprs |> List.map fst 
     in List.iter (fun x -> (Pp.pp_tree x; wrapped_printf "\n\t")) tls; wrapped_printf "\n"); 
     
-  let combined_trees: (tree * (bool * bool) * restriction list) list = 
+  let combined_trees: (tree * (bool * bool * bool) * restriction list) list = 
                                                 combine_tree_exprs extracted_trees_n_exprs in
   (* generate tree expressions by splitting per every two combined ones *)
   let tree_expressions: (string list * string list) list = 
     let rec gen_texprs lst cnt tmp_acc res_acc = 
       match lst with [] -> List.rev res_acc
-      | (t, (_, _), _) :: tl ->
+      | (t, (_, _, _), _) :: tl ->
         if cnt = 0 
         then (let texpr = tree_to_expr t in 
               gen_texprs tl (cnt+1) (texpr::tmp_acc) res_acc)
@@ -405,16 +405,16 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
     in gen_texprs combined_trees 0 [] []
   in
   (* generate tree expressions by splitting per every two combined ones *)
-  let tree_example_pairs: ((string list * tree * (bool * bool) * restriction list) * 
-                           (string list * tree * (bool * bool) * restriction list)) list = 
+  let tree_example_pairs: ((string list * tree * (bool * bool * bool) * restriction list) * 
+                           (string list * tree * (bool * bool * bool) * restriction list)) list = 
     let rec gen_texamples lst cnt tmp_acc res_acc = 
       match lst with [] -> List.rev res_acc
-      | (t, (oa, op), sls) :: tl ->
+      | (t, (oa_pos, oa_neg, op), sls) :: tl ->
         if cnt = 0 
         then (let texpr: string list = tree_to_expr t in 
-              gen_texamples tl (cnt+1) ((texpr, t, (oa, op), sls)::tmp_acc) res_acc)
+              gen_texamples tl (cnt+1) ((texpr, t, (oa_pos, oa_neg, op), sls)::tmp_acc) res_acc)
         else (let texpr: string list = tree_to_expr t in
-              let to_acc = (texpr, t, (oa, op), sls), (List.hd tmp_acc) in
+              let to_acc = (texpr, t, (oa_pos, oa_neg, op), sls), (List.hd tmp_acc) in
               gen_texamples tl 0 [] (to_acc::res_acc))
     in gen_texamples combined_trees 0 [] []
   in
