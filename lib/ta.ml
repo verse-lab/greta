@@ -16,7 +16,7 @@ type ta =
     mutable final_states : state list;
     mutable terminals : terminal list;
     mutable transitions : ((state * symbol), beta list) Hashtbl.t;
-    mutable trivial_sym_states : (symbol * state) list;
+    (* mutable trivial_sym_states : (symbol * state) list; *)
   }
 
 exception Failure of string
@@ -30,7 +30,7 @@ exception Not_same_sym_and_rhs_state_pairs
 exception No_state_in_renaming_map
 
 let null_ta : ta = 
-  { states = []; alphabet = []; final_states = []; terminals = [] ; transitions = Hashtbl.create 0; trivial_sym_states = [] }
+  { states = []; alphabet = []; final_states = []; terminals = [] ; transitions = Hashtbl.create 0 } (* ; trivial_sym_states = [] *)
 
 let dummy_sym : symbol = (-1, "", -1)
 
@@ -46,3 +46,6 @@ let syms_equals s1 s2 =
 let is_dummy_sym (s: symbol): bool = 
   syms_equals dummy_sym s
 let count = ref 0
+let gen_count = ref 0
+
+

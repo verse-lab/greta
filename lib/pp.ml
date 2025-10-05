@@ -153,8 +153,7 @@ let pp_sym_nts_ls (sns: (T.symbol * T.state) list) =
   sns |> List.iter (fun sn -> noprintf "\n\t  "; pp_sym_nts sn); noprintf "   }\n"
 let pp_ta (a: T.ta) =
   pp_upline (); pp_states (a.states); pp_alphabet (a.alphabet); 
-  pp_final_states (a.final_states); pp_transitions_tbl (a.transitions); 
-  (* pp_sym_nts_ls (a.trivial_sym_states); *) pp_loline ()
+  pp_final_states (a.final_states); pp_transitions_tbl (a.transitions); pp_loline ()
 
 let pp_tree (e: T.tree) =
   let rec loop (e: T.tree) =

@@ -243,8 +243,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
     alphabet = symbols_from_cfg;
     final_states = g.starts;
     terminals = g.terms;
-    transitions = trans_tbl;
-    trivial_sym_states = []
+    transitions = trans_tbl
     }
   in res_ta , rest_ls, rest_tbl, prods_map_res
 

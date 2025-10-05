@@ -91,9 +91,14 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
     Pp.pp_obp_tbl res_tbl_wrt_op);  *)
   res_tbl_wrt_op_oa
 
+
 let learn_ta (_op_learned: (int, symbol list) Hashtbl.t) (_oa_neg: restriction list) (_prods_map: (int * production) list) 
-  (_debug_print: bool): ta = 
-  null_ta
+  (debug_print: bool): ta = 
+
+  let res_ta: ta = 
+  { states = []; alphabet = []; final_states = []; terminals=[]; transitions = Hashtbl.create 0 }
+  in if debug_print then (wrapped_printf debug_print "\n\nLearned TA: \n"; Pp.pp_ta res_ta);
+  res_ta
 
 
 (* 
@@ -153,5 +158,5 @@ let learn_ta (example_trees: (string list * tree * (bool * bool) * restriction l
   let o_bp: restriction list = Hashtbl.fold (fun o syms acc -> 
     let to_add = syms |> List.fold_left (fun acc' s -> (Prec (s, o))::acc') [] in to_add @ acc) o_bp_tbl [] 
   in
-  let ta_res: ta = { states = state_ls; alphabet = a; final_states = [init_state]; terminals=[];
+  
  *)
