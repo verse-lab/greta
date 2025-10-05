@@ -44,16 +44,23 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
         let sym1 = sym_of_restrction r1 in (* r1 and r2 symbols should have same order *)
         let sym2 = sym_of_restrction r2 in
         let orders_ls: int list = orders_of_sym_in_op_tbl sym1 sym2 op_tbl_acc debug_print in 
+        let sym_top, sym_bot = sym_top_sym_bot_of_restrictions r1 r2 debug_print in
         if (List.length orders_ls) = 1 
         then 
-          begin 
-            let ord: int = orders_ls |> hd in 
-            let sym_top, sym_bot = sym_top_sym_bot_of_restrictions r1 r2 debug_print in
-            update_op_tbl_per_syms sym_top sym_bot ord op_tbl_acc debug_print
-          end
+          (let curr_ord: int = orders_ls |> hd in 
+          update_op_tbl_per_syms sym_top sym_bot curr_ord op_tbl_acc debug_print)
         else 
-          (* If there are more than 1 orders for these symbols, then run in reverse order *)
-          op_tbl_acc
+          if (List.length orders_ls) > 1 
+          then
+            begin 
+            (* If there are more than 1 orders for these symbols, then run in reverse order *) 
+            let orders_sorted_decr = 
+              orders_ls |> List.sort (fun x y -> Int.compare y x) 
+            in orders_sorted_decr |> List.fold_left (fun tlb_acc curr_ord -> 
+              update_op_tbl_per_syms sym_top sym_bot curr_ord tlb_acc debug_print) op_tbl_acc
+            end
+          else (*. *) 
+            op_tbl_acc
       end
     ) o_bp_tbl in
   res_op_tbl
