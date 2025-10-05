@@ -205,10 +205,13 @@ let pp_tree_to_expr (e: T.tree) =
 let pp_expr_lst (sls:string list) = 
   sls |> iter (fun s -> noprintf " %s " s); noprintf "\n" 
 
+let pp_restriction (r: T.restriction) = 
+  match r with 
+  | T.Assoc (s, i) -> (noprintf "("; pp_symbol s; noprintf ", Index:  %d) " i)
+  | T.Prec (s, i) -> noprintf "("; pp_symbol s; noprintf ",  %i) " i
+
 let pp_restriction_lst (rls:T.restriction list) =
-  rls |> iter (fun r -> match r with 
-      | T.Assoc (s, i) -> (noprintf "("; pp_symbol s; noprintf ", %d) " i)
-      | T.Prec (s, i) -> noprintf "("; pp_symbol s; noprintf ", %i) " i); noprintf "\n\n"
+  rls |> iter pp_restriction; noprintf "\n\n"
 
 
 let pp_combined_trees (inp_ls: ((T.tree * (bool * bool * bool) * T.restriction list)) list) =

@@ -139,7 +139,7 @@ let () =
     (* ----------------------------------------------------------------- *)
     let _oa_positives_learned: T.restriction list = L.learn_oa_pos learned_example_trees debug in
     let _oa_negatives_learned: T.restriction list = L.learn_oa_neg learned_example_trees debug in
-    let _op_learned: ((int, T.symbol list) Hashtbl.t) = L.learn_op learned_example_trees debug in
+    let _op_learned: ((int, T.symbol list) Hashtbl.t) = L.learn_op o_bp_tbl learned_example_trees debug in
     
     (* let _ta_learned: T.ta = 
       L.learn_ta learned_example_trees o_bp_tbl ta_initial.trivial_sym_nts ranked_symbols sym_ord_rhs_lst triv_syms_states 

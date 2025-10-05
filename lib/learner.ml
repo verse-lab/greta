@@ -25,12 +25,21 @@ let learn_oa_neg (tree_examples: (string list * tree * (bool * bool * bool) * re
   oa_res
 
 
-let learn_op (_tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) (_debug_print: bool): 
-  ((int, symbol list) Hashtbl.t) = 
-  Hashtbl.create 0
+let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) (debug_print: bool): 
+  (int, symbol list) Hashtbl.t = 
+  let open List in
+  let op_related_ls: restriction list list = 
+    tree_examples |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) |> map (fun (_sls, _t, (_, _, _), rls) -> rls)
+  in 
+  let o_tmp: (restriction * restriction) list = 
+    op_related_ls |> map (fun rls -> if (length rls) = 2 
+      then (nth rls 0), (nth rls 1) else raise (Failure "op_relatd_ls should contain only 2 restrictions"))
+  in 
+  if debug_print then (wrapped_printf debug_print "\n\t O_tmp pair list:\n\t"; 
+    o_tmp |> List.iter (fun (r1, r2) -> Pp.pp_restriction r1; Pp.pp_restriction r2; wrapped_printf debug_print "\n\t"); wrapped_printf debug_print "\n\n");
+  o_bp_tbl
 
-(* let o_tmp: restriction list = collect_op_restrictions example_trees debug_print in 
-  (* let op_ls: restriction list = combine_op_restrictions_in_pairs o_bp o_tmp debug_print in  *)
+(* (* let op_ls: restriction list = combine_op_restrictions_in_pairs o_bp o_tmp debug_print in  *)
   let op_ls: restriction list = combine_op_restrictions_new o_bp o_tmp sts_order_syms_lsls debug_print in  
   *)
   

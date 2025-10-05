@@ -9,21 +9,16 @@
 - [x] **Tree example generation**
 
 - [ ] **TA Learner from tree examples** 
-     - [x] Update O_a wrt. trees - Based on the index 
+     - [x] Update O_a wrt. trees - Index-based; collect both positive and negatives
      - [ ] Update O_p wrt. trees - _Logic changed from earlier version!_ - Yunjeong WIP
-     <!-- by 12/1 pm -->
      - [ ] Learn TA wrt. O_p and O_a - double check with Gokul on learning TA wrt. O_a
-     <!-- by 2/3 pm -->
 
 - [ ] **Intersection** - _To reuse as much as possible_ 
      - Update based on revised data structures
-     <!-- by 5/6pm -->
 
 - [ ] **Converter from TA to CFG**
-<!-- by 7.30pm -->
 
 - [ ] **Formatter for CFG** - _To reuse as much as possible, may have to modify_
-<!-- by 10.30pm -->
 <!-- Test G_paper end-to-end -->
 
 ### Testing 
