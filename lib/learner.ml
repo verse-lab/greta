@@ -42,7 +42,8 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
     o_tmp_ls |> fold_left (fun op_tbl_acc (r1, r2) -> 
       begin 
         let sym1 = sym_of_restrction r1 in (* r1 and r2 symbols should have same order *)
-        let orders_ls: int list = orders_of_sym_in_op_tbl sym1 op_tbl_acc debug_print in 
+        let sym2 = sym_of_restrction r2 in
+        let orders_ls: int list = orders_of_sym_in_op_tbl sym1 sym2 op_tbl_acc debug_print in 
         if (List.length orders_ls) = 1 
         then 
           begin 
