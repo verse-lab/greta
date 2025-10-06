@@ -111,7 +111,7 @@ let cartesian_product_trans_from (starting_states: (state * state) list)
     in 
     let to_acc: (((state * state) * symbol) * (beta * beta) list) list = 
       beta_pair_lsls |> List.map (fun (sym, b1b2_ls) -> ((st1, st2), sym), b1b2_ls)
-    in acc @ to_acc
+    in to_acc @ acc
     ) [] in 
   (wrapped_printf debug "\n\t Resulted cartesian product transitions:\n"; 
   Pp.pp_raw_cart_product_trans res_cart_product_trans);
@@ -154,6 +154,47 @@ let find_reachable_states (trans_ls: (((state * state) * symbol) * (beta * beta)
     curr_reachable_sts @ acc) []
 
 
+let collect_existing_raw_trans_for_states_pair (from_states: state * state) (raw_trans: (((state * state) * symbol) * (beta * beta) list) list): 
+  ((state * state) * (symbol * (beta * beta) list)) list  = 
+  let from_st1, from_st2 = fst from_states, snd from_states 
+  in raw_trans |> List.fold_left (fun acc (((st1, st2), sym), bb_ls) ->
+    if ((String.equal from_st1 st1) && (String.equal from_st2 st2))
+    then ((st1, st2), (sym, bb_ls)) :: acc
+    else acc) []
+
+(* helper for 'find_duplicate_state_pairs_in_trans_blocks' *)
+let find_state_pair_w_same_raw_rhs (sym_rhs_raw_states: (symbol * (beta * beta) list) list) 
+  (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list): (state * state) list = 
+  let rec loop ls acc = 
+    match ls with [] -> List.rev acc 
+    | (st_pair', raw_trans_ls') :: tl -> 
+      let curr_sym_and_rhs_state_pairs = sym_and_rhs_beta_pairs raw_trans_ls' in
+      if (same_sym_and_rhs_beta_pairs curr_sym_and_rhs_state_pairs sym_rhs_raw_states)
+      then loop tl (st_pair'::acc)
+      else loop tl acc
+  in loop trans_blocks_ls []
+
+let find_duplicate_state_pairs_in_trans_blocks 
+  (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+  (_debug: bool): ((state * state) * (state * state)) list =
+  let rec traverse_trans_blocks (ls: ((state * state) * (((state * state) * (symbol * (beta * beta) list))) list) list) 
+    (acc: ((state * state) * (state * state)) list) =
+    match ls with [] -> acc 
+    | (st_pair, raw_trans_ls) :: tl -> 
+      let sym_and_rhs_raw_sigmas = raw_trans_ls |> sym_and_rhs_beta_pairs in
+      let same_rhs_states_ls: (state * state) list = find_state_pair_w_same_raw_rhs sym_and_rhs_raw_sigmas tl in
+      let state_pairs_to_acc = same_rhs_states_ls |> List.map (fun st_pair' -> (st_pair', st_pair)) in
+      traverse_trans_blocks tl (acc @ state_pairs_to_acc)
+  in let res_state_pairs = traverse_trans_blocks trans_blocks_ls [] in 
+  (* if debug then (Printf.printf "\n\t * Duplicate states pairs : \n\t"; 
+    res_state_pairs |> List.iter (fun pair_of_stats_pair ->  
+      Pp.pp_raw_pair_of_state_pairs pair_of_stats_pair; wrapped_printf debug "\n\t"));  *)
+  res_state_pairs
+
+
+
+
+
 (** Intersection of tree automata *)
 let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   let wrapped_printf fmt = 
@@ -162,6 +203,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 1 - Find the set of final states, ie, Q_f := Q_f_1 x Q_f_2 *)
+  
   let final_states_raw: (state * state) list = 
     a1.final_states |> List.map (fun s1 -> a2.final_states |> List.map (fun s2 -> (s1, s2))) |> List.flatten
   in
@@ -171,8 +213,8 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 2 - Get raw transitions for symbols that 'start_states_raw' from I *)
-  
+  (* Step 2 - Get raw transitions for symbols that 'final_states_raw' from Q_f *)
+
   let raw_init_trans_ls: (((state * state) * symbol) * (beta * beta) list) list = 
       cartesian_product_trans_from final_states_raw a1.transitions a2.transitions debug 
   in
@@ -183,6 +225,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 3 - Find reachable states based on final-states-starting transitions *)
+  
   let init_reachable_states: (state * state) list = 
     find_reachable_states raw_init_trans_ls
   in
@@ -193,35 +236,39 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 4 - Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) *)
+  
   let rec collect_from_all_reachable_states (states_reachable_left: (state * state) list) 
     (states_reachabe_acc: (state * state) list) (trans_acc: (((state * state) * symbol) * (beta * beta) list) list): 
     (((state * state) * symbol) * (beta * beta) list) list * (state * state) list = 
     match states_reachable_left with 
-    | [] -> List.rev trans_acc, states_reachabe_acc
+    | [] -> List.rev trans_acc, List.rev states_reachabe_acc
     | (st_hd1, st_hd2) :: reachable_states_tl -> 
-      if debug then (wrapped_printf "\n\t Looking for raw trans from (%s, %s) " st_hd1 st_hd2);
+      if debug then (wrapped_printf "\n\t * Looking for raw trans from (%s, %s) \n" st_hd1 st_hd2);
       
       (* --- find transitions from the curr states pair --- *)
-      let alph1: symbol list = find_reachable_symbols_from_state st_hd1 a1.transitions 
+      let alph1: symbol list = 
+        find_reachable_symbols_from_state st_hd1 a1.transitions in 
+      let alph2: symbol list = 
+        find_reachable_symbols_from_state st_hd2 a2.transitions in  
+      let alph_overlapped: symbol list = 
+        symbols_in_both_lists alph1 alph2
       in 
-        wrapped_printf "\n\t Symbols from state %s" st_hd1; alph1 |> List.iter Pp.pp_symbol;
-      let alph2: symbol list = find_reachable_symbols_from_state st_hd2 a2.transitions 
-      in  
-        wrapped_printf "\n\t Symbols from state %s" st_hd2; alph2 |> List.iter Pp.pp_symbol;
-      let alph_overlapped: symbol list = symbols_in_both_lists alph1 alph2
-      in 
-      wrapped_printf "\n\t Symbols common in states %s %s:   " st_hd1 st_hd2; alph_overlapped |> List.iter Pp.pp_symbol;
-      let curr_raw_trans_from_states_pair: (((state * state) * symbol) * (beta * beta) list) list = 
+        wrapped_printf "\n\t Symbols common in states %s %s:   " st_hd1 st_hd2; 
+        alph_overlapped |> List.iter Pp.pp_symbol;
+      
+      let curr_raw_trans_from_states_pair: 
+        (((state * state) * symbol) * (beta * beta) list) list = 
         alph_overlapped |> List.fold_left (fun acc sym -> 
-          let to_acc: (((state * state) * symbol) * (beta * beta) list) list = 
-          cartesian_product_trans_from_for_sym (st_hd1, st_hd2) sym a1.transitions a2.transitions debug in 
-          to_acc @ acc) [] 
+          let trans_to_acc: (((state * state) * symbol) * (beta * beta) list) list = 
+            cartesian_product_trans_from_for_sym (st_hd1, st_hd2) sym a1.transitions a2.transitions debug 
+          in 
+            trans_to_acc @ acc) [] 
       in
-      (* --- collect reachable states from the curr states pair --- *)
+      (* Collect reachable states from the curr states pair *)
       let curr_reachable_states = 
         find_reachable_states curr_raw_trans_from_states_pair
       in
-      (* --- pass in as new 'states_reachable', the ones that do not already appeared --- *)
+      (* Pass in as new 'states_reachable', the ones that do not already appeared *)
       let new_states_reachable_to_add: (state * state) list = 
         curr_reachable_states |> List.filter (fun x -> not (List.mem x states_reachabe_acc))
       in 
@@ -229,11 +276,41 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
           (reachable_states_tl @ new_states_reachable_to_add) 
           (states_reachabe_acc @ new_states_reachable_to_add)
           (curr_raw_trans_from_states_pair @ trans_acc)
-  in let all_raw_trans_from_all_reachables, _all_raw_states_reachable = collect_from_all_reachable_states init_reachable_states init_reachable_states [] 
-  in let all_raw_trans = raw_init_trans_ls @ all_raw_trans_from_all_reachables 
-  in
+  in 
+  let raw_trans_from_all_reachables, all_raw_states_reachable = 
+    collect_from_all_reachable_states init_reachable_states init_reachable_states [] in 
+  let all_raw_trans = 
+    raw_init_trans_ls @ raw_trans_from_all_reachables in
   (if debug then pp_upline_new debug; wrapped_printf "### Step 4 - Found all the raw trasitions from all the reachable states  : \n\t"; 
   Pp.pp_raw_transitions all_raw_trans; pp_loline_new debug);
+
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 5 - Write the 'all_raw_trans' in blocks and sort them for better comparison *)
+  let raw_trans_in_blocks_sorted: 
+    ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list =
+  
+    (final_states_raw @ all_raw_states_reachable) |> List.fold_left (fun acc (s1, s2) -> 
+      let block: ((state * state) * (symbol * (beta * beta) list)) list = 
+        collect_existing_raw_trans_for_states_pair (s1, s2) all_raw_trans 
+      in 
+        acc @ [(s1, s2), block]) []
+      |> List.stable_sort (fun (_, trans_ls1) (_, trans_ls2) -> 
+      Int.compare (List.length trans_ls2) (List.length trans_ls1))
+  in
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 5 - Putting raw transitions in blocks of transitions : \n\t";
+    Pp.pp_raw_trans_blocks raw_trans_in_blocks_sorted; pp_loline_new debug);
+
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 6 - Find a list of duplicate states pairs *)
+  let dup_states_pair_ls: ((state * state) * (state * state)) list = 
+    (if debug then wrapped_printf "\n\t  Finding duplicate raw_states pairs.. \n");
+    find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks_sorted debug
+  in
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 6 - Found a list of duplicate states pairs : \n";
+  dup_states_pair_ls |> List.iter (fun ls -> wrapped_printf "\n\t"; Pp.pp_raw_pair_of_state_pairs ls); 
+  pp_loline_new debug);
 
 
 
@@ -250,42 +327,6 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
 
 
 (* 
-
-let collect_existing_raw_trans_for_states_pair (from_states: state * state) (raw_trans: (((state * state) * symbol) * (sigma * sigma) list) list): 
-  ((state * state) * (symbol * (sigma * sigma) list)) list  = 
-  let from_st1, from_st2 = fst from_states, snd from_states 
-  in raw_trans |> List.fold_left (fun acc (((st1, st2), sym), sig_sig_ls) ->
-      if ((String.equal from_st1 st1) && (String.equal from_st2 st2))
-      then ((st1, st2), (sym, sig_sig_ls)) :: acc
-      else acc) []
-
-(* helper for 'find_duplicate_state_pairs_in_trans_blocks' *)
-let find_state_pair_w_same_raw_rhs (sym_rhs_raw_states: (symbol * (sigma * sigma) list) list) 
-  (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): (state * state) list = 
-  let rec loop ls acc = 
-    match ls with [] -> List.rev acc 
-    | (st_pair', raw_trans_ls') :: tl -> 
-      let curr_sym_and_rhs_state_pairs = sym_and_rhs_sigma_pairs raw_trans_ls' in
-      if (same_sym_and_rhs_sigma_pairs curr_sym_and_rhs_state_pairs sym_rhs_raw_states)
-      then loop tl (st_pair'::acc)
-      else loop tl acc
-  in loop trans_blocks_ls []
-
-let find_duplicate_state_pairs_in_trans_blocks 
-  (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
-  (debug: bool): ((state * state) * (state * state)) list =
-  let rec traverse_trans_blocks (ls: ((state * state) * (((state * state) * (symbol * (sigma * sigma) list))) list) list) 
-    (acc: ((state * state) * (state * state)) list) =
-    match ls with [] -> acc 
-    | (st_pair, raw_trans_ls) :: tl -> 
-      let sym_and_rhs_raw_sigmas = raw_trans_ls |> sym_and_rhs_sigma_pairs in
-      let same_rhs_states_ls: (state * state) list = find_state_pair_w_same_raw_rhs sym_and_rhs_raw_sigmas tl in
-      let state_pairs_to_acc = same_rhs_states_ls |> List.map (fun st_pair' -> (st_pair', st_pair)) in
-      traverse_trans_blocks tl (acc @ state_pairs_to_acc)
-  in let res_state_pairs = traverse_trans_blocks trans_blocks_ls [] in 
-  if debug then (Printf.printf "\n\t >> Duplicate states pairs : "; 
-    res_state_pairs |> List.iter (fun pair_of_stats_pair ->  Pp.pp_raw_pair_of_state_pairs pair_of_stats_pair)); 
-  res_state_pairs
 
 let remove_dup_sigma_sigma_ls (sig_sig_ls: (sigma * sigma) list): (sigma * sigma) list = 
   List.rev (List.fold_left cons_uniq [] sig_sig_ls)
@@ -456,28 +497,6 @@ let collect_unique_states_and_map_to_new_states
 
 
 
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 5 - Write the 'raw_trans_from_reachables' in blocks and sort them for better comparison *)
-  let raw_trans_in_blocks_sorted: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
-    (start_states_raw @ all_raw_states_reachable) |> List.fold_left (fun acc (s1, s2) -> 
-      let block: ((state * state) * (symbol * (sigma * sigma) list)) list = 
-        collect_existing_raw_trans_for_states_pair (s1, s2) raw_trans_simplified 
-      in acc @ [(s1, s2), block]) []
-      |> List.stable_sort (fun (_, trans_ls1) (_, trans_ls2) -> 
-      Int.compare (List.length trans_ls2) (List.length trans_ls1))
-  in
-  (if debug_print then begin pp_upline_new (); printf "### Step 5 - Putting raw transitions in blocks of transitions : \n\t";
-    Pp.pp_raw_trans_blocks raw_trans_in_blocks_sorted; pp_loline_new () end);
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 6 - Find a list of duplicate states pairs *)
-  let dup_states_pair_ls: ((state * state) * (state * state)) list = 
-    (if debug_print then printf "\n*** Finding duplicate raw_states pairs : \n");
-    find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks_sorted debug_print
-  in
-  (if debug_print then begin pp_upline_new (); printf "### Step 6 - Found a list of duplicate states pairs : \n";
-    dup_states_pair_ls |> List.iter (fun ls -> printf "\n\t"; Pp.pp_raw_pair_of_state_pairs ls); pp_loline_new () end);
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 7 - Remove transitions based on 'dup_states_pair_ls' *)  

@@ -525,23 +525,27 @@ let are_same_states_pairs (sts_pair1: state * state) (sts_pair2: state * state) 
   (fst sts_pair1) = (fst sts_pair2) && (snd sts_pair2) = (snd sts_pair2)
 
 
-(* 
-
-(* helper to collect RHS of raw transition list, ie, (sym, state pairs list) *)
-let sym_and_rhs_sigma_pairs (raw_trans: ((state * state) * (symbol * (sigma * sigma) list)) list): 
-  (symbol * (sigma * sigma) list) list =
+(* helper to collect RHS of raw transition list, ie, (sym, sigma pairs list) *)
+let sym_and_rhs_beta_pairs (raw_trans: ((state * state) * (symbol * (beta * beta) list)) list): 
+  (symbol * (beta * beta) list) list =
   raw_trans |> List.map (fun (_, (s, rhs_sg_pair_ls)) -> (s, rhs_sg_pair_ls))
 
-let same_sym_and_rhs_sigma_pairs (sym_rhs_stat_pairs1: (symbol * (sigma * sigma) list) list) 
-  (sym_rhs_stat_pairs2: (symbol * (sigma * sigma) list) list): bool =
-  if not ((List.length sym_rhs_stat_pairs1) = (List.length sym_rhs_stat_pairs2))
+let same_sym_and_rhs_beta_pairs (sym_rhs_beta_pairs1: (symbol * (beta * beta) list) list) 
+  (sym_rhs_beta_pairs2: (symbol * (beta * beta) list) list): bool =
+  if not ((List.length sym_rhs_beta_pairs1) = (List.length sym_rhs_beta_pairs2))
   then false
   else (let rec traverse ls = match ls with [] -> true 
         | sym_rhs_states :: tl -> 
-          (if (List.mem sym_rhs_states sym_rhs_stat_pairs2)
+          (if (List.mem sym_rhs_states sym_rhs_beta_pairs2)
            then traverse tl
            else false)
-        in traverse sym_rhs_stat_pairs1)
+        in traverse sym_rhs_beta_pairs1)
+
+
+
+(* 
+
+
 
 let find_renamed_state (st_pair: state * state) 
   (renaming_map: ((state * state) * (state * state)) list): state * state = 

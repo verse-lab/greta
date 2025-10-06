@@ -14,14 +14,15 @@
      - [x] Update O_p wrt. trees - _Logic changed from earlier version, updated O_p wrt. O_a_ 
      - [x] Update O_p wrt. O_a as needed - _Works for multiple orders per sym_
      - [x] Learn TA wrt. O_p and O_a - _Learn wrt. O_a_negatives, w/o triv opt_
-     - [ ] Infer Paren transition back to `e_0` (or other state)
+     - [ ] High to low production detection - Gokul WIP 
 
 - [ ] **Intersection** 
      - [ ] Update based on revised data structures - Yunjeong WIP
+     - [ ] Infer Paren transition back to `e_0` (or other state)
 
 - [ ] **Converter from TA to CFG** - Might skip
 
-- [x] **Formatter for CFG** 
+- [x] **Formatter for CFG** - Gokul WIP 
 
 ### Testing 
 
