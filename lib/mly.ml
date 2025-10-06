@@ -248,8 +248,9 @@ let print_results result =
 
 let mly_of_ta (ta: Ta.ta) (mly: parsed_mly) (mly_production_of_symbol: Ta.symbol -> production): string = 
   let transitions = Hashtbl.to_seq ta.Ta.transitions in
-  let state_transitions: (Ta.state, (Ta.symbol * Ta.beta list) list) Hashtbl.t = Hashtbl.create 10 in
+    
   (* Group transitions by state *)
+  let state_transitions: (Ta.state, (Ta.symbol * Ta.beta list) list) Hashtbl.t = Hashtbl.create 10 in
   Seq.iter (fun ((state, symbol), rhs) ->
     let existing = match Hashtbl.find_opt state_transitions state with
     | Some lst -> lst
@@ -257,9 +258,12 @@ let mly_of_ta (ta: Ta.ta) (mly: parsed_mly) (mly_production_of_symbol: Ta.symbol
     in
     Hashtbl.replace state_transitions state ((symbol, rhs) :: existing)
   ) transitions;
+  let state_transitions = (Hashtbl.to_seq state_transitions) 
+    |> List.of_seq 
+    |> List.sort (fun (s1, _) (s2, _) -> String.compare s1 s2) in
 
   (* Build the mly string *)
-  Hashtbl.fold (fun state transitions acc ->
+  List.fold_left (fun acc (state, transitions) ->
     let state_str = Printf.sprintf "%s:\n" state in
     let trans_str = List.fold_left (fun t_acc (symbol, rhs) ->
       let mly_prod = mly_production_of_symbol symbol in
@@ -277,5 +281,4 @@ let mly_of_ta (ta: Ta.ta) (mly: parsed_mly) (mly_production_of_symbol: Ta.symbol
       t_acc ^ Printf.sprintf "  | %s %s\n" rhs_str action
     ) "" transitions in
     acc ^ "\n" ^ state_str ^ trans_str ^ "  ;\n"
-  ) state_transitions (mly.preamble ^ "\n" ^ separator ^ "\n")
-
+  ) (mly.preamble ^ "\n" ^ separator ^ "\n") state_transitions
