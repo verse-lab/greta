@@ -20,7 +20,7 @@
      - [ ] Update based on revised data structures - Yunjeong WIP
      - [ ] Infer Paren transition back to `e_0` (or other state)
 
-- [ ] **Converter from TA to CFG** - Might skip
+- [ ] **Converter from TA to CFG** - _Might skip_
 
 - [x] **Formatter for CFG** - Gokul WIP 
 

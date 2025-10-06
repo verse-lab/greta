@@ -498,10 +498,10 @@ let state_pair_append (st_pair: state * state): state =
 let state_pairs_equal (st_pair1: state * state) (st_pair2: state * state): bool = 
   (fst st_pair1) = (fst st_pair2) && (snd st_pair1) = (snd st_pair2)
 
-let sig_pair_equals_state_pair (sig_pair: sigma * sigma) (st_pair: state * state): bool = 
+let beta_pair_equals_state_pair (beta_pair: beta * beta) (st_pair: state * state): bool = 
   let st1, st2 = (fst st_pair), (snd st_pair) 
-  in match sig_pair with 
-    | Nt sig1, Nt sig2 -> (String.equal sig1 st1) && (String.equal sig2 st2)
+  in match beta_pair with 
+    | S s1, S s2 -> (String.equal s1 st1) && (String.equal s2 st2)
     | _, _ -> false
 
 let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) list): bool =
@@ -542,11 +542,6 @@ let same_sym_and_rhs_beta_pairs (sym_rhs_beta_pairs1: (symbol * (beta * beta) li
         in traverse sym_rhs_beta_pairs1)
 
 
-
-(* 
-
-
-
 let find_renamed_state (st_pair: state * state) 
   (renaming_map: ((state * state) * (state * state)) list): state * state = 
   match (List.assoc_opt st_pair renaming_map) with 
@@ -555,23 +550,18 @@ let find_renamed_state (st_pair: state * state)
     | Some matched_sts -> matched_sts
 
 let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)) list)
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
-  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list)
+  (_debug: bool): ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list =
   let rec rename_raw_trans ls' acc' =
     match ls' with [] -> List.rev acc'
     | (lhs_st_pair, (sym, rhs_sig_pair_ls)) :: tl' -> 
       let lhs_renamed = find_renamed_state lhs_st_pair states_renaming_map in 
-      let rhs_renamed: (sigma * sigma) list = 
+      let rhs_renamed: (beta * beta) list = 
         rhs_sig_pair_ls |> List.map (fun sig_pr -> 
           match sig_pr with 
-          | Nt s1, Nt s2 -> let (new_st1, new_st2) = find_renamed_state (s1, s2) states_renaming_map in 
-            (Nt new_st1, Nt new_st2)
-          | Term t1, Term _t2 -> (Term t1, Term "")
+          | S s1, S s2 -> let (new_st1, new_st2) = find_renamed_state (s1, s2) states_renaming_map in 
+            (S new_st1, S new_st2)
+          | T t1, T _t2 -> (T t1, T "")
           | _, _ -> raise Not_possible) in
       let renamed_tran = (lhs_renamed, (sym, rhs_renamed)) in 
       rename_raw_trans tl' (renamed_tran :: acc')
@@ -583,9 +573,15 @@ let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)
       let to_acc = ((find_renamed_state st_pair states_renaming_map), renamed_raw_trans) in 
       rename_blocks_loop tl (to_acc :: acc)
   in let res_trans_blocks = rename_blocks_loop trans_blocks [] in 
-  if debug then (wrapped_printf "\n\t >> Results of renaming in trans in blocks : \n"; 
-  res_trans_blocks |> Pp.pp_raw_trans_blocks);
+  (* if debug then (wrapped_printf "\n\t >> Results of renaming in trans in blocks : \n"; 
+  res_trans_blocks |> Pp.pp_raw_trans_blocks); *)
   res_trans_blocks
+
+
+
+(* 
+
+
 
 let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
   (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
