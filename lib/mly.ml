@@ -13,16 +13,26 @@ type production = {
   action: string;
 }
 
+type annotation = {
+  prefix: string;
+  state: string;
+}
+
+type preamble = {
+  code: string;
+  annotations: annotation list; (* %start, %type, etc. *)
+}
+
 type parsed_mly = {
-  preamble: string;
+  preamble: preamble;
   productions: production list;
 }
 
 (* Helper to trim whitespace *)
 let trim = String.trim
 
-(* Check if a line contains only the separator %% *)
 let separator = "%%"
+(* Check if a line contains only the separator %% *)
 let is_separator line =
   trim line = separator
 
@@ -37,6 +47,41 @@ let extract_preamble lines =
           aux (line :: acc) rest
   in
   aux [] lines
+
+(* Parse annotations like %start and %type from preamble lines *)
+let parse_annotation line =
+  let line = trim line in
+  if String.starts_with ~prefix:"%start" line then
+    let rest = trim (String.sub line 6 (String.length line - 6)) in
+    Some { prefix = "%start"; state = rest }
+  else if String.starts_with ~prefix:"%type" line then
+    (* %type <type> nonterminal *)
+    let rest = trim (String.sub line 5 (String.length line - 5)) in
+    (* Extract <type> and nonterminal *)
+    if String.length rest > 0 && rest.[0] = '<' then
+      match String.index_opt rest '>' with
+      | Some idx ->
+          let type_part = String.sub rest 0 (idx + 1) in
+          let nt_part = trim (String.sub rest (idx + 1) (String.length rest - idx - 1)) in
+          Some { prefix = "%type " ^ type_part; state = nt_part }
+      | None -> None
+    else
+      None
+  else
+    None
+
+(* Split preamble into OCaml code and annotations *)
+let split_preamble preamble_str =
+  let lines = String.split_on_char '\n' preamble_str in
+  let rec aux code_lines annotations = function
+    | [] -> 
+        (String.concat "\n" (List.rev code_lines), List.rev annotations)
+    | line :: rest ->
+        match parse_annotation line with
+        | Some annot -> aux code_lines (annot :: annotations) rest
+        | None -> aux (line :: code_lines) annotations rest
+  in
+  aux [] [] lines
 
 (* Remove comments from a string *)
 let remove_comments s =
@@ -222,7 +267,9 @@ let parse_mly_file filename =
       List.rev acc
   in
   let lines = read_lines [] in
-  let (preamble, grammar_lines) = extract_preamble lines in
+  let (preamble_str, grammar_lines) = extract_preamble lines in
+  let (code, annotations) = split_preamble preamble_str in
+  let preamble = { code; annotations } in
   let productions = parse_productions grammar_lines in
   { preamble; productions }
 
@@ -233,7 +280,14 @@ let print_item = function
   | NT { name; binding = Some b } -> Printf.sprintf "NT(%s=%s)" b name
 
 let print_results result =
-  Printf.printf "=== PREAMBLE ===\n%s\n\n" result.preamble;
+  Printf.printf "=== PREAMBLE CODE ===\n%s\n\n" result.preamble.code;
+  
+  Printf.printf "=== ANNOTATIONS ===\n";
+  List.iter (fun annot ->
+    Printf.printf "prefix = %s, state = %s\n" annot.prefix annot.state
+  ) result.preamble.annotations;
+  Printf.printf "\n";
+  
   Printf.printf "=== PRODUCTIONS ===\n";
   List.iter (fun prod ->
     if prod.rhs = [] then
@@ -262,11 +316,15 @@ let mly_of_ta (ta: Ta.ta) (mly: parsed_mly) (mly_production_of_symbol: Ta.symbol
     |> List.of_seq 
     |> List.sort (fun (s1, _) (s2, _) -> String.compare s1 s2) in
 
+  (* old to new state map *)
+  let state_map: (string, string) Hashtbl.t = Hashtbl.create 10 in
+
   (* Build the mly string *)
-  List.fold_left (fun acc (state, transitions) ->
+  let postfix = List.fold_left (fun acc (state, transitions) ->
     let state_str = Printf.sprintf "%s:\n" state in
     let trans_str = List.fold_left (fun t_acc (symbol, rhs) ->
       let mly_prod = mly_production_of_symbol symbol in
+      Hashtbl.add state_map mly_prod.lhs state;
       let mly_rhs = mly_prod.rhs in
       let action = mly_prod.action in
       (assert (List.length rhs = List.length mly_rhs));
@@ -281,4 +339,14 @@ let mly_of_ta (ta: Ta.ta) (mly: parsed_mly) (mly_production_of_symbol: Ta.symbol
       t_acc ^ Printf.sprintf "  | %s %s\n" rhs_str action
     ) "" transitions in
     acc ^ "\n" ^ state_str ^ trans_str ^ "  ;\n"
-  ) (mly.preamble ^ "\n" ^ separator ^ "\n") state_transitions
+  ) (separator ^ "\n") state_transitions in
+
+  mly.preamble.code
+  ^
+  ( 
+    mly.preamble.annotations 
+    |> List.fold_left (fun acc annot ->
+        acc ^ Printf.sprintf "%s %s\n" annot.prefix (Hashtbl.find state_map annot.state)
+      ) ""
+  )
+  ^ postfix
