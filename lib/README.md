@@ -10,10 +10,10 @@
      - [x] Correctly populate symbols (ID) in trees
 
 - [x] **TA Learner from tree examples** 
-     - [x] Update O_a wrt. trees - _Index-based; collect both positive and negatives_
+     - [x] Update O_a wrt. trees - _Index-based; collect negative examples with index_
      - [x] Update O_p wrt. trees - _Logic changed from earlier version, updated O_p wrt. O_a_ 
      - [x] Update O_p wrt. O_a as needed - _Works for multiple orders per sym_
-     - [x] Learn TA wrt. O_p and O_a - Learn wrt. O_a_negatives
+     - [x] Learn TA wrt. O_p and O_a - _Learn wrt. O_a_negatives, w/o triv opt_
 
 - [ ] **Intersection** 
      - [ ] Update based on revised data structures - Yunjeong WIP

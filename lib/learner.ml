@@ -130,18 +130,27 @@ let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (oa_neg: restriction lis
 
   let states_res: state list ref = ref [] in 
   let alph: symbol list ref = ref [] in
+  let max_lvl = (Hashtbl.length op_learned) - 1 in 
   let trans_tbl: ((state * symbol), beta list) Hashtbl.t = 
     Hashtbl.create (List.length prods_map) 
   in
     Hashtbl.iter (fun lvl sls ->
-      let curr_state = "e" ^ (string_of_int lvl) in
-      states_res := (curr_state):: !states_res;
-      alph := !alph @ sls;
-      (* To resume here! *)
-      sls |> List.iter (fun sym -> 
-        let sym_prod = production_of_id (id_of_sym sym) prods_map in
-        populate_trans_tbl_with trans_tbl curr_state sym sym_prod);
-      ) op_learned;
+      let curr_state = "e" ^ (string_of_int lvl) 
+      in 
+        states_res := (curr_state):: !states_res;
+        alph := !alph @ sls;
+        (* Learn wrt. O_p learned *)
+        sls |> List.iter (fun sym -> 
+          let sym_prod = production_of_id (id_of_sym sym) prods_map in
+          populate_trans_tbl_with trans_tbl curr_state sym sym_prod);
+
+          (* Also connect each state to next until max level *)
+          if (lvl < max_lvl) then 
+            (let higher_state: state = increment_suffix curr_state in 
+            let corr_beta_ls: beta list = [(S higher_state)] in
+            Hashtbl.add trans_tbl (curr_state, epsilon_sym) corr_beta_ls)
+    ) op_learned;
+  
   let alph_res = !alph |> remove_dup_symbols in
   oa_neg |> List.iter (fun r -> 
     match r with Prec _ -> raise (Failure "update trans wrt. oa_neg : o_p not possible")

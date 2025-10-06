@@ -12,7 +12,7 @@ module T = Ta
 (* *************** Grammar REpair with Tree Automata *************** *)
 (*                                                                   *)
 (* Step 0: User feeds in input                                       *)
-(* - 'parser_file' grammar of the input language                     *)
+(*   - 'parser_file' grammar of the input language                   *)
 (*                                                                   *)
 (* Step 1: Input CFG is converted to TA                              *)
 (*                                                                   *)
@@ -28,8 +28,10 @@ module T = Ta
 (* Step 6: Learned TA and TA from original CFG are intersected       *)
 (*                                                                   *)
 (* Step 7: Resulted TA is converted back to CFG                      *)
-(* - If ambiguities still exist, repeat Step 2                       *)
-(* - Repeat 2-5 until all addressable ambiguities are resolved       *)
+(*                                                                   *)
+(* Step 8: Resulted CFG is written on the parser.mly file            *)
+(*   - If ambiguities still exist, repeat Step 2                     *)
+(*   - Repeat 2-7 until all addressable ambiguities are resolved     *)
 (*                                                                   *)
 (* ***************************************************************** *)
 let safe_arg idx =
@@ -84,11 +86,12 @@ let () =
     in
     let (ta_initial, o_bp, o_bp_tbl, prods_map): 
       T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) * (int * G.production) list = 
-      C.convertToTa !cfg_file debug in
-      
+      C.convertToTa !cfg_file debug 
+    in  
     let _convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet 
     in
+    
     
     (* ----------------------------------------------------------------- *)
     (* Step 2: Generate a set of tree examples wrt ambiguities --------- *)
@@ -98,6 +101,7 @@ let () =
       E.gen_examples !tree_file ranked_symbols prods_map debug
     in 
     if (List.is_empty tree_pairs_lst) then () else 
+    
     
     (* ----------------------------------------------------------------- *)
     (* Step 3: User specifies preferences, and collect trees chosen ---- *)
@@ -109,36 +113,39 @@ let () =
         let rec loop lst acc = 
           match lst with [] -> acc
           | ((texpr_ls1, t1, (oa1_pos, oa1_neg, op1), rls1), (texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)) :: tl -> 
-           (U.present_tree_pair (t1, t2);
+            (U.present_tree_pair (t1, t2);
             let chosen_index = read_int () in
             file_postfix := !file_postfix ^ (string_of_int chosen_index);
             (* If oa, then add logic of whether it's pos/neg wrt. choice and collect all trees *)
             if (U.is_oa_tree t1) && (U.is_oa_tree t2) 
             then 
-              begin 
-                if (chosen_index = 0)
-                then loop tl ((texpr_ls1, t1, (true, false, op1), rls1) :: (texpr_ls2, t2, (false, true, op2), rls2) :: acc)
-                else loop tl ((texpr_ls1, t1, (false, true, op1), rls1) :: (texpr_ls2, t2, (true, false, op2), rls2) :: acc)
-              end 
+              (if (chosen_index = 0)
+              then loop tl ((texpr_ls1, t1, (true, false, op1), rls1) :: (texpr_ls2, t2, (false, true, op2), rls2) :: acc)
+              else loop tl ((texpr_ls1, t1, (false, true, op1), rls1) :: (texpr_ls2, t2, (true, false, op2), rls2) :: acc))
             else if (chosen_index = 0) 
             then loop tl ((texpr_ls1, t1, (oa1_pos, oa1_neg, op1), rls1)::acc)
-            (* if user selects 1 or any other number, 2nd tree gets selected *)
-            else loop tl ((texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)::acc))
+            else 
+              (* if user selects 1 or any other number, 2nd tree gets selected *)
+              loop tl ((texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)::acc))
         in loop inp_lst []
     in
     (* Time output *)
     let learn_start = Sys.time () in
     let learned_example_trees: (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
-        interact_with_user tree_pairs_lst 
+      interact_with_user tree_pairs_lst 
     in 
+
 
     (* ----------------------------------------------------------------- *)
     (* Step 4: Learn O_a, O_p wrt. tree examples ----------------------- *)
     (* ----------------------------------------------------------------- *)
     
-    let oa_neg_learned: T.restriction list = L.learn_oa_neg learned_example_trees debug in
-    let op_learned: (int, T.symbol list) Hashtbl.t = L.learn_op o_bp_tbl learned_example_trees debug in
+    let oa_neg_learned: T.restriction list =
+       L.learn_oa_neg learned_example_trees debug in
+    let op_learned: (int, T.symbol list) Hashtbl.t = 
+      L.learn_op o_bp_tbl learned_example_trees debug in
     
+
     (* ----------------------------------------------------------------- *)
     (* Step 5: TA is learned via original CFG and O_p, O_a (neg) ------- *)
     (* ----------------------------------------------------------------- *)
@@ -148,6 +155,7 @@ let () =
     in
     let _learn_ta_elapsed = Sys.time () -. learn_start in
     
+
     (* ----------------------------------------------------------------- *)
     (* Step 6: Intersect learned TA and TA from original CFG ----------- *)
     (* ----------------------------------------------------------------- *)
@@ -156,22 +164,26 @@ let () =
     let _ta_intersected: T.ta = O.intersect ta_initial ta_learned debug 
     in
     let _intersect_elapsed = Sys.time () -. intersect_start in
-    (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
-    
     
     (* ----------------------------------------------------------------- *)
     (* Step 7: Resulted TA is converted back to CFG -------------------- *)
     (* ----------------------------------------------------------------- *)
 
-    (** Step X: Get disambiguated grammar and write on 'parser_file' *)
+    (* let cfg_res =  
+      C.convertToGrammar ta_intersected states_rename_map debug in *)
+
+    
+    (* ----------------------------------------------------------------- *)
+    (* Step 8: Resulted CFG is written on the output file -------------- *)
+    (* ----------------------------------------------------------------- *)
+
     (*
     let file_written = "./test/grammars/Ga/Ga_results/Gaa.mly" in 
     let grammar = 
       String.split_on_char '.' !parser_file |> List.hd 
-      (* "Gaa"   *)
     in
     let _file_written = U.test_results_filepath grammar !file_postfix in 
-    C.convertToGrammar ta_intersected states_rename_map ta_initial.start_states !parser_file file_written opt_flag debug;
+     !parser_file file_written
     
     Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_written;
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" _convert_elapsed;

@@ -108,20 +108,18 @@ let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) =
     s_ls |> iter pp_symbol; noprintf "\n"); noprintf "    ]\n"
 
 
-(* let pp_raw_transitions (ts: ((T.state * T.state) * (T.symbol * (T.state * T.state) list)) list) = 
-  noprintf "\tRaw Transitions : { \n"; ts |> iter (fun ((st1, st2), (sym, st_pairs_ls)) -> 
-    noprintf "\t\t\t(%s, %s) ->_{<%s, %i>} [ " st1 st2 (fst sym) (snd sym); 
-    st_pairs_ls |> iter (fun (rst1, rst2) -> noprintf "(%s, %s) " rst1 rst2); noprintf "]\n");
-    noprintf " \t\t      }\n"
-
-let pp_raw_transitions_new (ts: (((T.state * T.state) * T.symbol) * (C.sigma * C.sigma) list list) list) = 
+(* let pp_raw_transitions (ts: (((T.state * T.state) * T.symbol) * (C.sigma * C.sigma) list list) list) = 
   noprintf "\tRaw Transitions (new) : { \n"; ts |> iter (fun (((st1, st2), sym), sig_pairs_lsls) -> 
     (* [prev] "\t\t\t(%s, %s) ->_{<%s, %i>} [ " *)
     noprintf "(%s, %s) ->_{<%s, %i>} [ " st1 st2 (fst sym) (snd sym); 
     sig_pairs_lsls |> iter (fun sig_pairs_ls -> sig_pairs_ls 
       |> iter (fun (rsig1, rsig2) -> noprintf " ( "; pp_sigma rsig1; noprintf ", "; pp_sigma rsig2; noprintf ")  ")); 
-      noprintf "]\n"); noprintf " \t\t      }\n"
+      noprintf "]\n"); noprintf " \t\t      }\n" *)
 
+
+
+
+(* 
 let pp_raw_trans_simplified (ts: (((T.state * T.state) * T.symbol) * (C.sigma * C.sigma) list) list) =
   noprintf "\tRaw Transitions (new) : { \n"; ts |> iter (fun (((st1, st2), sym), sig_pairs_ls) -> 
     (* [prev] "\t\t\t(%s, %s)  ->_{<%s, %i>}  " *)
@@ -135,13 +133,12 @@ let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) 
     blocks_ls |> iter (fun (((st1', st2'), (sym, sig_sig_ls)): (T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) ->
       noprintf "\t\t\t\t\t  (%s, %s)  ->_{<%s, %i>}  " st1' st2' (fst sym) (snd sym); pp_sigma_sigma_list sig_sig_ls))
 
-
  *)
 
 let pp_transitions_tbl (tbl: ((T.state * T.symbol), T.beta list) Hashtbl.t) = 
   noprintf "\n\tTransitions (htbl): { ";
   tbl |> Hashtbl.iter (fun (lhs, s) ls ->  (* prev below "\n\t\t\t\t( State %s, " *)
-    let print_lhs_st_sym () = noprintf "\n( State %s, " lhs; pp_symbol s; noprintf ") -> " in 
+    let print_lhs_st_sym () = noprintf "\n\t( State %s, " lhs; pp_symbol s; noprintf ") -> " in 
       print_lhs_st_sym (); noprintf "[ "; ls |> pp_beta_list; noprintf "] "); 
       noprintf "\n\t\t\t    }\n"
 
