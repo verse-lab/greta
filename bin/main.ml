@@ -133,7 +133,7 @@ let () =
     let learn_start = Sys.time () in
     let learned_example_trees: (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
       interact_with_user tree_pairs_lst 
-    in 
+    in
 
 
     (* ----------------------------------------------------------------- *)
@@ -143,7 +143,7 @@ let () =
     let oa_neg_learned: T.restriction list =
        L.learn_oa_neg learned_example_trees debug in
     let op_learned: (int, T.symbol list) Hashtbl.t = 
-      L.learn_op o_bp_tbl learned_example_trees debug in
+      L.learn_op o_bp_tbl learned_example_trees oa_neg_learned debug in
     
 
     (* ----------------------------------------------------------------- *)

@@ -41,7 +41,7 @@ let learn_oa_neg (tree_examples: (string list * tree * (bool * bool * bool) * re
 
 
 let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) 
-  (debug_print: bool): (int, symbol list) Hashtbl.t = 
+  (oa_ls: Ta.restriction list) (debug_print: bool): (int, symbol list) Hashtbl.t = 
   let open List in
   let op_related_ls: restriction list list = 
     tree_examples |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) |> map (fun (_sls, _t, (_, _, _), rls) -> rls)
@@ -79,7 +79,6 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
     ) o_bp_tbl 
   in
   (* Now update op_tbl wrt. oa_ls *)
-  let oa_ls: restriction list = learn_oa_neg tree_examples debug_print in
   let syms_oa: symbol list = oa_ls |> List.map sym_of_oa_restriction in 
   let res_tbl_wrt_op_oa: (int, symbol list) Hashtbl.t = 
     syms_oa |> List.fold_left (fun op_tbl_acc sym -> 
