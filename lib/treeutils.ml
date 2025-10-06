@@ -564,81 +564,26 @@ let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_
       else cross_product_siglsls stl1 stl2 triv_states ((Nt nt1, Nt nt2)::acc)
   | (Term _)::_, (Nt _)::_ | (Nt _)::_, (Term _)::_ | _, [] | [], _ -> raise No_cross_product_sigls_possible
 
-let cross_product_raw_sigma_lsls (sig_lsls_ls1: (sigma list list) list) (sig_lsls_ls2: (sigma list list) list) 
-  (triv_states: state list) (debug: bool): (sigma * sigma) list list =
+*)
+
+let cross_product_raw_betapair_ls (bls_ls1: (beta list) list) (bls_ls2: (beta list) list) 
+  (debug: bool): (beta * beta) list =
   let wrapped_printf fmt =
     if debug then Printf.printf fmt
     else Printf.ifprintf stdout fmt
   in
 
   let open List in
-  if debug then (wrapped_printf "\n\tFinding cross product of sigma_lsls's first sig_lsls : \n"; 
-    sig_lsls_ls1 |> List.iter Pp.pp_sigma_listlist; wrapped_printf "\n\tThen second sig_lsls : \n"; sig_lsls_ls2 |> List.iter Pp.pp_sigma_listlist);
-  (* --- helper --- *)
-  let rec cross_loop lsls1 lsls2 (acc: (sigma * sigma) list list) = 
-    match lsls1 with [] -> acc
-    | sig_ls_hd1 :: tl1 -> 
-      let sig_ls2: sigma list = find_corresponding_sigls sig_ls_hd1 lsls2 triv_states in
-      (if debug then wrapped_printf "\n\t --> corresponding sigma list: \t"; Pp.pp_sigma_list sig_ls2);
-      if (is_empty sig_ls2) then cross_loop tl1 lsls2 acc
-      else (let cross_product_siglsls = cross_product_siglsls sig_ls_hd1 sig_ls2 triv_states [] in
-            if (mem cross_product_siglsls acc)
-            then cross_loop tl1 lsls2 acc
-            else cross_loop tl1 lsls2 (cross_product_siglsls::acc))
-  in
-  let len1, len2 = length (sig_lsls_ls1), length (sig_lsls_ls2) in
-  let reslsls: (sigma * sigma) list list =
-    if (is_empty sig_lsls_ls1) || (is_empty sig_lsls_ls2) then [[]]
-    else 
-      begin
-        if (len1 = 1) && (len2 = 1) 
-        then 
-          (let sig_lsls1, sig_lsls2 = hd sig_lsls_ls1, hd sig_lsls_ls2 
-           in cross_loop sig_lsls1 sig_lsls2 [])
-        else 
-          (if (len1 < len2) 
-           then 
-            (* assume sig_lsls_ls2 is longer *)
-            (let sig_lsls1 = hd sig_lsls_ls1 in 
-             sig_lsls_ls2 |> fold_left (fun acc lsls2 -> 
-              acc @ (cross_loop sig_lsls1 lsls2 [])) [] 
-              |> Utils.remove_dups)
-           else 
-            if (len1 > len2) 
-            then 
-              (let sig_lsls2 = hd sig_lsls_ls2 in 
-               sig_lsls_ls1 |> fold_left (fun acc lsls1 -> 
-                acc @ (cross_loop lsls1 sig_lsls2 [])) [] 
-                |> Utils.remove_dups)
-              else 
-                ((* *** [new_fix] for G2b 010 case *** *)
-                let sig_lsls_ls1' = sig_lsls_ls1 |> List.flatten in
-                let sig_lsls_ls2' = sig_lsls_ls2 |> List.flatten in
-                let len1', len2' = length (sig_lsls_ls1'), length (sig_lsls_ls2') in
-                wrapped_printf "\n\t\t What's new len(sig_lsls_ls1) %d vs. leng(sig_lsls_ls2) %d\n" len1' len2';
-                if (len1' = len2') 
-                then 
-                  (let _sig_lsls1_hd = hd sig_lsls_ls1 in 
-                    let res_here: (sigma * sigma) list list = 
-                      sig_lsls_ls1 |> fold_left (fun acc' sig_lsls1 -> 
-                        let res' = 
-                          sig_lsls_ls2 |> fold_left (fun acc lsls2 -> 
-                            let interm_res = (cross_loop sig_lsls1 lsls2 []) in
-                            if (interm_res = [[]]) then acc else 
-                            acc @ interm_res) [] 
-                            |> Utils.remove_dups
-                        in res' @ acc'
-                        ) []
-                      in
-                      res_here |> List.iter Pp.pp_sigma_sigma_list; res_here)
-                else 
-                  (wrapped_printf"\n\tCross product bug position!\n";
-                   raise No_cross_product_sigls_possible)))
-      end
-    in 
+  if debug then (wrapped_printf "\n\t Finding cross product of sigma_lsls's first sig_lsls : \n"; 
+    bls_ls1 |> List.iter (fun bls -> wrapped_printf "\t\t"; Pp.pp_beta_list bls; wrapped_printf "\n"); 
+    wrapped_printf "\n\t Then second sig_lsls : \n"; 
+    bls_ls2 |> List.iter (fun bls -> wrapped_printf "\t\t"; Pp.pp_beta_list bls; wrapped_printf "\n")); []
+  (*
     let reslsls_refined = reslsls |> filter (fun ls -> not (is_empty ls)) in 
     if debug then (wrapped_printf "\n\n\n  >> Result of cross product:\n\t"; reslsls_refined |> iter Pp.pp_sigma_sigma_list; wrapped_printf "\n\n\n"); 
-      reslsls_refined *)
+      reslsls_refined  *)
+
+
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
   (* wrapped_printf "\n Is Symbol %s in tbl? \n" (fst sym); *)
@@ -667,26 +612,11 @@ let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) 
       if (st1 = comp_st1) && (st2 = comp_st2) then true else traverse_pairs tl
   in traverse_pairs st_pairs_ls
 
+let symbols_in_both_lists ls1 ls2 =
+  List.filter (fun x -> List.mem x ls2) ls1
+
+
 (* 
-let take_smaller_symbols_list (a1: symbol list) (a2: symbol list) (debug: bool): symbol list =
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-  
-  let check_subset_of_fst_in_snd (syms1: symbol list) (syms2: symbol list): symbol list = 
-    let rec loop ls acc = 
-      match ls with [] -> acc
-      | hsym :: tl -> 
-        if List.mem hsym syms1 then loop tl (hsym::acc) 
-        else loop tl acc
-          (* (Pp.pp_symbol hsym; raise Invalid_symbol_list) *)
-    in loop syms2 []
-  in 
-  let a1_len, a2_len = List.length a1, List.length a2 in 
-  let res = if (a1_len > a2_len) then check_subset_of_fst_in_snd a1 a2
-            else check_subset_of_fst_in_snd a2 a1 in 
-  if debug then (wrapped_printf "\n\t >> Smaller symbols : "; res |> List.iter Pp.pp_symbol; wrapped_printf "\n\n");res
 
 let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls: ((state * state) * (symbol * (state * state) list)) list): 
   ((state * state) * (symbol * (state * state) list)) list =

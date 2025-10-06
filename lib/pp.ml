@@ -84,9 +84,9 @@ let pp_raw_pair_of_state_pairs ((ss1, ss2): (T.state * T.state) * (T.state * T.s
 let pp_symbol (s: T.symbol) = 
   noprintf " <%d: %s, %d> " (T.id_of_sym s) (T.term_of_sym s) (T.arity_of_sym s)
 
-let pp_sigma_sigma_list (ssls: (C.sigma * C.sigma) list) = 
-  noprintf "[ "; ssls |> iter (fun (sig1, sig2) -> 
-    noprintf "( "; pp_sigma sig1; noprintf ", "; pp_sigma sig2; noprintf ") "); noprintf "] \n"
+let pp_beta_beta_list (bbls: (T.beta * T.beta) list) = 
+  noprintf "[ "; bbls |> iter (fun (b1, b2) -> 
+    noprintf "\t\t( "; pp_beta b1; noprintf ", "; pp_beta b2; noprintf ") "); noprintf "] \n"
 
 let pp_sigma_listlist (slsls: C.sigma list list) = 
   noprintf "\t\t\t\t\t  [     "; slsls |> iter pp_sigma_list; noprintf "     ]\n"
@@ -107,24 +107,31 @@ let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) =
   obp_tbl |> Hashtbl.iter (fun o_idx s_ls -> noprintf "\n\tOrder %i -> " o_idx; 
     s_ls |> iter pp_symbol; noprintf "\n"); noprintf "    ]\n"
 
+let pp_beta_pair (bb: (T.beta * T.beta)) = 
+  let b1, b2 = (fst bb), (snd bb) in 
+  noprintf " ( "; pp_beta b1; noprintf ", "; pp_beta b2; noprintf ")  "
 
-(* let pp_raw_transitions (ts: (((T.state * T.state) * T.symbol) * (C.sigma * C.sigma) list list) list) = 
-  noprintf "\tRaw Transitions (new) : { \n"; ts |> iter (fun (((st1, st2), sym), sig_pairs_lsls) -> 
-    (* [prev] "\t\t\t(%s, %s) ->_{<%s, %i>} [ " *)
-    noprintf "(%s, %s) ->_{<%s, %i>} [ " st1 st2 (fst sym) (snd sym); 
-    sig_pairs_lsls |> iter (fun sig_pairs_ls -> sig_pairs_ls 
-      |> iter (fun (rsig1, rsig2) -> noprintf " ( "; pp_sigma rsig1; noprintf ", "; pp_sigma rsig2; noprintf ")  ")); 
-      noprintf "]\n"); noprintf " \t\t      }\n" *)
+let pp_raw_transition (tran: ((T.state * T.state) * T.symbol) * (T.beta * T.beta) list) = 
+  let sts_pair_sym, beta_pair_ls = (fst tran), (snd tran) in
+  let sts_pair, sym = (fst sts_pair_sym), (snd sts_pair_sym) in
+  let st1, st2 = (fst sts_pair), (snd sts_pair) in 
+  noprintf "(%s, %s) ->_{< " st1 st2; pp_symbol sym; noprintf ">} [ "; beta_pair_ls |> iter pp_beta_pair
 
+let pp_raw_transitions (ts: (((T.state * T.state) * T.symbol) * (T.beta * T.beta) list) list) = 
+  noprintf "\tRaw Transitions (new) : { \n"; ts |> iter pp_raw_transition; 
+  noprintf "]\n"; noprintf " \t\t      }\n"
+
+
+let pp_raw_cart_product_trans (ts: (((T.state * T.state) * T.symbol) * (T.beta * T.beta) list) list) =
+  noprintf "\tRaw Transitions (new) : { \n"; ts |> iter (fun (((st1, st2), sym), beta_pair_ls) -> 
+    (* [prev] "\t\t\t(%s, %s)  ->_{<%s, %i>}  " *)
+    noprintf "(%s, %s)  ->_{" st1 st2; pp_symbol sym; noprintf "}  ";
+    beta_pair_ls |> pp_beta_beta_list; noprintf "\n") ; noprintf " \t\t      }\n"
 
 
 
 (* 
-let pp_raw_trans_simplified (ts: (((T.state * T.state) * T.symbol) * (C.sigma * C.sigma) list) list) =
-  noprintf "\tRaw Transitions (new) : { \n"; ts |> iter (fun (((st1, st2), sym), sig_pairs_ls) -> 
-    (* [prev] "\t\t\t(%s, %s)  ->_{<%s, %i>}  " *)
-    noprintf "(%s, %s)  ->_{<%s, %i>}  " st1 st2 (fst sym) (snd sym); 
-    sig_pairs_ls |> pp_sigma_sigma_list; noprintf "\n") ; noprintf " \t\t      }\n"
+    
 
 let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) list) list) =
   let open List in
@@ -138,7 +145,7 @@ let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) 
 let pp_transitions_tbl (tbl: ((T.state * T.symbol), T.beta list) Hashtbl.t) = 
   noprintf "\n\tTransitions (htbl): { ";
   tbl |> Hashtbl.iter (fun (lhs, s) ls ->  (* prev below "\n\t\t\t\t( State %s, " *)
-    let print_lhs_st_sym () = noprintf "\n\t( State %s, " lhs; pp_symbol s; noprintf ") -> " in 
+    let print_lhs_st_sym () = noprintf "\n( State %s, " lhs; pp_symbol s; noprintf ") -> " in 
       print_lhs_st_sym (); noprintf "[ "; ls |> pp_beta_list; noprintf "] "); 
       noprintf "\n\t\t\t    }\n"
 
