@@ -461,20 +461,27 @@ let cartesian (xs : beta list) (ys : beta list) : (beta * beta) list =
     | _ -> raise (Failure "cartesian : Terminal and State cannot be mapped")) xs ys
 
 (* pair corresponding buckets; at this point, we know they should have matching lengths *)
-let cross_buckets (xss : beta list list) (yss : beta list list) : (beta * beta) list list =
-  List.map2 cartesian xss yss
+let cross_buckets (blsls1 : beta list list) (blsls2 : beta list list)
+  (debug: bool): (beta * beta) list list =
+  wrapped_printf debug "\n\t Cross products of beta list list : "; 
+  blsls1 |> List.iter Pp.pp_beta_list; blsls2 |> List.iter Pp.pp_beta_list;
+  blsls1 |> List.fold_left (fun acc1 bls1 -> 
+    let to_acc = 
+      blsls2 |> List.fold_left (fun acc2 bls2 -> (cartesian bls1 bls2) :: acc2) []
+    in to_acc @ acc1
+    ) []
 
 let cross_product_raw_betapair_ls (bls_ls1: (beta list) list) (bls_ls2: (beta list) list) 
   (debug: bool): (beta * beta) list list =
   let res_bb_ls: (beta * beta) list list = 
-    
-    cross_buckets bls_ls1 bls_ls2
+    cross_buckets bls_ls1 bls_ls2 debug |> Cfgutils.remove_dups
   in 
   (wrapped_printf debug "\n\t\tFinding cross product of first beta_ls : \n"; 
   bls_ls1 |> List.iter (fun bls -> wrapped_printf debug "\t\t"; Pp.pp_beta_list bls; wrapped_printf debug "\n"); 
     wrapped_printf debug "\n\t\tThen second beta_ls : \n"; 
   bls_ls2 |> List.iter (fun bls -> wrapped_printf debug "\t\t"; Pp.pp_beta_list bls; wrapped_printf debug "\n");
-    wrapped_printf debug "\n\t  Result of cross product:\n\t"; res_bb_ls |> List.iter Pp.pp_beta_beta_list; 
+    wrapped_printf debug "\n\t  Result of cross product:\n\t"; 
+  res_bb_ls |> List.iter (fun blsls -> Pp.pp_beta_beta_list blsls; wrapped_printf debug "\n\t"); 
   wrapped_printf debug "\n\n\n"); res_bb_ls
 
 
@@ -491,10 +498,10 @@ let state_pair_append (st_pair: state * state): state =
 let state_pairs_equal (st_pair1: state * state) (st_pair2: state * state): bool = 
   (fst st_pair1) = (fst st_pair2) && (snd st_pair1) = (snd st_pair2)
 
-let sig_pair_equals_state_pair (sig_pair: sigma * sigma) (st_pair: state * state): bool = 
+let beta_pair_equals_state_pair (beta_pair: beta * beta) (st_pair: state * state): bool = 
   let st1, st2 = (fst st_pair), (snd st_pair) 
-  in match sig_pair with 
-    | Nt sig1, Nt sig2 -> (String.equal sig1 st1) && (String.equal sig2 st2)
+  in match beta_pair with 
+    | S s1, S s2 -> (String.equal s1 st1) && (String.equal s2 st2)
     | _, _ -> false
 
 let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) list): bool =
@@ -518,23 +525,22 @@ let are_same_states_pairs (sts_pair1: state * state) (sts_pair2: state * state) 
   (fst sts_pair1) = (fst sts_pair2) && (snd sts_pair2) = (snd sts_pair2)
 
 
-(* 
-
-(* helper to collect RHS of raw transition list, ie, (sym, state pairs list) *)
-let sym_and_rhs_sigma_pairs (raw_trans: ((state * state) * (symbol * (sigma * sigma) list)) list): 
-  (symbol * (sigma * sigma) list) list =
+(* helper to collect RHS of raw transition list, ie, (sym, sigma pairs list) *)
+let sym_and_rhs_beta_pairs (raw_trans: ((state * state) * (symbol * (beta * beta) list)) list): 
+  (symbol * (beta * beta) list) list =
   raw_trans |> List.map (fun (_, (s, rhs_sg_pair_ls)) -> (s, rhs_sg_pair_ls))
 
-let same_sym_and_rhs_sigma_pairs (sym_rhs_stat_pairs1: (symbol * (sigma * sigma) list) list) 
-  (sym_rhs_stat_pairs2: (symbol * (sigma * sigma) list) list): bool =
-  if not ((List.length sym_rhs_stat_pairs1) = (List.length sym_rhs_stat_pairs2))
+let same_sym_and_rhs_beta_pairs (sym_rhs_beta_pairs1: (symbol * (beta * beta) list) list) 
+  (sym_rhs_beta_pairs2: (symbol * (beta * beta) list) list): bool =
+  if not ((List.length sym_rhs_beta_pairs1) = (List.length sym_rhs_beta_pairs2))
   then false
   else (let rec traverse ls = match ls with [] -> true 
         | sym_rhs_states :: tl -> 
-          (if (List.mem sym_rhs_states sym_rhs_stat_pairs2)
+          (if (List.mem sym_rhs_states sym_rhs_beta_pairs2)
            then traverse tl
            else false)
-        in traverse sym_rhs_stat_pairs1)
+        in traverse sym_rhs_beta_pairs1)
+
 
 let find_renamed_state (st_pair: state * state) 
   (renaming_map: ((state * state) * (state * state)) list): state * state = 
@@ -544,23 +550,18 @@ let find_renamed_state (st_pair: state * state)
     | Some matched_sts -> matched_sts
 
 let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)) list)
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
-  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list)
+  (_debug: bool): ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list =
   let rec rename_raw_trans ls' acc' =
     match ls' with [] -> List.rev acc'
     | (lhs_st_pair, (sym, rhs_sig_pair_ls)) :: tl' -> 
       let lhs_renamed = find_renamed_state lhs_st_pair states_renaming_map in 
-      let rhs_renamed: (sigma * sigma) list = 
+      let rhs_renamed: (beta * beta) list = 
         rhs_sig_pair_ls |> List.map (fun sig_pr -> 
           match sig_pr with 
-          | Nt s1, Nt s2 -> let (new_st1, new_st2) = find_renamed_state (s1, s2) states_renaming_map in 
-            (Nt new_st1, Nt new_st2)
-          | Term t1, Term _t2 -> (Term t1, Term "")
+          | S s1, S s2 -> let (new_st1, new_st2) = find_renamed_state (s1, s2) states_renaming_map in 
+            (S new_st1, S new_st2)
+          | T t1, T _t2 -> (T t1, T "")
           | _, _ -> raise Not_possible) in
       let renamed_tran = (lhs_renamed, (sym, rhs_renamed)) in 
       rename_raw_trans tl' (renamed_tran :: acc')
@@ -572,17 +573,13 @@ let rename_trans_blocks (states_renaming_map: ((state * state) * (state * state)
       let to_acc = ((find_renamed_state st_pair states_renaming_map), renamed_raw_trans) in 
       rename_blocks_loop tl (to_acc :: acc)
   in let res_trans_blocks = rename_blocks_loop trans_blocks [] in 
-  if debug then (wrapped_printf "\n\t >> Results of renaming in trans in blocks : \n"; 
-  res_trans_blocks |> Pp.pp_raw_trans_blocks);
+  (* if debug then (wrapped_printf _debug "\n\t >> Results of renaming in trans in blocks : \n"; 
+  res_trans_blocks |> Pp.pp_raw_trans_blocks); *)
   res_trans_blocks
 
-let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
-  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
 
+let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list)
+  (_debug: bool): ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list =
   let rec remove_dup_trans ls' acc' = 
     match ls' with [] -> List.rev acc'
     | tran :: tl' -> 
@@ -596,88 +593,89 @@ let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * 
       let removed_dups_trans = remove_dup_trans trans_ls [] in 
       remove_dups_blocks tl ((st_pair, removed_dups_trans) :: acc)
   in let res_trans_blocks = remove_dups_blocks trans_blocks [] in 
-  if debug then (wrapped_printf "\n\t >> Results of removing duplicates in trans in blocks : \n"; 
-  res_trans_blocks |> Pp.pp_raw_trans_blocks);
+  (* if debug then (wrapped_printf _debug "\n\t * Results of removing duplicates in trans in blocks : \n"; 
+  res_trans_blocks |> Pp.pp_raw_trans_blocks); *)
   res_trans_blocks
 
-(* let remove_dup_trans_after_eps_intro (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
-  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
-  let rec *)
-  
-let trans_mem (sym_rhs_sts: symbol * (sigma * sigma) list) (trans_rhs_lst: (symbol * (sigma * sigma) list) list): bool = 
-  let exists_in_sigsigls (sig_pair: sigma * sigma) (sig_sig_ls: (sigma * sigma) list): bool = 
-    let (fst_sig, snd_sig) = (fst sig_pair), (snd sig_pair) in 
+let trans_mem (sym_rhs_sts: symbol * (beta * beta) list) (trans_rhs_lst: (symbol * (beta * beta) list) list): bool = 
+  let exists_in_sigsigls (beta_pair: beta * beta) (beta_beta_ls: (beta * beta) list): bool = 
+    let (fst_beta, snd_beta) = (fst beta_pair), (snd beta_pair) in 
     let rec loop ls ac = 
       match ls with [] -> ac
       | (s1, s2) :: tl -> 
-        (if (sigmas_equal s1 fst_sig) && (sigmas_equal s2 snd_sig)
+        (if (betas_equal s1 fst_beta) && (betas_equal s2 snd_beta)
         then loop tl (true || ac)
         else loop tl ac)
-    in loop sig_sig_ls false
+    in loop beta_beta_ls false
   in
   let (sym, ssls) = (fst sym_rhs_sts), (snd sym_rhs_sts) in
-  match Utils.sig_sig_assoc_all sym trans_rhs_lst with 
+  match Utils.beta_beta_assoc_all sym trans_rhs_lst with 
   | [] -> false
   | sig_sig_ls -> 
     ssls |> List.for_all (fun sig_pair -> (exists_in_sigsigls sig_pair sig_sig_ls))
 
 
-let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair2: (state * state))
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list)
-  (debug: bool): bool =
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
+let find_trans_block_for_states_pair (st_pair: (state * state)) 
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list):
+  ((state * state) * (symbol * (beta * beta) list)) list =
+  match List.assoc_opt st_pair trans_blocks with None -> raise Invalid_transitions
+  | Some ls -> ls
 
-  wrapped_printf "\n\tIs (%s, %s) subset of (%s, %s)?\n" (fst st_pair1) (snd st_pair1) (fst st_pair2) (snd st_pair2);
-  let st1_trans_rhs_lst: (symbol * (sigma * sigma) list) list =
+let st1_transblock_subset_of_st2_transblock (st_pair1: (state * state)) (st_pair2: (state * state))
+  (trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list)
+  (_debug: bool): bool =
+  
+  (* wrapped_printf_ debug "\n\tIs (%s, %s) subset of (%s, %s)?\n" (fst st_pair1) (snd st_pair1) (fst st_pair2) (snd st_pair2); *)
+  let st1_trans_rhs_lst: (symbol * (beta * beta) list) list =
     find_trans_block_for_states_pair st_pair1 trans_blocks |> List.map (fun (_, rhs_lst) -> rhs_lst) in
-  let st2_trans_rhs_lst: (symbol * (sigma * sigma) list) list =
+  let st2_trans_rhs_lst: (symbol * (beta * beta) list) list =
     find_trans_block_for_states_pair st_pair2 trans_blocks |> List.map (fun (_, rhs_lst) -> rhs_lst) in 
   let res_bool = 
     if (List.length st1_trans_rhs_lst) > (List.length st2_trans_rhs_lst)
     then false else 
-    let rec traverse_rhs (ls: (symbol * (sigma * sigma) list) list): bool = 
+    let rec traverse_rhs (ls: (symbol * (beta * beta) list) list): bool = 
       match ls with [] -> true
       | hsym_rhs_sts :: tl -> 
-        wrapped_printf "\n\t symbol %s and rhs \n" (fst (fst hsym_rhs_sts)); Pp.pp_sigma_sigma_list (snd hsym_rhs_sts);
+        (* wrapped_printf _debug "\n\t symbol %s and rhs \n" (term_of_sym (fst hsym_rhs_sts)); Pp.pp_beta_beta_list (snd hsym_rhs_sts); *)
         if (trans_mem hsym_rhs_sts st2_trans_rhs_lst) (*(List.mem hsym_rhs_sts st2_trans_rhs_lst)*)
-        then (wrapped_printf "\n\tYES MEM\n";traverse_rhs tl)
-        else (wrapped_printf "\n\tNO, NOT MEM\n"; false)
+        then ((* wrapped_printf _debug "\n\tYES MEM\n"; *)
+              traverse_rhs tl)
+        else ((*wrapped_printf _debug "\n\tNO, NOT MEM\n"; *) false)
     in traverse_rhs st1_trans_rhs_lst 
-  in (wrapped_printf "\t %b" res_bool); 
+  in (* (wrapped_printf _debug "\t %b" res_bool); *)
   res_bool
 
+
+
 let simplify_trans_blocks_with_epsilon_transitions 
-  (input_trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
+  (input_trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
   (st_pair_ls: (state * state) list) (debug: bool): 
-  ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list =
   let wrapped_printf fmt =
     if debug then Printf.printf fmt
     else Printf.ifprintf stdout fmt
   in
 
   let replace_st1_transkblock_in_st2_transblock_with_eps (st1: state * state) (st2: state * state) 
-    (blocks_ls: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
-    ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
-    let st1_sym_rhs_ls: (symbol * (sigma * sigma) list) list = 
+    (blocks_ls: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list): 
+    ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    let st1_sym_rhs_ls: (symbol * (beta * beta) list) list = 
       blocks_ls |> List.filter (fun (ss, _) -> (state_pairs_equal ss st1)) 
       |> List.hd |> snd |> List.map snd 
     in 
-      blocks_ls |> List.map (fun ((st_pair, st_raw_trans_block): (state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) -> 
+      blocks_ls |> List.map (fun ((st_pair, st_raw_trans_block): (state * state) * ((state * state) * (symbol * (beta * beta) list)) list) -> 
         if (state_pairs_equal st_pair st2)
         then 
-          let new_st_raw_trans_block: ((state * state) * (symbol * (sigma * sigma) list)) list = 
+          let new_st_raw_trans_block: ((state * state) * (symbol * (beta * beta) list)) list = 
             st_raw_trans_block |> List.filter (fun (_st_pair, sym_sig_sig_ls) -> not (List.mem sym_sig_sig_ls st1_sym_rhs_ls))
-            |> List.append [(st2, (epsilon_symb, [(Nt (fst st1), Nt (snd st1))]))]
+            |> List.append [(st2, (epsilon_sym, [(S (fst st1), S (snd st1))]))]
           in (st_pair, new_st_raw_trans_block)
         else 
           (st_pair, st_raw_trans_block))
   in 
   let rec simplify_trans_blocks (st_pair: state * state) (other_states_ls: (state * state) list) 
-    (blocks_acc: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
-    ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+    (blocks_acc: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list): 
+    ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list =
     match other_states_ls with [] -> blocks_acc
     | comp_st_pair :: tl -> 
       if (st1_transblock_subset_of_st2_transblock st_pair comp_st_pair blocks_acc debug)
@@ -699,6 +697,16 @@ let simplify_trans_blocks_with_epsilon_transitions
   if debug then (wrapped_printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
   simplified_res
 
+
+
+
+(* 
+
+
+let remove_dup_trans_after_eps_intro (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
+  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
+  let rec
+  
 let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
   ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
   let parenthesis_trans_to_itself (sym_sigsigls: (symbol * (sigma * sigma) list)) (st_pr: (state * state)) =

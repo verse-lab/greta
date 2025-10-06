@@ -118,7 +118,7 @@ let pp_raw_transition (tran: ((T.state * T.state) * T.symbol) * (T.beta * T.beta
   noprintf "\t\t (%s, %s) ->_{< " st1 st2; pp_symbol sym; noprintf ">} [ "; beta_pair_ls |> iter pp_beta_pair
 
 let pp_raw_transitions (ts: (((T.state * T.state) * T.symbol) * (T.beta * T.beta) list) list) = 
-  noprintf "\t Raw Transitions : { \n"; ts |> iter pp_raw_transition; 
+  noprintf "\t Raw Transitions : { \n\t"; ts |> iter (fun raw_tran -> pp_raw_transition raw_tran; noprintf "\n\t"); 
   noprintf "]\n"; noprintf " \t      }\n"
 
 
@@ -129,25 +129,21 @@ let pp_raw_cart_product_trans (ts: (((T.state * T.state) * T.symbol) * (T.beta *
     beta_pair_ls |> pp_beta_beta_list) ; noprintf "\t     }\n"
 
 
-
-(* 
-    
-
-let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) list) list) =
-  let open List in
-  ts_blocks |> iter (fun (((st1, st2), blocks_ls): (T.state * T.state) * ((T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) list) -> 
-    noprintf "\n\tRaw blocks for state pairs : \t(%s, %s) =>  \n" st1 st2;
-    blocks_ls |> iter (fun (((st1', st2'), (sym, sig_sig_ls)): (T.state * T.state) * (T.symbol * (C.sigma * C.sigma) list)) ->
-      noprintf "\t\t\t\t\t  (%s, %s)  ->_{<%s, %i>}  " st1' st2' (fst sym) (snd sym); pp_sigma_sigma_list sig_sig_ls))
-
- *)
-
 let pp_transitions_tbl (tbl: ((T.state * T.symbol), T.beta list) Hashtbl.t) = 
   noprintf "\n\tTransitions (htbl): { ";
   tbl |> Hashtbl.iter (fun (lhs, s) ls ->  (* prev below "\n\t\t\t\t( State %s, " *)
     let print_lhs_st_sym () = noprintf "\n( State %s, " lhs; pp_symbol s; noprintf ") -> " in 
       print_lhs_st_sym (); noprintf "[ "; ls |> pp_beta_list; noprintf "] "); 
       noprintf "\n\t\t\t    }\n"
+
+let pp_raw_trans_blocks (ts_blocks: ((T.state * T.state) * ((T.state * T.state) * (T.symbol * (T.beta * T.beta) list)) list) list) =
+  let open List in
+  ts_blocks |> iter (fun (((st1, st2), blocks_ls): (T.state * T.state) * ((T.state * T.state) * (T.symbol * (T.beta * T.beta) list)) list) -> 
+    noprintf "\n\tRaw blocks for state pairs : \t(%s, %s) =>  \n" st1 st2;
+    blocks_ls |> iter (fun (((st1', st2'), (sym, sig_sig_ls)): (T.state * T.state) * (T.symbol * (T.beta * T.beta) list)) ->
+      noprintf "\t\t\t\t\t  (%s, %s)  ->_{" st1' st2'; pp_symbol sym; noprintf "}  "; pp_beta_beta_list sig_sig_ls))
+
+
 
 let pp_sym_nts (sn: (T.symbol * T.state)) = 
   noprintf "( "; pp_symbol (fst sn); noprintf "  --->  State %s )" (snd sn) 

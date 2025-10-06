@@ -57,3 +57,8 @@ let is_t (x: beta) =
 let is_s (x: beta) = 
   match x with T _ -> false | S _ -> true
 
+let betas_equal (a: beta) (b: beta): bool = 
+  match a, b with 
+  | T _, S _ | S _, T _ -> false 
+  | T a', T b' -> (String.equal a' b')
+  | S a', S b' -> (String.equal a' b')
