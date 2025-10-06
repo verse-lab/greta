@@ -8,6 +8,7 @@ module L = Learner
 module U = Treeutils
 module G = Cfg
 module T = Ta
+module W = Mly
 
 (* *************** Grammar REpair with Tree Automata *************** *)
 (*                                                                   *)
@@ -58,6 +59,7 @@ let () =
     cfg_file := "./_build/default/lib/parser.cfg";
     tree_file := "./_build/default/lib/parser.trees";
   end;
+  let parse_mly = W.parse_mly_file !parser_file in
 
   Array.to_list Sys.argv |> List.iter (fun arg -> print_string (arg ^ " ")); print_newline ();
   print_string ("Parser file: " ^ !parser_file); print_newline ();
@@ -84,14 +86,41 @@ let () =
 
     let convert_start = Sys.time () 
     in
-    let (ta_initial, o_bp, o_bp_tbl, prods_map): 
-      T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) * (int * G.production) list = 
-      C.convertToTa !cfg_file debug 
-    in  
+    let (ta_initial, o_bp, o_bp_tbl, prods_map, symbol_of_trans, trans_of_symbol):
+      T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) * (int * G.production) list * (T.transition -> T.symbol) * (T.symbol -> T.transition) = 
+      C.convertToTa !cfg_file debug
+    in
     let _convert_elapsed = Sys.time () -. convert_start in
     let ranked_symbols = ta_initial.alphabet 
     in
-    
+
+    (* Define mapping to .mly grammar for conversion later *)
+    let symbolToProds: (T.symbol, W.production) Hashtbl.t = Hashtbl.create 10 in
+    List.iter (fun p ->
+      (* convert to TA transition *)
+      let lhs = p.W.lhs in
+      let rhs = List.map (fun item -> 
+        match item with 
+        | W.T t -> T.T t
+        | W.NT {name; binding = _} -> T.S name
+      ) p.W.rhs in
+      let sym = symbol_of_trans ((lhs, T.dummy_sym), rhs) in
+      Hashtbl.add symbolToProds sym p
+    ) parse_mly.productions;
+    (* Add special mapping for unit productions *)
+    Hashtbl.add symbolToProds T.epsilon_sym { 
+      lhs = "?" ; 
+      rhs = NT { name = "?"; binding = None } :: []; 
+      action = "{ $1 }" 
+    };
+    (* Function to get production from symbol *)
+    let _mly_production_of_symbol (s: T.symbol): (W.production) = 
+      match (Hashtbl.find_opt symbolToProds s) with
+      | Some p -> p
+      | None -> 
+          Printf.printf "\nNo production found for symbol: "; Pp.pp_symbol s; print_newline ();
+          raise (Failure "No production found for the symbol")
+    in
     
     (* ----------------------------------------------------------------- *)
     (* Step 2: Generate a set of tree examples wrt ambiguities --------- *)
@@ -166,7 +195,7 @@ let () =
     let _intersect_elapsed = Sys.time () -. intersect_start in
     
     (* ----------------------------------------------------------------- *)
-    (* Step 7: Resulted TA is converted back to CFG -------------------- *)
+    (* Step 7: Resulted TA is converted back to CFG (skipping...)------- *)
     (* ----------------------------------------------------------------- *)
 
     (* let cfg_res =  
@@ -177,20 +206,21 @@ let () =
     (* Step 8: Resulted CFG is written on the output file -------------- *)
     (* ----------------------------------------------------------------- *)
 
-    (*
-    let file_written = "./test/grammars/Ga/Ga_results/Gaa.mly" in 
+    (* let file_written = "./test/grammars/Ga/Ga_results/Gaa.mly" in  *)
     let grammar = 
       String.split_on_char '.' !parser_file |> List.hd 
     in
-    let _file_written = U.test_results_filepath grammar !file_postfix in 
-     !parser_file file_written
+    let file_name = U.test_results_filepath grammar !file_postfix in 
+    let file_contents = W.mly_of_ta _ta_intersected parse_mly _mly_production_of_symbol in
+    let oc = open_out file_name in
+    output_string oc file_contents;
+    close_out oc;
     
-    Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_written;
+    Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_name;
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" _convert_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" _learn_ta_elapsed;
-    Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed;
+    (* Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed; *)
     (* Time for convering back to CFG *)
-   *) 
   ()
   
 end

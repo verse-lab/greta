@@ -36,7 +36,7 @@ let dummy_sym : symbol = (-1, "", -1)
 
 let epsilon_state: state = "ϵ"
 let epsilon_term: string = "ε"
-let epsilon_sym: symbol = (-1, epsilon_term, 0) (* ID: -1, epsilon_term, Arity: 0*)
+let epsilon_sym: symbol = (-1, epsilon_term, 1) (* ID: -1, epsilon_term, Arity: 1*)
 
 let arity_of_sym (sym: symbol): int = match sym with _, _, n -> n
 let id_of_sym (sym: symbol): int = match sym with i, _, _ -> i

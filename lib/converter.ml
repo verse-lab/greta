@@ -12,6 +12,8 @@ exception Type_spec_line_last_should_be_nonterminal
 exception No_nontrivial_prod_mapping
 exception Nonterms_length_must_equal
 exception Inconsistent_start_states
+exception No_such_transition
+exception No_such_symbol
 
 (* ******************** Part I. Conversion of parser.mly > CFG > TA ******************** *)
 let read_file filename = 
@@ -199,7 +201,7 @@ let collect_sym_orders_wrt_nonterm_order (nts_ordered: (nonterminal * int) list)
 
 
 let cfg_to_ta (debug_print: bool) (g: cfg): 
-  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list =
+  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list * (transition -> symbol) * (symbol -> transition) =
   if debug_print then
     (wrapped_printf debug_print "\n\t Converting CFG to TA given the following TA \n"; Pp.pp_cfg g);
   
@@ -210,7 +212,23 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
   let trans_tbl = Hashtbl.create (List.length g.productions) in 
   (trans_from_cfg |> List.iter (fun ((nt, sym), bls) -> 
     Hashtbl.add trans_tbl (nt, sym) bls));
- 
+
+  let symbol_of_trans (t: transition) = 
+    let idx_o = List.find_index (fun tp -> 
+      let ((lhs_tp, _), rhs_tp) = tp in
+      let ((lhs_t, _), rhs_t) = t in
+      (lhs_tp = lhs_t) && (rhs_tp = rhs_t)) trans_from_cfg in
+    match idx_o with
+    | Some idx -> List.nth symbols_from_cfg idx
+    | None -> raise No_such_transition
+  in
+  let trans_of_symbol (s: symbol) = 
+    let idx_o = List.find_index (fun sym -> sym = s) symbols_from_cfg in
+    match idx_o with
+    | Some idx ->  List.nth trans_from_cfg idx
+    | None -> raise No_such_symbol
+  in
+
   (* 2. Collect O_bp *)
   let nonterms_ordered: (nonterminal * int) list = 
     collect_nonterm_orders g.starts g.nonterms g.productions debug_print 
@@ -251,11 +269,11 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
     terminals = g.terms;
     transitions = trans_tbl
     }
-  in res_ta , rest_ls, rest_tbl, prods_map_res
+  in res_ta, rest_ls, rest_tbl, prods_map_res, symbol_of_trans, trans_of_symbol
 
 let convertToTa (file: string) (debug_print: bool): 
-  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list = 
-  let ta_res, obp_res, obp_tbl, prods_map_res = file |> 
+  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list * (transition -> symbol) * (symbol -> transition)  = 
+  let ta_res, obp_res, obp_tbl, prods_map_res, symbol_of_trans, trans_of_symbol = file |> 
   (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConvert parser.mly to its corresponding CFG\n");
   extract_cfg debug_print) 
   |>
@@ -267,9 +285,8 @@ let convertToTa (file: string) (debug_print: bool):
     (* wrapped_printf debug_print "\n >> Trivial non-terminals: [ ";
     ta_res.trivial_sym_nts |> iter (fun (s, x) -> wrapped_printf debug_print " ("; Pp.pp_symbol s; wrapped_printf debug_print ", %s ) " x); wrapped_printf debug_print "]\n"; *)
     wrapped_printf debug_print "\nOrder -> symbol list O_bp map : \n"; Pp.pp_obp_tbl obp_tbl;
-    
   end;
-  ta_res, obp_res, obp_tbl, prods_map_res
+  ta_res, obp_res, obp_tbl, prods_map_res, symbol_of_trans, trans_of_symbol
 
 (* 
 
