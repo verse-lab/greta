@@ -506,7 +506,7 @@ let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) 
   in traverse_pairs st_pairs_ls
 
 let symbols_in_both_lists ls1 ls2 =
-  List.filter (fun x -> List.mem x ls2) ls1
+  List.filter (fun x -> List.mem x ls2) ls1 |> remove_dup_symbols
 
 let are_states_pair (beta_pair: (beta * beta)): bool = 
   match (fst beta_pair), (snd beta_pair) with S _, S _ -> true | _ -> false

@@ -156,44 +156,44 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 4 - Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) *)
-  (* let rec collect_from_all_reachable_states (states_reachable_left: (state * state) list) 
+  let rec collect_from_all_reachable_states (states_reachable_left: (state * state) list) 
     (states_reachabe_acc: (state * state) list) (trans_acc: (((state * state) * symbol) * (beta * beta) list) list): 
     (((state * state) * symbol) * (beta * beta) list) list * (state * state) list = 
     match states_reachable_left with 
     | [] -> List.rev trans_acc, states_reachabe_acc
     | (st_hd1, st_hd2) :: reachable_states_tl -> 
-      if debug_print then (printf "\n\t (current) looking for raw trans from (%s, %s) " st_hd1 st_hd2);
+      if debug then (wrapped_printf "\n\t Looking for raw trans from (%s, %s) " st_hd1 st_hd2);
+      
       (* --- find transitions from the curr states pair --- *)
-      let alph1: symbol list = accessible_symbols_for_state st_hd1 a1.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 
-      let alph2: symbol list = accessible_symbols_for_state st_hd2 a2.transitions (epsilon_symb::syms_nontrivial) triv_states debug_print in 
-      let alph_overlapped: symbol list = 
-        let syms_overlapped = take_smaller_symbols_list alph1 alph2 debug_print |> remove_dup_symbols in 
-        if eps_opt then syms_overlapped |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms_overlapped
+      let alph1: symbol list = find_reachable_symbols_from_state st_hd1 a1.transitions in 
+      let alph2: symbol list = find_reachable_symbols_from_state st_hd2 a2.transitions in  
+      let alph_overlapped: symbol list = symbols_in_both_lists alph1 alph2
       in 
-      let curr_raw_trans_from_states_pair = 
-        cartesian_product_trans_from [(st_hd1, st_hd2)] a1.transitions a2.transitions alph_overlapped triv_states debug_print
+      let curr_raw_trans_from_states_pair: (((state * state) * symbol) * (beta * beta) list) list = 
+        alph_overlapped |> List.fold_left (fun acc _sym -> 
+          let to_acc: (((state * state) * symbol) * (beta * beta) list) list = 
+          cartesian_product_trans_from [(st_hd1, st_hd2)] a1.transitions a2.transitions debug in 
+          to_acc @ acc) [] 
       in
       (* --- collect reachable states from the curr states pair --- *)
       let curr_reachable_states = 
-        find_reachable_states [(st_hd1, st_hd2)] curr_raw_trans_from_states_pair triv_states start_states_raw debug_print 
+        (* To double-check below! *)
+        find_reachable_states curr_raw_trans_from_states_pair
       in
       (* --- pass in as new 'states_reachable', the ones that do not already appeared --- *)
       let new_states_reachable_to_add: (state * state) list = 
         curr_reachable_states |> List.filter (fun x -> not (List.mem x states_reachabe_acc))
       in 
-        collect_all_raw_trans 
+        collect_from_all_reachable_states 
           (reachable_states_tl @ new_states_reachable_to_add) 
           (states_reachabe_acc @ new_states_reachable_to_add)
           (curr_raw_trans_from_states_pair @ trans_acc)
-  in let all_raw_trans_from_all_reachables, all_raw_states_reachable = collect_all_raw_trans init_reachable_states init_reachable_states [] 
+  in let all_raw_trans_from_all_reachables, _all_raw_states_reachable = collect_from_all_reachable_states init_reachable_states init_reachable_states [] 
   in let all_raw_trans = raw_init_trans_ls @ all_raw_trans_from_all_reachables 
-  in let raw_trans_simplified: (((state * state) * symbol) * (beta * beta) list) list = 
-    all_raw_trans |> List.map (fun (((st1, st2), sym), sig_sig_lsls) -> 
-      let sig_sig_ls = sig_sig_lsls |> List.flatten in ((st1, st2), sym), sig_sig_ls) 
   in
   (if debug then pp_upline_new debug; wrapped_printf "### Step 4 - Found all the raw trasitions from all the reachable states  : \n\t"; 
-  Pp.pp_raw_transitions raw_trans_simplified; pp_loline_new debug);
- *)
+  Pp.pp_raw_transitions all_raw_trans; pp_loline_new debug);
+
 
 
 
