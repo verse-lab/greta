@@ -10,6 +10,21 @@ let wrapped_printf debug fmt =
   if debug then Printf.printf fmt
   else Printf.ifprintf stdout fmt
 
+let rec replace_nth n x lst =
+  match lst with
+  | [] -> raise (Failure "replace_nth : no nth element")
+  | _ :: tl when n = 0 -> x :: tl
+  | hd :: tl -> hd :: replace_nth (n - 1) x tl
+
+let increment_suffix (s: state): state =
+  let re: Str.regexp = Str.regexp "^\\(.*[^0-9]\\)\\([0-9]+\\)$" in
+  if Str.string_match re s 0 then
+    let prefix: state = Str.matched_group 1 s in
+    let num = int_of_string (Str.matched_group 2 s) in
+    prefix ^ string_of_int (num + 1)
+  else
+    s ^ "1"
+
 let learn_oa_pos (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) (debug_print: bool): 
   restriction list = 
   let oa_res = 
@@ -97,11 +112,18 @@ let populate_trans_tbl_with (trans_tbl: ((state * symbol), beta list) Hashtbl.t)
     sig_ls |> Cfgutils.sigma_list_to_beta_list |> List.map (fun b -> match b with | T t -> T t | S _old_st -> S curr_st) in
   Hashtbl.add trans_tbl (curr_st, sym) trans
 
-(* To resume here!
-let update_oa_sym_prod_for_index (sym: symbol) (ind: int) (trans_tbl: ((state * symbol), beta list) Hashtbl.t) = 
-  trans_tbl |> Hashtbl.iter (fun (st, curr_sym) bls ->
-    if (syms_equals curr_sym sym) then let new_beta_ls = update_beta_list_at_index bls st in 
-     ) *)
+let update_beta_list_at_index_with_lhs_st (old_beta_ls: beta list) (lhs_st: state) (ind: int): beta list = 
+  let higher_state: state = increment_suffix lhs_st in 
+  replace_nth ind (S higher_state) old_beta_ls
+
+let update_oa_sym_prod_for_index (sym: symbol) (ind: int) (trans_tbl: ((state * symbol), beta list) Hashtbl.t)
+  (debug: bool) = 
+  trans_tbl |> Hashtbl.iter (fun (lhs_st, curr_sym) old_beta_ls ->
+    if (syms_equals curr_sym sym) 
+    then (
+      if debug then (wrapped_printf debug "\n\tFound same symbol in Trans_tbl => "; Pp.pp_symbol curr_sym);
+      let new_beta_ls = update_beta_list_at_index_with_lhs_st old_beta_ls lhs_st ind
+          in Hashtbl.replace trans_tbl (lhs_st, curr_sym) new_beta_ls))
 
 let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (oa_neg: restriction list) (prods_map: (int * production) list) 
   (debug_print: bool): ta = 
@@ -121,9 +143,9 @@ let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (oa_neg: restriction lis
         populate_trans_tbl_with trans_tbl curr_state sym sym_prod);
       ) op_learned;
   let alph_res = !alph |> remove_dup_symbols in
-  (* oa_neg |> List.iter (fun r -> 
+  oa_neg |> List.iter (fun r -> 
     match r with Prec _ -> raise (Failure "update trans wrt. oa_neg : o_p not possible")
-    | Assoc (sym, ind) -> update_oa_sym_prod_for_index sym ind trans_tbl); *)
+    | Assoc (sym, ind) -> update_oa_sym_prod_for_index sym ind trans_tbl debug_print);
 
   let res_ta: ta = 
   { states = !states_res ; alphabet = alph_res ; final_states = ["e0"] ;
