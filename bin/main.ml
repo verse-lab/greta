@@ -112,9 +112,7 @@ let () =
            (U.present_tree_pair (t1, t2);
             let chosen_index = read_int () in
             file_postfix := !file_postfix ^ (string_of_int chosen_index);
-            (* Note!
-               If oa, then add logic of whether it's positive or negative based on the choice and collect all trees 
-             *)
+            (* If oa, then add logic of whether it's pos/neg wrt. choice and collect all trees *)
             if (U.is_oa_tree t1) && (U.is_oa_tree t2) 
             then 
               begin 
@@ -135,13 +133,17 @@ let () =
     in 
 
     (* ----------------------------------------------------------------- *)
-    (* Step 5: Learn O_a, O_p wrt. tree examples ----------------------- *)
+    (* Step 4: Learn O_a, O_p wrt. tree examples ----------------------- *)
     (* ----------------------------------------------------------------- *)
-    let _oa_pos_learned: T.restriction list = L.learn_oa_pos learned_example_trees debug in
+    
     let oa_neg_learned: T.restriction list = L.learn_oa_neg learned_example_trees debug in
     let op_learned: (int, T.symbol list) Hashtbl.t = L.learn_op o_bp_tbl learned_example_trees debug in
     
-    let _ta_learned: T.ta = 
+    (* ----------------------------------------------------------------- *)
+    (* Step 5: TA is learned via original CFG and O_p, O_a (neg) ------- *)
+    (* ----------------------------------------------------------------- *)
+    
+    let ta_learned: T.ta = 
       L.learn_ta op_learned oa_neg_learned prods_map debug
     in
     let _learn_ta_elapsed = Sys.time () -. learn_start in
@@ -149,23 +151,19 @@ let () =
     (* ----------------------------------------------------------------- *)
     (* Step 6: Intersect learned TA and TA from original CFG ----------- *)
     (* ----------------------------------------------------------------- *)
-    
-    (* 
 
-    (** Step X: Get disambiguated grammar and write on 'parser_file' *)
     let intersect_start = Sys.time () in
-    let (ta_intersected, states_rename_map): T.ta2 * (T.state * T.state) list = 
-      O.intersect ta_initial ta_learned triv_syms triv_syms_states opt_flag debug 
+    let _ta_intersected: T.ta = O.intersect ta_initial ta_learned debug 
     in
-    let intersect_elapsed = Sys.time () -. intersect_start in
+    let _intersect_elapsed = Sys.time () -. intersect_start in
     (* ta_intersected.trivial_sym_nts |> List.iter (fun (sym, st) -> Pp.pp_symbol sym; Printf.printf "\t ---> State %s" st); *)
     
-    *) 
     
     (* ----------------------------------------------------------------- *)
     (* Step 7: Resulted TA is converted back to CFG -------------------- *)
     (* ----------------------------------------------------------------- *)
 
+    (** Step X: Get disambiguated grammar and write on 'parser_file' *)
     (*
     let file_written = "./test/grammars/Ga/Ga_results/Gaa.mly" in 
     let grammar = 

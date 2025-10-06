@@ -1,8 +1,46 @@
-(* 
 open Ta
-open Treeutils
-open Cfg
+(* open Treeutils
+open Cfg *)
 
+
+(** Intersection of tree automata *)
+let intersect (a1: ta) (a2: ta) (debug_print: bool): ta =
+  let open Printf in 
+  let _pp_loline_new () = 
+    let loleft, mid, loright = "\t╘══════════", "═══════════", "══════════╛" 
+    in let mids = mid ^ mid ^ mid ^ mid in let line = loleft ^ mids ^ mids ^ loright in printf "%s\n\n" line
+  in
+  let _pp_upline_new () = 
+    let upleft, mid, upright = "\n\n\n\t╒══════════", "═══════════", "══════════╕" 
+    in let mids = mid ^ mid ^ mid ^ mid in let line = upleft ^ mids ^ mids ^ upright in printf "%s\n\t " line
+  in
+  if debug_print then begin (printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
+  Pp.pp_ta a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; printf "\n\n") end;
+
+  let res_ta: ta = a2
+    (* { states = res_states_final @ [epsilon_state] ; alphabet = syms ; final_states = correct_start_states
+      transitions = res_trans_tbl }  *)
+  in
+  if debug_print then begin
+    (printf "\n ** Result of TA intersection: \n"; Pp.pp_ta res_ta;
+    printf "\n\n"); 
+  end;
+  res_ta
+
+(*   
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 0 - Consider symbols excluding trivial symbols *)
+  let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
+  let syms_nontrivial = 
+    let init_sym_ls = syms |> List.filter (fun s -> not (List.mem s trivSyms)) 
+    in optimize_sym_list init_sym_ls eps_opt false debug_print
+  in 
+  (if debug_print then begin pp_upline_new (); printf "##### Step 0 - Found nontrivial symbols\n\t"; 
+    syms_nontrivial |> List.iter Pp.pp_symbol; printf "\n"; pp_loline_new () end); *)
+
+
+
+(* 
 (* --- helper --- *)
 let accessible_symbols_for_state (init_st: state) (trans_tbl: ((state * symbol), sigma list list) Hashtbl.t) 
   (syms_ls: symbol list) (triv_states: state list) (debug: bool): symbol list =    
@@ -375,32 +413,6 @@ let collect_unique_states_and_map_to_new_states
   res_map
 
 
-(** Intersection of tree automata *)
-let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (symbol * state) list) 
-  (opt_flag: optimization) (debug_print: bool): ta2 * (state * state) list =
-  let open Printf in 
-  let pp_loline_new () = 
-    let loleft, mid, loright = "\t╘══════════", "═══════════", "══════════╛" 
-    in let mids = mid ^ mid ^ mid ^ mid in let line = loleft ^ mids ^ mids ^ loright in printf "%s\n\n" line
-  in
-  let pp_upline_new () = 
-    let upleft, mid, upright = "\n\n\n\t╒══════════", "═══════════", "══════════╕" 
-    in let mids = mid ^ mid ^ mid ^ mid in let line = upleft ^ mids ^ mids ^ upright in printf "%s\n\t " line
-  in
-  if debug_print then begin (printf "\nIntersect the following 2 TAs:\n\n  (1) First TA:\n";
-  Pp.pp_ta2 a1; printf "\n  (2) Second TA:\n"; Pp.pp_ta2 a2; printf "\n\n") end;
-
-  let eps_opt, paren_opt = opt_flag.eps_opt, opt_flag.paren_opt 
-  in
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 0 - Consider symbols excluding trivial symbols *)
-  let syms = a1.alphabet in (* TODO: Add a sanity check on alphabet based on set equality *)
-  let syms_nontrivial = 
-    let init_sym_ls = syms |> List.filter (fun s -> not (List.mem s trivSyms)) 
-    in optimize_sym_list init_sym_ls eps_opt false debug_print
-  in 
-  (if debug_print then begin pp_upline_new (); printf "##### Step 0 - Found nontrivial symbols\n\t"; 
-    syms_nontrivial |> List.iter Pp.pp_symbol; printf "\n"; pp_loline_new () end);
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 1 - Find the set of initial states, ie, I := I_1 x I_2 *)
@@ -614,22 +626,6 @@ let intersect (a1: ta2) (a2: ta2) (trivSyms: symbol list) (triv_sym_state_ls: (s
     if (List.length start_states_mapped) > 1 then       
       states_rename_map |> List.filter (fun (x, y) -> List.mem (x, y) start_states_prev) |> List.map snd
     else start_states_mapped |> List.map snd
-  in
-  let res_ta: ta2 = 
-    { states = res_states_final @ [epsilon_state] ; alphabet = syms ; start_states = correct_start_states (* start_states_renamed *) ; 
-      transitions = res_trans_tbl ; trivial_sym_nts = triv_sym_state_ls } 
-    (* null_ta  *)
-  in
-  if debug_print then begin
-    (printf "\n ** Result of TA intersection: \n"; Pp.pp_ta2 res_ta;
-    printf "\n ** Resulted states rename map: \n"; states_rename_map |> List.iter (fun (x, y) -> printf " ( %s, %s ) " x y);
-    printf "\n\n"); 
-  end;
-  
-  res_ta, states_rename_map (*|> rename_w_parser_friendly_states_in_ta debug_print *)
-
-
-
 
 
  *)

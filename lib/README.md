@@ -15,14 +15,13 @@
      - [x] Update O_p wrt. O_a as needed - _Works for multiple orders per sym_
      - [x] Learn TA wrt. O_p and O_a - Learn wrt. O_a_negatives
 
-- [ ] **Intersection** - Yunjeong WIP
-     - [ ] Update based on revised data structures
+- [ ] **Intersection** 
+     - [ ] Update based on revised data structures - Yunjeong WIP
      - [ ] Infer Paren transition back to `e_0` (or other state)
 
 - [ ] **Converter from TA to CFG**
 
-- [ ] **Formatter for CFG** - _To reuse as much as possible, may have to modify_
-<!-- Test G_paper end-to-end -->
+- [ ] **Formatter for CFG** 
 
 ### Testing 
 
