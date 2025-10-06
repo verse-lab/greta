@@ -124,7 +124,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   in
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 1 - Find the set of initial states, ie, I := I_1 x I_2 *)
+  (* Step 1 - Find the set of final states, ie, Q_f := Q_f_1 x Q_f_2 *)
   let final_states_raw: (state * state) list = 
     a1.final_states |> List.map (fun s1 -> a2.final_states |> List.map (fun s2 -> (s1, s2))) |> List.flatten
   in

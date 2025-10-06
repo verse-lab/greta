@@ -6,22 +6,22 @@
      - [x] Start from cleaner data structures (CFG, TA)
      - [x] Learning O_bp
 
-- [x] **Tree example generation**
+- [ ] **Tree example generation**
      - [x] Correctly populate symbols (ID) in trees
 
-- [x] **TA Learner from tree examples** 
+- [ ] **TA Learner from tree examples** 
      - [x] Update O_a wrt. trees - _Index-based; collect negative examples with index_
      - [x] Update O_p wrt. trees - _Logic changed from earlier version, updated O_p wrt. O_a_ 
      - [x] Update O_p wrt. O_a as needed - _Works for multiple orders per sym_
      - [x] Learn TA wrt. O_p and O_a - _Learn wrt. O_a_negatives, w/o triv opt_
+     - [ ] Infer Paren transition back to `e_0` (or other state)
 
 - [ ] **Intersection** 
      - [ ] Update based on revised data structures - Yunjeong WIP
-     - [ ] Infer Paren transition back to `e_0` (or other state)
 
 - [ ] **Converter from TA to CFG** - Might skip
 
-- [ ] **Formatter for CFG** - Gokul WIP
+- [x] **Formatter for CFG** 
 
 ### Testing 
 
