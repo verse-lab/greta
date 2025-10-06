@@ -461,20 +461,32 @@ let cartesian (xs : beta list) (ys : beta list) : (beta * beta) list =
     | _ -> raise (Failure "cartesian : Terminal and State cannot be mapped")) xs ys
 
 (* pair corresponding buckets; at this point, we know they should have matching lengths *)
-let cross_buckets (xss : beta list list) (yss : beta list list) : (beta * beta) list list =
-  List.map2 cartesian xss yss
+let cross_buckets (blsls1 : beta list list) (blsls2 : beta list list)
+  (debug: bool): (beta * beta) list list =
+  wrapped_printf debug "\n\t Cross products of beta list list : "; 
+  blsls1 |> List.iter Pp.pp_beta_list; blsls2 |> List.iter Pp.pp_beta_list;
+  blsls1 |> List.fold_left (fun acc1 bls1 -> 
+    let to_acc = 
+      blsls2 |> List.fold_left (fun acc2 bls2 -> (cartesian bls1 bls2) :: acc2) []
+    in to_acc @ acc1
+    ) []
+  (*
+  if (List.is_empty yss) || (List.is_empty xss) then []
+  else List.map2 cartesian xss yss
+  *)
+  (* else List.map (fun (x,y) -> cartesian x y) (List.combine xss yss) *)
 
 let cross_product_raw_betapair_ls (bls_ls1: (beta list) list) (bls_ls2: (beta list) list) 
   (debug: bool): (beta * beta) list list =
   let res_bb_ls: (beta * beta) list list = 
-    
-    cross_buckets bls_ls1 bls_ls2
+    cross_buckets bls_ls1 bls_ls2 debug
   in 
   (wrapped_printf debug "\n\t\tFinding cross product of first beta_ls : \n"; 
   bls_ls1 |> List.iter (fun bls -> wrapped_printf debug "\t\t"; Pp.pp_beta_list bls; wrapped_printf debug "\n"); 
     wrapped_printf debug "\n\t\tThen second beta_ls : \n"; 
   bls_ls2 |> List.iter (fun bls -> wrapped_printf debug "\t\t"; Pp.pp_beta_list bls; wrapped_printf debug "\n");
-    wrapped_printf debug "\n\t  Result of cross product:\n\t"; res_bb_ls |> List.iter Pp.pp_beta_beta_list; 
+    wrapped_printf debug "\n\t  Result of cross product:\n\t"; 
+  res_bb_ls |> List.iter (fun blsls -> Pp.pp_beta_beta_list blsls; wrapped_printf debug "\n\t"); 
   wrapped_printf debug "\n\n\n"); res_bb_ls
 
 

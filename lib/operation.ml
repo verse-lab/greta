@@ -65,9 +65,18 @@ let find_corr_trans_in_tbl (sym: symbol) (st: state) (tbl: ((state * symbol), be
     Pp.pp_symbol sym; printf ")\t"; blsls_res |> List.iter (fun bls -> Pp.pp_beta_list bls)); 
     blsls_res *)
 
-let find_reachable_symbols_from_state (from_st: state) (tbl: ((state * symbol), beta list) Hashtbl.t): symbol list = 
-  Hashtbl.fold (fun (st, sym) _bls acc -> 
-    if st = from_st then sym::acc else acc) tbl []
+let rec find_reachable_symbols_from_state (from_st: state) (tbl: ((state * symbol), beta list) Hashtbl.t): symbol list = 
+  Hashtbl.fold (fun (st, sym) bls acc -> 
+    if st = from_st 
+    then 
+      (if (syms_equals epsilon_sym sym)
+      then 
+        (let rhs_st = 
+          match (List.hd bls) with S st -> st | T _ -> raise (Failure "find_reachable_symbols : T not possible here") in 
+        let syms_from_linked_state = find_reachable_symbols_from_state rhs_st tbl in 
+        acc @ syms_from_linked_state)
+      else sym::acc )
+  else acc) tbl [] |> List.rev
     
 let reachable_symbols_from_states (states: state list) (tbl: ((state * symbol), beta list) Hashtbl.t): symbol list = 
   states |> List.fold_left (fun acc st -> 
@@ -107,6 +116,34 @@ let cartesian_product_trans_from (starting_states: (state * state) list)
   (wrapped_printf debug "\n\t Resulted cartesian product transitions:\n"; 
   Pp.pp_raw_cart_product_trans res_cart_product_trans);
   res_cart_product_trans
+
+let reachable_beta_lsls_from_state_symbol (state: state) (sym: symbol) (tbl: ((state * symbol), beta list) Hashtbl.t)
+  (debug: bool): beta list list = 
+  let reachabe_states: state list = find_intermediate_states state tbl debug in 
+  [state] @ reachabe_states |> List.fold_left (fun acc curr_st -> 
+    let to_acc: beta list list = Hashtbl.find_all tbl (curr_st, sym) in 
+    to_acc @ acc) [] 
+
+
+(* 'cartesian_product_trans_from_for_sym' is concerned with a particular 'sym' from 'sts_pair' *)
+let cartesian_product_trans_from_for_sym (sts_pair: (state * state)) (sym: symbol) 
+  (tbl1: ((state * symbol), beta list) Hashtbl.t) (tbl2: ((state * symbol), beta list) Hashtbl.t)
+  (debug: bool): (((state * state) * symbol) * (beta * beta) list) list = 
+  let st1, st2 = (fst sts_pair), (snd sts_pair) in 
+  let blsls1: beta list list = 
+    reachable_beta_lsls_from_state_symbol st1 sym tbl1 debug in 
+  wrapped_printf debug "\n\t Beta list list in Transitions1 for State %s, Symbol " st1; Pp.pp_symbol sym; 
+    blsls1 |> List.iter Pp.pp_beta_list; wrapped_printf debug "\n";
+
+  let blsls2: beta list list = 
+    reachable_beta_lsls_from_state_symbol st2 sym tbl2 debug in 
+  wrapped_printf debug "\n\t Beta list list in Transitions2 for State %s, Symbol " st2; Pp.pp_symbol sym; 
+    blsls2 |> List.iter Pp.pp_beta_list; wrapped_printf debug "\n";
+  
+  let beta_pair_lsls: (beta * beta) list list = cross_product_raw_betapair_ls blsls1 blsls2 debug in 
+  beta_pair_lsls |> List.map (fun beta_pair_ls -> (sym, beta_pair_ls)) 
+  |> List.map (fun (sym, b1b2_ls) -> ((st1, st2), sym), b1b2_ls)
+
 
 let reachable_sts_pairs_without (beta_pair_ls: (beta * beta) list) (sts_pair: (state * state)): (state * state) list = 
   beta_pair_ls |> List.filter are_states_pair |> List.map beta_pair_to_states_pair |> List.filter (fun x -> not (are_same_states_pairs sts_pair x))
@@ -165,19 +202,23 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
       if debug then (wrapped_printf "\n\t Looking for raw trans from (%s, %s) " st_hd1 st_hd2);
       
       (* --- find transitions from the curr states pair --- *)
-      let alph1: symbol list = find_reachable_symbols_from_state st_hd1 a1.transitions in 
-      let alph2: symbol list = find_reachable_symbols_from_state st_hd2 a2.transitions in  
+      let alph1: symbol list = find_reachable_symbols_from_state st_hd1 a1.transitions 
+      in 
+        wrapped_printf "\n\t Symbols from state %s" st_hd1; alph1 |> List.iter Pp.pp_symbol;
+      let alph2: symbol list = find_reachable_symbols_from_state st_hd2 a2.transitions 
+      in  
+        wrapped_printf "\n\t Symbols from state %s" st_hd2; alph2 |> List.iter Pp.pp_symbol;
       let alph_overlapped: symbol list = symbols_in_both_lists alph1 alph2
       in 
+      wrapped_printf "\n\t Symbols common in states %s %s:   " st_hd1 st_hd2; alph_overlapped |> List.iter Pp.pp_symbol;
       let curr_raw_trans_from_states_pair: (((state * state) * symbol) * (beta * beta) list) list = 
-        alph_overlapped |> List.fold_left (fun acc _sym -> 
+        alph_overlapped |> List.fold_left (fun acc sym -> 
           let to_acc: (((state * state) * symbol) * (beta * beta) list) list = 
-          cartesian_product_trans_from [(st_hd1, st_hd2)] a1.transitions a2.transitions debug in 
+          cartesian_product_trans_from_for_sym (st_hd1, st_hd2) sym a1.transitions a2.transitions debug in 
           to_acc @ acc) [] 
       in
       (* --- collect reachable states from the curr states pair --- *)
       let curr_reachable_states = 
-        (* To double-check below! *)
         find_reachable_states curr_raw_trans_from_states_pair
       in
       (* --- pass in as new 'states_reachable', the ones that do not already appeared --- *)

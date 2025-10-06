@@ -118,7 +118,7 @@ let pp_raw_transition (tran: ((T.state * T.state) * T.symbol) * (T.beta * T.beta
   noprintf "\t\t (%s, %s) ->_{< " st1 st2; pp_symbol sym; noprintf ">} [ "; beta_pair_ls |> iter pp_beta_pair
 
 let pp_raw_transitions (ts: (((T.state * T.state) * T.symbol) * (T.beta * T.beta) list) list) = 
-  noprintf "\t Raw Transitions : { \n"; ts |> iter pp_raw_transition; 
+  noprintf "\t Raw Transitions : { \n\t"; ts |> iter (fun raw_tran -> pp_raw_transition raw_tran; noprintf "\n\t"); 
   noprintf "]\n"; noprintf " \t      }\n"
 
 
