@@ -454,16 +454,6 @@ let get_higher_state (st: state): state =
     else ch) 
   in (new_char_lst) |> List.to_seq |> String.of_seq
 
-(* 
-let find_all_trans_starting_from (st: state) (trans_ls: transition list) = 
-  let rec loop ls acc = 
-    match ls with [] -> List.rev acc
-    | (lft_st, (_, _)) as tran :: tl -> 
-      if (lft_st = st) then loop tl (tran::acc)
-      else loop tl acc
-  in loop trans_ls []
-*)
-
 (* all pairs from two beta lists, order-preserving *)
 let cartesian (xs : beta list) (ys : beta list) : (beta * beta) list =
   List.map2 (fun x y -> 
@@ -518,16 +508,17 @@ let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) 
 let symbols_in_both_lists ls1 ls2 =
   List.filter (fun x -> List.mem x ls2) ls1
 
+let are_states_pair (beta_pair: (beta * beta)): bool = 
+  match (fst beta_pair), (snd beta_pair) with S _, S _ -> true | _ -> false
+
+let beta_pair_to_states_pair (beta_pair: (beta * beta)): (state * state) =
+  match (fst beta_pair), (snd beta_pair) with S s1, S s2 -> (s1, s2) | _ -> raise (Failure "beta_pair_to_states_pair : expect only states pair")
+
+let are_same_states_pairs (sts_pair1: state * state) (sts_pair2: state * state) = 
+  (fst sts_pair1) = (fst sts_pair2) && (snd sts_pair2) = (snd sts_pair2)
+
 
 (* 
-
-let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls: ((state * state) * (symbol * (state * state) list)) list): 
-  ((state * state) * (symbol * (state * state) list)) list =
-  let rec loop ls acc = 
-    match ls with [] -> List.rev acc
-    | (st_pr, _) as raw_tran :: tl ->
-      if state_pairs_equal states_pair st_pr then loop tl (raw_tran::acc) else loop tl acc
-  in loop raw_trans_ls [] 
 
 (* helper to collect RHS of raw transition list, ie, (sym, state pairs list) *)
 let sym_and_rhs_sigma_pairs (raw_trans: ((state * state) * (symbol * (sigma * sigma) list)) list): 
@@ -612,13 +603,6 @@ let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * 
 (* let remove_dup_trans_after_eps_intro (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
   (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
   let rec *)
-
-
-let find_trans_block_for_states_pair (st_pair: (state * state)) 
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list):
-  ((state * state) * (symbol * (sigma * sigma) list)) list =
-  match List.assoc_opt st_pair trans_blocks with None -> raise Invalid_transitions
-  | Some ls -> ls
   
 let trans_mem (sym_rhs_sts: symbol * (sigma * sigma) list) (trans_rhs_lst: (symbol * (sigma * sigma) list) list): bool = 
   let exists_in_sigsigls (sig_pair: sigma * sigma) (sig_sig_ls: (sigma * sigma) list): bool = 
