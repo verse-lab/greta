@@ -454,135 +454,28 @@ let get_higher_state (st: state): state =
     else ch) 
   in (new_char_lst) |> List.to_seq |> String.of_seq
 
-(* 
-  let levels_in_op_ls (op_ls: restriction list): int = 
-  op_ls |> List.map (fun op -> match op with Assoc (_, _) -> raise No_assoc_possible 
-  | Prec (_, o) -> o) |> List.sort_uniq compare |> List.length
+(* all pairs from two beta lists, order-preserving *)
+let cartesian (xs : beta list) (ys : beta list) : (beta * beta) list =
+  List.map2 (fun x y -> 
+    match x, y with T _, T _ | S _, S _ -> (x, y)
+    | _ -> raise (Failure "cartesian : Terminal and State cannot be mapped")) xs ys
 
-let find_all_trans_starting_from (st: state) (trans_ls: transition list) = 
-  let rec loop ls acc = 
-    match ls with [] -> List.rev acc
-    | (lft_st, (_, _)) as tran :: tl -> 
-      if (lft_st = st) then loop tl (tran::acc)
-      else loop tl acc
-  in loop trans_ls []
-
-let order_trans_ls (st_ls: state list) (trans_ls: transition list): transition list = 
-  st_ls |> List.fold_left (fun acc st ->  acc @ (find_all_trans_starting_from st trans_ls)) []
-
-let find_rhs_states_from_state_with_sym (st: state) (sym: symbol) (trans_ls: transition list) (debug: bool): state list =
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
-  wrapped_printf "\nFinding transition starting from %s for symbol (%s, %i) ..\n" st (fst sym) (snd sym);
-  let rec interm_sts_loop (ls': state list) (rhs_sts_ls: state list): state list * state list = 
-    match ls' with 
-    | [] -> rhs_sts_ls, []
-    | interm_hd :: interm_tl -> 
-      wrapped_printf "\n\tNow looking for RHS states starting from %s for symbol (%s, %i)\n" interm_hd (fst sym) (snd sym);
-      let i_rhs, next_interm_ls = find_rhs_states trans_ls interm_hd []
-      in if (i_rhs = []) then interm_sts_loop interm_tl [] else i_rhs, next_interm_ls
-  and 
-  find_rhs_states (ls: transition list) (from_st: state) (interm_sts: state list): state list * state list =
-    match ls with 
-    | [] ->
-      if interm_sts = []
-      then [], []
-      else (wrapped_printf "\n\tInterm states not empty: "; Pp.pp_states interm_sts; 
-           interm_sts_loop interm_sts [])
-    | (lft_st, (s, rhs_sts)) :: tl -> 
-      if (lft_st = from_st) && (syms_equals s sym)
-      then rhs_sts, interm_sts
-      else if (lft_st = from_st) && (syms_equals s epsilon_symb)
-      then (let next_st = (List.hd rhs_sts) (* if eps-trans, save in 'interm_sts' and traverse til the end *)
-            in find_rhs_states tl from_st (next_st::interm_sts))
-      else find_rhs_states tl from_st interm_sts
-  in let res_rhs_sts, _ (* res_interm_sts*) = find_rhs_states trans_ls st [] in
-  (if debug then wrapped_printf "\n\t\t >> .. Found RHS states: "; Pp.pp_states res_rhs_sts);
-  res_rhs_sts
-
-let cross_product_state_lists (st_ls1: state list) (st_ls2: state list): state list =
-  let rec cross_loop ls1 ls2 acc = 
-    match ls1, ls2 with 
-    | [], [] -> List.rev acc
-    | h1 :: tl1, h2 :: tl2 -> 
-      let combined = if (h1 = epsilon_state) || (h2 = epsilon_state) 
-        then epsilon_state else h1 ^ h2 in cross_loop tl1 tl2 (combined::acc)
-    | _, [] | [], _ -> raise Invalid_state_lists
-  in cross_loop st_ls1 st_ls2 []
-
-let cross_product_raw_state_lists (st_ls1: state list) (st_ls2: state list): (state * state) list =
-  let rec cross_loop ls1 ls2 acc = 
-    match ls1, ls2 with 
-    | [], [] -> List.rev acc
-    | h1 :: tl1, h2 :: tl2 -> 
-      let combined = (h1, h2) in cross_loop tl1 tl2 (combined::acc)
-    | _, [] | [], _ -> raise Invalid_state_lists
-  in cross_loop st_ls1 st_ls2 []
-
-let find_corresponding_sigls (sig_ls: sigma list) (sig_lsls: sigma list list) (triv_states: state list): sigma list = 
-  (* --- helper --- *)
-  let are_same_triv_states (s1: sigma) (s2: sigma): bool = 
-    match s1, s2 with 
-    | Nt s1', Nt s2' -> if ((List.mem s1' triv_states) && (List.mem s2' triv_states)) then (String.equal s1' s2') else true
-    | _, _ -> false
-  in
-  let rec corresponding_sig_lists (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_states: state list) (acc: bool): bool = 
-    match sig_ls1, sig_ls2 with 
-    | _, [] | [], _ -> acc
-    | sh1 :: stl1, sh2 :: stl2 -> 
-      if (is_terminal sh1) && (is_terminal sh2)
-      then (if sigmas_equal sh1 sh2
-            then corresponding_sig_lists stl1 stl2 triv_states (true && acc)
-            else corresponding_sig_lists stl1 stl2 triv_states (false && acc))
-      else if (not (is_terminal sh1)) && (not (is_terminal sh2))
-      then (if (are_same_triv_states sh1 sh2) 
-            then corresponding_sig_lists stl1 stl2 triv_states (true && acc)
-            else corresponding_sig_lists stl1 stl2 triv_states (false && acc))
-      else false in
-  let rec traverse lsls = 
-    match lsls with [] -> []
-    | hd_sig_ls :: tl -> 
-      if (corresponding_sig_lists sig_ls hd_sig_ls triv_states true)
-      then hd_sig_ls
-      else traverse tl
-  in traverse sig_lsls
-
-let rec cross_product_siglsls (sig_ls1: sigma list) (sig_ls2: sigma list) (triv_states: state list) (acc: (sigma * sigma) list): 
-  (sigma * sigma) list = 
-  let open String in
-  match sig_ls1, sig_ls2 with [], [] -> List.rev acc
-  | Term t1 :: stl1, Term t2 :: stl2 -> cross_product_siglsls stl1 stl2 triv_states ((Term t1, Term t2)::acc)
-  | Nt nt1 :: stl1, Nt nt2 :: stl2 -> 
-    if ((equal nt1 epsilon_state) && (not (List.mem nt2 triv_states))) || ((equal nt2 epsilon_state) && (not (List.mem nt1 triv_states)))
-    then cross_product_siglsls stl1 stl2 triv_states ((Nt epsilon_state, Nt epsilon_state)::acc) 
-    else 
-      if ((List.mem nt1 triv_states) && not (List.mem nt2 triv_states)) || ((List.mem nt2 triv_states) && not (List.mem nt1 triv_states))
-      then cross_product_siglsls stl1 stl2 triv_states acc
-      else cross_product_siglsls stl1 stl2 triv_states ((Nt nt1, Nt nt2)::acc)
-  | (Term _)::_, (Nt _)::_ | (Nt _)::_, (Term _)::_ | _, [] | [], _ -> raise No_cross_product_sigls_possible
-
-*)
+(* pair corresponding buckets; at this point, we know they should have matching lengths *)
+let cross_buckets (xss : beta list list) (yss : beta list list) : (beta * beta) list list =
+  List.map2 cartesian xss yss
 
 let cross_product_raw_betapair_ls (bls_ls1: (beta list) list) (bls_ls2: (beta list) list) 
-  (debug: bool): (beta * beta) list =
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
-  let open List in
-  if debug then (wrapped_printf "\n\t Finding cross product of sigma_lsls's first sig_lsls : \n"; 
-    bls_ls1 |> List.iter (fun bls -> wrapped_printf "\t\t"; Pp.pp_beta_list bls; wrapped_printf "\n"); 
-    wrapped_printf "\n\t Then second sig_lsls : \n"; 
-    bls_ls2 |> List.iter (fun bls -> wrapped_printf "\t\t"; Pp.pp_beta_list bls; wrapped_printf "\n")); []
-  (*
-    let reslsls_refined = reslsls |> filter (fun ls -> not (is_empty ls)) in 
-    if debug then (wrapped_printf "\n\n\n  >> Result of cross product:\n\t"; reslsls_refined |> iter Pp.pp_sigma_sigma_list; wrapped_printf "\n\n\n"); 
-      reslsls_refined  *)
-
+  (debug: bool): (beta * beta) list list =
+  let res_bb_ls: (beta * beta) list list = 
+    
+    cross_buckets bls_ls1 bls_ls2
+  in 
+  (wrapped_printf debug "\n\t\tFinding cross product of first beta_ls : \n"; 
+  bls_ls1 |> List.iter (fun bls -> wrapped_printf debug "\t\t"; Pp.pp_beta_list bls; wrapped_printf debug "\n"); 
+    wrapped_printf debug "\n\t\tThen second beta_ls : \n"; 
+  bls_ls2 |> List.iter (fun bls -> wrapped_printf debug "\t\t"; Pp.pp_beta_list bls; wrapped_printf debug "\n");
+    wrapped_printf debug "\n\t  Result of cross product:\n\t"; res_bb_ls |> List.iter Pp.pp_beta_beta_list; 
+  wrapped_printf debug "\n\n\n"); res_bb_ls
 
 
 let exist_in_tbl (st: state) (sym: symbol) (tbl: ((state * symbol), sigma list list) Hashtbl.t): bool =
@@ -613,18 +506,19 @@ let state_pairs_list_mem (st_pair: state * state) (st_pairs_ls: (state * state) 
   in traverse_pairs st_pairs_ls
 
 let symbols_in_both_lists ls1 ls2 =
-  List.filter (fun x -> List.mem x ls2) ls1
+  List.filter (fun x -> List.mem x ls2) ls1 |> remove_dup_symbols
+
+let are_states_pair (beta_pair: (beta * beta)): bool = 
+  match (fst beta_pair), (snd beta_pair) with S _, S _ -> true | _ -> false
+
+let beta_pair_to_states_pair (beta_pair: (beta * beta)): (state * state) =
+  match (fst beta_pair), (snd beta_pair) with S s1, S s2 -> (s1, s2) | _ -> raise (Failure "beta_pair_to_states_pair : expect only states pair")
+
+let are_same_states_pairs (sts_pair1: state * state) (sts_pair2: state * state) = 
+  (fst sts_pair1) = (fst sts_pair2) && (snd sts_pair2) = (snd sts_pair2)
 
 
 (* 
-
-let collect_raw_trans_for_states_pair (states_pair: state * state) (raw_trans_ls: ((state * state) * (symbol * (state * state) list)) list): 
-  ((state * state) * (symbol * (state * state) list)) list =
-  let rec loop ls acc = 
-    match ls with [] -> List.rev acc
-    | (st_pr, _) as raw_tran :: tl ->
-      if state_pairs_equal states_pair st_pr then loop tl (raw_tran::acc) else loop tl acc
-  in loop raw_trans_ls [] 
 
 (* helper to collect RHS of raw transition list, ie, (sym, state pairs list) *)
 let sym_and_rhs_sigma_pairs (raw_trans: ((state * state) * (symbol * (sigma * sigma) list)) list): 
@@ -709,13 +603,6 @@ let remove_dup_trans_for_each_block (trans_blocks: ((state * state) * ((state * 
 (* let remove_dup_trans_after_eps_intro (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
   (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
   let rec *)
-
-
-let find_trans_block_for_states_pair (st_pair: (state * state)) 
-  (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list):
-  ((state * state) * (symbol * (sigma * sigma) list)) list =
-  match List.assoc_opt st_pair trans_blocks with None -> raise Invalid_transitions
-  | Some ls -> ls
   
 let trans_mem (sym_rhs_sts: symbol * (sigma * sigma) list) (trans_rhs_lst: (symbol * (sigma * sigma) list) list): bool = 
   let exists_in_sigsigls (sig_pair: sigma * sigma) (sig_sig_ls: (sigma * sigma) list): bool = 

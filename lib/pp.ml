@@ -85,8 +85,8 @@ let pp_symbol (s: T.symbol) =
   noprintf " <%d: %s, %d> " (T.id_of_sym s) (T.term_of_sym s) (T.arity_of_sym s)
 
 let pp_beta_beta_list (bbls: (T.beta * T.beta) list) = 
-  noprintf "[ "; bbls |> iter (fun (b1, b2) -> 
-    noprintf "\t\t( "; pp_beta b1; noprintf ", "; pp_beta b2; noprintf ") "); noprintf "] \n"
+  noprintf "  [ "; bbls |> iter (fun (b1, b2) -> 
+    noprintf "  ( "; pp_beta b1; noprintf ", "; pp_beta b2; noprintf ")   "); noprintf "] \n"
 
 let pp_sigma_listlist (slsls: C.sigma list list) = 
   noprintf "\t\t\t\t\t  [     "; slsls |> iter pp_sigma_list; noprintf "     ]\n"
@@ -115,18 +115,18 @@ let pp_raw_transition (tran: ((T.state * T.state) * T.symbol) * (T.beta * T.beta
   let sts_pair_sym, beta_pair_ls = (fst tran), (snd tran) in
   let sts_pair, sym = (fst sts_pair_sym), (snd sts_pair_sym) in
   let st1, st2 = (fst sts_pair), (snd sts_pair) in 
-  noprintf "(%s, %s) ->_{< " st1 st2; pp_symbol sym; noprintf ">} [ "; beta_pair_ls |> iter pp_beta_pair
+  noprintf "\t\t (%s, %s) ->_{< " st1 st2; pp_symbol sym; noprintf ">} [ "; beta_pair_ls |> iter pp_beta_pair
 
 let pp_raw_transitions (ts: (((T.state * T.state) * T.symbol) * (T.beta * T.beta) list) list) = 
-  noprintf "\tRaw Transitions (new) : { \n"; ts |> iter pp_raw_transition; 
-  noprintf "]\n"; noprintf " \t\t      }\n"
+  noprintf "\t Raw Transitions : { \n"; ts |> iter pp_raw_transition; 
+  noprintf "]\n"; noprintf " \t      }\n"
 
 
 let pp_raw_cart_product_trans (ts: (((T.state * T.state) * T.symbol) * (T.beta * T.beta) list) list) =
-  noprintf "\tRaw Transitions (new) : { \n"; ts |> iter (fun (((st1, st2), sym), beta_pair_ls) -> 
+  noprintf "\n\t Raw Transitions : { \n"; ts |> iter (fun (((st1, st2), sym), beta_pair_ls) -> 
     (* [prev] "\t\t\t(%s, %s)  ->_{<%s, %i>}  " *)
-    noprintf "(%s, %s)  ->_{" st1 st2; pp_symbol sym; noprintf "}  ";
-    beta_pair_ls |> pp_beta_beta_list; noprintf "\n") ; noprintf " \t\t      }\n"
+    noprintf "\t    (%s, %s)  ->_{" st1 st2; pp_symbol sym; noprintf "}  ";
+    beta_pair_ls |> pp_beta_beta_list) ; noprintf "\t     }\n"
 
 
 
