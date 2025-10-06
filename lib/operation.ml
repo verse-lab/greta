@@ -378,12 +378,14 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 6 - Find a list of duplicate states pairs *)
+  
   let dup_states_pair_ls: ((state * state) * (state * state)) list = 
     find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks_sorted debug
   in
   (if debug then pp_upline_new debug; wrapped_printf "### Step 6 - Found a list of duplicate states pairs : \n";
   dup_states_pair_ls |> List.iter (fun ls -> wrapped_printf "\n\t"; Pp.pp_raw_pair_of_state_pairs ls); 
   pp_loline_new debug);
+
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 7 - Remove transitions based on 'dup_states_pair_ls' *)  
@@ -393,16 +395,20 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; wrapped_printf "### Step 7 - Removed raw transitions wrt duplicate states pairs : \n";
   Pp.pp_raw_trans_blocks raw_trans_blocks_cleaned; pp_loline_new debug);
 
+
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 8 - Replace state names based on 'dup_states_pair_ls' *)  
+  
   let trans_blocks_replaced: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
     replace_dup_state_names dup_states_pair_ls raw_trans_blocks_cleaned debug
   in
   (if debug then pp_upline_new debug; wrapped_printf "### Step 8 - Replaced state names wrt duplicate states pairs : \n";
     Pp.pp_raw_trans_blocks trans_blocks_replaced; pp_loline_new debug);
 
+  
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 9 - Rename states and populate Q, raw trans blocks *)  
+  
   let states_renaming_map: ((state * state) * (state * state)) list =
     collect_unique_states_and_map_to_new_states trans_blocks_replaced final_states_raw debug in
   
@@ -414,6 +420,22 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   in 
   (if debug then pp_upline_new debug; wrapped_printf "### Step 9 - Renamed states in Q and raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_renamed; pp_loline_new debug);
+
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 10 - Remove duplicate transitions in each raw trans block *)  
+  let trans_blocks_wo_dup_trans = remove_dup_trans_for_each_block trans_blocks_renamed debug
+  in 
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 10 - Removed dup trans in raw trans blocks : \n";
+  Pp.pp_raw_trans_blocks trans_blocks_wo_dup_trans; pp_loline_new debug);
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 11 - Introduce epsilon transitions to simplify raw trans blocks *)
+  let trans_blocks_simplified_eps_trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    simplify_trans_blocks_with_epsilon_transitions trans_blocks_renamed (List.rev state_pairs_renamed) debug
+  in 
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 11 - Introduced epsilon transitions to simplify raw trans blocks : \n";
+  Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new debug);
 
 
 
@@ -528,27 +550,6 @@ let find_duplicate_state_pairs_after_eps_intro
 
 
   
-  
-  
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 10 - Remove duplicate transitions in each raw trans block *)  
-  let trans_blocks_wo_dup_trans = remove_dup_trans_for_each_block trans_blocks_renamed debug_print
-  in 
-  (if debug_print then begin pp_upline_new (); printf "### Step 10 - Removed dup trans in raw trans blocks : \n";
-    Pp.pp_raw_trans_blocks trans_blocks_wo_dup_trans; pp_loline_new () end);
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 11 - Introduce epsilon transitions to simplify raw trans blocks *)
-  let trans_blocks_simplified_eps_trans: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
-    simplify_trans_blocks_with_epsilon_transitions trans_blocks_renamed (List.rev state_pairs_renamed) debug_print
-  in 
-  let trans_blocks_simplified_eps_trans_trimmed: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
-    if paren_opt then remove_meaningless_transitions trans_blocks_simplified_eps_trans else trans_blocks_simplified_eps_trans
-    (* remove_meaningless_transitions trans_blocks_simplified_eps_trans *)
-  in
-  (if debug_print then begin pp_upline_new (); printf "### Step 11 - Introduced epsilon transitions to simplify raw trans blocks : \n";
-    Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans_trimmed; pp_loline_new () end);
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 12 - Find duplicates after epsilon introduction *)
