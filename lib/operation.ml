@@ -32,7 +32,7 @@ let find_intermediate_states (from_st: state) (trans_tbl: ((state * symbol), bet
       then loop from_st_tl res_acc
       else loop (from_st_tl @ to_acc) (to_acc @ res_acc)
   in let res = loop [from_st] [] in 
-  if debug then (Printf.printf "\n\t\t   Found intermediate states for State %s  :  " from_st; 
+  if debug then (Printf.printf "\n\t\tFound intermediate states for State %s  :  " from_st; 
   Pp.pp_states res); res
 
 let find_corr_trans_in_tbl (sym: symbol) (st: state) (tbl: ((state * symbol), beta list) Hashtbl.t): 
@@ -88,13 +88,16 @@ let cartesian_product_trans_from (starting_states: (state * state) list)
       reachable_symbols_from_states (st2::interm_sts2) trans_tbl2 in
     let symbols_common: symbol list = 
       symbols_in_both_lists symbols_reachable_from_sts1 symbols_reachable_from_sts2 in 
-      (wrapped_printf debug "\n\t Symbols in common: "; symbols_common |> List.iter Pp.pp_symbol;
+      (wrapped_printf debug "\n\t\tSymbols in common: "; symbols_common |> List.iter Pp.pp_symbol;
       wrapped_printf debug "\n");
     let beta_pair_lsls: (symbol * (beta * beta) list) list = 
       symbols_common |> List.fold_left (fun acc sym -> 
         let rhs_blsls1: (beta list) list = find_corr_trans_in_tbl sym st1 trans_tbl1 in
         let rhs_blsls2: (beta list) list = find_corr_trans_in_tbl sym st2 trans_tbl2 in
-        (sym, (cross_product_raw_betapair_ls rhs_blsls1 rhs_blsls2 debug)) :: acc
+        let beta_pair_lsls: (beta * beta) list list = cross_product_raw_betapair_ls rhs_blsls1 rhs_blsls2 debug in 
+        let to_acc: (symbol * (beta * beta) list) list = 
+          beta_pair_lsls |> List.map (fun beta_pair_ls -> (sym, beta_pair_ls)) 
+        in to_acc @ acc 
         ) [] 
     in 
     let to_acc: (((state * state) * symbol) * (beta * beta) list) list = 
@@ -125,13 +128,12 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 2 - Get raw transitions for symbols that 'start_states_raw' from I *)
   
-  let _raw_init_trans_ls: (((state * state) * symbol) * (beta * beta) list) list = 
+  let raw_init_trans_ls: (((state * state) * symbol) * (beta * beta) list) list = 
       cartesian_product_trans_from final_states a1.transitions a2.transitions debug 
   in
   
-  (* (pp_upline_new debug; wrapped_printf "### Step 2 - Find initial states-starting transitions : \n\t"; 
-  Pp.pp_raw_transitions raw_init_trans_ls; pp_loline_new debug); *)
-
+  (pp_upline_new debug; wrapped_printf "### Step 2 - Find final states-starting transitions : \n\t"; 
+  Pp.pp_raw_transitions raw_init_trans_ls; pp_loline_new debug);
 
 
 

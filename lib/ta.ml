@@ -51,4 +51,9 @@ let is_dummy_sym (s: symbol): bool = syms_equals dummy_sym s
 let count = ref 0
 let gen_count = ref 0
 
+let is_t (x: beta) = 
+  match x with T _ -> true | S _ -> false
+
+let is_s (x: beta) = 
+  match x with T _ -> false | S _ -> true
 
