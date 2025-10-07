@@ -19,6 +19,10 @@ exception Invalid_subtrees
 exception Tree_specifies_oa_or_op
 exception Neither_left_nor_right
 
+let wrapped_printf debug_print fmt =
+  if debug_print then Printf.printf fmt
+  else Printf.ifprintf stdout fmt
+
 (* Helpers used for string productions w.r.t. ambiguities *)
 let starts str lin = String.starts_with ~prefix:str lin
 let change_to_str_ls s = Str.split (Str.regexp "[ \t\n\r]+") s
@@ -98,6 +102,95 @@ let pp_due_to_menhir (ambigs: (string * string list) list) =
       printf "\n\tAmbig #%s " (string_of_int (i+1)); printf "\n\t* Tokens involved: %s" tk ;
       printf "\n\t* How to reach this ambiguity: \n"; pp_loop "" false lns)
 
+let contains_atat lin = 
+  try 
+    (ignore (Str.search_forward (Str.regexp_string "@@") lin 0); true)
+  with 
+    Not_found -> false
+
+let add_at_at i ls = 
+  List.mapi (fun j x -> if j = i then ("@" ^ x) else x) ls
+
+let remove_at i ls =
+  List.filteri (fun j _ -> j <> i) ls 
+
+let attach_at_with_nonterm s: string = 
+  let s_ls = change_to_str_ls s in
+  let at_ind = match (index_of "@@" s_ls) with Some i -> i | None -> raise (Failure "atat index") in
+  let new_sls = add_at_at (at_ind - 1) s_ls in 
+  let new_sls_filtered = remove_at at_ind new_sls in 
+  String.concat " " new_sls_filtered
+
+let extract_tokens s: string = 
+  let s_ls = change_to_str_ls s in
+  let tkns_ind = match (index_of "Tokens:" s_ls) with Some i -> i | None -> raise (Failure "tokens: index") in
+  let new_sls_filtered = List.filteri (fun j _ -> j = tkns_ind + 1) s_ls in
+  List.hd new_sls_filtered
+
+let extract_prod_line s: string = 
+  let s_ls = change_to_str_ls s in 
+  let prod_ind = match (index_of "Production" s_ls) with Some i -> i | None -> raise (Failure "prod: index") in
+  let new_sls_filtered = s_ls |> remove_at prod_ind |> List.tl in
+  String.concat " " new_sls_filtered
+
+(* auxiliary 'insert_tree_in_leaves' for combine_two_trees *)
+let insert_tree_in_leaves (lvs: tree list) (t: tree): tree list = 
+  let rec replace_loop ls acc = 
+    match ls with [] -> List.rev acc
+    | (Leaf v) as hd :: tl -> 
+      if starts "@" v 
+      then replace_loop tl (t::acc)
+      else replace_loop tl (hd::acc)
+    | _ -> raise Leaf_is_not_valid
+  in replace_loop lvs []
+
+(* get_restriction_on_tree gets Oa := [(Assoc (sym, 0))] or Op := [(sym1, 0); (sym2, 1)] *)
+let get_restriction_on_tree (t: tree) (oa: bool) (op: bool): restriction list =
+  match t with Leaf _ -> raise Leaf_is_not_valid
+  | Node (sym, subts) -> 
+    if oa 
+    then 
+      begin 
+        let index_of_subt_with_same_sym: int = find_index_subt_with_same_sym sym subts in 
+        [Assoc (sym, index_of_subt_with_same_sym)]
+      end
+    else if op
+    then (let subt_sym = subts |> List.filter (fun t -> not (is_leaf t)) |> List.hd |> tree_symbol
+            in [Prec (sym, 0); Prec (subt_sym, 1)])
+    else raise Tree_specifies_oa_or_op
+  
+(* combine_two_trees  *)
+let combine_two_trees (te1: tree * string list) (te2: tree * string list): 
+  (tree * (bool * bool * bool) * restriction list) list =
+  match te1, te2 with 
+  | (Leaf _, _), (_, _) | (_, _), (Leaf _, _) -> raise Leaf_is_not_valid
+  | (Node (sym1, lvs1), _), (Node (sym2, lvs2), _) -> 
+    let lvs1_inserted = insert_tree_in_leaves lvs1 (Node (sym2, lvs2)) in
+    let oa1_pos, oa1_neg, op1 = check_oa_op (Node (sym1, lvs1_inserted)) in
+    let r_ls1: restriction list = get_restriction_on_tree (Node (sym1, lvs1_inserted)) oa1_pos op1 in 
+    let lvs2_inserted = insert_tree_in_leaves lvs2 (Node (sym1, lvs1)) in
+    let oa2_pos, oa2_neg, op2 = check_oa_op (Node (sym2, lvs2_inserted)) in
+    let r_ls2: restriction list = get_restriction_on_tree (Node (sym2, lvs2_inserted)) oa2_pos op2 in 
+    [Node (sym1, lvs1_inserted), (oa1_pos, oa1_neg, op1), r_ls1; Node (sym2, lvs2_inserted), (oa2_pos, oa2_neg, op2), r_ls2]
+
+let combine_tree_exprs (e_trees_n_exprs: (tree * string list) list) (debug_print: bool): 
+  (tree * (bool * bool * bool) * restriction list) list = 
+  let rec combine_loop ls res_acc =
+    match ls with 
+    | [] -> List.rev res_acc 
+    | texpr1 :: tl ->
+      if tl = [] then raise Invalid_number_of_trees
+      else 
+        (let texpr2 = List.hd tl in 
+        let two_trees_combined: (tree * (bool * bool * bool) * restriction list) list = 
+            combine_two_trees texpr1 texpr2 in 
+            (* *** debug *** *)
+            if debug_print then (wrapped_printf debug_print "\n\n Combined tree: "; 
+              let (fst_tree, _, _) = List.nth two_trees_combined 0 in 
+              let (snd_tree, _, _) = List.nth two_trees_combined 1
+              in wrapped_printf debug_print "\n\t"; Pp.pp_tree fst_tree; wrapped_printf debug_print "\n\t"; Pp.pp_tree snd_tree);
+        combine_loop (List.tl tl) (two_trees_combined @ res_acc))
+  in combine_loop e_trees_n_exprs []
 
 let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.production) list) (debug_print: bool): 
   ((string list * tree * (bool * bool * bool) * restriction list) * (string list * tree * (bool * bool * bool) * restriction list)) list = 
@@ -120,63 +213,106 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
   let try_read () = try Some (input_line ic) with End_of_file -> None in
   let try_read2 () = try Some (input_line ic2) with End_of_file -> None in 
   let try_read3 () = try Some (input_line ic3) with End_of_file -> None in 
-  let contains_atat lin = 
-    try 
-      (ignore (Str.search_forward (Str.regexp_string "@@") lin 0); true)
-    with 
-      Not_found -> false
-  in
   let is_in_alphabet s: bool = 
     List.mem s syms_ls 
-  in  
-  let add_at_at i ls = 
-    List.mapi (fun j x -> if j = i then ("@" ^ x) else x) ls in 
-  let remove_at i ls =
-  List.filteri (fun j _ -> j <> i) ls 
   in
-  let attach_at_with_nonterm s: string = 
-    let s_ls = change_to_str_ls s in
-    let at_ind = match (index_of "@@" s_ls) with Some i -> i | None -> raise (Failure "atat index") in
-    let new_sls = add_at_at (at_ind - 1) s_ls in 
-    let new_sls_filtered = remove_at at_ind new_sls in 
-    String.concat " " new_sls_filtered
-  in  
-   let extract_tokens s: string = 
-    let s_ls = change_to_str_ls s in
-    let tkns_ind = match (index_of "Tokens:" s_ls) with Some i -> i | None -> raise (Failure "tokens: index") in
-    let new_sls_filtered = List.filteri (fun j _ -> j = tkns_ind + 1) s_ls in
-    List.hd new_sls_filtered
+  let rec collect_all_lines acc =
+    match try_read () with
+    | Some line -> collect_all_lines (line :: acc)
+    | None -> List.rev acc
+  in let all_lines = collect_all_lines [] 
   in
-  let extract_prod_line s: string = 
-    let s_ls = change_to_str_ls s in 
-    let prod_ind = match (index_of "Production" s_ls) with Some i -> i | None -> raise (Failure "prod: index") in
-    let new_sls_filtered = s_ls |> remove_at prod_ind |> List.tl in
-    String.concat " " new_sls_filtered
-  in
+
   (* traverse and acc relevant lines for generating trees from `parser.trees` file *)
-  let rec traverse (lhs_nt: string) (res_acc: (string * string) list): (string * string) list = 
-    match try_read () with 
-    | None -> (close_in ic; res_acc)
-    | Some s -> 
-      (* NOTE: below added to pass in lhs nonterminal string to infer production correctly later
-         which is then used to correctly generate symbol for each tree *)
-      if (contains s "* Production") 
+  let rec traverse (input_ls: string list) (lhs_nt: string) (curr_nt_prod_pair: string * string) (num_toks: int) (cnt: int)
+    (res_acc: (string * string) list): (string * string) list = 
+    match input_ls with 
+    | [] -> res_acc |> List.rev
+    | s :: stl -> 
+
+      (* If number_tokens, then collect and pass to the loop *)
+      if (contains s "Number_tokens:")
       then 
-        (let lhs_nt_str_ls = s |> String.split_on_char ' ' in 
-         let after_prod_ind: int = 
-          match (index_of "Production" lhs_nt_str_ls) with 
-          | Some i -> i + 1 | None -> raise (Failure "traverse : Production index cannot be found") in 
-         let lhs_nt_str = List.nth lhs_nt_str_ls after_prod_ind
-         in traverse lhs_nt_str res_acc)
+         (let curr_str_ls = s |> String.split_on_char ' ' in 
+          let after_num_tok_ind: int = 
+           match (index_of "Number_tokens:" curr_str_ls) with 
+            | Some i -> i + 1 | None -> raise (Failure "traverse : Num_tokens index cannot be found") in 
+          let tok_num_str = List.nth curr_str_ls after_num_tok_ind in 
+          let tok_num_int = (int_of_string tok_num_str)
+          (* 'cnt' has to be tok_num_int + 1 so that no duplicate set of prods get printed from later logic *)
+          in traverse stl lhs_nt curr_nt_prod_pair tok_num_int (tok_num_int+1) res_acc)
+      else 
+      if (num_toks = 1)
+      then 
+        (* If there is only one token involved, then collect relev lines like before *)
+        begin 
+          (* NOTE: below added to pass in lhs nonterminal string to infer production correctly later
+            which is then used to correctly generate symbol for each tree *)
+          if (contains s "* Production") 
+          then 
+            (let lhs_nt_str_ls = s |> String.split_on_char ' ' in 
+            let after_prod_ind: int = 
+              match (index_of "Production" lhs_nt_str_ls) with 
+              | Some i -> i + 1 | None -> raise (Failure "traverse : Production index cannot be found") in 
+            let lhs_nt_str = List.nth lhs_nt_str_ls after_prod_ind
+            in traverse stl lhs_nt_str curr_nt_prod_pair num_toks cnt res_acc)
+          else
+            (* NOTE: below added to not address ambigs outside the scope of greta *)
+            if (contains_atat s) && (not (starts "@@" s))
+            then (let changed_str = attach_at_with_nonterm s
+                  in traverse stl lhs_nt (lhs_nt, changed_str) num_toks cnt ((lhs_nt, changed_str)::res_acc))
+            else traverse stl lhs_nt curr_nt_prod_pair num_toks cnt res_acc
+        end
       else
-        (* NOTE: below added to not address ambigs outside the scope of greta *)
-        if (contains_atat s) && (not (starts "@@" s))
-        then (let changed_str = attach_at_with_nonterm s
-              in traverse lhs_nt ((lhs_nt, changed_str)::res_acc))
-        else traverse lhs_nt res_acc
+        
+        (* If there are multiple tokens involed, do like the num_toks = 1 case except that 
+           collect two relev lines (along with 'curr_nt_prod_pair') and decrement 'cnt' by 1
+           do this until 'cnt' is 0 *)
+        if (cnt = 0) then traverse stl lhs_nt curr_nt_prod_pair num_toks cnt res_acc
+        else 
+          if (cnt >= num_toks) 
+          then 
+            begin 
+              (* NOTE: below added to pass in lhs nonterminal string to infer production correctly later
+                which is then used to correctly generate symbol for each tree *)
+              if (contains s "* Production") 
+              then 
+                (let lhs_nt_str_ls = s |> String.split_on_char ' ' in 
+                let after_prod_ind: int = 
+                  match (index_of "Production" lhs_nt_str_ls) with 
+                  | Some i -> i + 1 | None -> raise (Failure "traverse : Production index cannot be found") in 
+                let lhs_nt_str = List.nth lhs_nt_str_ls after_prod_ind
+                in traverse stl lhs_nt_str curr_nt_prod_pair num_toks cnt res_acc)
+              else
+                (* NOTE: below added to not address ambigs outside the scope of greta *)
+                if (contains_atat s) && (not (starts "@@" s))
+                then (let changed_str = attach_at_with_nonterm s
+                      in traverse stl lhs_nt (lhs_nt, changed_str) num_toks (cnt-1) ((lhs_nt, changed_str)::res_acc))
+                else traverse stl lhs_nt curr_nt_prod_pair num_toks cnt res_acc
+            end
+          else
+            begin 
+              if (contains s "* Production")
+              then 
+                (let lhs_nt_str_ls = s |> String.split_on_char ' ' in 
+                let after_prod_ind: int = 
+                  match (index_of "Production" lhs_nt_str_ls) with 
+                  | Some i -> i + 1 | None -> raise (Failure "traverse : Production index cannot be found") in 
+                let lhs_nt_str = List.nth lhs_nt_str_ls after_prod_ind
+                in traverse stl lhs_nt_str curr_nt_prod_pair num_toks cnt res_acc)
+              else 
+                (* NOTE: below added to not address ambigs outside the scope of greta *)
+                if (contains_atat s) && (not (starts "@@" s))
+                then (let changed_str = attach_at_with_nonterm s
+                      in traverse stl lhs_nt (lhs_nt, changed_str) num_toks (cnt + 1) (curr_nt_prod_pair::(lhs_nt, changed_str)::res_acc))
+                else traverse stl lhs_nt curr_nt_prod_pair num_toks cnt res_acc
+            end
+        
   in 
   let filter_out_wrt_menhir_limitations (input_ls: (string * string) list): (string * string) list = 
-    let str_str_paired_ls: ((string * string) * (string * string)) list = pair_up_alt input_ls in
+    let str_str_paired_ls: ((string * string) * (string * string)) list = 
+      pair_up_alt input_ls 
+    in
     let rec loop (res_acc: (string * string) list) (ls: ((string * string) * (string * string)) list): (string * string) list =  
     match ls with [] -> if !is_due_to_menhir then res_acc else input_ls
     | ((a1, s1), (a2, s2)) :: tl ->
@@ -310,77 +446,8 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
         if debug_print then (Pp.pp_tree s_tree; wrapped_printf "\n\n");
         extract_loop stl ((s_tree, s_ls) :: res_acc))
     in extract_loop relev_lines []
-  in
-  (* auxiliary 'insert_tree_in_leaves' for combine_two_trees *)
-  let insert_tree_in_leaves (lvs: tree list) (t: tree): tree list = 
-    let rec replace_loop ls acc = 
-      match ls with [] -> List.rev acc
-      | (Leaf v) as hd :: tl -> 
-        if starts "@" v 
-        then replace_loop tl (t::acc)
-        else replace_loop tl (hd::acc)
-      | _ -> raise Leaf_is_not_valid
-    in replace_loop lvs []
-  in
-  (* get_restriction_on_tree gets Oa := [(Assoc (sym, 0))] or Op := [(sym1, 0); (sym2, 1)] *)
-  let get_restriction_on_tree (t: tree) (oa: bool) (op: bool): restriction list =
-    match t with Leaf _ -> raise Leaf_is_not_valid
-    | Node (sym, subts) -> 
-      if oa 
-      then 
-        begin 
-          let index_of_subt_with_same_sym: int = find_index_subt_with_same_sym sym subts in 
-          [Assoc (sym, index_of_subt_with_same_sym)]
-        end
-      else if op
-      then (let subt_sym = subts |> List.filter (fun t -> not (is_leaf t)) |> List.hd |> tree_symbol
-              in [Prec (sym, 0); Prec (subt_sym, 1)])
-      else raise Tree_specifies_oa_or_op
-
-      
-            (* let lft_sym = tree_symbol hd
-            in if syms_equals lft_sym sym 
-               then [Assoc (sym, "l")]
-               else let rht_sym = tree_symbol (List.hd (List.tl tl))
-                    in if syms_equals rht_sym sym 
-                    then [Assoc (sym, "r")]
-                    else raise Neither_left_nor_right) *)
-         
-      
-  in
-  (* combine_two_trees  *)
-  let combine_two_trees (te1: tree * string list) (te2: tree * string list): 
-    (tree * (bool * bool * bool) * restriction list) list =
-    match te1, te2 with 
-    | (Leaf _, _), (_, _) | (_, _), (Leaf _, _) -> raise Leaf_is_not_valid
-    | (Node (sym1, lvs1), _), (Node (sym2, lvs2), _) -> 
-      let lvs1_inserted = insert_tree_in_leaves lvs1 (Node (sym2, lvs2)) in
-      let oa1_pos, oa1_neg, op1 = check_oa_op (Node (sym1, lvs1_inserted)) in
-      let r_ls1: restriction list = get_restriction_on_tree (Node (sym1, lvs1_inserted)) oa1_pos op1 in 
-      let lvs2_inserted = insert_tree_in_leaves lvs2 (Node (sym1, lvs1)) in
-      let oa2_pos, oa2_neg, op2 = check_oa_op (Node (sym2, lvs2_inserted)) in
-      let r_ls2: restriction list = get_restriction_on_tree (Node (sym2, lvs2_inserted)) oa2_pos op2 in 
-      [Node (sym1, lvs1_inserted), (oa1_pos, oa1_neg, op1), r_ls1; Node (sym2, lvs2_inserted), (oa2_pos, oa2_neg, op2), r_ls2]
-  in
-  let combine_tree_exprs (e_trees_n_exprs: (tree * string list) list): 
-    (tree * (bool * bool * bool) * restriction list) list = 
-    let rec combine_loop ls res_acc =
-      match ls with 
-      | [] -> List.rev res_acc 
-      | texpr1 :: tl ->
-        if tl = [] then raise Invalid_number_of_trees
-        else (let texpr2 = List.hd tl in 
-              let two_trees_combined: (tree * (bool * bool * bool) * restriction list) list = 
-                  combine_two_trees texpr1 texpr2 in 
-                  (* *** debug *** *)
-                  if debug_print then (wrapped_printf "\n\n Combined tree: "; 
-                    let (fst_tree, _, _) = List.nth two_trees_combined 0 in 
-                    let (snd_tree, _, _) = List.nth two_trees_combined 1
-                    in wrapped_printf "\n\t"; Pp.pp_tree fst_tree; wrapped_printf "\n\t"; Pp.pp_tree snd_tree);
-              combine_loop (List.tl tl) (two_trees_combined @ res_acc))
-    in combine_loop e_trees_n_exprs []
   in 
-  let relev_ls: (string * string) list = traverse "" [] |> filter_out_wrt_menhir_limitations in
+  let relev_ls: (string * string) list = traverse all_lines "" ("", "") 1 0 [] |> filter_out_wrt_menhir_limitations in
     
     (if debug_print then wrapped_printf "\n\t Relevant lines: \n";
     relev_ls |> (List.iter (fun (nt, x) -> wrapped_printf "\t %s   =>   %s\n" nt x)));
@@ -391,7 +458,8 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
     in List.iter (fun x -> (Pp.pp_tree x; wrapped_printf "\n\t")) tls; wrapped_printf "\n"); 
     
   let combined_trees: (tree * (bool * bool * bool) * restriction list) list = 
-                                                combine_tree_exprs extracted_trees_n_exprs in
+    combine_tree_exprs extracted_trees_n_exprs debug_print 
+  in
   (* generate tree expressions by splitting per every two combined ones *)
   let tree_expressions: (string list * string list) list = 
     let rec gen_texprs lst cnt tmp_acc res_acc = 
@@ -420,58 +488,16 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
     in gen_texamples combined_trees 0 [] []
   in
   if debug_print then begin (Pp.pp_combined_trees combined_trees); Pp.pp_exprs tree_expressions end;
+
   (* traverse file again for nonaddressable ambiguities *)
   let non_addr_ambigs: (string * string list) list = traverse_nonaddr [] false [] false [] "" in 
+  
   (* traverse file again in case there is `is_due_to_menhir` is true *)
   let due_to_menhir_ambigs: (string * string list) list = traverse_due_to_menhir [] false [] false [] "" in
+  
   pp_nonaddr non_addr_ambigs;
   pp_due_to_menhir due_to_menhir_ambigs;
   tree_example_pairs
-
-
-
-
-(** generator of random trees without a pattern :
-  * given (1) a (+/-) pattern and 
-  *       (2) a set of symbols excluding all symbols in this pattern
-  *           (above exclusion to ensure no opposite pattern occurs in a generated tree)
-  *           generate a random tree with this negative pattern *)
-
-(** generator of random trees with a specific pattern *)
-let rand_tree_wpat (a: symbol list) (debug_print: bool) (pat: tree): tree = 
-  let wrapped_printf fmt =
-    if debug_print then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
-  let open Pp in
-  let open Random in
-  let len = List.length a in
-  let pat_depth = height pat in
-  if debug_print then (wrapped_printf "\nGenerating a random tree with a pattern:\n\t"; pp_tree pat;
-  wrapped_printf "\n\t.. whose height is %d\n" pat_depth;
-  wrapped_printf "\n\tGiven following alphabet:\n\t"; pp_alphabet a);
-  (* TODO: To revise below to make generated random tree w/ pattern non-trivial *)
-  (* run loop until the randomly chosen sym is non-trivial *)
-  (* randomly select a symbol from alphabet and append 'pat' to it *)
-  let dep_fin = ref 0 in
-  let rec loop a dep =
-    let rind = self_init (); int len in
-    let sym = List.nth a rind in
-    if debug_print then (wrapped_printf "\n\tRandomly selected symbol is "; pp_symbol sym);
-    dep_fin := dep;
-    let ar = arity_of_sym sym in match ar with 
-    | 0 -> Node (sym, [pat]) 
-    | num -> 
-      (match term_of_sym sym with "IF" -> 
-        if (ar = 2) then Node (sym, [Leaf "cond_expr"; pat])
-        else Node (sym, [Leaf "cond_expr"; Leaf "expr"; pat])
-      | _ -> 
-        let trees_ls = List.init num (fun _ -> loop a (dep+1)) in 
-        Node (sym, trees_ls))
-  in let tree_res = loop a 0 in if debug_print then 
-    (wrapped_printf "\n\n >> Tree generated: \n"; pp_repeat !dep_fin "  "; pp_tree tree_res; wrapped_printf "\n"); 
-  tree_res
 
 
 

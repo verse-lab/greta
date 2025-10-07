@@ -371,8 +371,6 @@ let replace_sts_pair_trans_ls_per_sts_pairs (from_sts: (state * state)) (to_sts:
   let new_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
     rhs_sym_bbls_ls |> List.fold_left (fun acc curr_sym_bbls -> 
       if (same_rhs_sym_bbls_lists curr_sym_bbls)
-
-      
       ) [] 
 
   let fst_rhs_sym_bbls: symbol * (beta * beta) list = 
