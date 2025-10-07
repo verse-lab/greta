@@ -119,7 +119,7 @@ let pp_raw_transition (tran: ((T.state * T.state) * T.symbol) * (T.beta * T.beta
 
 let pp_raw_transitions (ts: (((T.state * T.state) * T.symbol) * (T.beta * T.beta) list) list) = 
   noprintf "\t Raw Transitions : { \n\t"; ts |> iter (fun raw_tran -> pp_raw_transition raw_tran; noprintf "\n\t"); 
-  noprintf "]\n"; noprintf " \t      }\n"
+  noprintf " \t      }\n"
 
 
 let pp_raw_cart_product_trans (ts: (((T.state * T.state) * T.symbol) * (T.beta * T.beta) list) list) =

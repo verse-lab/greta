@@ -272,9 +272,43 @@ let collect_unique_states_and_map_to_new_states
   res_map
 
 
-let find_epsilon_transition_connection_in_states (_trans: (((state * state) * symbol) * (beta * beta) list) list) 
-  (_debug: bool): (state * (state list)) list = 
-  []
+let rec collect_eps_connected_states_from_states_pair (from_states: state * state) (raw_trans: (((state * state) * symbol) * (beta * beta) list) list): 
+  (state * state) list = 
+  let from_st1, from_st2 = (fst from_states), (snd from_states) in 
+  raw_trans |> List.fold_left (fun acc (((st1, st2), sym), beta_pair_ls) -> 
+    if (String.equal st1 from_st1) && (String.equal st2 from_st2) && (syms_equals sym epsilon_sym)
+    then 
+      (let rhs_sts_pair_ls: (state * state) list = 
+        beta_pair_ls |> List.filter are_states_pair |> List.map beta_pair_to_states_pair in 
+      let rhs_sts_pair: (state * state) = 
+        if (List.is_empty rhs_sts_pair_ls) || ((List.length rhs_sts_pair_ls) > 1) 
+        then raise (Failure "find_epsilon_trans_connection : not State_pair ->_eps_sym State_pair")
+        else rhs_sts_pair_ls |> List.hd 
+      in 
+      let eps_connected_states_from_rhs_sts_pair: (state * state) list = 
+        collect_eps_connected_states_from_states_pair rhs_sts_pair raw_trans
+      in  
+        (rhs_sts_pair :: eps_connected_states_from_rhs_sts_pair) @ acc)
+    else acc) []
+
+
+let find_epsilon_transition_connection_in_states (state_pair_ls: (state * state) list) (trans: (((state * state) * symbol) * (beta * beta) list) list) 
+  (debug: bool): ((state * state) * ((state * state) list)) list = 
+
+  let state_eps_connected_states: ((state * state) * (state * state) list) list = 
+    state_pair_ls |> List.fold_left (fun acc sts_pair -> 
+      let eps_connected_sts_pair_ls: (state * state) list = 
+        collect_eps_connected_states_from_states_pair sts_pair trans 
+      in 
+        if (List.is_empty eps_connected_sts_pair_ls) then acc 
+        else
+         (sts_pair, eps_connected_sts_pair_ls) :: acc) []
+  in
+  if debug then (wrapped_printf debug "\n\t * State -> Epsilon connected states - sorted to increasing length (connected states) : \n"; 
+    state_eps_connected_states |> List.iter (fun (sts_pair, sts_pair_ls) -> 
+      wrapped_printf debug "\t\t State (%s, %s) is epsilon-connected to -> " (fst sts_pair) (snd sts_pair); 
+      sts_pair_ls |> Pp.pp_raw_states));
+    state_eps_connected_states 
 
 
 
@@ -395,7 +429,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
       |> List.stable_sort (fun (_, trans_ls1) (_, trans_ls2) -> 
       Int.compare (List.length trans_ls2) (List.length trans_ls1))
   in
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 4 - Putt raw transitions in blocks of transitions : \n\t";
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 4 - Put raw transitions in blocks of transitions : \n\t";
     Pp.pp_raw_trans_blocks raw_trans_in_blocks_sorted; pp_loline_new debug);
 
 
@@ -438,6 +472,8 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   let state_pairs_renamed: (state * state) list = 
     states_renaming_map |> List.map snd 
   in 
+  wrapped_printf "\n\t States renamed : "; state_pairs_renamed |> List.iter Pp.pp_raw_state; wrapped_printf "\n\n";
+
   let trans_blocks_renamed: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
     rename_trans_blocks states_renaming_map trans_blocks_replaced debug
   in 
@@ -453,6 +489,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   in 
   (if debug then pp_upline_new debug; wrapped_printf "### Step 9 - Removed dup trans in raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_wo_dup_trans; pp_loline_new debug);
+
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 10 - Introduce epsilon transitions to simplify raw trans blocks ------------------------------- *)
@@ -479,8 +516,8 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 12 - Find epsilon-transition linkage between states ------------------------------------------- *)
   
-  let _linkage: (state * (state list)) list = 
-    find_epsilon_transition_connection_in_states raw_trans debug
+  let _linkage: ((state * state) * ((state * state) list)) list = 
+    find_epsilon_transition_connection_in_states state_pairs_renamed raw_trans debug
   in 
   (if debug then pp_upline_new debug; wrapped_printf "### Step 11 - Introduce epsilon transitions to simplify raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new debug);
