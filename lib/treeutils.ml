@@ -697,15 +697,22 @@ let simplify_trans_blocks_with_epsilon_transitions
   if debug then (wrapped_printf "\n\t >> Result of simplifying : \n"; simplified_res |> Pp.pp_raw_trans_blocks);
   simplified_res
 
+let get_first_few (s: state): state = 
+  if (String.length s) >= 4 then String.sub s 0 4 else 
+  if (String.length s) >= 2 then String.sub s 0 2 else 
+  String.sub s 0 1
 
+let get_first_char_str (s: state): state = 
+  String.sub s 0 1
+
+let gen_informative_name_pair (st_pair: state * state) (cnt: int): state * state = 
+  let orig_st, internal_st = (fst st_pair), (snd st_pair) in 
+  let orig_st_refined: state = get_first_few orig_st in 
+  let _internal_st_refined: state = get_first_char_str internal_st in 
+  orig_st_refined ^ (string_of_int cnt), ""
 
 
 (* 
-
-
-let remove_dup_trans_after_eps_intro (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list) 
-  (debug: bool): ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list =
-  let rec
   
 let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list): 
   ((state * state) * ((state * state) * (symbol * (sigma * sigma) list)) list) list = 
@@ -723,33 +730,7 @@ let remove_meaningless_transitions (trans_blocks: ((state * state) * ((state * s
   in
   trans_blocks |> List.map (fun (st_pair, blocks) -> st_pair, (remove_meaningless_trans blocks))
 
-let optimize_sym_list (syms: symbol list) (eps_optimize: bool) (paren_optimize: bool) (debug: bool): symbol list = 
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
-  let syms_opt1 = 
-    if eps_optimize then syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms in 
-  let syms_opt2 = 
-    if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPAREN", 3))) else syms_opt1 in 
-  if debug then (wrapped_printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
-    syms_opt2
-
-let optimize_sym_list_new (syms: symbol list) (eps_optimize: bool) (paren_optimize: bool) 
-  (curr_o: int) (max_o: int) (debug: bool): symbol list = 
-  let wrapped_printf fmt =
-    if debug then Printf.printf fmt
-    else Printf.ifprintf stdout fmt
-  in
-
-  let syms_opt1 = 
-    if (curr_o = max_o) then (wrapped_printf "\n\t Curr order = %d vs. Max order = %d\n" curr_o max_o;syms) else 
-    if eps_optimize then syms |> List.filter (fun s -> not (syms_equals s epsilon_symb)) else syms in 
-  let syms_opt2 = 
-    if paren_optimize then syms_opt1 |> List.filter (fun s' -> not (syms_equals s' ("LPAREN", 3))) else syms_opt1 in 
-  if debug then (wrapped_printf "\n\t Symbols upon filtering out eps or () if needed : \n"; syms_opt2 |> List.iter Pp.pp_symbol); 
-    syms_opt2 *)
+*)
 
 let ask_again (filename: string): unit = 
   Printf.printf "\nNew grammar is written on the file %s, but conflicts still exist. So, run 'make' again.\n\n" filename

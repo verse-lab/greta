@@ -145,13 +145,15 @@ let cartesian_product_trans_from_for_sym (sts_pair: (state * state)) (sym: symbo
   |> List.map (fun (sym, b1b2_ls) -> ((st1, st2), sym), b1b2_ls)
 
 
-let reachable_sts_pairs_without (beta_pair_ls: (beta * beta) list) (sts_pair: (state * state)): (state * state) list = 
-  beta_pair_ls |> List.filter are_states_pair |> List.map beta_pair_to_states_pair |> List.filter (fun x -> not (are_same_states_pairs sts_pair x))
+(* let reachable_sts_pairs_without (beta_pair_ls: (beta * beta) list) (sts_pair: (state * state)): (state * state) list = 
+  beta_pair_ls |> List.filter are_states_pair |> List.map beta_pair_to_states_pair |> List.filter (fun x -> not (are_same_states_pairs sts_pair x)) *)
 
 let find_reachable_states (trans_ls: (((state * state) * symbol) * (beta * beta) list) list): (state * state) list = 
-  trans_ls |> List.fold_left (fun acc ((from_sts_pair, _sym), beta_pair_ls) -> 
-    let curr_reachable_sts: (state * state) list = reachable_sts_pairs_without beta_pair_ls from_sts_pair in 
-    curr_reachable_sts @ acc) []
+  trans_ls |> List.fold_left (fun acc ((_from_sts_pair, _sym), beta_pair_ls) -> 
+    let curr_reachable_sts: (state * state) list = 
+      beta_pair_ls |> List.filter are_states_pair |> List.map beta_pair_to_states_pair
+    in 
+    curr_reachable_sts @ acc) [] |> Cfgutils.remove_dups
 
 
 let collect_existing_raw_trans_for_states_pair (from_states: state * state) (raw_trans: (((state * state) * symbol) * (beta * beta) list) list): 
@@ -251,19 +253,23 @@ let collect_unique_states_and_map_to_new_states
     | st_pair_hd :: tl -> 
       if (List.mem st_pair_hd start_states)
       then
-        (let mapped_pair: (state * state) = "e" ^ (string_of_int start_cnt), "" in 
+        (let mapped_pair: (state * state) = 
+            gen_informative_name_pair st_pair_hd start_cnt
+            (* "e" ^ (string_of_int start_cnt), ""  *)
+         in 
          let to_acc: (state * state) * (state * state) = (st_pair_hd, mapped_pair) in
          map_loop tl cnt (start_cnt+1) (to_acc::acc)) 
       else
-        (let mapped_pair: (state * state) = "x" ^ (string_of_int cnt), "" in 
+        (let mapped_pair: (state * state) = 
+          gen_informative_name_pair st_pair_hd cnt
+          (* "x" ^ (string_of_int cnt), ""  *)
+        in 
         let to_acc: (state * state) * (state * state) = (st_pair_hd, mapped_pair) in 
         map_loop tl (cnt+1) start_cnt (to_acc::acc))
   in let res_map = map_loop unique_states_ls 1 1 [] in 
   if debug then (wrapped_printf debug "\n\t * Results of unique states to new states mapping : ";
   res_map |> List.iter (fun sts_pair_pair -> wrapped_printf debug "\n\t"; Pp.pp_raw_pair_of_state_pairs sts_pair_pair));
   res_map
-
-
 
 
 
@@ -301,7 +307,9 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   (* Step 3 - Find reachable states based on final-states-starting transitions *)
   
   let init_reachable_states: (state * state) list = 
-    find_reachable_states raw_init_trans_ls
+    find_reachable_states raw_init_trans_ls 
+    (* Exclude the 'final_states_raw' from the 'init_reachable_states' *)
+    |> List.filter (fun x -> (not (List.mem x final_states_raw)))
   in
   (if debug then pp_upline_new debug; 
   wrapped_printf "### Step 3 - Found reachable states based on intial states-starting transitions\n\t"; 
@@ -345,7 +353,18 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
       (* Pass in as new 'states_reachable', the ones that do not already appeared *)
       let new_states_reachable_to_add: (state * state) list = 
         curr_reachable_states |> List.filter (fun x -> not (List.mem x states_reachabe_acc))
-      in 
+      in
+        (* 
+        (wrapped_printf "\t ---> Found all reachabe states :  "; 
+        curr_reachable_states |> List.iter Pp.pp_raw_state; wrapped_printf "\n"); 
+        *)
+
+        (* Check which new reachable states have been added *)
+        if (List.is_empty new_states_reachable_to_add) then wrapped_printf "\t => Found NO new reachable states \n\n\n\n" 
+        else 
+          (wrapped_printf "\t => Found new reachabe states to add :  "; 
+          new_states_reachable_to_add |> List.iter Pp.pp_raw_state; wrapped_printf "\n\n\n\n");
+
         collect_from_all_reachable_states 
           (reachable_states_tl @ new_states_reachable_to_add) 
           (states_reachabe_acc @ new_states_reachable_to_add)
@@ -372,7 +391,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
       |> List.stable_sort (fun (_, trans_ls1) (_, trans_ls2) -> 
       Int.compare (List.length trans_ls2) (List.length trans_ls1))
   in
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 5 - Putting raw transitions in blocks of transitions : \n\t";
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 5 - Putt raw transitions in blocks of transitions : \n\t";
     Pp.pp_raw_trans_blocks raw_trans_in_blocks_sorted; pp_loline_new debug);
 
 
@@ -382,7 +401,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   let dup_states_pair_ls: ((state * state) * (state * state)) list = 
     find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks_sorted debug
   in
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 6 - Found a list of duplicate states pairs : \n";
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 6 - Find a list of duplicate states pairs : \n";
   dup_states_pair_ls |> List.iter (fun ls -> wrapped_printf "\n\t"; Pp.pp_raw_pair_of_state_pairs ls); 
   pp_loline_new debug);
 
@@ -392,7 +411,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   let raw_trans_blocks_cleaned: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
     remove_transitions_of_duplicate_states dup_states_pair_ls raw_trans_in_blocks_sorted debug
   in
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 7 - Removed raw transitions wrt duplicate states pairs : \n";
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 7 - Remove raw transitions wrt duplicate states pairs : \n";
   Pp.pp_raw_trans_blocks raw_trans_blocks_cleaned; pp_loline_new debug);
 
 
@@ -402,7 +421,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   let trans_blocks_replaced: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
     replace_dup_state_names dup_states_pair_ls raw_trans_blocks_cleaned debug
   in
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 8 - Replaced state names wrt duplicate states pairs : \n";
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 8 - Replace state names wrt duplicate states pairs : \n";
     Pp.pp_raw_trans_blocks trans_blocks_replaced; pp_loline_new debug);
 
   
@@ -418,7 +437,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   let trans_blocks_renamed: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
     rename_trans_blocks states_renaming_map trans_blocks_replaced debug
   in 
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 9 - Renamed states in Q and raw trans blocks : \n";
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 9 - Rename states in Q and raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_renamed; pp_loline_new debug);
 
 
@@ -434,7 +453,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   let trans_blocks_simplified_eps_trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
     simplify_trans_blocks_with_epsilon_transitions trans_blocks_renamed (List.rev state_pairs_renamed) debug
   in 
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 11 - Introduced epsilon transitions to simplify raw trans blocks : \n";
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 11 - Introduce epsilon transitions to simplify raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new debug);
 
   (* ---------------------------------------------------------------------------------------------------- *)

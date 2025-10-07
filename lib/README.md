@@ -17,8 +17,10 @@
      - [ ] High to low production detection - Gokul WIP 
 
 - [ ] **Intersection** 
-     - [ ] Update based on revised data structures - Yunjeong WIP
-     - [ ] Infer Paren transition back to `e_0` (or other state)
+     - [x] Update based on revised data structures
+     - [ ] Simplify based on linkage between states - Yunjeong WIP
+       - I.e., if e0 -> e1 and transitions repeat with only these differing, then simplify with e0
+     - [ ] Renaming to be indicative of original grammar nonterminals
 
 - [ ] **Converter from TA to CFG** - _Might skip_
 
@@ -29,6 +31,8 @@
 (6 existing + 2-3 Real Grammars)
 
 - [ ] Grammar 0 (Running paper example) - for demo only (1 variation)
+      - [ ] Check on tree generations
+
 - [ ] Grammar 1 (Alternte version of Gp) 
 - [ ] Grammar 2 (Compiler - Boolean language)
 - [ ] Grammar 3 (Compiler)
