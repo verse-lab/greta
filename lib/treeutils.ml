@@ -518,6 +518,11 @@ let symbols_in_both_lists ls1 ls2 =
 let are_states_pair (beta_pair: (beta * beta)): bool = 
   match (fst beta_pair), (snd beta_pair) with S _, S _ -> true | _ -> false
 
+let beta_pair_to_state_or_terminal_pair (beta_pair: beta * beta): state * state = 
+  match (fst beta_pair), (snd beta_pair) with S s1, S s2 -> (s1, s2)
+  | T t1, T t2 -> (t1, t2) 
+  | S _, T _ | T _, S _ -> raise (Failure "beta_pair_to_state_or_terminal_pair : mismatched pair")
+
 let beta_pair_to_states_pair (beta_pair: beta * beta): state * state =
   match (fst beta_pair), (snd beta_pair) with S s1, S s2 -> (s1, s2) | _ -> raise (Failure "beta_pair_to_states_pair : expect only states pair")
 
