@@ -24,14 +24,14 @@
 
 - [ ] **Converter from TA to CFG** - _Might skip_
 
-- [x] **Formatter for CFG** - Gokul WIP 
+- [x] **Writing the resulted CFG (TA) back to .mly file**
 
 ### Testing 
 
 (6 existing + 2-3 Real Grammars)
 
 - [ ] Grammar 0 (Running paper example) - for demo only (1 variation)
-      - [ ] Check on tree generations
+     - [ ] Check on tree generations
 
 - [ ] Grammar 1 (Alternte version of Gp) 
 - [ ] Grammar 2 (Compiler - Boolean language)

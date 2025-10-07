@@ -433,11 +433,11 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   (* Step 8 - Rename states and populate Q, raw trans blocks -------------------------------------------- *)  
   
   let states_renaming_map: ((state * state) * (state * state)) list =
-    collect_unique_states_and_map_to_new_states trans_blocks_replaced final_states_raw debug in
-  
+    collect_unique_states_and_map_to_new_states trans_blocks_replaced final_states_raw debug 
+  in
   let state_pairs_renamed: (state * state) list = 
-    states_renaming_map |> List.map snd in 
-  let res_states_fst: state list = state_pairs_renamed |> List.map state_pair_append in 
+    states_renaming_map |> List.map snd 
+  in 
   let trans_blocks_renamed: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
     rename_trans_blocks states_renaming_map trans_blocks_replaced debug
   in 
@@ -501,21 +501,33 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
     res_trans_ls |> List.iter (fun ((st, sym), beta_ls) -> 
       Hashtbl.add res_trans_tbl (st, sym) beta_ls);
 
-  (* let states_to_remove = dup_states_pair_ls_after_eps_intro |> List.map snd |> List.map fst in *)
-  let res_states_final = res_states_fst in
+  
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 14 - Populate 'states' and 'final_states' according to renaming map --------------------------- *)
+  
+  (* Note! Might need later this rename_map in Formatter *)
+  let _states_rename_map: (state * state) list = 
+    states_renaming_map |> List.map (fun ((orig_st, _), (new_st, _)) -> (orig_st, new_st)) in 
+ 
+  let res_states_final = 
+    state_pairs_renamed |> List.map fst in
   let corr_final_states: state list = 
-    let final_states_orig: state list = final_states_raw |> List.map fst (* [program] *)
+    let final_states_orig: state list = 
+      final_states_raw |> List.map fst (* e.g., [program] *)
     in 
-    (final_states_orig |> List.iter (fun x -> wrapped_printf " %s " x));
-    states_renaming_map |> List.filter (fun ((x, _), (_y, _)) -> List.mem x final_states_orig) 
+    states_renaming_map |> List.filter (fun ((orig, _internal), (_renamed, _)) -> List.mem orig final_states_orig) 
     |> List.map snd |> List.map fst
   in 
 
-  wrapped_printf"\nIntersect the following 2 TAs:\n\n  (1) First TA:\n"; Pp.pp_ta a1; 
-  wrapped_printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; wrapped_printf "\n\n";
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 15 - Put everything together and return the resulted TA --------------------------------------- *)
+  
+  if debug then (wrapped_printf"\nIntersect the following 2 TAs:\n\n  (1) First TA:\n"; Pp.pp_ta a1; 
+  wrapped_printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; wrapped_printf "\n\n");
 
   let res_ta: ta = 
-    { states = res_states_final ; alphabet = a1.alphabet ; final_states = corr_final_states; terminals = [];
+    { states = res_states_final ; alphabet = a1.alphabet ; final_states = corr_final_states; terminals = a1.terminals;
     transitions = res_trans_tbl } 
   in
   wrapped_printf "\n ** Result of TA intersection: \n"; Pp.pp_ta res_ta; wrapped_printf "\n\n"; 
@@ -626,14 +638,10 @@ let find_duplicate_state_pairs_after_eps_intro
   (* Step 12 - Find duplicates after epsilon introduction *)
   let dup_states_pair_ls_after_eps_intro: ((state * state) * (state * state)) list = 
     (if debug_print then printf "\n*** Finding duplicate raw_states pairs : \n");
-    (* TODO: To start from here! *)
     find_duplicate_state_pairs_after_eps_intro trans_blocks_simplified_eps_trans_trimmed debug_print
   in
   (if debug_print then begin pp_upline_new (); printf "### Step 12 - Found duplicate states pairs after eps introduction : \n";
     dup_states_pair_ls_after_eps_intro |> List.iter (fun ls -> printf "\n\t"; Pp.pp_raw_pair_of_state_pairs ls); pp_loline_new () end);
-
-  
-  
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 13 - Remove duplicates after epsilon introduction to simplify further *)
@@ -648,16 +656,6 @@ let find_duplicate_state_pairs_after_eps_intro
   (if debug_print then begin pp_upline_new (); printf "### Step 13 - Remove duplicates after eps introduction to simplify further : \n";
     Pp.pp_raw_trans_blocks trans_blocks_simplified_further; pp_loline_new () end);
 
-  
-  triv_sym_state_ls |> List.iter (fun (sym, st) -> 
-    Hashtbl.add res_trans_tbl (st, sym) [[(T (fst sym))]]);
-  (if debug_print then begin pp_upline_new (); printf "### Step 14 - Converted trans blocks (and trivial trans) to transitions hashtbl : \n";
-    Pp.pp_transitions_tbl res_trans_tbl; pp_loline_new () end);
-
-  let states_rename_map: (state * state) list = 
-    states_renaming_map |> List.map (fun ((orig_st, _), (new_st, _)) -> (orig_st, new_st))
-  in 
-  
 
 
  *)
