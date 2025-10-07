@@ -105,6 +105,7 @@ let () =
         | W.T t -> T.T t
         | W.NT {name; binding = _} -> T.S name
       ) p.W.rhs in
+      let rhs = if List.length rhs = 0 then [T.T C.empty_term] else rhs in
       let sym = symbol_of_trans ((lhs, T.dummy_sym), rhs) in
       Hashtbl.add symbolToProds sym p
     ) parse_mly.productions;

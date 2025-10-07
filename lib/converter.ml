@@ -29,7 +29,7 @@ let read_file filename =
 
 let ( $ ) a b = a b
 
-
+let empty_term = "EMPTY"
 
 let extract_cfg (debug_print: bool) (filename : string) : cfg =
   let lines = read_file filename in
@@ -69,8 +69,8 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
   let raw_start_nonterm: string = 
     if ((List.length raw_start_nonterms) = 1) then raw_start_nonterms |> List.hd else raise (Failure "") in
   let start_nonterms = ref [] in
-  let nonterms = ref (clean $ Hashtbl.find sectionToLine "nt") in
-  let terms= clean $ Hashtbl.find sectionToLine "t" in
+  let nonterms = clean $ Hashtbl.find sectionToLine "nt" in
+  let terms= ref (clean $ Hashtbl.find sectionToLine "t") in
   let t_prods = clean $ Hashtbl.find sectionToLine "p" in
   let added_eps = ref false in
   let raw_productions: (string * int * sigma list) list = List.mapi (fun i x -> 
@@ -80,14 +80,14 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
         if List.length split > 1 
           then List.nth split 1
           else (if not !added_eps 
-            then (nonterms := "ϵ" :: !nonterms; added_eps := true);"ϵ")
+            then (terms := empty_term :: !terms; added_eps := true);empty_term)
       in
       let rhs = clean $ String.split_on_char ' ' rhs in
       (sanitize lhs, i,
       List.map (fun x ->
-        if List.exists (fun y -> y = x) terms
+        if List.exists (fun y -> y = x) !terms
           then Term x
-        else if List.exists (fun y -> y = x) !nonterms
+        else if List.exists (fun y -> y = x) nonterms
           then Nt x
         else 
           (if debug_print then Printf.printf "\nWhat is this? %s\n" x;
@@ -97,7 +97,7 @@ let extract_cfg (debug_print: bool) (filename : string) : cfg =
   let prods: production list = raw_productions |> List.map (fun (lhs, _i, rhs) -> (lhs, rhs))
     |> List.filter (fun (lhs, rhs) -> if (lhs = raw_start_nonterm) 
       then (start_nonterms := (start_nonterm_of_sigls rhs)::!start_nonterms); not (lhs = raw_start_nonterm)) in
-  let nonterms = !nonterms in
+  let terms = !terms in
   if debug_print then begin
     Printf.printf "CFG extracted from %s:\n" filename;
     Printf.printf "Start nonterminals: %s\n" (String.concat " " !start_nonterms);
@@ -213,7 +213,9 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
   (trans_from_cfg |> List.iter (fun ((nt, sym), bls) -> 
     Hashtbl.add trans_tbl (nt, sym) bls));
 
+  (* note: transition symbol is ignored, uses production structure instead *)
   let symbol_of_trans (t: transition) = 
+    Printf.printf "\nLooking for symbol of transition: "; Pp.pp_transitions [t];
     let idx_o = List.find_index (fun tp -> 
       let ((lhs_tp, _), rhs_tp) = tp in
       let ((lhs_t, _), rhs_t) = t in
