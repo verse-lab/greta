@@ -125,7 +125,7 @@ let update_oa_sym_prod_for_index (sym: symbol) (ind: int) (trans_tbl: ((state * 
           in Hashtbl.replace trans_tbl (lhs_st, curr_sym) new_beta_ls))
 
 let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (oa_neg: restriction list) (prods_map: (int * production) list) 
-  (debug_print: bool): ta = 
+  (high_to_lows: (symbol * int * int) list) (debug_print: bool): ta = 
 
   let states_res: state list ref = ref [] in 
   let alph: symbol list ref = ref [] in
@@ -154,6 +154,16 @@ let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (oa_neg: restriction lis
   oa_neg |> List.iter (fun r -> 
     match r with Prec _ -> raise (Failure "update trans wrt. oa_neg : o_p not possible")
     | Assoc (sym, ind) -> update_oa_sym_prod_for_index sym ind trans_tbl debug_print);
+
+  Printf.printf "\n\nHigh to lows: ";
+  high_to_lows |> List.iter (fun (s, max, min) -> Printf.printf "\n Symbol: "; Pp.pp_symbol s; Printf.printf " Max level: %d Min level: %d" max min);
+  high_to_lows |> List.iter (fun (sym, max, min) ->
+    let (_, rhs) = production_of_id (id_of_sym sym) prods_map in
+    let beta_ls = rhs |> List.map (fun r -> match r with 
+      | Term t -> T t 
+      | Nt _ -> S ("e" ^ string_of_int min)) in
+    Hashtbl.add trans_tbl ("e" ^ string_of_int max, sym) beta_ls
+  );
 
   let res_ta: ta = 
   { states = !states_res ; alphabet = alph_res ; final_states = ["e0"] ;

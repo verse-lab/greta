@@ -272,13 +272,14 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
   in res_ta, rest_ls, rest_tbl, prods_map_res, symbol_of_trans, trans_of_symbol
 
 let convertToTa (file: string) (debug_print: bool): 
-  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list * (transition -> symbol) * (symbol -> transition)  = 
-  let ta_res, obp_res, obp_tbl, prods_map_res, symbol_of_trans, trans_of_symbol = file |> 
-  (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConvert parser.mly to its corresponding CFG\n");
-  extract_cfg debug_print) 
-  |>
-  (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConverting CFG to TA\n");
-  cfg_to_ta debug_print)
+  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list * (transition -> symbol) * (symbol -> transition) * cfg = 
+  let g = file |> 
+    (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConvert parser.mly to its corresponding CFG\n");
+    extract_cfg debug_print) 
+  in
+  let ta_res, obp_res, obp_tbl, prods_map_res, symbol_of_trans, trans_of_symbol = g |>
+    (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConverting CFG to TA\n");
+    cfg_to_ta debug_print)
   in 
   if debug_print then begin
     wrapped_printf debug_print "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
@@ -286,7 +287,7 @@ let convertToTa (file: string) (debug_print: bool):
     ta_res.trivial_sym_nts |> iter (fun (s, x) -> wrapped_printf debug_print " ("; Pp.pp_symbol s; wrapped_printf debug_print ", %s ) " x); wrapped_printf debug_print "]\n"; *)
     wrapped_printf debug_print "\nOrder -> symbol list O_bp map : \n"; Pp.pp_obp_tbl obp_tbl;
   end;
-  ta_res, obp_res, obp_tbl, prods_map_res, symbol_of_trans, trans_of_symbol
+  ta_res, obp_res, obp_tbl, prods_map_res, symbol_of_trans, trans_of_symbol, g
 
 (* 
 

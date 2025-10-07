@@ -60,6 +60,7 @@ let () =
     tree_file := "./_build/default/lib/parser.trees";
   end;
   let parse_mly = W.parse_mly_file !parser_file in
+  (* let _ = W.print_results parse_mly in *)
 
   Array.to_list Sys.argv |> List.iter (fun arg -> print_string (arg ^ " ")); print_newline ();
   print_string ("Parser file: " ^ !parser_file); print_newline ();
@@ -86,8 +87,8 @@ let () =
 
     let convert_start = Sys.time () 
     in
-    let (ta_initial, o_bp, o_bp_tbl, prods_map, symbol_of_trans, trans_of_symbol):
-      T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) * (int * G.production) list * (T.transition -> T.symbol) * (T.symbol -> T.transition) = 
+    let (ta_initial, o_bp, o_bp_tbl, prods_map, symbol_of_trans, trans_of_symbol, g):
+      T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) * (int * G.production) list * (T.transition -> T.symbol) * (T.symbol -> T.transition) * G.cfg = 
       C.convertToTa !cfg_file debug
     in
     let _convert_elapsed = Sys.time () -. convert_start in
@@ -179,8 +180,66 @@ let () =
     (* Step 5: TA is learned via original CFG and O_p, O_a (neg) ------- *)
     (* ----------------------------------------------------------------- *)
     
+    (* find all orders at which symbol s appears in o_p *)
+    let orders_of_sym (s: T.symbol): int list = 
+      let rec loop k acc =
+        if k < 1 then acc
+        else 
+          (match (Hashtbl.find_opt op_learned k) with
+          | Some lst -> if List.mem s lst then loop (k-1) (k::acc)
+                        else loop (k-1) acc
+          | None -> loop (k-1) acc)
+      in loop (Hashtbl.length op_learned) []
+    in
+    let max xs = List.fold_left (fun a b -> if a > b then a else b) (List.hd xs) xs in
+    let min xs = List.fold_left (fun a b -> if a < b then a else b) (List.hd xs) xs in
+    let transitions = Hashtbl.to_seq ta_initial.transitions |> List.of_seq in
+    let get_extr_order (s: T.symbol) extr: int =
+      let orders = orders_of_sym s in
+      if List.is_empty orders
+        then raise (Failure "Symbol in the TA not found in learned O_p")  
+        else extr orders
+    in
+    let nonterminal_order = C.collect_nonterm_orders g.starts g.nonterms g.productions debug in
+    let high_to_low: (T.symbol * int * int) list =
+      List.fold_left (fun acc ((lhs, symbol), lst) ->
+        let rhs_nts = List.filter_map (fun s ->
+          match s with 
+          | T.T _ -> None 
+          | T.S st -> Some st) lst 
+        in
+        let rhs_nts_orders = List.map (fun nt ->
+          (List.assoc nt nonterminal_order, nt)) rhs_nts
+        in
+        if List.length rhs_nts_orders = 0
+          then acc
+          else
+            let min_rhs_order = min (List.map fst rhs_nts_orders) in
+            let min_rhs = List.find_all (fun (ord, _) -> 
+              ord = min_rhs_order) rhs_nts_orders
+              |> List.map snd
+            in
+            let min_rhs_syms = List.map (fun nt -> 
+                List.filter_map (fun ((lhs, sym), _) -> 
+                  if lhs = nt then Some sym else None
+                ) transitions
+              ) min_rhs |> List.flatten
+            in
+            let lhs_order = List.assoc lhs nonterminal_order in
+            if lhs_order > min_rhs_order
+              then 
+                let min_rhs_order_op = 
+                  min (List.map (fun s -> get_extr_order s min) min_rhs_syms) 
+                in
+                let max_lhs_order_op = get_extr_order symbol max in
+                (symbol, max_lhs_order_op, min_rhs_order_op) :: acc
+              else acc
+      ) [] transitions
+    |> List.sort_uniq (fun ((id1, _, _), _, _) ((id2, _, _), _, _) -> id1 - id2)
+    in
+
     let ta_learned: T.ta = 
-      L.learn_ta op_learned oa_neg_learned prods_map debug
+      L.learn_ta op_learned oa_neg_learned prods_map high_to_low debug
     in
     let _learn_ta_elapsed = Sys.time () -. learn_start in
     
