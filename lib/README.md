@@ -34,7 +34,7 @@
      - [ ] Check on tree generations
 
 - [ ] Grammar 1 (Alternte version of Gp) 
-- [ ] Grammar 2 (Compiler - Boolean language)
+- [ ] Grammar 2 (Compiler - Boolean language) 
 - [ ] Grammar 3 (Compiler)
 - [ ] Grammar 4 (Compiler)
 - [ ] Grammar 5 (StackOverflow)

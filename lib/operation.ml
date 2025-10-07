@@ -293,7 +293,7 @@ let rec collect_eps_connected_states_from_states_pair (from_states: state * stat
 
 
 let find_epsilon_transition_connection_in_states (state_pair_ls: (state * state) list) (trans: (((state * state) * symbol) * (beta * beta) list) list) 
-  (debug: bool): ((state * state) * ((state * state) list)) list = 
+  (_debug: bool): ((state * state) * ((state * state) list)) list = 
 
   let state_eps_connected_states: ((state * state) * (state * state) list) list = 
     state_pair_ls |> List.fold_left (fun acc sts_pair -> 
@@ -304,13 +304,94 @@ let find_epsilon_transition_connection_in_states (state_pair_ls: (state * state)
         else
          (sts_pair, eps_connected_sts_pair_ls) :: acc) []
   in
-  if debug then (wrapped_printf debug "\n\t * State -> Epsilon connected states - sorted to increasing length (connected states) : \n"; 
+  (* if debug then (wrapped_printf debug "\n\t * State -> Epsilon connected states - sorted to increasing length (connected states) : \n"; 
     state_eps_connected_states |> List.iter (fun (sts_pair, sts_pair_ls) -> 
       wrapped_printf debug "\t\t State (%s, %s) is epsilon-connected to -> " (fst sts_pair) (snd sts_pair); 
-      sts_pair_ls |> Pp.pp_raw_states));
-    state_eps_connected_states 
+      sts_pair_ls |> Pp.pp_raw_states)); *)
+  state_eps_connected_states 
+
+(* 
 
 
+let replace_beta_beta_list_from_sts_to_sts (betapair_ls: (beta * beta) list) (to_replace_sts: state * state) (new_sts: state * state): 
+  (beta * beta) list = 
+  let to_replace_beta_pair = states_pair_to_beta_pair to_replace_sts in 
+  let new_beta_pair = states_pair_to_beta_pair new_sts in 
+  betapair_ls |> List.map (fun curr_beta_pair -> 
+    if (beta_pairs_equal to_replace_beta_pair curr_beta_pair) then new_beta_pair else curr_beta_pair)
+
+let same_rhs_sym_bbls_lists (curr_rhs_sym_bbls: symbol * (beta * beta) list) (rhs_sym_bbls: symbol * (beta * beta) list): bool = 
+  let sym1, sym2 = (fst curr_rhs_sym_bbls), (fst rhs_sym_bbls) in 
+  if (syms_equals sym1 sym2) then false 
+  else true
+
+
+(*  To resume here!!  *)
+let replace_sts_pair_trans_ls_per_sts_pairs (from_sts: (state * state)) (to_sts: (state * state)) 
+  (sts_pair_trans_ls: ((state * state) * (symbol * (beta * beta) list)) list) = 
+  
+  let rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
+    sts_pair_trans_ls |> List.map (fun (_sts_pair, sym_bbls) -> sym_bbls) 
+  in 
+  let new_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
+    rhs_sym_bbls_ls |> List.fold_left (fun acc curr_sym_bbls -> 
+      if (same_rhs_sym_bbls_lists curr_sym_bbls)
+
+      
+      ) [] 
+
+  let fst_rhs_sym_bbls: symbol * (beta * beta) list = 
+      rhs_sym_bbls_ls |> List.hd 
+  in 
+  let sym_bbls_ls: (symbol * (beta * beta) list) list = 
+    rhs_sym_bbls_ls |> List.map (fun (sym, bbls) -> 
+      if (same_rhs_sym_bbls_lists (sym, bbls) fst_rhs_sym_bbls)
+      then (
+        let new_bbls: (beta * beta) list = 
+          replace_beta_beta_list_from_sts_to_sts bbls to_sts from_sts in 
+        (sym, new_bbls)
+      )
+      else (sym, bbls)) 
+  in []
+
+let update_raw_trans_per_eps_linked_sts_pairs (trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+  (from_sts: state * state) (to_sts: state * state) (_debug: bool): 
+  ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+  let rec traverse_raw_trans_blocks (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+    (acc_trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) = 
+    match trans_blocks_ls with 
+    | [] -> List.rev acc_trans
+    | (sts_pair, sts_pair_trans_ls) :: trans_blocks_tl -> 
+      let replaced_sts_pair_trans_ls: ((state * state) * (symbol * (beta * beta) list)) list = 
+        replace_sts_pair_trans_ls_per_sts_pairs from_sts to_sts sts_pair_trans_ls
+      in
+      let to_acc: (state * state) * ((state * state) * (symbol * (beta * beta) list)) list = 
+        (sts_pair, replaced_sts_pair_trans_ls) 
+      in 
+        traverse_raw_trans_blocks trans_blocks_tl (to_acc :: acc_trans)
+  in let res_raw_trans_blocks = traverse_raw_trans_blocks trans [] 
+  in if _debug then (wrapped_printf _debug "\n\t * Updated trans blocks \n"; res_raw_trans_blocks |> Pp.pp_raw_trans_blocks);
+    res_raw_trans_blocks
+
+let update_raw_trans_per_eps_stspair_to_stspairs_ls (trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+  (sts_pair1: state * state) (eps_connected_sts_pairs_ls: (state * state) list) (debug: bool): 
+  ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+  let res_raw_trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    eps_connected_sts_pairs_ls 
+    |> List.rev 
+    |> List.fold_left (fun acc_trans sts_pair2 -> 
+      update_raw_trans_per_eps_linked_sts_pairs acc_trans sts_pair1 sts_pair2 debug) trans
+  in 
+    res_raw_trans_blocks
+
+let update_trans_blocks_per_eps_linkage (raw_trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+  (state_eps_connected_states: ((state * state) * ((state * state) list)) list) (debug: bool): 
+  ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+  let new_raw_trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    state_eps_connected_states |> List.fold_left (fun acc_trans (sts_pair1, eps_connected_sts_pairs_ls) -> 
+      update_raw_trans_per_eps_stspair_to_stspairs_ls acc_trans sts_pair1 eps_connected_sts_pairs_ls debug) raw_trans_blocks  
+  in 
+    new_raw_trans_blocks *)
 
 
 (** Intersection of tree automata *)
@@ -516,19 +597,34 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 12 - Find epsilon-transition linkage between states ------------------------------------------- *)
   
-  let _linkage: ((state * state) * ((state * state) list)) list = 
+  let state_eps_connected_states: ((state * state) * ((state * state) list)) list = 
     find_epsilon_transition_connection_in_states state_pairs_renamed raw_trans debug
+    |> List.sort (fun (_sts_pair1, sts_pair_ls1) (_sts_pair2, sts_pair_ls2) ->
+      Int.compare (List.length sts_pair_ls1) (List.length sts_pair_ls2))
   in 
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 11 - Introduce epsilon transitions to simplify raw trans blocks : \n";
-  Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new debug);
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 12 - Identify State -> epsilon-connected states (sorted) : \n";
+    state_eps_connected_states |> List.iter (fun (sts_pair, sts_pair_ls) -> 
+      wrapped_printf "\t\t State (%s, %s) is epsilon-connected to -> " (fst sts_pair) (snd sts_pair);
+       sts_pair_ls |> Pp.pp_raw_states); pp_loline_new debug);
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 13 - Simplify based on epsilon-transition linkage between states ------------------------------ *)
   
-  (* (if debug then pp_upline_new debug; wrapped_printf "### Step 12 - Simplify raw trans blocks wrt. epsilon connections between states : \n";
-  Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new debug); *)
+  (* let trans_blocks_simplified_per_eps_linkage: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    update_trans_blocks_per_eps_linkage trans_blocks_simplified_eps_trans state_eps_connected_states debug
+  in 
 
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 13 - Simplify raw trans blocks wrt. epsilon-connected states : \n";
+  Pp.pp_raw_trans_blocks trans_blocks_simplified_per_eps_linkage; pp_loline_new debug); *)
+
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 14 - Remove any duplicate transition in each block after simplification ----------------------- *)
+  
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 15 - Convert the raw transitions to transitions tbl ------------------------------------------- *)
 
   let res_trans_ls: ((state * symbol) * beta list) list = 
     raw_trans |> List.map (fun ((st_pair, sym), sig_sig_ls) -> 
@@ -540,7 +636,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
 
   
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 14 - Populate 'states' and 'final_states' according to renaming map --------------------------- *)
+  (* Step 16 - Populate 'states' and 'final_states' according to renaming map --------------------------- *)
   
   (* Note! Might need later this rename_map in Formatter *)
   let _states_rename_map: (state * state) list = 
@@ -558,7 +654,7 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 15 - Put everything together and return the resulted TA --------------------------------------- *)
+  (* Step 17 - Put everything together and return the resulted TA --------------------------------------- *)
   
   if debug then (wrapped_printf"\nIntersect the following 2 TAs:\n\n  (1) First TA:\n"; Pp.pp_ta a1; 
   wrapped_printf "\n  (2) Second TA:\n"; Pp.pp_ta a2; wrapped_printf "\n\n");

@@ -518,8 +518,16 @@ let symbols_in_both_lists ls1 ls2 =
 let are_states_pair (beta_pair: (beta * beta)): bool = 
   match (fst beta_pair), (snd beta_pair) with S _, S _ -> true | _ -> false
 
-let beta_pair_to_states_pair (beta_pair: (beta * beta)): (state * state) =
+let beta_pair_to_states_pair (beta_pair: beta * beta): state * state =
   match (fst beta_pair), (snd beta_pair) with S s1, S s2 -> (s1, s2) | _ -> raise (Failure "beta_pair_to_states_pair : expect only states pair")
+
+let states_pair_to_beta_pair (states_pair: state * state): beta * beta =
+  S (fst states_pair), S (snd states_pair)
+
+let beta_pairs_equal (beta_pair1: beta * beta) (beta_pair2: beta * beta): bool = 
+  match beta_pair1, beta_pair2 with 
+  | (fst_beta_pair1, snd_beta_pair1), (fst_beta_pair2, snd_beta_pair2) -> 
+    (betas_equal fst_beta_pair1 fst_beta_pair2) && (betas_equal snd_beta_pair1 snd_beta_pair2)
 
 let are_same_states_pairs (sts_pair1: state * state) (sts_pair2: state * state) = 
   (fst sts_pair1) = (fst sts_pair2) && (snd sts_pair2) = (snd sts_pair2)
