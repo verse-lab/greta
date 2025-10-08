@@ -139,14 +139,17 @@ let () =
 
     let file_postfix = ref "" in
     let rec interact_with_user (inp_lst: ((string list * T.tree * (bool * bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool * bool) * T.restriction list)) list):
-      (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
+      (string list * T.tree * (bool * bool * bool) * T.restriction list) list * (T.symbol list) list = 
         let rec loop lst learned_acc = 
           match lst with 
           | [] -> 
             (* Ask the user if the learned example trees do not form a total order between symbols coming from the same group *)
-            if (E.form_total_order_among_op_symbols_from_same_group learned_acc o_bp_tbl debug)
-            then learned_acc
-            else (U.ask_user_choose_again (); interact_with_user tree_pairs_lst )
+            let ordered_sym_lsls: (T.symbol list) list = 
+              match (E.form_total_order_among_op_symbols_from_same_group learned_acc o_bp_tbl debug) with Some slsls -> slsls | None -> []
+            in 
+            if (List.is_empty ordered_sym_lsls)
+            then (U.ask_user_choose_again (); interact_with_user tree_pairs_lst)
+            else learned_acc, ordered_sym_lsls
           | ((texpr_ls1, t1, (oa1_pos, oa1_neg, op1), rls1), (texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)) :: tl -> 
             (U.present_tree_pair (t1, t2);
             let chosen_index = read_int () in
@@ -166,7 +169,7 @@ let () =
     in
     (* Time output *)
     let _learn_start = Sys.time () in
-    let learned_example_trees: (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
+    let (learned_example_trees, _symlsls_ordered): (string list * T.tree * (bool * bool * bool) * T.restriction list) list * (T.symbol list) list = 
       interact_with_user tree_pairs_lst 
     in
 

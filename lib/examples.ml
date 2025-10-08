@@ -516,7 +516,7 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
 
 let form_total_order_among_op_symbols_from_same_group 
   (learned_trees: (string list * tree * (bool * bool * bool) * restriction list) list) 
-  (_o_bp: (int, symbol list list) Hashtbl.t) (_debug: bool): bool = 
+  (_o_bp: (int, symbol list list) Hashtbl.t) (_debug: bool): (symbol list) list option = 
   let open List in 
   let rest_ls_wrt_op: restriction list list = 
     learned_trees |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) |>  map (fun (_sls, _t, (_, _, _), rls) -> rls)
@@ -534,6 +534,6 @@ let form_total_order_among_op_symbols_from_same_group
   TODO: Need to update the logic below! 
   By making use of the O_bp grouping as well
   *)
-  true
+  Some []
 
 
