@@ -40,8 +40,8 @@ let learn_oa_neg (tree_examples: (string list * tree * (bool * bool * bool) * re
   oa_res
 
 
-let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) 
-  (oa_ls: Ta.restriction list) (debug_print: bool): (int, symbol list) Hashtbl.t = 
+let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) 
+  (oa_ls: Ta.restriction list) (debug_print: bool): (int, (symbol list) list) Hashtbl.t = 
   let open List in
   let op_related_ls: restriction list list = 
     tree_examples |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) |> map (fun (_sls, _t, (_, _, _), rls) -> rls)
@@ -53,8 +53,9 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
   if debug_print then (wrapped_printf debug_print "\n\t O_tmp pair list:\n\t"; 
     o_tmp_ls |> List.iter (fun (r1, r2) -> Pp.pp_restriction r1; Pp.pp_restriction r2; wrapped_printf debug_print "\n\t"); 
     wrapped_printf debug_print "\n\n");
-  let res_tbl_wrt_op: (int, symbol list) Hashtbl.t = 
-    o_tmp_ls |> fold_left (fun op_tbl_acc (r1, r2) -> 
+  let res_tbl_wrt_op: (int, (symbol list) list) Hashtbl.t = 
+    o_tmp_ls |> fold_left (fun op_tbl_acc (_r1, _r2) ->  
+      (*       
       begin 
         let sym1 = sym_of_op_restriction r1 in (* r1 and r2 symbols should have same order *)
         let sym2 = sym_of_op_restriction r2 in
@@ -75,14 +76,21 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
           else 
             (* If length is not >= 1, simply pass op_tbl_acc *) 
             op_tbl_acc
-      end
+      end *)
+
+      op_tbl_acc
+      
     ) o_bp_tbl 
   in
   (* Now update op_tbl wrt. oa_ls *)
   let syms_oa: symbol list = oa_ls |> List.map sym_of_oa_restriction in 
-  let res_tbl_wrt_op_oa: (int, symbol list) Hashtbl.t = 
-    syms_oa |> List.fold_left (fun op_tbl_acc sym -> 
-      let orders_ls: int list = orders_of_sym_in_op_tbl sym dummy_sym op_tbl_acc debug_print in
+  let res_tbl_wrt_op_oa: (int, (symbol list) list) Hashtbl.t = 
+    
+    syms_oa |> List.fold_left (fun op_tbl_acc _sym ->  
+      op_tbl_acc
+      
+            
+      (* let orders_ls: int list = orders_of_sym_in_op_tbl sym dummy_sym op_tbl_acc debug_print in
       if (List.length orders_ls) = 1
       then 
         (let curr_ord = orders_ls |> hd in
@@ -98,6 +106,8 @@ let learn_op (o_bp_tbl: (int, symbol list) Hashtbl.t) (tree_examples: (string li
         else
           (* If length is not >= 1, simply pass op_tbl_acc *)
           op_tbl_acc
+          
+      *)
       
       ) res_tbl_wrt_op 
   in

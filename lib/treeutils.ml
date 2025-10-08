@@ -222,6 +222,11 @@ let present_tree_pair (trees: tree * tree): unit =
   printf "Option 0: \n"; print_strs expr1;
   printf "Option 1: \n"; print_strs expr2; printf "\n"
 
+let ask_user_choose_again (): unit = 
+  let open Printf in 
+  printf "\n\nTree examples you selected conflict with each other! \n\nNote: Symbols should form total order\n";
+  printf "   e.g., If PLUS has higher precedence STAR \n\t and STAR has higher precedence than POW, \n\t then POW cannot have higher precedence than PLUS)\n\n"
+
 let same_syms ls = 
   let fst_sym = List.hd ls in 
   let filtered = List.filter (fun s -> not (syms_equals s fst_sym)) ls in
@@ -349,8 +354,8 @@ let sym_top_sym_bot_of_restrictions (r1: restriction) (r2: restriction) (debug: 
     wrapped_printf debug "\n\t  Sym_bot : "; Pp.pp_symbol sym_bot); 
   (sym_top, sym_bot)
 
-let move_keys_if (tbl: (int, symbol list) Hashtbl.t) (threshold: int): unit =
-  let to_move: (int * int * symbol list) list =
+let move_keys_if (tbl: (int, (symbol list) list) Hashtbl.t) (threshold: int): unit =
+  let to_move: (int * int * (symbol list) list) list =
     Hashtbl.fold (fun k sls acc ->
       if k >= threshold then (k, k + 1, sls) :: acc else acc
     ) tbl []
@@ -360,28 +365,30 @@ let move_keys_if (tbl: (int, symbol list) Hashtbl.t) (threshold: int): unit =
   (* Insert all new keys *)
   List.iter (fun (_, newk, sls) -> Hashtbl.replace tbl newk sls) to_move
 
-let push_keys_if_gte_order (ord: int) (tbl: (int, symbol list) Hashtbl.t): unit = 
+let push_keys_if_gte_order (ord: int) (tbl: (int, (symbol list) list) Hashtbl.t): unit = 
   move_keys_if tbl ord 
 
-let remove_sym_at_lvl (tbl: (int, symbol list) Hashtbl.t) (lvl: int) (sym: symbol): unit =
+(* let remove_sym_at_lvl (tbl: (int, (symbol list) list) Hashtbl.t) (lvl: int) (sym: symbol): unit =
   match Hashtbl.find_opt tbl lvl with
   | None -> () 
   | Some sym_ls ->
       let new_sym_ls = List.filter (fun s -> not (syms_equals sym s)) sym_ls in
-      Hashtbl.replace tbl lvl new_sym_ls
+      Hashtbl.replace tbl lvl new_sym_ls *)
 
 (* Update_op_tbl_per_op_syms : update based on syms wrt. O_p *)
-let update_op_tbl_per_op_syms (sym_top: symbol) (sym_bot: symbol) (ord: int) (op_tbl: (int, symbol list) Hashtbl.t) (debug: bool):
-  (int, symbol list) Hashtbl.t =
+let update_op_tbl_per_op_syms (sym_top: symbol) (sym_bot: symbol) (ord: int) (op_tbl: (int, (symbol list) list) Hashtbl.t) (debug: bool):
+  (int, (symbol list) list) Hashtbl.t =
   
   (* 0. Store the current ord -> symbol list in a temporary list *)
-  let temp_ord_symbols: symbol list = 
+  let _temp_ord_symbols: symbol list list = 
     Hashtbl.find op_tbl ord 
   in 
   (* 1. Push levels >= ord by one and their values (symbol list) also get moved accordingly *)
   push_keys_if_gte_order ord op_tbl;
   (* (if debug then wrapped_printf debug "\n\t  Pushed levels >= ord %d : " ord; 
     Pp.pp_obp_tbl op_tbl); *)
+
+  (*   
 
   (* 2. Insert the copied symbols in 'temp_ord_symbols' back at level 'ord' *)
   Hashtbl.add op_tbl ord temp_ord_symbols;
@@ -392,22 +399,24 @@ let update_op_tbl_per_op_syms (sym_top: symbol) (sym_bot: symbol) (ord: int) (op
   remove_sym_at_lvl op_tbl ord sym_bot;
 
   (* 4. Remove sym_top at Level 'ord + 1' *)
-  remove_sym_at_lvl op_tbl (ord+1) sym_top;
+  remove_sym_at_lvl op_tbl (ord+1) sym_top; 
+  *)
 
   if debug then (wrapped_printf debug "\n\t  Updated O_p tbl for symbols : "; 
-    Pp.pp_symbol sym_top; Pp.pp_symbol sym_bot; wrapped_printf debug "\n"; Pp.pp_obp_tbl op_tbl); 
+    Pp.pp_symbol sym_top; Pp.pp_symbol sym_bot; wrapped_printf debug "\n"; Pp.pp_op_tbl_new op_tbl); 
   op_tbl
 
 
 (* Update_op_tbl_per_oa_syms : update based on syms wrt. O_a *)
-let update_op_tbl_per_oa_sym (oa_sym: symbol) (ord: int) (op_tbl: (int, symbol list) Hashtbl.t) (debug: bool): 
-  (int, symbol list) Hashtbl.t =
+let update_op_tbl_per_oa_sym (oa_sym: symbol) (ord: int) (op_tbl: (int, (symbol list) list) Hashtbl.t) (debug: bool): 
+  (int, (symbol list) list) Hashtbl.t =
   
   (* 0. Store the current ord -> symbol list in a temporary list *)
-  let temp_ord_symbols: symbol list = 
+  let _temp_ord_symbols: symbol list list = 
     Hashtbl.find op_tbl ord
   in 
 
+  (* 
   (* 1. Store S \ sym - symbols of 'ord' without 'oa_sym' *)
   let ord_symbols_without_oa_sym: symbol list = 
     temp_ord_symbols |> List.filter (fun x -> not (syms_equals x oa_sym))
@@ -437,8 +446,9 @@ let update_op_tbl_per_oa_sym (oa_sym: symbol) (ord: int) (op_tbl: (int, symbol l
       (* 6. Remove 'oa_sym' at 'ord+1' *)
       remove_sym_at_lvl op_tbl (ord+1) oa_sym;
     end;
+   *)
   if debug then (wrapped_printf debug "\n\t  Updated O_p tbl for symbol : "; 
-    Pp.pp_symbol oa_sym; wrapped_printf debug "\n"; Pp.pp_obp_tbl op_tbl);
+    Pp.pp_symbol oa_sym; wrapped_printf debug "\n"; Pp.pp_op_tbl_new op_tbl);
   op_tbl
 
 

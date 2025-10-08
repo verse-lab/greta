@@ -21,7 +21,6 @@
 
 %token EOF
 
-%left PLUS POW
 
 %type <Ast.t> program
 

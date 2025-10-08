@@ -138,10 +138,15 @@ let () =
     (* ----------------------------------------------------------------- *)
 
     let file_postfix = ref "" in
-    let interact_with_user (inp_lst: ((string list * T.tree * (bool * bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool * bool) * T.restriction list)) list):
+    let rec interact_with_user (inp_lst: ((string list * T.tree * (bool * bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool * bool) * T.restriction list)) list):
       (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
-        let rec loop lst acc = 
-          match lst with [] -> acc
+        let rec loop lst learned_acc = 
+          match lst with 
+          | [] -> 
+            (* Ask the user if the learned example trees do not form a total order between symbols coming from the same group *)
+            if (E.form_total_order_among_op_symbols_from_same_group learned_acc o_bp_tbl debug)
+            then learned_acc
+            else (U.ask_user_choose_again (); interact_with_user tree_pairs_lst )
           | ((texpr_ls1, t1, (oa1_pos, oa1_neg, op1), rls1), (texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)) :: tl -> 
             (U.present_tree_pair (t1, t2);
             let chosen_index = read_int () in
@@ -150,13 +155,13 @@ let () =
             if (U.is_oa_tree t1) && (U.is_oa_tree t2) 
             then 
               (if (chosen_index = 0)
-              then loop tl ((texpr_ls1, t1, (true, false, op1), rls1) :: (texpr_ls2, t2, (false, true, op2), rls2) :: acc)
-              else loop tl ((texpr_ls1, t1, (false, true, op1), rls1) :: (texpr_ls2, t2, (true, false, op2), rls2) :: acc))
+              then loop tl ((texpr_ls1, t1, (true, false, op1), rls1) :: (texpr_ls2, t2, (false, true, op2), rls2) :: learned_acc)
+              else loop tl ((texpr_ls1, t1, (false, true, op1), rls1) :: (texpr_ls2, t2, (true, false, op2), rls2) :: learned_acc))
             else if (chosen_index = 0) 
-            then loop tl ((texpr_ls1, t1, (oa1_pos, oa1_neg, op1), rls1)::acc)
+            then loop tl ((texpr_ls1, t1, (oa1_pos, oa1_neg, op1), rls1) :: learned_acc)
             else 
               (* if user selects 1 or any other number, 2nd tree gets selected *)
-              loop tl ((texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)::acc))
+              loop tl ((texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)::learned_acc))
         in loop inp_lst []
     in
     (* Time output *)
@@ -167,17 +172,18 @@ let () =
 
     (* Commenting out the part that has not been finalized yet *)
 
-    (* 
+    (*
     (* ----------------------------------------------------------------- *)
     (* Step 4: Learn O_a, O_p wrt. tree examples ----------------------- *)
     (* ----------------------------------------------------------------- *)
     
     let oa_neg_learned: T.restriction list =
        L.learn_oa_neg learned_example_trees debug in
-    let op_learned: (int, T.symbol list) Hashtbl.t = 
+    let _op_learned: (int, (T.symbol list) list) Hashtbl.t = 
       L.learn_op o_bp_tbl learned_example_trees oa_neg_learned debug in
     
 
+     
     (* ----------------------------------------------------------------- *)
     (* Step 5: TA is learned via original CFG and O_p, O_a (neg) ------- *)
     (* ----------------------------------------------------------------- *)

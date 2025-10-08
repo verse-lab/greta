@@ -514,5 +514,23 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
   tree_example_pairs
 
 
+let form_total_order_among_op_symbols_from_same_group 
+  (learned_trees: (string list * tree * (bool * bool * bool) * restriction list) list) (_o_bp: (int, symbol list list) Hashtbl.t) (debug: bool): bool = 
+  let open List in 
+  let rest_ls_wrt_op: restriction list list = 
+    learned_trees |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) |>  map (fun (_sls, _t, (_, _, _), rls) -> rls)
+  in 
+  let o_tmp_ls: (restriction * restriction) list = 
+    rest_ls_wrt_op |> map (fun rls -> if (length rls) = 2 
+      then (nth rls 0), (nth rls 1) else raise (Failure "op_relatd_ls should contain only 2 restrictions")) 
+  in
+  if debug then (wrapped_printf debug "\n\t O_tmp pair list:\n\t"; 
+    o_tmp_ls |> List.iter (fun (r1, r2) -> Pp.pp_restriction r1; Pp.pp_restriction r2; wrapped_printf debug "\n\t"); 
+    wrapped_printf debug "\n\n"); 
+  (* 
+  TODO: Need to update the logic below! 
+  By making use of the O_bp grouping as well
+  *)
+  true
 
 
