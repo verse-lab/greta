@@ -94,6 +94,9 @@ let pp_sigma_listlist (slsls: C.sigma list list) =
 let pp_alphabet (a: T.symbol list) =
   noprintf "\tAlphabet : { "; a |> iter (fun x -> pp_symbol x); noprintf "}\n"
 
+let pp_symbol_list (a: T.symbol list) =
+  noprintf "  [ "; a |> iter (fun x -> pp_symbol x); noprintf " ]  "
+
 let pp_final_states (ss: T.state list) = 
   noprintf "\tFinal States : { "; ss |> iter (noprintf "%s "); noprintf "}\n"
 
@@ -106,6 +109,11 @@ let pp_obp_tbl (obp_tbl: (int, T.symbol list) Hashtbl.t) =
   noprintf "\n    [\n";
   obp_tbl |> Hashtbl.iter (fun o_idx s_ls -> noprintf "\n\tOrder %i -> " o_idx; 
     s_ls |> iter pp_symbol; noprintf "\n"); noprintf "    ]\n"
+
+let pp_op_tbl_new (obp_tbl: (int, (T.symbol list) list) Hashtbl.t) = 
+  noprintf "\n    [\n";
+  obp_tbl |> Hashtbl.iter (fun o_idx s_lsls -> noprintf "\n\tOrder %i -> " o_idx; 
+    s_lsls |> iter (fun sls -> pp_symbol_list sls) ; noprintf "\n"); noprintf "    ]\n"
 
 let pp_beta_pair (bb: (T.beta * T.beta)) = 
   let b1, b2 = (fst bb), (snd bb) in 

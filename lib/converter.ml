@@ -201,7 +201,7 @@ let collect_sym_orders_wrt_nonterm_order (nts_ordered: (nonterminal * int) list)
 
 
 let cfg_to_ta (debug_print: bool) (g: cfg): 
-  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list * (transition -> symbol) * (symbol -> transition) =
+  ta * restriction list * ((int, symbol list list) Hashtbl.t) * (int * production) list * (transition -> symbol) * (symbol -> transition) =
   if debug_print then
     (wrapped_printf debug_print "\n\t Converting CFG to TA given the following TA \n"; Pp.pp_cfg g);
   
@@ -240,8 +240,8 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
   let nonterm_order_symls: (nonterminal * int * symbol list) list = 
     collect_sym_orders_wrt_nonterm_order nonterms_ordered trans_from_cfg debug_print 
   in
-  let order_symls: (int * symbol list) list = 
-    nonterm_order_symls |> List.map (fun (_nt, lvl, sym_ls) -> (lvl, sym_ls)) |> combine_syms_of_same_order
+  let order_symls_grouped: (int * (symbol list) list) list = 
+    nonterm_order_symls |> combine_syms_of_same_order       
   in 
   let rest_ls: restriction list = 
     nonterm_order_symls |> List.fold_left (fun acc (_nt, lvl, sym_ls) -> 
@@ -250,7 +250,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
       in acc @ sym_precedence_ls) []
   in
   let rest_tbl = Hashtbl.create (List.length rest_ls) in 
-  (order_symls |> List.iter (fun (lvl, sym_ls) -> 
+  (order_symls_grouped |> List.iter (fun (lvl, sym_ls) -> 
     Hashtbl.add rest_tbl lvl sym_ls));
 
   (* 3. Find trivial symbol and nontrminal - Ignore for now *)
@@ -276,7 +276,7 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
   in res_ta, rest_ls, rest_tbl, prods_map_res, symbol_of_trans, trans_of_symbol
 
 let convertToTa (file: string) (debug_print: bool): 
-  ta * restriction list * ((int, symbol list) Hashtbl.t) * (int * production) list * (transition -> symbol) * (symbol -> transition) * cfg = 
+  ta * restriction list * ((int, symbol list list) Hashtbl.t) * (int * production) list * (transition -> symbol) * (symbol -> transition) * cfg = 
   let g = file |> 
     (runIf debug_print (fun _ -> wrapped_printf debug_print "\n\nConvert parser.mly to its corresponding CFG\n");
     extract_cfg debug_print) 
@@ -289,7 +289,7 @@ let convertToTa (file: string) (debug_print: bool):
     wrapped_printf debug_print "\nTA obtained from the original CFG : \n"; Pp.pp_ta ta_res;
     (* wrapped_printf debug_print "\n >> Trivial non-terminals: [ ";
     ta_res.trivial_sym_nts |> iter (fun (s, x) -> wrapped_printf debug_print " ("; Pp.pp_symbol s; wrapped_printf debug_print ", %s ) " x); wrapped_printf debug_print "]\n"; *)
-    wrapped_printf debug_print "\nOrder -> symbol list O_bp map : \n"; Pp.pp_obp_tbl obp_tbl;
+    wrapped_printf debug_print "\nOrder -> symbol list O_bp map : \n"; Pp.pp_op_tbl_new obp_tbl;
   end;
   ta_res, obp_res, obp_tbl, prods_map_res, symbol_of_trans, trans_of_symbol, g
 

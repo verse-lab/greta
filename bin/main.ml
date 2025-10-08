@@ -88,7 +88,7 @@ let () =
     let convert_start = Sys.time () 
     in
     let (ta_initial, o_bp, o_bp_tbl, prods_map, symbol_of_trans, trans_of_symbol, g):
-      T.ta * T.restriction list * ((int, T.symbol list) Hashtbl.t) * (int * G.production) list * (T.transition -> T.symbol) * (T.symbol -> T.transition) * G.cfg = 
+      T.ta * T.restriction list * ((int, T.symbol list list) Hashtbl.t) * (int * G.production) list * (T.transition -> T.symbol) * (T.symbol -> T.transition) * G.cfg = 
       C.convertToTa !cfg_file debug
     in
     let _convert_elapsed = Sys.time () -. convert_start in
@@ -160,12 +160,14 @@ let () =
         in loop inp_lst []
     in
     (* Time output *)
-    let learn_start = Sys.time () in
-    let learned_example_trees: (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
+    let _learn_start = Sys.time () in
+    let _learned_example_trees: (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
       interact_with_user tree_pairs_lst 
     in
 
+    (* Commenting out the part that has not been finalized yet *)
 
+    (* 
     (* ----------------------------------------------------------------- *)
     (* Step 4: Learn O_a, O_p wrt. tree examples ----------------------- *)
     (* ----------------------------------------------------------------- *)
@@ -280,6 +282,7 @@ let () =
     Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" _learn_ta_elapsed;
     (* Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed; *)
     (* Time for convering back to CFG *)
+     *)
   ()
   
 end

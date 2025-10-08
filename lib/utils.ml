@@ -161,9 +161,10 @@ let group_by_lvl_state ls =
              | None -> [v]
     in PairMap.add k vs acc) PairMap.empty |> PairMap.bindings
 
-let combine_syms_of_same_order (ls: (int * Ta.symbol list) list): (int * Ta.symbol list) list =
-  let add m (k, vs) =
-    let old = try List.assoc k m with Not_found -> [] in
-    (k, old @ vs) :: List.remove_assoc k m
+let combine_syms_of_same_order (ls: (Cfg.nonterminal * int * Ta.symbol list) list): (int * (Ta.symbol list) list) list =
+  let add acc (_nt, i, sym_ls) =
+    let old = try List.assoc i acc with Not_found -> [] 
+    in
+      (i,  sym_ls :: old) :: List.remove_assoc i acc
   in
-  List.fold_left add [] ls
+  List.fold_left add [] ls 
