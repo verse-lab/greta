@@ -227,6 +227,11 @@ let ask_user_choose_again (): unit =
   printf "\n\nTree examples you selected conflict with each other! \n\nNote: Symbols should form total order\n";
   printf "   e.g., If PLUS has higher precedence STAR \n\t and STAR has higher precedence than POW, \n\t then POW cannot have higher precedence than PLUS)\n\n"
 
+let find_id_by_symbol_member (assoc_list: (int * (symbol list)) list) (x: symbol): int =
+  match (assoc_list
+    |> List.find_opt (fun (_, vs) -> List.mem x vs)
+    |> Option.map fst) with Some i -> i | None -> raise (Failure "find_id_by_symbol_member : cannot find ID")
+
 let same_syms ls = 
   let fst_sym = List.hd ls in 
   let filtered = List.filter (fun s -> not (syms_equals s fst_sym)) ls in
@@ -262,6 +267,14 @@ let is_oa_tree (t: tree): bool =
 (* check_oa_op results in (oa_pos, oa_neg, op) *)
 let check_oa_op (e: tree): bool * bool * bool = 
   if (is_oa_tree e) then (true, true, false) else (false, false, true)
+
+let sym_of_op_restriction (rest: restriction): symbol = 
+  match rest with Assoc _ -> raise (Failure "sym_of_op_restriction : No assoc possible")
+  | Prec (s, _o) -> s
+
+let sym_of_oa_restriction (rest: restriction): symbol = 
+  match rest with Assoc (s, _) -> s
+  | Prec _ -> raise (Failure "sym_of_oa_restriction : No Prec possible")
 
 let collect_oa_restrictions (example_trees: (string list * tree * (bool * bool) * restriction list) list) 
 (debug_print: bool): restriction list = 
@@ -322,16 +335,58 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
   (if debug_print then wrapped_printf debug_print "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
+let group_by_order (ls: (int * symbol list) list): (int * symbol list list) list =
+  let cmp (o1, _) (o2, _) = compare o1 o2 in
+  let sorted = List.sort cmp ls in
+  List.fold_left (fun acc (o, symls) ->
+    match acc with
+    | (o', symlsls) :: tl when o = o' -> (o, symls :: symlsls) :: tl
+    | _ -> (o, [symls]) :: acc
+  ) [] sorted
+  |> List.rev
+  |> List.map (fun (o, symlsls) -> (o, List.rev symlsls))
+
+(* Sort internal list (symbol list) list in decreasing order 
+   by the size of (symbol list) - from largest to smallest *)
+let sort_inner_by_length_desc grouped =
+  List.map (fun (k, vs) ->
+    let sorted_vs = List.sort (fun a b ->
+      compare (List.length b) (List.length a)
+    ) vs in
+    (k, sorted_vs)
+  ) grouped
+
 let sort_by_fst_element ls =
   List.sort (fun (f1, _) (f2, _) -> Int.compare f1 f2) ls
 
-let sym_of_op_restriction (rest: restriction): symbol = 
-  match rest with Assoc _ -> raise (Failure "sym_of_op_restriction : No assoc possible")
-  | Prec (s, _o) -> s
+let sort_assoc_desc ls =
+  List.sort (fun (k1, _) (k2, _) -> compare k2 k1) ls
+  
+let group_restriction_pair_list_per_group (o_tmp_ls: (restriction * restriction) list) 
+  (order_symlsls_ls: (int * (symbol list) list) list) (_debug: bool): ((restriction * restriction) list) list = 
+  let grouped_symbol_list: (symbol list) list = 
+    order_symlsls_ls |> List.fold_left (fun acc (_i, symlsls) -> 
+      symlsls @ acc) [] 
+  in 
+  (* Note int here is not about level anymore but ID to each group! *)
+  let id_to_symbol_ls: (int * (symbol list)) list = 
+    grouped_symbol_list |> List.mapi (fun i symls -> (i, symls))
+  in 
+  let rec group_loop (otmps: (restriction * restriction) list) (acc: (int * (restriction * restriction) list) list) = 
+    match otmps with [] -> List.rev acc 
+    | (rest1, rest2) :: otmps_tl -> 
+      let sym_pair: (symbol * symbol) = 
+        (sym_of_op_restriction rest1), (sym_of_op_restriction rest2) in 
+      let id_of_sym_pair: int = 
+        find_id_by_symbol_member id_to_symbol_ls (fst sym_pair) in 
+      if (List.mem_assoc id_of_sym_pair acc) 
+      then (let existing_rest_pair_ls = List.assoc id_of_sym_pair acc in
+            let without_that_acc = List.remove_assoc id_of_sym_pair acc in
+            group_loop otmps_tl ((id_of_sym_pair, (rest1, rest2)::existing_rest_pair_ls) :: without_that_acc) )
+      else
+      group_loop otmps_tl acc
+  in group_loop o_tmp_ls [] |> List.map snd
 
-let sym_of_oa_restriction (rest: restriction): symbol = 
-  match rest with Assoc (s, _) -> s
-  | Prec _ -> raise (Failure "sym_of_oa_restriction : No Prec possible")
 
 (* orders_of_sym_in_op_tbl : find all the orders associated with the symbol *)
 let orders_of_sym_in_op_tbl (sym: symbol) (_sym: symbol) (op_tbl: (int, symbol list) Hashtbl.t ) (debug: bool): int list = 
