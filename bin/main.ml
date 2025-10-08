@@ -166,13 +166,12 @@ let () =
     in
     (* Time output *)
     let _learn_start = Sys.time () in
-    let _learned_example_trees: (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
+    let learned_example_trees: (string list * T.tree * (bool * bool * bool) * T.restriction list) list = 
       interact_with_user tree_pairs_lst 
     in
 
     (* Commenting out the part that has not been finalized yet *)
 
-    (*
     (* ----------------------------------------------------------------- *)
     (* Step 4: Learn O_a, O_p wrt. tree examples ----------------------- *)
     (* ----------------------------------------------------------------- *)
@@ -183,7 +182,7 @@ let () =
       L.learn_op o_bp_tbl learned_example_trees oa_neg_learned debug in
     
 
-     
+    (*
     (* ----------------------------------------------------------------- *)
     (* Step 5: TA is learned via original CFG and O_p, O_a (neg) ------- *)
     (* ----------------------------------------------------------------- *)

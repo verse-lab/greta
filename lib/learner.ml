@@ -53,6 +53,31 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
   if debug_print then (wrapped_printf debug_print "\n\t O_tmp pair list:\n\t"; 
     o_tmp_ls |> List.iter (fun (r1, r2) -> Pp.pp_restriction r1; Pp.pp_restriction r2; wrapped_printf debug_print "\n\t"); 
     wrapped_printf debug_print "\n\n");
+  
+  (* Group the restriction_pair list based on the associated symbols' group *)
+  let grouped_symbols: (int * (symbol list)) list = 
+    Hashtbl.fold (fun o symls_ls o_symls_acc -> 
+      let to_acc: (int * (symbol list)) list = 
+        symls_ls |> List.map (fun symls -> (o, symls)) 
+      in
+      to_acc @ o_symls_acc) o_bp_tbl []
+  in 
+  if debug_print then (wrapped_printf debug_print "\n\tGrouped symbol list:\n"; 
+    grouped_symbols |> List.iter (fun (i, symls) -> wrapped_printf debug_print "\tOrder %d   =>  " i; 
+    symls |> Pp.pp_symbol_list; wrapped_printf debug_print " \n"));
+
+  (* Sort the restriction based on symbols from the same group *)
+  let _ = 
+    ()
+  in 
+
+  (* Then sort the above based on the level (highest to lowest) *)
+  let _ = 
+    ()
+  in 
+
+  (* Then sort the group of symbols in each level based on its size by descending order (largest to smallest) *)
+
   let res_tbl_wrt_op: (int, (symbol list) list) Hashtbl.t = 
     o_tmp_ls |> fold_left (fun op_tbl_acc (_r1, _r2) ->  
       (*       
