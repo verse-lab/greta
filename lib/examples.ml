@@ -19,6 +19,10 @@ exception Invalid_subtrees
 exception Tree_specifies_oa_or_op
 exception Neither_left_nor_right
 
+let sym_of_tree (t: tree): symbol = 
+  match t with Node (sym, _) -> sym
+  | _ -> raise (Failure "sym_of_tree : tree have to be of form Node _")
+
 let wrapped_printf debug_print fmt =
   if debug_print then Printf.printf fmt
   else Printf.ifprintf stdout fmt
@@ -191,6 +195,35 @@ let combine_tree_exprs (e_trees_n_exprs: (tree * string list) list) (debug_print
               in wrapped_printf debug_print "\n\t"; Pp.pp_tree fst_tree; wrapped_printf debug_print "\n\t"; Pp.pp_tree snd_tree);
         combine_loop (List.tl tl) (two_trees_combined @ res_acc))
   in combine_loop e_trees_n_exprs []
+
+let remove_duplicate_tree_pairs (trees_n_exprs: (tree * string list) list): (tree * string list) list = 
+  let paired_tree_exprs: ((tree * string list) * (tree * string list)) list = 
+    trees_n_exprs |> pair_up
+  in
+  let filtered_paired_tree_exprs: ((tree * string list) * (tree * string list)) list = 
+    paired_tree_exprs 
+      |> List.fold_left (fun t_n_expr_acc ((t1, expr1), (t2, expr2)) -> 
+        let trees_accumulated_so_far: (tree * tree) list  = 
+          t_n_expr_acc |> List.map (fun (t_n_x1, t_n_x2) -> (fst t_n_x1), (fst t_n_x2)) 
+        in
+        let symbols_accumulated_so_far: (symbol * symbol) list = 
+          trees_accumulated_so_far |> List.map (fun (t1, t2) -> (sym_of_tree t1), (sym_of_tree t2))
+        in
+        let curr_sym_pair = 
+          (sym_of_tree t1), (sym_of_tree t2) 
+        in 
+        let rev_curr_sym_pair = 
+          (sym_of_tree t2), (sym_of_tree t1)
+        in  
+        if (List.mem curr_sym_pair symbols_accumulated_so_far) || (List.mem rev_curr_sym_pair symbols_accumulated_so_far)
+          then 
+            t_n_expr_acc
+          else 
+            ((t1, expr1), (t2, expr2)) :: t_n_expr_acc
+        ) [] 
+  in filtered_paired_tree_exprs 
+  |> List.fold_left (fun acc (x, y) -> x::y::acc) []
+
 
 let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.production) list) (debug_print: bool): 
   ((string list * tree * (bool * bool * bool) * restriction list) * (string list * tree * (bool * bool * bool) * restriction list)) list = 
@@ -429,7 +462,11 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
     (if debug_print then wrapped_printf "\n\t Relevant lines: \n";
     relev_ls |> (List.iter (fun (nt, x) -> wrapped_printf "\t %s   =>   %s\n" nt x)));
    
-  let extracted_trees_n_exprs: (tree * string list) list = relev_ls |> extract_tree_exprs in 
+  let raw_extracted_trees_n_exprs: (tree * string list) list = 
+    relev_ls |> extract_tree_exprs in 
+  let extracted_trees_n_exprs: (tree * string list) list = 
+    raw_extracted_trees_n_exprs |> remove_duplicate_tree_pairs
+  in 
   if debug_print then (wrapped_printf " Extracted trees: \n\t"; 
     let tls: tree list = extracted_trees_n_exprs |> List.map fst 
     in List.iter (fun x -> (Pp.pp_tree x; wrapped_printf "\n\t")) tls; wrapped_printf "\n"); 
