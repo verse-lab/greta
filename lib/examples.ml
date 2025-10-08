@@ -222,29 +222,26 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
     | None -> List.rev acc
   in let all_lines = collect_all_lines [] 
   in
-
   (* traverse and acc relevant lines for generating trees from `parser.trees` file *)
-  let rec traverse (input_ls: string list) (lhs_nt: string) (curr_nt_prod_pair: string * string) (num_toks: int) (cnt: int)
+  let rec traverse (input_ls: string list) (lhs_nt: string) (num_toks: int) (curr_nt_prod_pair: (string * string)) 
     (res_acc: (string * string) list): (string * string) list = 
     match input_ls with 
-    | [] -> res_acc |> List.rev
+    | [] -> (res_acc |> List.rev)
     | s :: stl -> 
-
-      (* If number_tokens, then collect and pass to the loop *)
+      (* If num_tokens, then collect and pass to the loop *)
       if (contains s "Number_tokens:")
       then 
-         (let curr_str_ls = s |> String.split_on_char ' ' in 
-          let after_num_tok_ind: int = 
-           match (index_of "Number_tokens:" curr_str_ls) with 
-            | Some i -> i + 1 | None -> raise (Failure "traverse : Num_tokens index cannot be found") in 
-          let tok_num_str = List.nth curr_str_ls after_num_tok_ind in 
-          let tok_num_int = (int_of_string tok_num_str)
-          (* 'cnt' has to be tok_num_int + 1 so that no duplicate set of prods get printed from later logic *)
-          in traverse stl lhs_nt curr_nt_prod_pair tok_num_int (tok_num_int+1) res_acc)
-      else 
-      if (num_toks = 1)
+        (let curr_str_ls = s |> String.split_on_char ' ' in 
+        let after_num_tok_ind: int = 
+          match (index_of "Number_tokens:" curr_str_ls) with 
+          | Some i -> i + 1 | None -> raise (Failure "traverse : Num_tokens index cannot be found") in 
+        let tok_num_str = List.nth curr_str_ls after_num_tok_ind in 
+        let tok_num_int = (int_of_string tok_num_str) in
+        traverse stl lhs_nt tok_num_int curr_nt_prod_pair res_acc)
+      else
+      if (num_toks <= 1)
       then 
-        (* If there is only one token involved, then collect relev lines like before *)
+        (* If there is only one token then do it like before *)
         begin 
           (* NOTE: below added to pass in lhs nonterminal string to infer production correctly later
             which is then used to correctly generate symbol for each tree *)
@@ -255,59 +252,39 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
               match (index_of "Production" lhs_nt_str_ls) with 
               | Some i -> i + 1 | None -> raise (Failure "traverse : Production index cannot be found") in 
             let lhs_nt_str = List.nth lhs_nt_str_ls after_prod_ind
-            in traverse stl lhs_nt_str curr_nt_prod_pair num_toks cnt res_acc)
+            in traverse stl lhs_nt_str num_toks curr_nt_prod_pair res_acc)
           else
             (* NOTE: below added to not address ambigs outside the scope of greta *)
             if (contains_atat s) && (not (starts "@@" s))
             then (let changed_str = attach_at_with_nonterm s
-                  in traverse stl lhs_nt (lhs_nt, changed_str) num_toks cnt ((lhs_nt, changed_str)::res_acc))
-            else traverse stl lhs_nt curr_nt_prod_pair num_toks cnt res_acc
-        end
-      else
-        
-        (* If there are multiple tokens involed, do like the num_toks = 1 case except that 
-           collect two relev lines (along with 'curr_nt_prod_pair') and decrement 'cnt' by 1
-           do this until 'cnt' is 0 *)
-        if (cnt = 0) then traverse stl lhs_nt curr_nt_prod_pair num_toks cnt res_acc
-        else 
-          if (cnt >= num_toks) 
+                  in traverse stl lhs_nt num_toks curr_nt_prod_pair ((lhs_nt, changed_str)::res_acc))
+            else traverse stl lhs_nt num_toks curr_nt_prod_pair res_acc
+        end 
+      else 
+        (* if there is more than one token then check if we are collecting even number *)
+        begin 
+          if (contains s "* Production") 
           then 
-            begin 
-              (* NOTE: below added to pass in lhs nonterminal string to infer production correctly later
-                which is then used to correctly generate symbol for each tree *)
-              if (contains s "* Production") 
-              then 
-                (let lhs_nt_str_ls = s |> String.split_on_char ' ' in 
-                let after_prod_ind: int = 
-                  match (index_of "Production" lhs_nt_str_ls) with 
-                  | Some i -> i + 1 | None -> raise (Failure "traverse : Production index cannot be found") in 
-                let lhs_nt_str = List.nth lhs_nt_str_ls after_prod_ind
-                in traverse stl lhs_nt_str curr_nt_prod_pair num_toks cnt res_acc)
-              else
-                (* NOTE: below added to not address ambigs outside the scope of greta *)
-                if (contains_atat s) && (not (starts "@@" s))
-                then (let changed_str = attach_at_with_nonterm s
-                      in traverse stl lhs_nt (lhs_nt, changed_str) num_toks (cnt-1) ((lhs_nt, changed_str)::res_acc))
-                else traverse stl lhs_nt curr_nt_prod_pair num_toks cnt res_acc
-            end
+            (let lhs_nt_str_ls = s |> String.split_on_char ' ' in 
+            let after_prod_ind: int = 
+              match (index_of "Production" lhs_nt_str_ls) with 
+              | Some i -> i + 1 | None -> raise (Failure "traverse : Production index cannot be found") in 
+            let lhs_nt_str = List.nth lhs_nt_str_ls after_prod_ind
+            in traverse stl lhs_nt_str num_toks curr_nt_prod_pair res_acc)
           else
-            begin 
-              if (contains s "* Production")
+            (* NOTE: below added to not address ambigs outside the scope of greta *)
+            if (contains_atat s) && (not (starts "@@" s))
+            then (let changed_str = attach_at_with_nonterm s
+                  in traverse stl lhs_nt num_toks (lhs_nt, changed_str) ((lhs_nt, changed_str)::res_acc))
+            else 
+              if (contains s "****************************") 
               then 
-                (let lhs_nt_str_ls = s |> String.split_on_char ' ' in 
-                let after_prod_ind: int = 
-                  match (index_of "Production" lhs_nt_str_ls) with 
-                  | Some i -> i + 1 | None -> raise (Failure "traverse : Production index cannot be found") in 
-                let lhs_nt_str = List.nth lhs_nt_str_ls after_prod_ind
-                in traverse stl lhs_nt_str curr_nt_prod_pair num_toks cnt res_acc)
+                (if ((List.length res_acc) mod 2 = 0)
+                then traverse stl lhs_nt num_toks curr_nt_prod_pair res_acc
+                else traverse stl lhs_nt num_toks curr_nt_prod_pair (curr_nt_prod_pair ::res_acc)  )
               else 
-                (* NOTE: below added to not address ambigs outside the scope of greta *)
-                if (contains_atat s) && (not (starts "@@" s))
-                then (let changed_str = attach_at_with_nonterm s
-                      in traverse stl lhs_nt (lhs_nt, changed_str) num_toks (cnt + 1) (curr_nt_prod_pair::(lhs_nt, changed_str)::res_acc))
-                else traverse stl lhs_nt curr_nt_prod_pair num_toks cnt res_acc
-            end
-        
+                traverse stl lhs_nt num_toks curr_nt_prod_pair res_acc      
+        end 
   in 
   let filter_out_wrt_menhir_limitations (input_ls: (string * string) list): (string * string) list = 
     let str_str_paired_ls: ((string * string) * (string * string)) list = 
@@ -447,7 +424,7 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
         extract_loop stl ((s_tree, s_ls) :: res_acc))
     in extract_loop relev_lines []
   in 
-  let relev_ls: (string * string) list = traverse all_lines "" ("", "") 1 0 [] |> filter_out_wrt_menhir_limitations in
+  let relev_ls: (string * string) list = traverse all_lines "" 0 ("", "") [] |> filter_out_wrt_menhir_limitations in
     
     (if debug_print then wrapped_printf "\n\t Relevant lines: \n";
     relev_ls |> (List.iter (fun (nt, x) -> wrapped_printf "\t %s   =>   %s\n" nt x)));
