@@ -139,12 +139,12 @@ let () =
 
     let file_postfix = ref "" in
     let rec interact_with_user (inp_lst: ((string list * T.tree * (bool * bool * bool) * T.restriction list) * (string list * T.tree * (bool * bool * bool) * T.restriction list)) list):
-      (string list * T.tree * (bool * bool * bool) * T.restriction list) list * (T.symbol list) list = 
+      (string list * T.tree * (bool * bool * bool) * T.restriction list) list * (int * (T.symbol list) list) list = 
         let rec loop lst learned_acc = 
           match lst with 
           | [] -> 
             (* Ask the user if the learned example trees do not form a total order between symbols coming from the same group *)
-            let ordered_sym_lsls: (T.symbol list) list = 
+            let ordered_sym_lsls: (int * (T.symbol list) list) list = 
               (* 
               Will get the below symbol list list after form_total_order ... gets implemented 
               *)
@@ -173,7 +173,7 @@ let () =
     in
     (* Time output *)
     let _learn_start = Sys.time () in
-    let (learned_example_trees, symlsls_ordered): (string list * T.tree * (bool * bool * bool) * T.restriction list) list * (T.symbol list) list = 
+    let (learned_example_trees, symlsls_ordered): (string list * T.tree * (bool * bool * bool) * T.restriction list) list * (int * (T.symbol list) list) list = 
       interact_with_user tree_pairs_lst 
     in
 
