@@ -96,96 +96,17 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
   op_tbl
 
 
-let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) 
-  (oa_ls: Ta.restriction list) (_ordered_sym_lsls: (int * (symbol list) list) list) (debug_print: bool): (int, symbol list) Hashtbl.t = 
+let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (oa_ls: Ta.restriction list) 
+  (oa_op_ordered_sym_lsls: (int * (symbol list) list) list) (debug_print: bool): (int, symbol list) Hashtbl.t = 
   let open List in
-  let op_related_ls: restriction list list = 
-    tree_examples |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) |> map (fun (_sls, _t, (_, _, _), rls) -> rls)
-  in 
-
-  (* ********************************* Dummy from here  ********************************* *)
-  (* Restriction pair list wrt. precedence-specification *)
-  let o_tmp_ls: (restriction * restriction) list = 
-    op_related_ls |> map (fun rls -> if (length rls) = 2 
-      then (nth rls 0), (nth rls 1) else raise (Failure "op_relatd_ls should contain only 2 restrictions"))
-  in
-  let grouped_symbols: (int * (symbol list)) list = 
-    Hashtbl.fold (fun o symls_ls o_symls_acc -> 
-      let to_acc: (int * (symbol list)) list = 
-        symls_ls |> List.map (fun symls -> (o, symls)) 
-      in
-      to_acc @ o_symls_acc) o_bp_tbl []
-  in
-  let order_symlsls_ls: (int * (symbol list) list) list = 
-    grouped_symbols 
-    (* Sort the restriction based on length (symbols list) from the same group *)
-    |> group_sym_ls_by_order 
-    (* Sort the (o, sym list list) from highest 'o' to lowest 'o' *)
-    |> sort_assoc_desc
-    (* Sort the 'sym list list' in (o, sym list list) based on Length (sym list) from largets to smallest *)
-    |> sort_inner_by_length_desc
-  in 
-  (* Group (restriction * restrction) list based on the group *)
-  let rest_pairs_ls_per_group: ((restriction * restriction) list) list = 
-    group_restriction_pair_list_per_group o_tmp_ls order_symlsls_ls debug_print
-  in 
-  (* Sort the grouped (restriction * restriction) list in descending order (per their order) *)
-  let rest_pairs_ls_per_group_sorted: (int * (restriction * restriction) list) list = 
-    let ord_rest_pairs_ls_per_group: (int * (restriction * restriction) list) list = 
-      rest_pairs_ls_per_group |> List.map (fun rest_pair_ls -> 
-        let curr_rest_pair: (restriction * restriction) = 
-          if (List.is_empty rest_pair_ls) then raise (Failure "rest_pair_ls cannot be empty")
-          else (List.hd rest_pair_ls) 
-        in 
-        let curr_rest: restriction = 
-          (fst curr_rest_pair) 
-        in
-        let sym_of_current_rest: symbol = 
-          (sym_of_op_restriction curr_rest)
-        in 
-        let id_of_rest_pairs_symbols: int = 
-          (find_id_by_symbol_member grouped_symbols sym_of_current_rest)
-        in 
-        (id_of_rest_pairs_symbols, rest_pair_ls)) 
-    in 
-    let intermediate_for_sorting: (int * ((restriction * restriction) list list)) list = 
-      ord_rest_pairs_ls_per_group
-        (* Group by (rest * rest) list's order => (o * (rest * rest) list list) *)
-        |> group_by_order 
-        (* Sort the (o * (rest * rest) list) from highest 'o' to lowest 'o' *)
-        |> sort_assoc_desc
-        (* Sort the '(rest * rest) list' in (o * (rest * rest) list) based on Length ((rest * rest) list) from largets to smallest *)
-        |> sort_inner_by_length_desc
-        (* This part is not done yet *)
-    in 
-    let ord_rest_pairs_ls_per_group_sorted: (int * (restriction * restriction) list) list = 
-      (* Ungroup by order *)
-      intermediate_for_sorting |> List.fold_left (fun acc (o, restpair_lsls) -> 
-        let to_acc: (int * (restriction * restriction) list) list = 
-          restpair_lsls |> List.map (fun restpair_ls -> (o, restpair_ls))
-        in 
-        acc @ to_acc 
-        ) []
-    in
-    ord_rest_pairs_ls_per_group_sorted 
-  in
   
-  (* Note! To replace later with _ordered_sym_lsls *)
-  let dummy_sorted_ord_amb_symlsls_ls: (int * symbol list list) list = 
-    rest_pairs_ls_per_group_sorted |> List.map (fun (o, r1r2_ls) -> 
-      let sym_pair_ls: (symbol * symbol) list = r1r2_ls |> List.map (fun (r1, r2) -> 
-        (sym_of_op_restriction r1), (sym_of_op_restriction r2)) 
-      in 
-      let sym_ls: symbol list = 
-        sym_pair_ls |> List.fold_left (fun acc (s1, s2) -> s2::s1::acc) [] 
-      in
-      let sym_ls_rev_wo_dups: symbol list = 
-        sym_ls |> List.rev |> remove_dup_symbols in 
-      (o, sym_ls_rev_wo_dups)
-    ) |> group_by_order |> List.rev
+  let sorted_ord_amb_symlsls_ls: (int * (symbol list) list) list = 
+    oa_op_ordered_sym_lsls |> List.filter (fun (_o, symlsls) -> not (List.is_empty symlsls))
   in 
-  (* ********************************* Dummy upto here!  ********************************* *)
-
+  sorted_ord_amb_symlsls_ls |> List.iter (fun (o, symlsls) -> 
+    wrapped_printf debug_print "\n\t\t Order %d    [ " o; 
+    symlsls |> List.iter Pp.pp_symbol_list; wrapped_printf debug_print " ] \n" ; 
+    );
 
   (* 
   wrapped_printf debug_print "\n\t Ordered symbol list list (symbols wrt. precedence order specification):"; 
@@ -218,33 +139,15 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
     symlsls |> List.iter Pp.pp_symbol_list; wrapped_printf debug_print " \n\n")
   );
 
-  (* let sorted_ord_amb_symls_ls: (int * symbol list) list = 
-    ordered_sym_lsls |> List.map (fun (o, curr_symls) -> 
-      let sym = if (List.is_empty curr_symls) then raise (Failure "")
-                else List.hd curr_symls 
-      in 
-        let order_of_curr_syms: int = find_order_of_symbol o_bp_tbl sym in 
-        (order_of_curr_syms, curr_symls))
-  in  *)
-  if debug_print then (wrapped_printf debug_print 
+  (* if debug_print then (wrapped_printf debug_print 
     "\n\tAmbig symbols total-ordered from lowest to highest (listed from highest order to lowest order):\n\t";
-    dummy_sorted_ord_amb_symlsls_ls |> List.iter (fun (o, symlsls) -> wrapped_printf debug_print "\n\tFor order %d  " o; 
+    sorted_ord_amb_symlsls_ls |> List.iter (fun (o, symlsls) -> wrapped_printf debug_print "\n\tFor order %d  " o; 
       symlsls |> iter Pp.pp_symbol_list; wrapped_printf debug_print "\n"); wrapped_printf debug_print "\n\n");
-
-  (* Then sort the group of symbols in each level based on its size by descending order (largest to smallest) *)
+   *)
   
-  (* 
-  To remove below after checking it works for a list of things
-  
-  let _fst_ord_amb_symls: int * symbol list list = 
-    dummy_sorted_ord_amb_symlsls_ls |> List.hd in 
-  let _ord, _amb_syms_total_ordered_ls = 
-    (fst fst_ord_amb_symls), (snd fst_ord_amb_symls) in 
-  *)
-
-  let all_ords = Hashtbl.length o_bp_tbl 
-  in 
   (* Flatten the o_bp_tbl from (int, symbol list list) Hashtbl.t to (int, symbol list) Hashtbl.t *)
+  let all_ords = 
+    Hashtbl.length o_bp_tbl in 
   let op_tbl: (int, symbol list) Hashtbl.t = 
     Hashtbl.create all_ords 
   in 
@@ -261,7 +164,7 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
   
   let res_tbl_wrt_op: 
     (int, symbol list) Hashtbl.t = 
-    dummy_sorted_ord_amb_symlsls_ls |> 
+    sorted_ord_amb_symlsls_ls |> 
     List.fold_left (fun op_tbl_acc ord_amb_symlsls -> 
       let ord, amb_syms_total_ordered_ls = (fst ord_amb_symlsls), (snd ord_amb_symlsls) in 
       update_op_per_ord_amb_symsls op_tbl_acc ord amb_syms_total_ordered_ls order_symlsls_ls debug_print
