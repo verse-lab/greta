@@ -507,11 +507,11 @@ let update_op_tbl_per_op_syms (sym_top: symbol) (sym_bot: symbol) (ord: int) (op
 
 
 (* Update_op_tbl_per_oa_syms : update based on syms wrt. O_a *)
-let update_op_tbl_per_oa_sym (oa_sym: symbol) (ord: int) (op_tbl: (int, (symbol list) list) Hashtbl.t) (debug: bool): 
-  (int, (symbol list) list) Hashtbl.t =
+let update_op_tbl_per_oa_sym (oa_sym: symbol) (ord: int) (op_tbl: (int, symbol list) Hashtbl.t) (debug: bool): 
+  (int, symbol list) Hashtbl.t =
   
   (* 0. Store the current ord -> symbol list in a temporary list *)
-  let _temp_ord_symbols: symbol list list = 
+  let _temp_ord_symbols: symbol list = 
     Hashtbl.find op_tbl ord
   in 
 
@@ -547,7 +547,7 @@ let update_op_tbl_per_oa_sym (oa_sym: symbol) (ord: int) (op_tbl: (int, (symbol 
     end;
    *)
   if debug then (wrapped_printf debug "\n\t  Updated O_p tbl for symbol : "; 
-    Pp.pp_symbol oa_sym; wrapped_printf debug "\n"; Pp.pp_op_tbl_new op_tbl);
+    Pp.pp_symbol oa_sym; wrapped_printf debug "\n"; Pp.pp_obp_tbl op_tbl);
   op_tbl
 
 

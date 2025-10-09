@@ -171,8 +171,6 @@ let () =
       interact_with_user tree_pairs_lst 
     in
 
-    (* Commenting out the part that has not been finalized yet *)
-
     (* ----------------------------------------------------------------- *)
     (* Step 4: Learn O_a, O_p wrt. tree examples ----------------------- *)
     (* ----------------------------------------------------------------- *)
