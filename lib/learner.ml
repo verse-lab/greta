@@ -55,7 +55,7 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
     o_tmp_ls |> List.iter (fun (r1, r2) -> Pp.pp_restriction r1; Pp.pp_restriction r2; wrapped_printf debug_print "\n\t"); 
     wrapped_printf debug_print "\n\n");
   
-  (* Group the restriction_pair list based on the associated symbols' group *)
+  (* Group the restriction_pair list based on the associated symbols' group paird with order *)
   let grouped_symbols: (int * (symbol list)) list = 
     Hashtbl.fold (fun o symls_ls o_symls_acc -> 
       let to_acc: (int * (symbol list)) list = 
@@ -85,15 +85,35 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
   let rest_pairs_ls_per_group: ((restriction * restriction) list) list = 
     group_restriction_pair_list_per_group o_tmp_ls order_symlsls_ls debug_print
   in 
-
-  (* To resume from here! *)
   
-  if debug_print then (wrapped_printf debug_print "\n\t Restriction pair list per group:\n\t"; 
-    rest_pairs_ls_per_group |> List.iter (fun r1r2_ls -> 
+  (* Sort the grouped (restriction * restriction) list in descending order (per their order) *)
+  let rest_pairs_ls_per_group_sorted: ((restriction * restriction) list) list = 
+    let ord_rest_pairs_ls_per_group: (int * (restriction * restriction) list) list = 
+      rest_pairs_ls_per_group |> List.map (fun rest_pair_ls -> 
+        let curr_rest_pair: (restriction * restriction) = 
+          if (List.is_empty rest_pair_ls) then raise (Failure "rest_pair_ls cannot be empty")
+          else (List.hd rest_pair_ls) 
+        in 
+        let curr_rest: restriction = 
+          (fst curr_rest_pair) 
+        in
+        let sym_of_current_rest: symbol = 
+          (sym_of_op_restriction curr_rest)
+        in 
+        let id_of_rest_pairs_symbols: int = 
+          (find_id_by_symbol_member grouped_symbols sym_of_current_rest)
+        in 
+        (id_of_rest_pairs_symbols, rest_pair_ls))
+    in     
+    ord_rest_pairs_ls_per_group |> List.map snd
+  in 
+  if debug_print then (wrapped_printf debug_print "\n\t Restriction pair list per group (sorted):\n\t"; 
+    rest_pairs_ls_per_group_sorted |> List.iter (fun r1r2_ls -> 
       wrapped_printf debug_print " [   "; 
       r1r2_ls |> List.iter (fun (r1, r2) -> Pp.pp_restriction r1; Pp.pp_restriction r2);
       wrapped_printf debug_print "   ]\n\t"); 
     wrapped_printf debug_print "\n\n");
+  
 
   (* Then sort the group of symbols in each level based on its size by descending order (largest to smallest) *)
 

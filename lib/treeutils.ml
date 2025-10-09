@@ -372,19 +372,29 @@ let group_restriction_pair_list_per_group (o_tmp_ls: (restriction * restriction)
   let id_to_symbol_ls: (int * (symbol list)) list = 
     grouped_symbol_list |> List.mapi (fun i symls -> (i, symls))
   in 
+  if _debug then (wrapped_printf _debug "\n\t Grouping restriction pair list based to (ID -> Symbol list):"; 
+    id_to_symbol_ls |> List.iter (fun (id, symls) -> wrapped_printf _debug "\n\t ID  %d  =>  " id; symls |> Pp.pp_symbol_list); 
+    wrapped_printf _debug "\n\n");
+
   let rec group_loop (otmps: (restriction * restriction) list) (acc: (int * (restriction * restriction) list) list) = 
     match otmps with [] -> List.rev acc 
     | (rest1, rest2) :: otmps_tl -> 
       let sym_pair: (symbol * symbol) = 
         (sym_of_op_restriction rest1), (sym_of_op_restriction rest2) in 
       let id_of_sym_pair: int = 
-        find_id_by_symbol_member id_to_symbol_ls (fst sym_pair) in 
+        find_id_by_symbol_member id_to_symbol_ls (fst sym_pair) 
+      in 
+      (* 
+      if _debug then 
+        (wrapped_printf _debug "\n\t Symbol in question : "; Pp.pp_symbol (fst sym_pair); 
+        wrapped_printf _debug "\t ID found : %d \n" id_of_sym_pair); 
+      *)
       if (List.mem_assoc id_of_sym_pair acc) 
       then (let existing_rest_pair_ls = List.assoc id_of_sym_pair acc in
             let without_that_acc = List.remove_assoc id_of_sym_pair acc in
             group_loop otmps_tl ((id_of_sym_pair, (rest1, rest2)::existing_rest_pair_ls) :: without_that_acc) )
       else
-      group_loop otmps_tl acc
+        group_loop otmps_tl ((id_of_sym_pair, [(rest1, rest2)]) ::acc)
   in group_loop o_tmp_ls [] |> List.map snd
 
 
