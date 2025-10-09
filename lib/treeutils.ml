@@ -335,7 +335,18 @@ let combine_op_restrictions (o_bp: restriction list) (o_tmp: restriction list) (
   (if debug_print then wrapped_printf debug_print "\n  Combined O_p : "; Pp.pp_restriction_lst reordered_combined_op); 
   reordered_combined_op
 
-let group_by_order (ls: (int * symbol list) list): (int * symbol list list) list =
+let group_by_order ls =
+  let cmp (o1, _) (o2, _) = compare o1 o2 in
+  let sorted = List.sort cmp ls in
+  List.fold_left (fun acc (o, symls) ->
+    match acc with
+    | (o', symlsls) :: tl when o = o' -> (o, symls :: symlsls) :: tl
+    | _ -> (o, [symls]) :: acc
+  ) [] sorted
+  |> List.rev
+  |> List.map (fun (o, symlsls) -> (o, List.rev symlsls))
+
+let group_sym_ls_by_order (ls: (int * symbol list) list): (int * symbol list list) list =
   let cmp (o1, _) (o2, _) = compare o1 o2 in
   let sorted = List.sort cmp ls in
   List.fold_left (fun acc (o, symls) ->
