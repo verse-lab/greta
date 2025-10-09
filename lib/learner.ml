@@ -103,7 +103,11 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
         let id_of_rest_pairs_symbols: int = 
           (find_id_by_symbol_member grouped_symbols sym_of_current_rest)
         in 
-        (id_of_rest_pairs_symbols, rest_pair_ls))
+        (id_of_rest_pairs_symbols, rest_pair_ls)) 
+        (* Sort the (o * (rest * rest) list) from highest 'o' to lowest 'o' *)
+        |> sort_assoc_desc
+        (* Sort the '(rest * rest) list' in (o * (rest * rest) list) based on Length ((rest * rest) list) from largets to smallest *)
+        (* This part is not done yet *)
     in     
     ord_rest_pairs_ls_per_group |> List.map snd
   in 
