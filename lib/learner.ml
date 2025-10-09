@@ -44,8 +44,10 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
   
   (* 1. Find how much to push - depends on largest size of the 'symbol list' element in 'amb_syms_ordered' *)
   let push_n: int = 
-    amb_syms_ordered |> List.fold_left (fun len_acc sym_ls -> 
-      let len = (List.length sym_ls) in if len > len_acc then len else len_acc) 0 
+    let max_len = 
+      amb_syms_ordered |> List.fold_left (fun len_acc sym_ls -> 
+        let len = (List.length sym_ls) in if len > len_acc then len else len_acc) 0 
+    in max_len
   in 
   
   (* 2. Find S \ { amb_syms } based on all the symbols in curr order \ all amb symbols in curr order *)
@@ -61,21 +63,24 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
     all_syms_in_curr_ord |> List.filter (fun sym -> not (List.mem sym all_amb_syms)) 
   in
 
+  (* 
   if debug then 
     (wrapped_printf debug "\t * Push_n  =  %d \n\t * S in Order %d : " push_n curr_ord; all_amb_syms |> Pp.pp_symbol_list; 
-      wrapped_printf debug "\n\t * S \\ syms : "; temp_others |> Pp.pp_symbol_list); 
+      wrapped_printf debug "\n\t * S \\ syms : "; temp_others |> Pp.pp_symbol_list);  
+  *)
     
   (* 3. Replace Order -> original symbol list    with     Order -> tmp_others *)
   Hashtbl.remove op_tbl curr_ord;
   Hashtbl.add op_tbl curr_ord temp_others;
   
+  (* 
   if debug then 
     (wrapped_printf debug "\n\n\t -- After replacing Order -> temp_others : "; temp_others |> Pp.pp_symbol_list ; 
-    Pp.pp_obp_tbl op_tbl); 
+    Pp.pp_obp_tbl op_tbl);  
+  *)
   
-  (* 4. Pusy by 'push_n' (largest amb_sym list element's length) *)
-  push_keys_if_gte_order_by curr_ord op_tbl push_n;
-  Pp.pp_obp_tbl op_tbl;
+  (* 4. Pusy by 'push_n - 1' (largest amb_sym list element's length) *)
+  push_keys_if_gte_order_by curr_ord op_tbl (push_n - 1);
   
   (* Insert 'tmp_others' as Ord -> tmp_others    Ord+1 -> tmp_others   Ord+(push_n - 1)  -> tmp_others *)
   for i = 0 to (push_n - 1) do 
@@ -227,13 +232,15 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
       symlsls |> iter Pp.pp_symbol_list; wrapped_printf debug_print "\n"); wrapped_printf debug_print "\n\n");
 
   (* Then sort the group of symbols in each level based on its size by descending order (largest to smallest) *)
-  (* Double check the above with gokul *)
   
+  (* 
+  To remove below after checking it works for a list of things
   
-  (* To remove below after checking it works for a list of things *)
-  let fst_ord_amb_symls: int * symbol list list = dummy_sorted_ord_amb_symlsls_ls |> List.hd in 
-  let ord, amb_syms_total_ordered_ls = 
-    (fst fst_ord_amb_symls), (snd fst_ord_amb_symls) in
+  let _fst_ord_amb_symls: int * symbol list list = 
+    dummy_sorted_ord_amb_symlsls_ls |> List.hd in 
+  let _ord, _amb_syms_total_ordered_ls = 
+    (fst fst_ord_amb_symls), (snd fst_ord_amb_symls) in 
+  *)
 
   let all_ords = Hashtbl.length o_bp_tbl 
   in 
@@ -254,16 +261,11 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
   
   let res_tbl_wrt_op: 
     (int, symbol list) Hashtbl.t = 
-    update_op_per_ord_amb_symsls op_tbl ord amb_syms_total_ordered_ls order_symlsls_ls debug_print
-
-    (* dummy_sorted_ord_amb_symls_ls |> List.fold_left (fun acc_op_tbl ord_amb_symls -> 
-      let ord, amb_syms_total_ordered = 
-        (fst ord_amb_symls), (snd ord_amb_symls) 
-      in 
-        update_op_per_ord_amb_syms acc_op_tbl ord amb_syms_total_ordered order_symlsls_ls debug_print
-      )  *)
-      (* o_bp_tbl *)
-    
+    dummy_sorted_ord_amb_symlsls_ls |> 
+    List.fold_left (fun op_tbl_acc ord_amb_symlsls -> 
+      let ord, amb_syms_total_ordered_ls = (fst ord_amb_symlsls), (snd ord_amb_symlsls) in 
+      update_op_per_ord_amb_symsls op_tbl_acc ord amb_syms_total_ordered_ls order_symlsls_ls debug_print
+      ) op_tbl
   
   in
   (* Now update op_tbl wrt. oa_ls *)
