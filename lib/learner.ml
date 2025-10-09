@@ -39,71 +39,60 @@ let learn_oa_neg (tree_examples: (string list * tree * (bool * bool * bool) * re
   if debug_print then (wrapped_printf debug_print "\n  Collected O_a negatives : "; Pp.pp_restriction_lst oa_res); 
   oa_res
 
-let update_op_per_ord_amb_syms (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (curr_ord: int) (amb_syms_ordered: symbol list) 
-  (order_symlsls_ls: (int * (symbol list) list) list) (debug: bool): (int, (symbol list) list) Hashtbl.t = 
+let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_ord: int) (amb_syms_ordered: symbol list list) 
+  (_order_symlsls_ls: (int * (symbol list) list) list) (debug: bool): (int, symbol list) Hashtbl.t = 
   
+  (* 1. Find how much to push - depends on largest size of the 'symbol list' element in 'amb_syms_ordered' *)
   let push_n: int = 
-    (List.length amb_syms_ordered) in 
-  let one_amb_sym: symbol = 
-    if (List.is_empty amb_syms_ordered) then raise (Failure "amb_syms empty!") 
-    else amb_syms_ordered |> List.hd 
-  in  
-  let same_group_symlsls: (int * symbol list list) list =
-    order_symlsls_ls |> List.filter (fun (i, _symlsls) -> (i = curr_ord)) in 
-  let same_order_sym_lsls: (symbol list) list = 
-    if (List.is_empty same_group_symlsls) then raise (Failure "") else same_group_symlsls |> List.hd |> snd in
-  
-  (* Below refers to S *)
-  let same_ord_group_symls: symbol list = 
-    same_order_sym_lsls |> List.filter (fun sym_ls -> List.mem one_amb_sym sym_ls) |> List.flatten
+    amb_syms_ordered |> List.fold_left (fun len_acc sym_ls -> 
+      let len = (List.length sym_ls) in if len > len_acc then len else len_acc) 0 
   in 
-  let same_ord_without_amb_sym_group: symbol list list = 
-    same_order_sym_lsls |> List.filter (fun sym_ls -> not (List.mem one_amb_sym sym_ls)) 
+  
+  (* 2. Find S \ { amb_syms } based on all the symbols in curr order \ all amb symbols in curr order *)
+  let all_syms_in_curr_ord: symbol list = 
+      match (Hashtbl.find_opt op_tbl curr_ord) with Some sls -> sls | None -> raise (Failure "no syms found for order in Op_tbl")
   in
-  (* Below refers to S \ amb_syms in the same group *)
-  let same_ord_group_without_amb_syms: symbol list = 
-    same_ord_group_symls |> List.filter (fun sym -> not (List.mem sym amb_syms_ordered))
+  let all_amb_syms: symbol list = 
+    amb_syms_ordered |> List.flatten
+  in 
+  
+  (* 'temp_others' refers to S \ { amb_syms } *)
+  let temp_others: symbol list = 
+    all_syms_in_curr_ord |> List.filter (fun sym -> not (List.mem sym all_amb_syms)) 
   in
-  let tmp_others: symbol list list = same_ord_without_amb_sym_group in
-  let tmp_stored: symbol list = same_ord_group_without_amb_syms in
 
   if debug then 
-    (wrapped_printf debug "\t * Push_n   =   %d \n\t * G_s: " push_n; same_ord_group_symls |> Pp.pp_symbol_list;
-    wrapped_printf debug "\n\t * G_2 \\ G_s : "; same_ord_without_amb_sym_group |> List.iter (fun symls -> wrapped_printf debug "[ "; Pp.pp_symbol_list symls; wrapped_printf debug " ]"); 
-    wrapped_printf debug "\n\t * G_s \\ amb_syms: "; same_ord_group_without_amb_syms |> Pp.pp_symbol_list;
-    wrapped_printf debug "\n\n");
-
-  (* Remove S () from Order symbol list list *)
-  (* Same as replace Order -> original symbol list list    to     Order -> tmp_others *)
-  Hashtbl.remove o_bp_tbl curr_ord;
-  Hashtbl.add o_bp_tbl curr_ord tmp_others;
+    (wrapped_printf debug "\t * Push_n  =  %d \n\t * S in Order %d : " push_n curr_ord; all_amb_syms |> Pp.pp_symbol_list; 
+      wrapped_printf debug "\n\t * S \\ syms : "; temp_others |> Pp.pp_symbol_list); 
+    
+  (* 3. Replace Order -> original symbol list    with     Order -> tmp_others *)
+  Hashtbl.remove op_tbl curr_ord;
+  Hashtbl.add op_tbl curr_ord temp_others;
+  
   if debug then 
-    (wrapped_printf debug "\n\t -- After replacing Order -> tmp_stored : "; tmp_stored |> Pp.pp_symbol_list ; 
-    Pp.pp_op_tbl_new o_bp_tbl); 
-
-  (* Pusy by 'push_n' *)
-  push_keys_if_gte_order_by curr_ord o_bp_tbl push_n;
+    (wrapped_printf debug "\n\n\t -- After replacing Order -> temp_others : "; temp_others |> Pp.pp_symbol_list ; 
+    Pp.pp_obp_tbl op_tbl); 
+  
+  (* 4. Pusy by 'push_n' (largest amb_sym list element's length) *)
+  push_keys_if_gte_order_by curr_ord op_tbl push_n;
+  Pp.pp_obp_tbl op_tbl;
   
   (* Insert 'tmp_others' as Ord -> tmp_others    Ord+1 -> tmp_others   Ord+(push_n - 1)  -> tmp_others *)
   for i = 0 to (push_n - 1) do 
-    let tmp_others_added_with_corr_sym: symbol list list = 
-        [(List.nth amb_syms_ordered i)] :: tmp_others
-    in
-      if (i = push_n - 1) then 
-        begin 
-          Hashtbl.add o_bp_tbl (curr_ord + i) (tmp_stored :: tmp_others_added_with_corr_sym)
-        end
-      else 
-        Hashtbl.add o_bp_tbl (curr_ord + i) tmp_others_added_with_corr_sym
+    let all_amb_syms_to_add_at_nth_precedence: symbol list = 
+      find_nth_ambs_from_symlsls i amb_syms_ordered
+    in 
+      Hashtbl.add op_tbl (curr_ord + i) (temp_others @ all_amb_syms_to_add_at_nth_precedence)
   done;
+  
   if debug then 
-    (wrapped_printf debug "\n\t * After updating for amb syms list : "; Pp.pp_symbol_list amb_syms_ordered; 
-    Pp.pp_op_tbl_new o_bp_tbl); 
-  o_bp_tbl
+    (wrapped_printf debug "\n\t * After updating for amb syms list : "; Pp.pp_symbol_list all_amb_syms; 
+    Pp.pp_obp_tbl op_tbl); 
+  op_tbl
 
 
 let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (string list * tree * (bool * bool * bool) * restriction list) list) 
-  (oa_ls: Ta.restriction list) (_ordered_sym_lsls: (int * (symbol list) list) list) (debug_print: bool): (int, (symbol list) list) Hashtbl.t = 
+  (oa_ls: Ta.restriction list) (_ordered_sym_lsls: (int * (symbol list) list) list) (debug_print: bool): (int, symbol list) Hashtbl.t = 
   let open List in
   let op_related_ls: restriction list list = 
     tree_examples |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) |> map (fun (_sls, _t, (_, _, _), rls) -> rls)
@@ -175,7 +164,9 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
     in
     ord_rest_pairs_ls_per_group_sorted 
   in
-  let dummy_sorted_ord_amb_symls_ls: (int * symbol list) list = 
+  
+  (* Note! To replace later with _ordered_sym_lsls *)
+  let dummy_sorted_ord_amb_symlsls_ls: (int * symbol list list) list = 
     rest_pairs_ls_per_group_sorted |> List.map (fun (o, r1r2_ls) -> 
       let sym_pair_ls: (symbol * symbol) list = r1r2_ls |> List.map (fun (r1, r2) -> 
         (sym_of_op_restriction r1), (sym_of_op_restriction r2)) 
@@ -186,7 +177,7 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
       let sym_ls_rev_wo_dups: symbol list = 
         sym_ls |> List.rev |> remove_dup_symbols in 
       (o, sym_ls_rev_wo_dups)
-    )
+    ) |> group_by_order |> List.rev
   in 
   (* ********************************* Dummy upto here!  ********************************* *)
 
@@ -232,30 +223,52 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (tree_examples: (st
   in  *)
   if debug_print then (wrapped_printf debug_print 
     "\n\tAmbig symbols total-ordered from lowest to highest (listed from highest order to lowest order):\n\t";
-    dummy_sorted_ord_amb_symls_ls |> List.iter (fun (o, symls) -> wrapped_printf debug_print "\n\tFor order %d  " o; 
-      symls |> Pp.pp_symbol_list; wrapped_printf debug_print "\n"); wrapped_printf debug_print "\n\n");
+    dummy_sorted_ord_amb_symlsls_ls |> List.iter (fun (o, symlsls) -> wrapped_printf debug_print "\n\tFor order %d  " o; 
+      symlsls |> iter Pp.pp_symbol_list; wrapped_printf debug_print "\n"); wrapped_printf debug_print "\n\n");
 
   (* Then sort the group of symbols in each level based on its size by descending order (largest to smallest) *)
   (* Double check the above with gokul *)
   
-  (* To remove after below works!
-  let fst_ord_amb_symls: int * symbol list = dummy_sorted_ord_amb_symls_ls |> List.hd in 
-  let ord, amb_syms_total_ordered = 
-  (fst fst_ord_amb_symls), (snd fst_ord_amb_symls) in  *)
+  
+  (* To remove below after checking it works for a list of things *)
+  let fst_ord_amb_symls: int * symbol list list = dummy_sorted_ord_amb_symlsls_ls |> List.hd in 
+  let ord, amb_syms_total_ordered_ls = 
+    (fst fst_ord_amb_symls), (snd fst_ord_amb_symls) in
 
-  let res_tbl_wrt_op: (int, (symbol list) list) Hashtbl.t = 
-    dummy_sorted_ord_amb_symls_ls |> List.fold_left (fun acc_op_tbl ord_amb_symls -> 
+  let all_ords = Hashtbl.length o_bp_tbl 
+  in 
+  (* Flatten the o_bp_tbl from (int, symbol list list) Hashtbl.t to (int, symbol list) Hashtbl.t *)
+  let op_tbl: (int, symbol list) Hashtbl.t = 
+    Hashtbl.create all_ords 
+  in 
+  
+  for i = 0 to (all_ords - 1) do 
+    let exist_symlsls: symbol list list = 
+      Hashtbl.find o_bp_tbl i in 
+    let new_symls: symbol list = 
+      exist_symlsls |> List.flatten in 
+    Hashtbl.add op_tbl i new_symls
+  done; 
+
+  (* Pp.pp_obp_tbl op_tbl; *)
+  
+  let res_tbl_wrt_op: 
+    (int, symbol list) Hashtbl.t = 
+    update_op_per_ord_amb_symsls op_tbl ord amb_syms_total_ordered_ls order_symlsls_ls debug_print
+
+    (* dummy_sorted_ord_amb_symls_ls |> List.fold_left (fun acc_op_tbl ord_amb_symls -> 
       let ord, amb_syms_total_ordered = 
         (fst ord_amb_symls), (snd ord_amb_symls) 
       in 
         update_op_per_ord_amb_syms acc_op_tbl ord amb_syms_total_ordered order_symlsls_ls debug_print
-      ) o_bp_tbl
+      )  *)
+      (* o_bp_tbl *)
     
   
   in
   (* Now update op_tbl wrt. oa_ls *)
   let _syms_oa: symbol list = oa_ls |> map sym_of_oa_restriction in 
-  let _res_tbl_wrt_op_oa: (int, (symbol list) list) Hashtbl.t = o_bp_tbl
+  let _res_tbl_wrt_op_oa: (int, symbol list) Hashtbl.t = Hashtbl.create 0
   (*
     syms_oa |> fold_left (fun op_tbl_acc _sym ->  
       op_tbl_acc

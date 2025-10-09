@@ -185,7 +185,7 @@ let () =
     
     let oa_neg_learned: T.restriction list =
        L.learn_oa_neg learned_example_trees debug in
-    let _op_learned: (int, (T.symbol list) list) Hashtbl.t = 
+    let _op_learned: (int, T.symbol list) Hashtbl.t = 
       L.learn_op o_bp_tbl learned_example_trees oa_neg_learned symlsls_ordered debug in
     
 
