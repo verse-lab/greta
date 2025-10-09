@@ -445,8 +445,23 @@ let move_keys_if (tbl: (int, (symbol list) list) Hashtbl.t) (threshold: int): un
   (* Insert all new keys *)
   List.iter (fun (_, newk, sls) -> Hashtbl.replace tbl newk sls) to_move
 
+let move_keys_if_by (tbl: (int, (symbol list) list) Hashtbl.t) (threshold: int) (push_n: int): unit =
+  let to_move: (int * int * (symbol list) list) list =
+    Hashtbl.fold (fun k sls acc ->
+      if k >= threshold then (k, k + push_n, sls) :: acc else acc
+    ) tbl []
+  in
+  (* Remove all old keys *)
+  List.iter (fun (oldk, _, _) -> Hashtbl.remove tbl oldk) to_move;
+  (* Insert all new keys *)
+  List.iter (fun (_, newk, sls) -> Hashtbl.replace tbl newk sls) to_move
+
 let push_keys_if_gte_order (ord: int) (tbl: (int, (symbol list) list) Hashtbl.t): unit = 
   move_keys_if tbl ord 
+
+let push_keys_if_gte_order_by (ord: int) (tbl: (int, (symbol list) list) Hashtbl.t) (push_n: int): unit = 
+  move_keys_if_by tbl ord push_n
+
 
 (* let remove_sym_at_lvl (tbl: (int, (symbol list) list) Hashtbl.t) (lvl: int) (sym: symbol): unit =
   match Hashtbl.find_opt tbl lvl with
