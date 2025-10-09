@@ -47,7 +47,7 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
     let max_len = 
       amb_syms_ordered |> List.fold_left (fun len_acc sym_ls -> 
         let len = (List.length sym_ls) in if len > len_acc then len else len_acc) 0 
-    in max_len
+    in if (max_len = 1) then 2 else max_len
   in 
   
   (* 2. Find S \ { amb_syms } based on all the symbols in curr order \ all amb symbols in curr order *)
@@ -71,7 +71,7 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
     
   (* 3. Replace Order -> original symbol list    with     Order -> tmp_others *)
   Hashtbl.remove op_tbl curr_ord;
-  Hashtbl.add op_tbl curr_ord temp_others;
+  (* [fix] --> otherwise duplicate orders populated Hashtbl.add op_tbl curr_ord temp_others; *)
   
   (* 
   if debug then 
@@ -95,7 +95,8 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
     Pp.pp_obp_tbl op_tbl); 
   op_tbl
 
-let next_ord_continas_all_syms_but_sym (curr_ord: int) (sym: symbol) (op_tbl: (int, symbol list) Hashtbl.t): bool = 
+let next_ord_continas_all_syms_but_sym (curr_ord: int) (sym: symbol) (op_tbl: (int, symbol list) Hashtbl.t): 
+  bool = 
   let all_syms_in_curr_ord: symbol list = 
     match (Hashtbl.find_opt op_tbl curr_ord) with None -> [] | Some sls -> sls 
   in 
@@ -107,7 +108,8 @@ let next_ord_continas_all_syms_but_sym (curr_ord: int) (sym: symbol) (op_tbl: (i
   in 
     is_subset_of all_syms_in_curr_ord_wo_sym all_syms_in_next_ord
 
-let next_level_contains_other_syms (op_tbl: (int, symbol list) Hashtbl.t) (sym: symbol) (debug: bool): bool = 
+let next_level_contains_other_syms (op_tbl: (int, symbol list) Hashtbl.t) (sym: symbol) (debug: bool): 
+  bool = 
   let sym_ords: int list = 
     orders_of_sym_in_op_tbl sym dummy_sym op_tbl debug in 
   if (List.length sym_ords) = 1 
@@ -115,7 +117,7 @@ let next_level_contains_other_syms (op_tbl: (int, symbol list) Hashtbl.t) (sym: 
     (next_ord_continas_all_syms_but_sym (List.hd sym_ords) sym op_tbl)
   else 
     sym_ords |> List.fold_left (fun bool_acc curr_ord ->
-      (next_ord_continas_all_syms_but_sym curr_ord sym op_tbl) && bool_acc) true
+      bool_acc && (next_ord_continas_all_syms_but_sym curr_ord sym op_tbl)) true
 
 let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (oa_ls: Ta.restriction list) 
   (oa_op_ordered_sym_lsls: (int * (symbol list) list) list) (debug_print: bool): (int, symbol list) Hashtbl.t = 
@@ -191,35 +193,38 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (oa_ls: Ta.restrict
       ) op_tbl
   
   in
-  (* Now update op_tbl wrt. oa_ls *)
-  let syms_oa: symbol list = oa_ls |> map sym_of_oa_restriction in 
-  let res_tbl_wrt_op_oa: (int, symbol list) Hashtbl.t = 
-  
-    syms_oa |> fold_left (fun op_tbl_acc sym -> 
+
+  (* Now update op_tbl wrt. oa_ls as needed *)
+  let syms_oa: symbol list = 
+    oa_ls |> map sym_of_oa_restriction 
+  in
+  (* Collect Oa symbols who need to be addressed *)
+  let oa_syms_to_address: symbol list = 
+    syms_oa |> fold_left (fun sym_acc sym -> 
       if (next_level_contains_other_syms op_tbl sym debug_print)
       then 
-        (wrapped_printf debug_print "\nTRUE\n";op_tbl_acc)
+        (wrapped_printf debug_print "\nTRUE\n"; sym_acc)
       else
-        (wrapped_printf debug_print "\nFALSE\n";op_tbl_acc)
-            
-      (* let orders_ls: int list = orders_of_sym_in_op_tbl sym dummy_sym op_tbl_acc debug_print in
-      if (List.length orders_ls) = 1
-      then 
-        (let curr_ord: int = orders_ls |> hd in
-         update_op_tbl_per_oa_sym sym curr_ord op_tbl_acc debug_print)
-      else 
-        (* if (List.length orders_ls) > 1
-        then 
-          ((* If there are multiple orders for these symbols, then run in reverse order *) 
-          let orders_sorted_decr = 
-            orders_ls |> List.sort (fun x y -> Int.compare y x) 
-          in orders_sorted_decr |> List.fold_left (fun tbl_acc curr_ord -> 
-            update_op_tbl_per_oa_sym sym curr_ord tbl_acc debug_print) op_tbl_acc)
-        else *)
-          (* If length is not >= 1, simply pass op_tbl_acc *)
-          op_tbl_acc    *)
-      
-      ) res_tbl_wrt_op
+        (wrapped_printf debug_print "\nFALSE\n"; sym::sym_acc)) []
+  in 
+  let res_tbl_wrt_op_oa = 
+    (* If there's no such Oa symbols then just return Op result from earlier *)
+    if (List.is_empty oa_syms_to_address) 
+    then res_tbl_wrt_op
+    else
+      begin 
+        oa_syms_to_address |> List.fold_left (fun outer_op_acc curr_oa_sym ->
+          let ords_oa_sym: int list = 
+            (orders_of_sym_in_op_tbl curr_oa_sym dummy_sym res_tbl_wrt_op debug_print)
+            |> List.sort (fun a b -> Int.compare b a)
+          in 
+            ords_oa_sym |> List.fold_left (fun op_tbl_acc curr_ord -> 
+            update_op_per_ord_amb_symsls op_tbl_acc curr_ord [[curr_oa_sym]] order_symlsls_ls debug_print
+            ) outer_op_acc
+
+          ) res_tbl_wrt_op 
+        
+      end
   in
   if debug_print then (wrapped_printf debug_print "\n O_p map after updating wrt O_a: \n"; 
     Pp.pp_obp_tbl res_tbl_wrt_op); 
