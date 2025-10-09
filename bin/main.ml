@@ -144,7 +144,7 @@ let () =
           match lst with 
           | [] -> 
             (* Ask the user if the learned example trees do not form a total order between symbols coming from the same group *)
-            let _ordered_sym_lsls: (T.symbol list) list = 
+            let ordered_sym_lsls: (T.symbol list) list = 
               (* 
               Will get the below symbol list list after form_total_order ... gets implemented 
               *)
@@ -153,7 +153,7 @@ let () =
             (* if (List.is_empty ordered_sym_lsls)
             then (U.ask_user_choose_again (); interact_with_user tree_pairs_lst)
             else  *)
-              learned_acc, _ordered_sym_lsls
+              learned_acc, ordered_sym_lsls
           | ((texpr_ls1, t1, (oa1_pos, oa1_neg, op1), rls1), (texpr_ls2, t2, (oa2_pos, oa2_neg, op2), rls2)) :: tl -> 
             (U.present_tree_pair (t1, t2);
             let chosen_index = read_int () in
@@ -173,7 +173,7 @@ let () =
     in
     (* Time output *)
     let _learn_start = Sys.time () in
-    let (learned_example_trees, _symlsls_ordered): (string list * T.tree * (bool * bool * bool) * T.restriction list) list * (T.symbol list) list = 
+    let (learned_example_trees, symlsls_ordered): (string list * T.tree * (bool * bool * bool) * T.restriction list) list * (T.symbol list) list = 
       interact_with_user tree_pairs_lst 
     in
 
@@ -186,7 +186,7 @@ let () =
     let oa_neg_learned: T.restriction list =
        L.learn_oa_neg learned_example_trees debug in
     let _op_learned: (int, (T.symbol list) list) Hashtbl.t = 
-      L.learn_op o_bp_tbl learned_example_trees oa_neg_learned debug in
+      L.learn_op o_bp_tbl learned_example_trees oa_neg_learned symlsls_ordered debug in
     
 
     (*

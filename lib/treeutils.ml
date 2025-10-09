@@ -28,12 +28,16 @@ let rec chars_of_string ch: char list =
   | "" -> []
   | ch -> String.get ch 0 :: chars_of_string (String.sub ch 1 (String.length ch - 1))
 
-(* let find_order_of_symbol (tbl: (int, symbol list) Hashtbl.t) (sym: symbol): int =
+let find_order_of_symbol (tbl: (int, symbol list list) Hashtbl.t) (sym: symbol): int =
   let res_opt = Hashtbl.fold
-    (fun key sym_ls acc ->
-       if List.mem sym sym_ls then Some key else acc)
+    (fun key sym_lsls acc ->
+      let is_mem_in_any_sym_ls: bool = 
+        sym_lsls |> List.fold_left (fun bool_acc sym_ls ->
+          (List.mem sym sym_ls) || bool_acc) false
+      in 
+        if is_mem_in_any_sym_ls then Some key else acc)
     tbl None in 
-  match res_opt with Some i -> i | None -> raise (Failure "find_order_of_symbol : no symbol in tbl") *)
+  match res_opt with Some i -> i | None -> raise (Failure "find_order_of_symbol : no symbol in tbl")
 
 
 
