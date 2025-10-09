@@ -518,74 +518,106 @@ let form_total_order_among_op_symbols_from_same_group
   (learned_trees: (string list * tree * (bool * bool * bool) * restriction list) list) 
   (_o_bp: (int, symbol list list) Hashtbl.t) (_debug: bool): (int * (symbol list) list) list option = 
   let open List in 
-  let rest_ls_wrt_op: restriction list list = 
-    learned_trees |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) |>  map (fun (_sls, _t, (_, _, _), rls) -> rls)
-  in 
+  let rest_ls_wrt_op: restriction list list = learned_trees 
+    |> filter (fun (_sls, _t, (_, _, op), _rls) -> op) 
+    |> map (fun (_sls, _t, (_, _, _), rls) -> rls)
+  in
+  let assoc_only = learned_trees
+    |> filter (fun (_, _, (oa_pos, _, _), _) -> oa_pos)
+    |> map (fun (_, _, (_, _, _), rls) -> match rls with
+      | Assoc (s, _) :: _ -> s
+      | _ -> raise (Failure "Expected Assoc restrictions only"))
+    |> filter (fun s ->
+      let s_is_contained_in_precedence_tree = List.exists (
+        List.exists (fun res -> match res with
+          | Prec (sym, _) -> sym = s
+          | _ -> false)
+      ) rest_ls_wrt_op in
+      not s_is_contained_in_precedence_tree)
+  in
   let o_tmp_ls: (restriction * restriction) list = 
     rest_ls_wrt_op |> map (fun rls -> if (length rls) = 2 
       then (nth rls 0), (nth rls 1) else raise (Failure "op_relatd_ls should contain only 2 restrictions")) 
   in
-  let groups = Hashtbl.to_seq_values _o_bp |> List.of_seq |> List.flatten in
+  let groups = Hashtbl.to_seq _o_bp |> List.of_seq in
   (wrapped_printf _debug "\n\t O_tmp pair list:\n\t"; 
   o_tmp_ls |> List.iter (fun (r1, r2) -> Pp.pp_restriction r1; Pp.pp_restriction r2; wrapped_printf _debug "\n\t"); 
   wrapped_printf _debug "\n\n");
-  let restrictions = List.fold_right (fun a acc ->
-    (* let seen_symbols = ref [] in *)
-    if (length a) < 2 then acc
-    else
-      let pairs = List.find_all (fun (r1, r2) ->
-        match r1, r2 with
-        | Prec (s1, _), Prec (s2, _) ->
-          List.mem s1 a && List.mem s2 a
-        | _ -> false
-      ) o_tmp_ls in
-      let a = List.filter (fun (s: symbol) -> 
-        List.exists (fun (r1, r2) ->
+  let prec_restrictions = List.fold_right (fun (i, g) acc ->
+    (i, List.fold_right (fun a acc ->
+      (* let seen_symbols = ref [] in *)
+      if (length a) < 2 then acc
+      else
+        let pairs = List.find_all (fun (r1, r2) ->
           match r1, r2 with
-          | Prec (sym1, _), Prec (sym2, _) -> sym1 = s || sym2 = s
+          | Prec (s1, _), Prec (s2, _) ->
+            List.mem s1 a && List.mem s2 a
           | _ -> false
-      ) pairs) a in
-      let _a_len = List.length a in
-      (* assert (List.length pairs = _a_len * (_a_len - 1) / 2); *)
-      (* insertion sort with pairs of symbols for each symbol in a*)
-      let compare_symbols (s1: symbol) (s2: symbol) = find_map (fun (r1, r2) ->
-        match r1, r2 with
-        | Prec (sym1, _), Prec (sym2, _) ->
-          if sym1 = s1 && sym2 = s2 then Some (-1)
-          else if sym1 = s2 && sym2 = s1 then Some 1
-          else None
-        | _ -> None
-      ) pairs |>  fun o -> match o with
-        | Some v -> v
-        | None -> 0
-          (* raise (Failure (Printf.sprintf "No precedence relation found between symbols %s and %s" (term_of_sym s1) (term_of_sym s2))) *)
-      in
-      let rec ensure_consistent x ys : bool =
-        match ys with
-        | [] -> true
-        | y :: ys' ->
-          if compare_symbols x y <= 0 then ensure_consistent x ys'
-          else false
-      in
-      let rec insert x sorted = 
-        match sorted with
-        | [] -> [x]
-        | y :: ys ->
-          if compare_symbols x y <= 0 then (
-            if ensure_consistent x ys 
-            then x :: sorted
-            else (Printf.eprintf "\n Inconsistent ordering detected for symbols %s and %s\n" (term_of_sym x) (term_of_sym y);
-              exit 1;))
-          else y :: insert x ys
-      in
-      let sorted = fold_right insert a [] in
-      sorted :: acc
-  ) groups [] in
+        ) o_tmp_ls in
+        let a = List.filter (fun (s: symbol) -> 
+          List.exists (fun (r1, r2) ->
+            match r1, r2 with
+            | Prec (sym1, _), Prec (sym2, _) -> sym1 = s || sym2 = s
+            | _ -> false
+        ) pairs) a in
+        let _a_len = List.length a in
+        (* assert (List.length pairs = _a_len * (_a_len - 1) / 2); *)
+        (* insertion sort with pairs of symbols for each symbol in a*)
+        let compare_symbols (s1: symbol) (s2: symbol) = find_map (fun (r1, r2) ->
+          match r1, r2 with
+          | Prec (sym1, _), Prec (sym2, _) ->
+            if sym1 = s1 && sym2 = s2 then Some (-1)
+            else if sym1 = s2 && sym2 = s1 then Some 1
+            else None
+          | _ -> None
+        ) pairs |>  fun o -> match o with
+          | Some v -> v
+          | None -> raise (Failure (Printf.sprintf "No precedence relation found between symbols %s and %s" (term_of_sym s1) (term_of_sym s2)))
+        in
+        let rec ensure_consistent x ys : bool =
+          match ys with
+          | [] -> true
+          | y :: ys' ->
+            if compare_symbols x y <= 0 then ensure_consistent x ys'
+            else false
+        in
+        let rec insert x sorted = 
+          match sorted with
+          | [] -> [x]
+          | y :: ys ->
+            if compare_symbols x y <= 0 then (
+              if ensure_consistent x ys 
+              then x :: sorted
+              else (Printf.eprintf "\n Inconsistent ordering detected for symbols %s and %s\n" (term_of_sym x) (term_of_sym y);
+                exit 1;))
+            else y :: insert x ys
+        in
+        let sorted = fold_right insert a [] in
+        sorted :: acc
+    ) g []) :: acc
+  ) groups [] |> List.to_seq |> Hashtbl.of_seq in
+  List.iter (fun s ->
+    let order = List.find (fun (_, lst) -> 
+      List.mem s (List.flatten lst)) groups 
+      |> fst
+    in
+    let prev = match Hashtbl.find_opt prec_restrictions order with
+    | Some lst -> lst
+    | None -> []
+    in
+    Hashtbl.replace prec_restrictions order ((s :: []) :: prev)
+  ) assoc_only;
 
-  if _debug then (
+  let restrictions = Hashtbl.to_seq prec_restrictions 
+    |> List.of_seq
+    |> List.map (fun (o, ls) -> 
+      (o, (List.sort (fun l1 l2 -> (List.length l2) - (List.length l1)) ls)))
+  in
+
+  (* if _debug then (
     Printf.printf "\n Total order among symbols from same group:\n";
     restrictions |> iter (fun lst ->
       lst |> iter Pp.pp_symbol;
       Printf.printf "\n");
-  );
-  Some [] (*restrictions*)
+  ); *)
+  Some restrictions
