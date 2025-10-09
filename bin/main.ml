@@ -166,7 +166,7 @@ let () =
         in loop inp_lst []
     in
     (* Time output *)
-    let _learn_start = Sys.time () in
+    let learn_start = Sys.time () in
     let (learned_example_trees, oa_op_ord_to_symlsls_ordered): (string list * T.tree * (bool * bool * bool) * T.restriction list) list * (int * (T.symbol list) list) list = 
       interact_with_user tree_pairs_lst 
     in
@@ -177,11 +177,9 @@ let () =
     
     let oa_neg_learned: T.restriction list =
        L.learn_oa_neg learned_example_trees debug in
-    let _op_learned: (int, T.symbol list) Hashtbl.t = 
+    let op_learned: (int, T.symbol list) Hashtbl.t = 
       L.learn_op o_bp_tbl oa_neg_learned oa_op_ord_to_symlsls_ordered debug in
     
-
-    (*
     (* ----------------------------------------------------------------- *)
     (* Step 5: TA is learned via original CFG and O_p, O_a (neg) ------- *)
     (* ----------------------------------------------------------------- *)
@@ -286,7 +284,7 @@ let () =
     Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" _learn_ta_elapsed;
     (* Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed; *)
     (* Time for convering back to CFG *)
-     *)
+    
   ()
   
 end
