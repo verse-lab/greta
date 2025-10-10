@@ -6,6 +6,6 @@
  (flags --table --inspection --explain --dump --reference-graph --greta))
 
 (library
-  (name g2)
+  (name g2_old)
   (modes byte native)
   (libraries unix num menhirLib str core graphics qcheck))

@@ -6,6 +6,6 @@
  (modules parser))
 
 (library
-  (name g3)
+  (name g3_old)
   (modes byte native)
   (libraries menhirLib str core graphics qcheck num))
