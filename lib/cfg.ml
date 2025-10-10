@@ -37,9 +37,19 @@ let production_of_id (i: int) (prods_map: (int * production) list): production =
   | None -> raise (Failure "production_of_id : no corresponding production")
 
 let id_of_production (p: production) (prods_map: (int * production) list): int = 
-  let rev_prods_map = prods_map |> List.map (fun x -> (snd x), (fst x)) in
-  match (List.assoc_opt p rev_prods_map) with Some i -> i
-  | None -> raise (Failure "id_of_production : no corresponding id")
+  let rev_prods_map = 
+    prods_map |> List.map (fun x -> (snd x), (fst x)) 
+  in
+    match (List.assoc_opt p rev_prods_map) with Some i -> i
+    | None -> raise (Failure "id_of_production : no corresponding id")
+
+let id_of_prod_for_tree_gen (sigls: sigma list) (prods_map: (int * production) list): int = 
+  let prods_map_alt: (sigma list * int) list = 
+    prods_map |> List.map (fun (i, p) -> 
+      ((snd p), i))
+  in 
+    match (List.assoc_opt sigls prods_map_alt) with Some i -> i 
+    | None -> raise (Failure "id_of_prod_for_tree_gen : no corresponding id")
 
 let is_all_caps s =
   s = String.uppercase_ascii s

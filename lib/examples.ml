@@ -451,11 +451,11 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
                   let sym_rank = (List.length str_ls) in
                   let str_ls_wo_at_symbol = remove_at_from_str_ls str_ls in
                   let sym_sigls = str_ls_wo_at_symbol |> Cfg.string_ls_to_sigma_ls in
-                  let sym_prod: Cfg.production = (nt_str, sym_sigls) in
+                  let _sym_prod: Cfg.production = (nt_str, sym_sigls) in
                   
-                  (if debug_print then wrapped_printf "\n\t Production to look for its ID: "; Pp.pp_production sym_prod);
+                  (* (if debug_print then wrapped_printf "\n\t Production to look for its ID: "; Pp.pp_production _sym_prod); *)
                   
-                  let sym_id: int = (Cfg.id_of_production sym_prod prods_map)
+                  let sym_id: int = (Cfg.id_of_prod_for_tree_gen sym_sigls prods_map)
                   in conv_loop stl (sym_id, sh, sym_rank) (Leaf sh :: subtrees_acc)
                 end
               else conv_loop stl nodsym_acc (Leaf sh :: subtrees_acc))
