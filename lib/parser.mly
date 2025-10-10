@@ -77,43 +77,63 @@ comp_op:
   | EQ { Ast.Eq }
   | NOTEQ { Ast.NotEq }
 
-chain(P, OP):
-  | P { $1 }
-  | P OP chain(P,OP) { Ast.BinOp { left = $1; op = $2; right = $3} }
+chain1:
+  | xor_expr { $1 }
+  | xor_expr bitor chain1 { Ast.BinOp { left = $1; op = $2; right = $3} }
+
+chain2:
+  | and_expr { $1 }
+  | and_expr bitxor chain2 { Ast.BinOp { left = $1; op = $2; right = $3} }
+
+chain3:
+  | shift_expr { $1 }
+  | shift_expr bitand chain3 { Ast.BinOp { left = $1; op = $2; right = $3} }
+
+chain4:
+  | arith_expr { $1 }
+  | arith_expr shift_op chain4 { Ast.BinOp { left = $1; op = $2; right = $3} }
+
+chain5:
+  | term { $1 }
+  | term arith_op chain5 { Ast.BinOp { left = $1; op = $2; right = $3} }
+
+chain6:
+  | factor { $1 }
+  | factor term_op chain6 { Ast.BinOp { left = $1; op = $2; right = $3} }
 
 bitor:
   | BITOR { Ast.BitOr }
 expr:
-  | chain(xor_expr, bitor) { $1 }
+  | chain1 { $1 }
 
 bitxor:
   | BITXOR { Ast.BitXor }
 xor_expr:
-  | chain(and_expr, bitxor) { $1 }
+  | chain2 { $1 }
 
 bitand:
   | BITAND { Ast.BitAnd }
 and_expr:
-  | chain(shift_expr, bitand) { $1 }
+  | chain3 { $1 }
 
 shift_op:
  | LSHIFT { Ast.LShift }
  | RSHIFT { Ast.RShift }
 shift_expr:
-  | chain(arith_expr, shift_op) { $1 }
+  | chain4 { $1 }
 
 arith_op:
  | ADD { Ast.Add }
  | SUB { Ast.Sub }
 arith_expr:
-  | chain(term, arith_op) { $1 }
+  | chain5 { $1 }
 
 term_op:
   | DIV { Ast.Div }
   | MUL { Ast.Mult }
   | MOD { Ast.Mod }
 term:
-  | chain(factor, term_op) { $1 }
+  | chain6 { $1 }
 
 factor:
   | ADD factor { $2 }
@@ -122,10 +142,22 @@ factor:
   | power { $1 }
 
 power:
-  | atom list(trailer) { List.fold_left (fun acc f -> f acc) $1 $2 }
+  | atom list_trailer { List.fold_left (fun acc f -> f acc) $1 $2 }
+
+list_trailer:
+  | /* empty */ { [] }
+  | trailer list_trailer { $1 :: $2 }
+
+separated_nonempty_list_comma_test:
+  | test { [$1] }
+  | test COMMA separated_nonempty_list_comma_test { $1 :: $3 }
+
+separated_list_comma_test:
+  | /* empty */ { [] }
+  | separated_nonempty_list_comma_test { $1 }
 
 trailer:
-  | LPAREN args=separated_list(COMMA, test) RPAREN { fun func -> Ast.Call { func; args } }
+  | LPAREN args=separated_list_comma_test RPAREN { fun func -> Ast.Call { func; args } }
   | LBRACKET test RBRACKET { fun x -> Ast.Subscript { value = x;  idx = $2 }}
   | DOT AS LT typeName=typeId GT { fun x -> Ast.CastToType { value = x; typeName } }
   | DOT IDENT { fun x -> Ast.Attribute { value = x; attr = $2 } }
@@ -137,15 +169,23 @@ atom:
   | i=INT { Ast.IntNum (int_of_string i) }
   | SIZEOF LT typeName=typeId GT { Ast.ByteSizeOfType{typeName} }
   | BITSIZEOF LT typeName=typeId GT { Ast.BitSizeOfType{typeName} }
-  | NameOrEnumByName { $1 }
-  | LBRACKET separated_nonempty_list(COMMA, test) RBRACKET { Ast.List $2 }
+  | nameOrEnumByName { $1 }
+  | LBRACKET separated_nonempty_list_comma_test RBRACKET { Ast.List $2 }
   | LPAREN test RPAREN { $2 }
 
-typeId:
-  | option(COLON2) separated_nonempty_list(COLON2, IDENT) option(pair(LBRACKET, LBRACKET)) { let absolute = Option.is_some $1 in Ast.({ absolute; isArray = false; names = $2 }) }
+separated_nonempty_list_colon2_ident:
+  | IDENT { [$1] }
+  | IDENT COLON2 separated_nonempty_list_colon2_ident { $1 :: $3 }
 
-NameOrEnumByName:
-  | option(COLON2) separated_nonempty_list(COLON2, IDENT) { match $1, $2 with | _, [] -> assert false | None, [ "true" ] -> Ast.Bool true | None, [ "false" ] -> Ast.Bool false | None, [ name ] -> Ast.Name name | None, [ enumName; label ] -> (Ast.(EnumByLabel { label; enumName; inType = empty_typeId })) | prefix , path -> (let path, enumName, label = match List.rev path with | [] | [_] | [_;_] -> assert false | label :: enunName :: path_rev -> List.rev path_rev, enunName, label in let absolute = Option.is_some prefix in let inType = Ast.{ absolute; isArray = false; names = path } in Ast.(EnumByLabel { label; enumName; inType})) }
+option_pair_lbracket_lbracket:
+  | /* empty */ { None }
+  | LBRACKET LBRACKET { Some ((), ()) }
+
+typeId:
+  | option(COLON2) separated_nonempty_list_colon2_ident option_pair_lbracket_lbracket { let absolute = Option.is_some $1 in Ast.({ absolute; isArray = false; names = $2 }) }
+
+nameOrEnumByName:
+  | option(COLON2) separated_nonempty_list_colon2_ident { match $1, $2 with | _, [] -> assert false | None, [ "true" ] -> Ast.Bool true | None, [ "false" ] -> Ast.Bool false | None, [ name ] -> Ast.Name name | None, [ enumName; label ] -> (Ast.(EnumByLabel { label; enumName; inType = empty_typeId })) | prefix , path -> (let path, enumName, label = match List.rev path with | [] | [_] | [_;_] -> assert false | label :: enunName :: path_rev -> List.rev path_rev, enunName, label in let absolute = Option.is_some prefix in let inType = Ast.{ absolute; isArray = false; names = path } in Ast.(EnumByLabel { label; enumName; inType})) }
 
 expression:
   | test EOF { $1 }
