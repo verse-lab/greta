@@ -53,7 +53,13 @@ let parse_annotation line =
   let line = trim line in
   if String.starts_with ~prefix:"%start" line then
     let rest = trim (String.sub line 6 (String.length line - 6)) in
-    Some { prefix = "%start"; state = rest }
+    let rest = String.split_on_char ' ' rest in
+    let (prefix, rest) = if List.length rest > 1 then
+      (" " ^ List.hd rest, List.hd (List.tl rest))
+    else
+      ("", List.hd rest)
+    in
+    Some { prefix = "%start" ^ prefix; state = rest }
   else if String.starts_with ~prefix:"%type" line then
     (* %type <type> nonterminal *)
     let rest = trim (String.sub line 5 (String.length line - 5)) in
@@ -353,7 +359,12 @@ let mly_of_ta (ta: Ta.ta) (mly: parsed_mly) (mly_production_of_symbol: Ta.symbol
   ( 
     mly.preamble.annotations 
     |> List.fold_left (fun acc annot ->
-        acc ^ Printf.sprintf "%s %s\n" annot.prefix (Hashtbl.find_opt state_map annot.state |> Option.value ~default:"<unknown>")
+        acc ^ Printf.sprintf "%s %s\n" annot.prefix (match Hashtbl.find_opt state_map annot.state with
+          | Some s -> s
+          | None ->
+            Printf.eprintf "Warning: Could not find state for annotation %s -- %s\n" annot.prefix annot.state;
+            exit 1
+        )
       ) ""
   )
   ^ postfix
