@@ -31,27 +31,21 @@ program : stmt EOF { $1 };
 
 stmt:
   | decl SEMI { Semi ($1) }
-  | IF expr1 THEN stmt { If ($2, Then ($4, Else Na)) }
-  | IF expr1 THEN stmt ELSE stmt { If ($2, Then ($4, Else $6)) }
+  | IF expr THEN stmt { If ($2, Then ($4, Else Na)) }
+  | IF expr THEN stmt ELSE stmt { If ($2, Then ($4, Else $6)) }
   ;
 
 decl:
-  | TINT ident EQ expr1 { TDecl ($2, $4) }
+  | TINT ident EQ expr { TDecl ($2, $4) }
   ;
 
 ident:
   | IDENT { $1 }
 
-expr1:
-  | expr1 PLUS expr2 { Plus ($1, $3) }
-  | expr2 { $1 }
-
-expr2: 
-  | expr2 STAR expr3 { Star ($1, $3) }
-  | expr3 { $1 }
-
-expr3:
-  | expr3 POW expr3 { Pow ($1, $3) }
+expr:
+  | expr PLUS expr { Plus ($1, $3) }
+  | expr STAR expr { Star ($1, $3) }
+  | expr POW expr { Pow ($1, $3) }
   | INT  { Int $1 }
-  | LPAREN expr1 RPAREN { Paren $2 }
+  | LPAREN expr RPAREN { Paren $2 }
   ;

@@ -15,6 +15,11 @@ let wrapped_printf debug fmt =
   if debug then Printf.printf fmt
   else Printf.ifprintf stdout fmt
 
+let is_terminal_beta_pair (bb: beta * beta): bool = 
+  match (fst bb), (snd bb) with 
+  | T _, T _ -> true 
+  | _, _ -> false
+
 let cons_uniq xs x = if List.mem x xs then xs else x :: xs
 
 let is_subset_of small_ls big_ls: bool =
@@ -595,19 +600,6 @@ let update_op_tbl_per_oa_sym (oa_sym: symbol) (ord: int) (op_tbl: (int, symbol l
     Pp.pp_symbol oa_sym; wrapped_printf debug "\n"; Pp.pp_obp_tbl op_tbl);
   op_tbl
 
-
-
-(* Note! Below works under the assumption that you don't need more than 9 states *)
-let get_higher_state (st: state): state = 
-  let char_lst = chars_of_string st in 
-  let last_idx = List.length char_lst - 1 in 
-  let new_char_lst = char_lst |> List.mapi (fun i ch -> 
-    if (i = last_idx) 
-    then (let next_i: int = (int_of_string (Char.escaped ch)) + 1 
-          in String.get (string_of_int next_i) 0)
-    else ch) 
-  in (new_char_lst) |> List.to_seq |> String.of_seq
-
 (* all pairs from two beta lists, order-preserving *)
 let cartesian (xs : beta list) (ys : beta list) : (beta * beta) list =
   List.map2 (fun x y -> 
@@ -878,6 +870,39 @@ let gen_informative_name_pair (st_pair: state * state) (cnt: int): state * state
   let _internal_st_refined: state = get_first_char_str internal_st in 
   orig_st_refined ^ (string_of_int cnt), ""
 
+let beta_lists_equal (bbls1: (beta * beta) list) (bbls2: (beta * beta) list): bool = 
+  List.fold_left2 (fun bool_acc bb1 bb2 -> 
+    (beta_pairs_equal bb1 bb2) && bool_acc
+
+    ) true bbls1 bbls2
+
+let sym_bbls_exists_in_sym_bbls_ls (sym_beta_beta_ls: symbol * (beta * beta) list) 
+  (rhs_sym_bbls_ls: (symbol * (beta * beta) list) list): bool = 
+  let curr_bb_ls: (beta * beta) list = 
+    sym_beta_beta_ls |> snd in  
+  let curr_sym: symbol = 
+    sym_beta_beta_ls |> fst 
+  in 
+  rhs_sym_bbls_ls |> List.fold_left (fun bool_acc (s, bbls) ->
+    if (syms_equals s curr_sym) 
+    then 
+      (beta_lists_equal bbls curr_bb_ls) || bool_acc
+    else 
+      false || bool_acc 
+    ) false
+
+let clean_up_rhs_beta_pair_lsls (semi_dup_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list): 
+  (symbol * (beta * beta) list) list = 
+  let rec filter_loop acc ls = 
+    match ls with [] -> List.rev acc 
+    | sym_beta_beta_ls_hd :: sym_beta_beta_ls_tl -> 
+      if (sym_bbls_exists_in_sym_bbls_ls sym_beta_beta_ls_hd acc)
+      then filter_loop acc sym_beta_beta_ls_tl
+      else filter_loop (sym_beta_beta_ls_hd :: acc) sym_beta_beta_ls_tl
+  in filter_loop [] semi_dup_rhs_sym_bbls_ls
+
+
+
 
 (* 
   
@@ -916,4 +941,9 @@ let run_again (filename: string): unit =
 
   (* "./test/grammars/G0/G0_results/G0a000.mly" in *)
 let test_results_filepath (grammar: string) (postfix: string): string = grammar ^ "_" ^ postfix ^ ".mly"
+
+
+
+
+
 

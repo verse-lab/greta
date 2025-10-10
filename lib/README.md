@@ -19,7 +19,7 @@
 - [ ] **Intersection** 
      - [x] Update based on revised data structures
      - [x] Renaming to be indicative of original grammar nonterminals
-     - [ ] Simplify based on linkage between states - Yunjeong WIP
+     - [ ] Simplify based on linkage between states - _Considered part of epsilon intro_ - Yunjeong WIP 
            - I.e., if e0 -> e1 and transitions repeat with only these differing, then simplify with e0
 
 - [x] **Converter from TA to CFG** - (_Skip at Impl level_)
