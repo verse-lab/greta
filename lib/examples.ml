@@ -290,7 +290,7 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
             (* NOTE: below added to not address ambigs outside the scope of greta *)
             if (contains_atat s) && (not (starts "@@" s))
             then (let changed_str = attach_at_with_nonterm s
-                  in traverse stl lhs_nt num_toks curr_nt_prod_pair ((lhs_nt, changed_str)::res_acc))
+                  in traverse stl lhs_nt num_toks (lhs_nt, changed_str) ((lhs_nt, changed_str)::res_acc))
             else traverse stl lhs_nt num_toks curr_nt_prod_pair res_acc
         end 
       else 
@@ -303,12 +303,29 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
               match (index_of "Production" lhs_nt_str_ls) with 
               | Some i -> i + 1 | None -> raise (Failure "traverse : Production index cannot be found") in 
             let lhs_nt_str = List.nth lhs_nt_str_ls after_prod_ind
-            in traverse stl lhs_nt_str num_toks curr_nt_prod_pair res_acc)
+            in 
+            (* IN case num_toks > 1, upcate the curr_nt_prod_pair at this point based on looking ahead *)
+            (let two_lines_looked_ahead: string = 
+                if (List.length stl) > 2 then (List.nth stl 1) else ""
+            in 
+            if (String.equal two_lines_looked_ahead "") 
+            then traverse stl lhs_nt_str num_toks curr_nt_prod_pair res_acc
+            else 
+              if (contains_atat two_lines_looked_ahead) && (not (starts "@@" two_lines_looked_ahead))
+              then 
+                (
+                  let changed_str = attach_at_with_nonterm two_lines_looked_ahead
+                  in traverse stl lhs_nt num_toks (lhs_nt, changed_str) res_acc
+                )
+              else 
+                traverse stl lhs_nt_str num_toks curr_nt_prod_pair res_acc
+              )
+              )
           else
             (* NOTE: below added to not address ambigs outside the scope of greta *)
             if (contains_atat s) && (not (starts "@@" s))
             then (let changed_str = attach_at_with_nonterm s
-                  in traverse stl lhs_nt num_toks (lhs_nt, changed_str) ((lhs_nt, changed_str)::res_acc))
+                  in traverse stl lhs_nt num_toks curr_nt_prod_pair ((lhs_nt, changed_str)::res_acc))
             else 
               if (contains s "****************************") 
               then 
@@ -457,7 +474,8 @@ let gen_examples (filename: string) (a: symbol list) (prods_map: (int * Cfg.prod
         extract_loop stl ((s_tree, s_ls) :: res_acc))
     in extract_loop relev_lines []
   in 
-  let relev_ls: (string * string) list = traverse all_lines "" 0 ("", "") [] |> filter_out_wrt_menhir_limitations in
+  let relev_ls: (string * string) list = traverse all_lines "" 0 ("", "") [] 
+    |> filter_out_wrt_menhir_limitations in
     
     (if debug_print then wrapped_printf "\n\t Relevant lines: \n";
     relev_ls |> (List.iter (fun (nt, x) -> wrapped_printf "\t %s   =>   %s\n" nt x)));
