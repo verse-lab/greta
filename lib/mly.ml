@@ -1,11 +1,11 @@
-type nonterminal = {
+type binding = {
   name: string;
   binding: string option;
 }
 
 type item = 
-  | NT of nonterminal
-  | T of string
+  | NT of binding
+  | T of binding
 
 type production = {
   lhs: string;
@@ -19,7 +19,7 @@ type annotation = {
 }
 
 type preamble = {
-  code: string;
+  code: string; (* The OCaml code in %{ ... %} *)
   annotations: annotation list; (* %start, %type, etc. *)
 }
 
@@ -152,25 +152,29 @@ let is_terminal sym =
     let c = sym.[0] in
     (c >= 'A' && c <= 'Z') || not ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
 
-(* Parse a token which may have a binding like "p=stmts" *)
+(* Parse a token which may have a binding like "p=stmts" or "x=VAR" *)
 let parse_token token =
   if String.contains token '=' then
     (* Has a binding *)
     match String.split_on_char '=' token with
-    | binding :: sym :: _ -> 
-        let binding = trim binding in
+    | binding_name :: sym :: _ -> 
+        let binding_name = trim binding_name in
         let sym = trim sym in
+        let binding_rec = { name = sym; binding = Some binding_name } in
         if is_terminal sym then
-          T sym
+          T binding_rec
         else
-          NT { name = sym; binding = Some binding }
-    | _ -> T token
+          NT binding_rec
+    | _ -> 
+        let binding_rec = { name = token; binding = None } in
+        T binding_rec
   else
     (* No binding *)
+    let binding_rec = { name = token; binding = None } in
     if is_terminal token then
-      T token
+      T binding_rec
     else
-      NT { name = token; binding = None }
+      NT binding_rec
 
 (* Parse a single production line *)
 let parse_production lhs line =
@@ -193,7 +197,7 @@ let parse_production lhs line =
     
     (* If rhs_str is empty, it's an epsilon production *)
     if rhs_str = "" then
-      { lhs; rhs = [T Converter.empty_term]; action }
+      { lhs; rhs = []; action }
     else
       let rhs_tokens = tokenize_rhs rhs_str in
       
@@ -275,7 +279,8 @@ let parse_mly_file filename =
 
 (* Pretty print the results *)
 let print_item = function
-  | T s -> Printf.sprintf "T(%s)" s
+  | T { name; binding = None } -> Printf.sprintf "T(%s)" name
+  | T { name; binding = Some b } -> Printf.sprintf "T(%s=%s)" b name
   | NT { name; binding = None } -> Printf.sprintf "NT(%s)" name
   | NT { name; binding = Some b } -> Printf.sprintf "NT(%s=%s)" b name
 
@@ -284,7 +289,7 @@ let print_results result =
   
   Printf.printf "=== ANNOTATIONS ===\n";
   List.iter (fun annot ->
-    Printf.printf "prefix = %s, state = %s\n" annot.prefix annot.state
+    Printf.printf "%s %s\n" annot.prefix annot.state
   ) result.preamble.annotations;
   Printf.printf "\n";
   
@@ -331,7 +336,9 @@ let mly_of_ta (ta: Ta.ta) (mly: parsed_mly) (mly_production_of_symbol: Ta.symbol
       let rhs_zip = List.combine rhs mly_rhs in
       let rhs_str = List.fold_left (fun s_acc (b, item) ->
         match b, item with
-        | Ta.T t, T _ -> s_acc ^ t ^ " "
+        | Ta.T t, T _ when t = Converter.empty_term -> s_acc ^ " "
+        | Ta.T t, T { name = _; binding = None} -> s_acc ^ t ^ " "
+        | Ta.T t, T { name = _; binding = Some b } -> s_acc ^ (b ^ "=" ^ t) ^ " "
         | Ta.S s, NT { name = _; binding = None } -> s_acc ^ s ^ " "
         | Ta.S s, NT { name = _; binding = Some b } -> s_acc ^ (b ^ "=" ^ s) ^ " "
         | _, _ -> raise (Failure "mly_of_ta: Mismatched beta and item")

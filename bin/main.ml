@@ -102,7 +102,7 @@ let () =
       let lhs = p.W.lhs in
       let rhs = List.map (fun item -> 
         match item with 
-        | W.T t -> T.T t
+        | W.T {name; binding = _} -> T.T name
         | W.NT {name; binding = _} -> T.S name
       ) p.W.rhs in
       let sym = symbol_of_trans ((lhs, T.dummy_sym), rhs) in
@@ -274,7 +274,7 @@ let () =
       String.split_on_char '.' !parser_file |> List.hd 
     in
     let file_name = U.test_results_filepath grammar !file_postfix in 
-    let file_contents = W.mly_of_ta ta_learned parse_mly _mly_production_of_symbol in
+    let file_contents = W.mly_of_ta _ta_intersected parse_mly _mly_production_of_symbol in
     let oc = open_out file_name in
     output_string oc file_contents;
     close_out oc;
