@@ -56,17 +56,10 @@ open Types
 %%
 
 test:
-  | or_test { $1 }
-  | condition=or_test QUESTION ifTrue=test COLON ifFalse=test
-    { Ast.(IfExp {condition; ifTrue; ifFalse}) }
-
-or_test:
-  | and_test { $1 }
-  | or_test OR and_test { Ast.(BoolOp { op = Or; values = [$1; $3] }) }
-
-and_test:
-  | not_test { $1 }
-  | and_test AND not_test { Ast.(BoolOp { op = And; values = [$1; $3] }) }
+  | condition=test QUESTION ifTrue=test COLON ifFalse=test { Ast.(IfExp {condition; ifTrue; ifFalse}) }
+  | test AND test { Ast.(BoolOp { op = And; values = [$1; $3] }) }
+  | test OR test { Ast.(BoolOp { op = Or; values = [$1; $3] }) }
+  | not_test { $1 }  
 
 not_test:
   | NOT not_test { Ast.(UnaryOp { op = Ast.Not; operand = $2 }) }
@@ -74,8 +67,7 @@ not_test:
 
 comparison:
   | expr { $1 }
-  | left=expr ops=comp_op right=expr
-    { Ast.Compare {left;ops;right} }
+  | left=expr ops=comp_op right=expr { Ast.Compare {left;ops;right} }
 
 comp_op:
   | LT { Ast.Lt }
@@ -143,12 +135,6 @@ atom:
   | s=STRING { Ast.Str s }
   | f=FLOAT { Ast.FloatNum (float_of_string f) }
   | i=INT { Ast.IntNum (int_of_string i) }
-  /* | i=IDENT { */
-  /*     match i with */
-  /*     | "true"  -> Ast.Bool true */
-  /*     | "false" -> Ast.Bool false */
-  /*     | _       -> Ast.Name i */
-  /*       } */
   | SIZEOF LT typeName=typeId GT { Ast.ByteSizeOfType{typeName} }
   | BITSIZEOF LT typeName=typeId GT { Ast.BitSizeOfType{typeName} }
   | NameOrEnumByName { $1 }
@@ -156,32 +142,10 @@ atom:
   | LPAREN test RPAREN { $2 }
 
 typeId:
-  | option(COLON2) separated_nonempty_list(COLON2, IDENT) option(pair(LBRACKET, LBRACKET)) {
-    let absolute = Option.is_some $1 in
-    Ast.({ absolute; isArray = false; names = $2 })
-  }
+  | option(COLON2) separated_nonempty_list(COLON2, IDENT) option(pair(LBRACKET, LBRACKET)) { let absolute = Option.is_some $1 in Ast.({ absolute; isArray = false; names = $2 }) }
 
 NameOrEnumByName:
-  | option(COLON2) separated_nonempty_list(COLON2, IDENT)
-    {
-      match $1, $2 with
-      | _, [] -> assert false
-      | None, [ "true" ] -> Ast.Bool true
-      | None, [ "false" ] -> Ast.Bool false
-      | None, [ name ] -> Ast.Name name
-      | None, [ enumName; label ] ->
-         Ast.(EnumByLabel { label; enumName; inType = empty_typeId })
-      | prefix , path ->
-         let path, enumName, label =
-           match List.rev path with
-           | [] | [_] | [_;_] -> assert false
-           | label :: enunName :: path_rev ->
-              List.rev path_rev, enunName, label
-         in
-         let absolute = Option.is_some prefix in
-         let inType = Ast.{ absolute; isArray = false; names = path } in
-         Ast.(EnumByLabel { label; enumName; inType})
-    }
+  | option(COLON2) separated_nonempty_list(COLON2, IDENT) { match $1, $2 with | _, [] -> assert false | None, [ "true" ] -> Ast.Bool true | None, [ "false" ] -> Ast.Bool false | None, [ name ] -> Ast.Name name | None, [ enumName; label ] -> (Ast.(EnumByLabel { label; enumName; inType = empty_typeId })) | prefix , path -> (let path, enumName, label = match List.rev path with | [] | [_] | [_;_] -> assert false | label :: enunName :: path_rev -> List.rev path_rev, enunName, label in let absolute = Option.is_some prefix in let inType = Ast.{ absolute; isArray = false; names = path } in Ast.(EnumByLabel { label; enumName; inType})) }
 
 expression:
   | test EOF { $1 }
