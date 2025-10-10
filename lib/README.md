@@ -27,12 +27,25 @@
 
 - [x] **Writing the resulted CFG (TA) back to .mly file**
 
-### Testing 
+### Manual Initial Testing 
 
 (6 existing + 2-3 Real Grammars)
-- [ ] Initial manual testing on subset - _Yunjeong WIP_
+- [x] Initial manual testing on subset - _Yunjeong WIP_
 
-- [ ] Grammar 0 (Running paper example) - for demo only (1 variation)
+- [x] Grammar 0 (Running paper example) - for demo only (1 variation)
+- [x] Grammar 1 (Earlier G0 case) - constructed for testing (3 variations)
+- [ ] Grammar 2 (Compiler - Boolean language) 
+- [ ] Grammar 3 (Compiler)
+- [ ] Grammar 4 (Compiler)
+- [ ] Grammar 5 (StackOverflow)
+- [ ] Grammar 6 (StackOVerflow)
+- [ ] Grammar 7 (Michelson)
+- [ ] Grammar 8 (KaiTai)
+- [ ] Grammar 9 (Scilla? - likely to be nonaddressable or SQL)
+
+### Automated Testing 
+
+- [x] Grammar 0 (Running paper example) - for demo only (1 variation)
 - [ ] Grammar 1 (Alternte version of Gp) 
 - [ ] Grammar 2 (Compiler - Boolean language) 
 - [ ] Grammar 3 (Compiler)
