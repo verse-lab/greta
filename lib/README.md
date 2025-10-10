@@ -40,10 +40,10 @@
 - [x] Grammar 4 (Compiler - G3 combined with more == - + ! ~ etc.)
 - [x] Grammar 5 (StackOverflow - lang mostly consists of binary operations) 
 - [x] Grammar 6 (StackOVerflow - more complex case than above gte, ==, lte, lt, gt, etc.) 
-- [ ] Grammar 7 (Michelson) - _Yunjeong WIP_
-- [ ] Grammar 8 (KaiTai) 
-- [ ] Grammar 9 (Scilla - likely to be nonaddressable)
-- [ ] Grammar 10 (SQL lang) 
+- [x] Grammar 7 (Michelson) - 11 ambigs 3 fixed by greta but 8 nonaddressable
+- [ ] Grammar 8 (Scilla - likely to be nonaddressable) - _Yunjeong WIP_
+- [ ] Grammar 9 (SQL lang) 
+- [ ] Grammar 10 (MinCaml) - can be found from previous G4 set
 
 ### Automated Testing 
 
