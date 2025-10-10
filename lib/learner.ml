@@ -138,6 +138,8 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (_oa_ls: Ta.restric
         if (not (List.is_empty symlsls)) then (not (are_all_elem_symls_not_empty symlsls)) else true
       in symlsls_is_not_empty && symlsls_elemls_not_empty
       )
+      (* Added below for sorting *)
+      |> sort_assoc_desc
   in 
   sorted_ord_amb_symlsls_ls |> List.iter (fun (o, symlsls) -> 
     wrapped_printf debug_print "\n\t\t * Sorted Ord Amb_symlsls \n\t\t Order %d    [ " o; 
