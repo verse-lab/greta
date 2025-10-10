@@ -9,13 +9,13 @@
 - [x] **Tree example generation**
      - [x] Correctly populate symbols (ID) in trees
 
-- [ ] **TA Learner from tree examples** 
+- [x] **TA Learner from tree examples** 
      - [x] Update O_a wrt. trees - _Index-based; collect negative examples with index_
      - [x] Update O_p wrt. trees - _Logic changed from earlier version, updated O_p wrt. O_a_ 
      - [x] Update O_p wrt. O_a as needed - _Works for multiple orders per sym_
      - [x] Learn TA wrt. O_p and O_a - _Learn wrt. O_a_negatives, w/o triv opt_
      - [x] High to low production detection 
-     - [ ] Update Learner by maintaining reg. high-to-low case in Op learning - Gokul WIP
+     - [x] Update Learner by maintaining reg. high-to-low case in Op learning - Gokul WIP
 
 - [x] **Intersection** 
      - [x] Update based on revised data structures
@@ -29,14 +29,13 @@
 
 ### Manual Initial Testing 
 
+- _Yunjeong WIP_
 (6 existing + 2-3 Real Grammars)
-- [x] Initial manual testing on subset - _Yunjeong WIP_
-
 - [x] Grammar 0 (Running paper example) - for demo only (1 variation)
 - [x] Grammar 1 (Earlier G0 case) - constructed for testing (3 variations)
-- [ ] Grammar 2 (Compiler - Boolean language) 
-- [ ] Grammar 3 (Compiler)
-- [ ] Grammar 4 (Compiler)
+- [x] Grammar 2 (Compiler - Boolean language) - pending on final format (simple fix to be done by Gokul)
+- [x] Grammar 3 (Compiler - while-loop conditional)
+- [x] Grammar 4 (Compiler - G3 combined with more == - + ! ~ etc.)
 - [ ] Grammar 5 (StackOverflow)
 - [ ] Grammar 6 (StackOVerflow)
 - [ ] Grammar 7 (Michelson)
@@ -45,6 +44,7 @@
 
 ### Automated Testing 
 
+- _Gokul WIP_
 - [x] Grammar 0 (Running paper example) - for demo only (1 variation)
 - [ ] Grammar 1 (Alternte version of Gp) 
 - [ ] Grammar 2 (Compiler - Boolean language) 

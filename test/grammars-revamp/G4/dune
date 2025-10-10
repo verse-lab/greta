@@ -1,0 +1,13 @@
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (modules parser)
+ (flags --table --inspection --explain --dump --reference-graph --greta))
+
+(library
+  (name g4)
+  (modes byte native)
+  (libraries unix num menhirLib str core graphics qcheck))
+
+
