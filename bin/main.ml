@@ -105,6 +105,7 @@ let () =
         | W.T {name; binding = _} -> T.T name
         | W.NT {name; binding = _} -> T.S name
       ) p.W.rhs in
+      (* find corresponding symbol *)
       let sym = symbol_of_trans ((lhs, T.dummy_sym), rhs) in
       Hashtbl.add symbolToProds sym p
     ) parse_mly.productions;

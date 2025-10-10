@@ -215,9 +215,8 @@ let cfg_to_ta (debug_print: bool) (g: cfg):
 
   (* note: transition symbol is ignored, uses production structure instead *)
   let symbol_of_trans (t: transition) = 
-    (* 
-    Printf.printf "\nLooking for symbol of transition: "; Pp.pp_transitions [t];
-     *)
+    (* Printf.printf "\nLooking for symbol of transition: "; Pp.pp_transitions [t];
+    Printf.printf "\nIn the list of transitions from cfg:\n"; Pp.pp_transitions trans_from_cfg; *)
     let idx_o = List.find_index (fun tp -> 
       let ((lhs_tp, _), rhs_tp) = tp in
       let ((lhs_t, _), rhs_t) = t in

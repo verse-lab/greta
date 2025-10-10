@@ -197,7 +197,7 @@ let parse_production lhs line =
     
     (* If rhs_str is empty, it's an epsilon production *)
     if rhs_str = "" then
-      { lhs; rhs = []; action }
+      { lhs; rhs = [T { name = Converter.empty_term; binding = None }]; action }
     else
       let rhs_tokens = tokenize_rhs rhs_str in
       
