@@ -177,7 +177,7 @@ let () =
     
     let oa_neg_learned: T.restriction list =
        L.learn_oa_neg learned_example_trees debug in
-    let op_learned: (int, T.symbol list) Hashtbl.t = 
+    let op_learned, special_loop_symbols = 
       L.learn_op o_bp_tbl oa_neg_learned oa_op_ord_to_symlsls_ordered debug in
     
     (* ----------------------------------------------------------------- *)
@@ -243,7 +243,7 @@ let () =
     in
 
     let ta_learned: T.ta = 
-      L.learn_ta op_learned oa_neg_learned prods_map high_to_low debug
+      L.learn_ta op_learned oa_neg_learned prods_map high_to_low special_loop_symbols debug
     in
     let _learn_ta_elapsed = Sys.time () -. learn_start in
     
@@ -274,7 +274,7 @@ let () =
       String.split_on_char '.' !parser_file |> List.hd 
     in
     let file_name = U.test_results_filepath grammar !file_postfix in 
-    let file_contents = W.mly_of_ta _ta_intersected parse_mly _mly_production_of_symbol in
+    let file_contents = W.mly_of_ta ta_learned parse_mly _mly_production_of_symbol in
     let oc = open_out file_name in
     output_string oc file_contents;
     close_out oc;
