@@ -38,11 +38,12 @@
 - [x] Grammar 2 (Compiler - Boolean language) - pending on final format (simple fix to be done by Gokul)
 - [x] Grammar 3 (Compiler - while-loop conditional)
 - [x] Grammar 4 (Compiler - G3 combined with more == - + ! ~ etc.)
-- [x] Grammar 5 (StackOverflow) 
-- [ ] Grammar 6 (StackOVerflow) - _Yunjeong WIP_
-- [ ] Grammar 7 (Michelson)
-- [ ] Grammar 8 (KaiTai)
-- [ ] Grammar 9 (Scilla? - likely to be nonaddressable or SQL)
+- [x] Grammar 5 (StackOverflow - lang mostly consists of binary operations) 
+- [x] Grammar 6 (StackOVerflow - more complex case than above gte, ==, lte, lt, gt, etc.) 
+- [ ] Grammar 7 (Michelson) - _Yunjeong WIP_
+- [ ] Grammar 8 (KaiTai) 
+- [ ] Grammar 9 (Scilla - likely to be nonaddressable)
+- [ ] Grammar 10 (SQL lang) 
 
 ### Automated Testing 
 
@@ -56,7 +57,8 @@
 - [ ] Grammar 6 (StackOVerflow)
 - [ ] Grammar 7 (Michelson)
 - [ ] Grammar 8 (KaiTai)
-- [ ] Grammar 9 (Scilla? - likely to be nonaddressable or SQL)
+- [ ] Grammar 9 (Scilla - likely to be nonaddressable)
+- [ ] Grammar 10 (SQL lang) 
 
 
 ### Room for improvement
