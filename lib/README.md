@@ -1,6 +1,6 @@
 # Implementation and Testing
 
-### Implementation
+## Implementation
 
 - [x] **Converter from CFG to TA** 
      - [x] Start from cleaner data structures (CFG, TA)
@@ -27,17 +27,19 @@
 
 - [x] **Writing the resulted CFG (TA) back to .mly file**
 
+## Testing 
+
+(1 paper example + 6 existing + 2-3 real grammars)
+
 ### Manual Initial Testing 
 
-- _Yunjeong WIP_
-(6 existing + 2-3 Real Grammars)
 - [x] Grammar 0 (Running paper example) - for demo only (1 variation)
 - [x] Grammar 1 (Earlier G0 case) - constructed for testing (3 variations)
 - [x] Grammar 2 (Compiler - Boolean language) - pending on final format (simple fix to be done by Gokul)
 - [x] Grammar 3 (Compiler - while-loop conditional)
 - [x] Grammar 4 (Compiler - G3 combined with more == - + ! ~ etc.)
-- [ ] Grammar 5 (StackOverflow)
-- [ ] Grammar 6 (StackOVerflow)
+- [x] Grammar 5 (StackOverflow) 
+- [ ] Grammar 6 (StackOVerflow) - _Yunjeong WIP_
 - [ ] Grammar 7 (Michelson)
 - [ ] Grammar 8 (KaiTai)
 - [ ] Grammar 9 (Scilla? - likely to be nonaddressable or SQL)

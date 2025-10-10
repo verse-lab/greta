@@ -1,5 +1,5 @@
 (library 
- (name g5)
+ (name g5_old)
  (libraries sedlex menhirLib str core graphics qcheck num)
  (preprocess (pps ppx_deriving.std sedlex.ppx))
  (flags :standard -rectypes))
