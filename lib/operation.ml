@@ -486,9 +486,11 @@ let replace_sts_pair_trans_ls_per_sts_pairs (from_sts_pair: (state * state)) (to
   (* When there are no semi_dup_prod list then just return the trans_ls *)
   if (List.is_empty all_semi_dup_rhs_sym_bbls_ls) then sts_pair_trans_ls
   else
-    (if debug then wrapped_printf debug "\n\t\t >> Found all Semi-Dup Sym_beta_pair_ls List : \n\t\t";
+    ((* 
+    if debug then wrapped_printf debug "\n\t\t >> Found all Semi-Dup Sym_beta_pair_ls List : \n\t\t";
     all_semi_dup_rhs_sym_bbls_ls |> List.iter (fun (sym, bbls) -> Pp.pp_symbol sym; 
-    bbls |> Pp.pp_beta_beta_list; wrapped_printf debug "\n\t\t");      
+    bbls |> Pp.pp_beta_beta_list; wrapped_printf debug "\n\t\t");
+    *)
 
     (* Take out all the non-(semi_dup_rhs_prod) list in 'curr tran_sls' *)
     let non_semi_dup_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
@@ -496,18 +498,22 @@ let replace_sts_pair_trans_ls_per_sts_pairs (from_sts_pair: (state * state)) (to
         not (sym_bbls_exists_in_sym_bbls_ls rhs_sym_bbls all_semi_dup_rhs_sym_bbls_ls))
     in
     
+    (* 
     if debug then wrapped_printf debug "\n\t\t >> _Non_ Semi-Dup Sym_beta_pair_ls List : \n\t\t";
     non_semi_dup_rhs_sym_bbls_ls |> List.iter (fun (sym, bbls) -> Pp.pp_symbol sym; 
     bbls |> Pp.pp_beta_beta_list; wrapped_printf debug "\n\t\t");      
+    *)
 
     (* Replace 'to_sts_pair' with 'from_sts_pair' in '(semi_dup_rhs_prod) list' *)
     let replaced_dup_sym_bbls_ls: (symbol * (beta * beta) list) list = 
       now_replace_semi_dup_sym_bbls_ls all_semi_dup_rhs_sym_bbls_ls from_sts_pair to_sts_pair debug
     in 
 
+    (* 
     if debug then wrapped_printf debug "\n\t\t >> Replaced Semi-Dup Sym_beta_pair_ls List : \n\t\t";
     non_semi_dup_rhs_sym_bbls_ls |> List.iter (fun (sym, bbls) -> Pp.pp_symbol sym; 
-    bbls |> Pp.pp_beta_beta_list; wrapped_printf debug "\n\t\t");      
+    bbls |> Pp.pp_beta_beta_list; wrapped_printf debug "\n\t\t");       
+    *)
 
     (* Combine replaced '(semi_dup_rhs_prod) list' with  non-(semi_dup_rhs_prod) list in 'curr tran_sls' *)
     replaced_dup_sym_bbls_ls @ non_semi_dup_rhs_sym_bbls_ls
@@ -537,7 +543,8 @@ let update_raw_trans_per_eps_linked_sts_pairs
       in 
         traverse_raw_trans_blocks trans_blocks_tl (to_acc :: acc_trans)
   in let res_raw_trans_blocks = traverse_raw_trans_blocks trans [] 
-  in if debug then (wrapped_printf debug "\n\t * Updated trans blocks \n"; res_raw_trans_blocks |> Pp.pp_raw_trans_blocks);
+  in 
+  (* if debug then (wrapped_printf debug "\n\t * Updated trans blocks \n"; res_raw_trans_blocks |> Pp.pp_raw_trans_blocks); *)
     res_raw_trans_blocks
 
 let update_raw_trans_per_eps_stspair_to_stspairs_ls 
