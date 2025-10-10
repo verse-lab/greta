@@ -331,7 +331,8 @@ let clean_raw_transitions_per_dead_states_pair (raw_trans: (((state * state) * s
       (* 
       wrapped_printf debug "\n\t For states pair"; Pp.pp_raw_state sts_pair; 
       wrapped_printf debug "\n\t Does states equal to dead state_pair?  "; Pp.pp_raw_state dead_sts_pair;
-      wrapped_printf debug "\n\t %b Or Does beta list include the dead states pair? %b " (state_pairs_equal dead_sts_pair sts_pair) (beta_pair_ls_contains_sts_pair beta_pair_ls dead_sts_pair); *)
+      wrapped_printf debug "\n\t %b Or Does beta list include the dead states pair? %b " (state_pairs_equal dead_sts_pair sts_pair) (beta_pair_ls_contains_sts_pair beta_pair_ls dead_sts_pair);
+      *)
        res_bool
       ) 
   in if debug then (wrapped_printf debug "\n\t * Cleaned raw transitions per dead state (%s, %s)" (fst dead_sts_pair) (snd dead_sts_pair);
@@ -345,7 +346,43 @@ let clean_raw_transitions_wrt_dead_states (raw_trans: (((state * state) * symbol
     clean_raw_transitions_per_dead_states_pair trans_acc dead_sts_pair debug
     ) raw_trans
 
-(* 
+let clean_raw_trans_blocks_per_dead_states_pair (trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+  (dead_sts_pair: state * state) (debug: bool): ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list =
+
+  let cleaned_raw_trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    trans_blocks |> List.filter (fun (sts_pair, _sts_pair_to_sym_bbls_ls) ->
+      not (state_pairs_equal dead_sts_pair sts_pair)) 
+  in 
+  let res_raw_trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    cleaned_raw_trans_blocks |> List.map (fun (sts_pair, sts_pair_to_sym_bbls_ls) ->
+      let cleaned_sts_pair_to_sym_bbls_ls: ((state * state) * (symbol * (beta * beta) list)) list = 
+        sts_pair_to_sym_bbls_ls |> List.fold_left (fun acc (sts_pair, sym_bbls) -> 
+          let sym, bbls = 
+            (fst sym_bbls), (snd sym_bbls) 
+          in 
+          let cleaned_sym_bbls: (beta * beta) list = 
+              if (beta_pair_ls_contains_sts_pair bbls dead_sts_pair)
+              then []
+              else bbls
+          in 
+            if (List.is_empty cleaned_sym_bbls) then acc 
+            else
+              (sts_pair, (sym, cleaned_sym_bbls)) :: acc
+          
+        ) [] |> List.rev
+      in 
+        (sts_pair, cleaned_sts_pair_to_sym_bbls_ls)
+    )
+  in 
+  if debug then (wrapped_printf debug "\n\t * Cleaned raw transb per dead state (%s, %s)" (fst dead_sts_pair) (snd dead_sts_pair);
+  res_raw_trans_blocks |> Pp.pp_raw_trans_blocks); 
+  res_raw_trans_blocks
+
+let clean_raw_trans_blocks_wrt_dead_states (trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+  (dead_states: (state * state) list) (debug: bool): ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+  dead_states |> List.fold_left (fun trans_blocks_acc dead_sts_pair ->
+    clean_raw_trans_blocks_per_dead_states_pair trans_blocks_acc dead_sts_pair debug
+    ) trans_blocks
 
 
 let replace_beta_beta_list_from_sts_to_sts (betapair_ls: (beta * beta) list) (to_replace_sts: state * state) (new_sts: state * state): 
@@ -360,71 +397,215 @@ let same_rhs_sym_bbls_lists (curr_rhs_sym_bbls: symbol * (beta * beta) list) (rh
   if (syms_equals sym1 sym2) then false 
   else true
 
+let semi_compare_beta_pair_lists (bbls1: (beta * beta) list) (bbls2: (beta * beta) list): bool = 
+  List.fold_left2 (fun acc beta_pair1 beta_pair2 -> 
+    let curr_beta_pairs_comparison = 
+      match beta_pair1, beta_pair2 with 
+      | (T t1, T t1'), (T t2, T t2') -> t1 = t2 && t1' = t2'
+      | (S _s1, S _s1'), (S _s2, S _s2') -> true
+      | _, _ -> false 
+    in 
+      curr_beta_pairs_comparison && acc 
+    ) true bbls1 bbls2
 
-(*  To resume here!!  *)
-let replace_sts_pair_trans_ls_per_sts_pairs (from_sts: (state * state)) (to_sts: (state * state)) 
-  (sts_pair_trans_ls: ((state * state) * (symbol * (beta * beta) list)) list) = 
+let are_semi_rhs_sym_bbls_lists (rhs_sym_bbls1: symbol * (beta * beta) list) (rhs_sym_bbls2: symbol * (beta * beta) list): bool = 
+  let sym1, sym2 = (fst rhs_sym_bbls1), (fst rhs_sym_bbls2) in 
+  if (syms_equals sym1 sym2) then 
+    begin
+      let bbls1, bbls2 = 
+        (snd rhs_sym_bbls1), (snd rhs_sym_bbls2) 
+      in
+        (semi_compare_beta_pair_lists bbls1 bbls2)
+    end
+  else false
+
+let replace_sts_beta_pair (beta_pair: beta * beta) 
+  (from_sts_pair: state * state) (to_sts_pair: state * state): beta * beta  = 
+  let from_sts1, from_sts2 = (fst from_sts_pair), (snd from_sts_pair) in 
+  let to_sts1, to_sts2 = (fst to_sts_pair), (snd to_sts_pair) in
+    match (fst beta_pair), (snd beta_pair) with 
+    | S s1, S s2 -> if (s1 = to_sts1) && (s2 = to_sts2) then (S from_sts1), (S from_sts2) else (S s1), (S s2)
+    | b1, b2 -> (b1, b2)
+
+let replace_sym_bbls_to_sts_pair_with_from_sts_pair (curr_sym_bbls: symbol * (beta * beta) list) 
+  (from_sts_pair: (state * state)) (to_sts_pair: (state * state)): symbol * (beta * beta) list = 
+  let curr_beta_beta_ls: (beta * beta) list = (snd curr_sym_bbls) in
+  let replaced_beta_beta_ls: (beta * beta) list = 
+      curr_beta_beta_ls |> List.fold_left (fun acc beta_pair -> 
+        let to_acc = 
+          if (is_terminal_beta_pair beta_pair) then beta_pair
+          else replace_sts_beta_pair beta_pair from_sts_pair to_sts_pair
+        in to_acc :: acc
+    ) [] |> List.rev
+  in (fst curr_sym_bbls), replaced_beta_beta_ls
+
+let replace_all_semi_dup_rhs_sym_bbls_ls
+  (all_semi_dup_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list) 
+  (from_sts_pair: (state * state)) (to_sts_pair: (state * state)): (symbol * (beta * beta) list) list = 
+  all_semi_dup_rhs_sym_bbls_ls |> 
+  List.fold_left (fun acc curr_sym_bbls -> 
+    let to_acc = 
+      if (List.mem curr_sym_bbls all_semi_dup_rhs_sym_bbls_ls)
+      then (replace_sym_bbls_to_sts_pair_with_from_sts_pair curr_sym_bbls from_sts_pair to_sts_pair)
+      else curr_sym_bbls 
+    in to_acc :: acc) 
+  [] |> List.rev
+
+let now_replace_semi_dup_sym_bbls_ls (semi_dup_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list) 
+  (from_sts_pair: (state * state)) (to_sts_pair: (state * state))
+  (debug: bool): 
+  (symbol * (beta * beta) list) list = 
+  let replaced_all_semi_dups_from_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list =  
+    replace_all_semi_dup_rhs_sym_bbls_ls semi_dup_rhs_sym_bbls_ls from_sts_pair to_sts_pair
+  in
+  (if debug then wrapped_printf debug "\n\t\t ->> After replacing Semi-Dup Sym_beta_pair_ls List : \n\t\t";
+    if (List.is_empty replaced_all_semi_dups_from_rhs_sym_bbls_ls) then wrapped_printf debug "\n\t\t EMPTY \n\t\t" else
+    replaced_all_semi_dups_from_rhs_sym_bbls_ls |> List.iter (fun (sym, bbls) -> Pp.pp_symbol sym; 
+    bbls |> Pp.pp_beta_beta_list; wrapped_printf debug "\n\t\t"));
+  replaced_all_semi_dups_from_rhs_sym_bbls_ls
+
+let same_rhs_sym_bbls 
+  (curr_rhs_sym_bbls: (symbol * (beta * beta) list)) 
+  (rhs_sym_bbls: (symbol * (beta * beta) list)): bool = 
+  let sym1, sym2 = (fst curr_rhs_sym_bbls), (fst rhs_sym_bbls) in 
+  if (not (syms_equals sym1 sym2)) then false 
+  else 
+    begin 
+      let bbls1, bbls2 = (snd curr_rhs_sym_bbls), (snd rhs_sym_bbls) in 
+      List.fold_left2 (fun bool_acc bb1 bb2 -> 
+        (beta_pairs_equal bb1 bb2) && bool_acc) true
+      bbls1 bbls2
+    end
+
+(* Finding all_semi_dup rhs symb bbls lists first *)
+let find_all_semi_dup_rhs_sym_bbls_ls (rhs_sym_bbls: symbol * (beta * beta) list) 
+  (rest_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list) 
+  (_debug: bool): 
+  (symbol * (beta * beta) list) list = 
+  let all_semi_dup_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
+    rest_rhs_sym_bbls_ls |> List.fold_left (fun acc curr_rhs_sym_bbls -> 
+      if (are_semi_rhs_sym_bbls_lists rhs_sym_bbls curr_rhs_sym_bbls)
+      then 
+        if (List.mem curr_rhs_sym_bbls acc)
+        then acc
+        else curr_rhs_sym_bbls :: acc 
+      else acc) []
+  in 
+  all_semi_dup_rhs_sym_bbls_ls 
+
+let replace_sts_pair_trans_ls_per_sts_pairs (from_sts_pair: (state * state)) (to_sts_pair: (state * state)) 
+  (sts_pair_trans_ls: ((state * state) * (symbol * (beta * beta) list)) list) (debug: bool):
+  ((state * state) * (symbol * (beta * beta) list)) list = 
+  let sts_pair: state * state = 
+    if (List.is_empty sts_pair_trans_ls) then raise (Failure "In replacing sts_pair cannot be empty")
+    else List.hd sts_pair_trans_ls |> fst
+  in
+  let curr_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
+    if (List.is_empty sts_pair_trans_ls) then raise (Failure "In replacing sym_beta_pair_ls cannot be empty")
+    else sts_pair_trans_ls |> List.map snd
+  in
+
+  (* Find all (semi_dup_rhs_prod) list in 'curr tran_sls' *)
+  (*   Note: (semi_dup_rhs_prod) list considered semi_dup if all but nonterminals are equal *)
+  let all_semi_dup_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
+    curr_rhs_sym_bbls_ls |> List.fold_left (fun dups_acc curr_rhs_sym_bbls -> 
+      
+      (* Accumulate all the ones that are semi_dup -> check for each sym_bbls in the current trans_ls *)
+      let rest_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
+        curr_rhs_sym_bbls_ls |> List.filter (fun x -> not (same_rhs_sym_bbls curr_rhs_sym_bbls x))
+      in 
+      let curr_all_semi_dup_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
+        find_all_semi_dup_rhs_sym_bbls_ls curr_rhs_sym_bbls rest_rhs_sym_bbls_ls debug
+      in
+        curr_all_semi_dup_rhs_sym_bbls_ls @ dups_acc
+    ) [] |> clean_up_rhs_beta_pair_lsls
+  in
   
-  let rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
-    sts_pair_trans_ls |> List.map (fun (_sts_pair, sym_bbls) -> sym_bbls) 
-  in 
-  let new_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
-    rhs_sym_bbls_ls |> List.fold_left (fun acc curr_sym_bbls -> 
-      if (same_rhs_sym_bbls_lists curr_sym_bbls)
-      ) [] 
+  (* When there are no semi_dup_prod list then just return the trans_ls *)
+  if (List.is_empty all_semi_dup_rhs_sym_bbls_ls) then sts_pair_trans_ls
+  else
+    ((* 
+    if debug then wrapped_printf debug "\n\t\t >> Found all Semi-Dup Sym_beta_pair_ls List : \n\t\t";
+    all_semi_dup_rhs_sym_bbls_ls |> List.iter (fun (sym, bbls) -> Pp.pp_symbol sym; 
+    bbls |> Pp.pp_beta_beta_list; wrapped_printf debug "\n\t\t");
+    *)
 
-  let fst_rhs_sym_bbls: symbol * (beta * beta) list = 
-      rhs_sym_bbls_ls |> List.hd 
-  in 
-  let sym_bbls_ls: (symbol * (beta * beta) list) list = 
-    rhs_sym_bbls_ls |> List.map (fun (sym, bbls) -> 
-      if (same_rhs_sym_bbls_lists (sym, bbls) fst_rhs_sym_bbls)
-      then (
-        let new_bbls: (beta * beta) list = 
-          replace_beta_beta_list_from_sts_to_sts bbls to_sts from_sts in 
-        (sym, new_bbls)
-      )
-      else (sym, bbls)) 
-  in []
+    (* Take out all the non-(semi_dup_rhs_prod) list in 'curr tran_sls' *)
+    let non_semi_dup_rhs_sym_bbls_ls: (symbol * (beta * beta) list) list = 
+      curr_rhs_sym_bbls_ls |> List.filter (fun rhs_sym_bbls -> 
+        not (sym_bbls_exists_in_sym_bbls_ls rhs_sym_bbls all_semi_dup_rhs_sym_bbls_ls))
+    in
+    
+    (* 
+    if debug then wrapped_printf debug "\n\t\t >> _Non_ Semi-Dup Sym_beta_pair_ls List : \n\t\t";
+    non_semi_dup_rhs_sym_bbls_ls |> List.iter (fun (sym, bbls) -> Pp.pp_symbol sym; 
+    bbls |> Pp.pp_beta_beta_list; wrapped_printf debug "\n\t\t");      
+    *)
 
-let update_raw_trans_per_eps_linked_sts_pairs (trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
-  (from_sts: state * state) (to_sts: state * state) (_debug: bool): 
+    (* Replace 'to_sts_pair' with 'from_sts_pair' in '(semi_dup_rhs_prod) list' *)
+    let replaced_dup_sym_bbls_ls: (symbol * (beta * beta) list) list = 
+      now_replace_semi_dup_sym_bbls_ls all_semi_dup_rhs_sym_bbls_ls from_sts_pair to_sts_pair debug
+    in 
+
+    (* 
+    if debug then wrapped_printf debug "\n\t\t >> Replaced Semi-Dup Sym_beta_pair_ls List : \n\t\t";
+    non_semi_dup_rhs_sym_bbls_ls |> List.iter (fun (sym, bbls) -> Pp.pp_symbol sym; 
+    bbls |> Pp.pp_beta_beta_list; wrapped_printf debug "\n\t\t");       
+    *)
+
+    (* Combine replaced '(semi_dup_rhs_prod) list' with  non-(semi_dup_rhs_prod) list in 'curr tran_sls' *)
+    replaced_dup_sym_bbls_ls @ non_semi_dup_rhs_sym_bbls_ls
+    |> List.map (fun x -> (sts_pair, x)))
+    
+  
+
+let update_raw_trans_per_eps_linked_sts_pairs 
+  (trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+  (from_sts_pair: state * state) (to_sts_pair: state * state) (debug: bool): 
   ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
-  let rec traverse_raw_trans_blocks (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+
+  wrapped_printf debug "\n\t\t * From States pair "; Pp.pp_raw_state from_sts_pair;  
+  wrapped_printf debug "\n\t\t * To States pair "; Pp.pp_raw_state to_sts_pair; wrapped_printf debug "\n\n"; 
+  let rec traverse_raw_trans_blocks 
+    (trans_blocks_ls: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
     (acc_trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) = 
     match trans_blocks_ls with 
     | [] -> List.rev acc_trans
     | (sts_pair, sts_pair_trans_ls) :: trans_blocks_tl -> 
-      let replaced_sts_pair_trans_ls: ((state * state) * (symbol * (beta * beta) list)) list = 
-        replace_sts_pair_trans_ls_per_sts_pairs from_sts to_sts sts_pair_trans_ls
+      let replaced_sts_pair_trans_ls: 
+        ((state * state) * (symbol * (beta * beta) list)) list = 
+        replace_sts_pair_trans_ls_per_sts_pairs from_sts_pair to_sts_pair sts_pair_trans_ls debug
       in
       let to_acc: (state * state) * ((state * state) * (symbol * (beta * beta) list)) list = 
         (sts_pair, replaced_sts_pair_trans_ls) 
       in 
         traverse_raw_trans_blocks trans_blocks_tl (to_acc :: acc_trans)
   in let res_raw_trans_blocks = traverse_raw_trans_blocks trans [] 
-  in if _debug then (wrapped_printf _debug "\n\t * Updated trans blocks \n"; res_raw_trans_blocks |> Pp.pp_raw_trans_blocks);
+  in 
+  (* if debug then (wrapped_printf debug "\n\t * Updated trans blocks \n"; res_raw_trans_blocks |> Pp.pp_raw_trans_blocks); *)
     res_raw_trans_blocks
 
-let update_raw_trans_per_eps_stspair_to_stspairs_ls (trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
-  (sts_pair1: state * state) (eps_connected_sts_pairs_ls: (state * state) list) (debug: bool): 
+let update_raw_trans_per_eps_stspair_to_stspairs_ls 
+  (trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
+  (from_sts_pair1: state * state) (eps_connected_sts_pairs_ls: (state * state) list) (debug: bool): 
   ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
   let res_raw_trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
     eps_connected_sts_pairs_ls 
     |> List.rev 
-    |> List.fold_left (fun acc_trans sts_pair2 -> 
-      update_raw_trans_per_eps_linked_sts_pairs acc_trans sts_pair1 sts_pair2 debug) trans
+    |> List.fold_left (fun acc_trans eps_linked_sts_pair2 -> 
+      update_raw_trans_per_eps_linked_sts_pairs acc_trans from_sts_pair1 eps_linked_sts_pair2 debug) trans
   in 
     res_raw_trans_blocks
 
 let update_trans_blocks_per_eps_linkage (raw_trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list) 
   (state_eps_connected_states: ((state * state) * ((state * state) list)) list) (debug: bool): 
   ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
-  let new_raw_trans_blocks: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+  let new_raw_trans_blocks: 
+    ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
     state_eps_connected_states |> List.fold_left (fun acc_trans (sts_pair1, eps_connected_sts_pairs_ls) -> 
       update_raw_trans_per_eps_stspair_to_stspairs_ls acc_trans sts_pair1 eps_connected_sts_pairs_ls debug) raw_trans_blocks  
   in 
-    new_raw_trans_blocks *)
+    new_raw_trans_blocks
 
 
 (** Intersection of tree automata *)
@@ -644,14 +825,14 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 11 - Convert raw trans blocks to transitions list --------------------------------------------- *)
   
-  let raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
+  let _raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
     trans_blocks_simplified_eps_trans |> List.fold_left (fun res_acc (_, trans_block) -> 
       let transformed = trans_block |> List.fold_left (fun acc (st_pair, (sym, beta_beta_ls)) -> 
         let trans_new = ((st_pair, sym), beta_beta_ls) in trans_new :: acc) []
       in transformed @ res_acc) []
   in
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 11 - Convert raw tras blocks to transitions list : \n";
-  Pp.pp_raw_transitions raw_trans; pp_loline_new debug);
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 11 - Convert raw trans blocks to transitions list : \n";
+  Pp.pp_raw_transitions _raw_trans; pp_loline_new debug);
   
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -669,44 +850,70 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   (* Step 13 - Simplify raw transitions list wrt. dead states (any prods involving them)----------------- *)
 
   let cleaned_raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
-    clean_raw_transitions_wrt_dead_states raw_trans dead_states debug
-  in 
-
+    clean_raw_transitions_wrt_dead_states _raw_trans dead_states debug
+  in
+  
+  let cleaned_trans_blocks_wrt_dead_states: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    clean_raw_trans_blocks_wrt_dead_states trans_blocks_simplified_eps_trans dead_states debug 
+  in
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 15 - Find epsilon-transition linkage between states ------------------------------------------- *)
+  (* Step 14 - Find epsilon-transition linkage between states ------------------------------------------- *)
   
   let state_eps_connected_states: ((state * state) * ((state * state) list)) list = 
     find_epsilon_transition_connection_in_states state_pairs_renamed cleaned_raw_trans debug
     |> List.sort (fun (_sts_pair1, sts_pair_ls1) (_sts_pair2, sts_pair_ls2) ->
       Int.compare (List.length sts_pair_ls1) (List.length sts_pair_ls2))
   in 
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 15 - Identify State -> epsilon-connected states (sorted) : \n";
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 14 - Identify State -> epsilon-connected states (sorted) : \n";
     state_eps_connected_states |> List.iter (fun (sts_pair, sts_pair_ls) -> 
       wrapped_printf "\t\t State (%s, %s) is epsilon-connected to -> " (fst sts_pair) (snd sts_pair);
        sts_pair_ls |> Pp.pp_raw_states); pp_loline_new debug);
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 16 - Simplify based on epsilon-transition linkage between states ------------------------------ *)
+  (* Step 15 - Simplify based on epsilon-transition linkage between states ------------------------------ *)
   
-  (* let trans_blocks_simplified_per_eps_linkage: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
-    update_trans_blocks_per_eps_linkage trans_blocks_simplified_eps_trans state_eps_connected_states debug
+  let trans_blocks_simplified_per_eps_linkage: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    update_trans_blocks_per_eps_linkage cleaned_trans_blocks_wrt_dead_states state_eps_connected_states debug
   in 
 
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 13 - Simplify raw trans blocks wrt. epsilon-connected states : \n";
-  Pp.pp_raw_trans_blocks trans_blocks_simplified_per_eps_linkage; pp_loline_new debug); *)
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 15 - Simplify raw trans blocks wrt. epsilon-connected states : \n";
+  Pp.pp_raw_trans_blocks trans_blocks_simplified_per_eps_linkage; pp_loline_new debug);
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 17 - Remove any duplicate transition in each block after simplification ----------------------- *)
   
+  let trans_blocks_simplified_wo_dup_trans = 
+    remove_dup_trans_for_each_block trans_blocks_simplified_per_eps_linkage debug
+  in 
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 17 - Removed dup trans in raw trans blocks : \n";
+  Pp.pp_raw_trans_blocks trans_blocks_simplified_wo_dup_trans; pp_loline_new debug);
+
+  let new_raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
+    trans_blocks_simplified_wo_dup_trans |> List.fold_left (fun res_acc (_, trans_block) -> 
+      let transformed = trans_block |> List.fold_left (fun acc (st_pair, (sym, beta_beta_ls)) -> 
+        let trans_new = ((st_pair, sym), beta_beta_ls) in trans_new :: acc) []
+      in transformed @ res_acc) []
+  in
+  let cleaned_raw_trans_wrt_dead_states: (((state * state) * symbol) * (beta * beta) list) list = 
+    clean_raw_transitions_wrt_dead_states new_raw_trans dead_states debug
+  in 
+
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 17.5 - Convert raw trans blocks to transitions list after removing any duplicates : \n";
+  Pp.pp_raw_transitions cleaned_raw_trans_wrt_dead_states; pp_loline_new debug);
+
+  let new_cleaned_raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
+    clean_raw_transitions_wrt_dead_states new_raw_trans dead_states debug
+  in 
+
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 18 - Convert the raw transitions to transitions tbl ------------------------------------------- *)
 
   let res_trans_ls: ((state * symbol) * beta list) list = 
-    cleaned_raw_trans |> List.map (fun ((st_pair, sym), sig_sig_ls) -> 
+    new_cleaned_raw_trans |> List.map (fun ((st_pair, sym), sig_sig_ls) -> 
       let new_sig_ls = sig_sig_ls |> List.map fst in ((fst st_pair), sym), new_sig_ls) 
   in 
   let res_trans_tbl: ((state * symbol), beta list) Hashtbl.t = Hashtbl.create (Hashtbl.length a2.transitions) in

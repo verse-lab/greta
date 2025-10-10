@@ -77,7 +77,7 @@ let () =
     (print_endline "Error: CFG file does not exist. Exiting..."; exit 1)
   else
 
-  let debug = true in
+  let debug = false in
   
   if (Utils.check_conflicts !conflicts_file debug) then
   begin

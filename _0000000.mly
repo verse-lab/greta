@@ -27,9 +27,6 @@
 %%
 
 decl4:
-  | TINT iden8 EQ expr6  { TDecl ($2, $4) }
-  | TINT iden8 EQ expr3  { TDecl ($2, $4) }
-  | TINT iden8 EQ expr2  { TDecl ($2, $4) }
   | TINT iden8 EQ expr1  { TDecl ($2, $4) }
   ;
 
