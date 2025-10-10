@@ -353,7 +353,7 @@ let mly_of_ta (ta: Ta.ta) (mly: parsed_mly) (mly_production_of_symbol: Ta.symbol
   ( 
     mly.preamble.annotations 
     |> List.fold_left (fun acc annot ->
-        acc ^ Printf.sprintf "%s %s\n" annot.prefix (Hashtbl.find state_map annot.state)
+        acc ^ Printf.sprintf "%s %s\n" annot.prefix (Hashtbl.find_opt state_map annot.state |> Option.value ~default:"<unknown>")
       ) ""
   )
   ^ postfix
