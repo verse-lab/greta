@@ -200,8 +200,6 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (oa_ls: Ta.restrict
     sorted_ord_amb_symlsls_ls |> 
     List.fold_left (fun op_tbl_acc ord_amb_symlsls -> 
       let ord, amb_syms_total_ordered_ls = (fst ord_amb_symlsls), (snd ord_amb_symlsls) in 
-      (* if (List.is_empty ) then op_tbl_acc
-      else *)
         update_op_per_ord_amb_symsls op_tbl_acc ord amb_syms_total_ordered_ls order_symlsls_ls debug_print
         ) op_tbl
   

@@ -361,6 +361,52 @@ let group_sym_ls_by_order (ls: (int * symbol list) list): (int * symbol list lis
   |> List.rev
   |> List.map (fun (o, symlsls) -> (o, List.rev symlsls))
 
+(* let group_common_dup_state_pairs_ls (dup_states_pair_ls: ((state * state) * (state * state)) list): 
+  ((state * state) list) list = 
+  let changed_to_state_pair_elem_ls: (state * state) list list = 
+    dup_states_pair_ls |> List.fold_left (fun acc (st_pair1, st_pair2) -> (st_pair1::st_pair2::[]) :: acc) []
+  in
+  let grouped_by_id: (int * (state * state) list) list = 
+    changed_to_state_pair_elem_ls |> List.fold_left (fun acc curr_sts_pair_ls -> 
+      let id_of_curr_sts_pair_ls: int = in 
+      if (id)
+      ) [] 
+  in 
+  grouped_by_id |> List.map snd *)
+
+(* Helpers on lists *)
+let contains eq x xs =
+  List.exists (fun y -> eq x y) xs
+
+let dedup eq lst =
+  let rec go acc = function
+    | [] -> List.rev acc
+    | x :: xs ->
+        if contains eq x acc then go acc xs
+        else go (x :: acc) xs
+  in
+  go [] lst
+
+let group_common_dup_state_pairs_ls (states_pair_equal_check : (state * state) -> (state * state) -> bool)
+  (state_pair_ls : ((state * state) * (state * state)) list): ((state * state) list) list =
+  state_pair_ls 
+  |> List.fold_left 
+    (fun (comps : ((state * state) list) list) ((st_pair1, st_pair2) as _e) ->
+       (* Split components into those that touch u or v, and the rest *)
+       let touches comp = 
+          contains states_pair_equal_check st_pair1 comp || contains states_pair_equal_check st_pair2 comp in
+       let hits, rest = List.partition touches comps in
+       match hits with
+       | [] ->
+          (* No overlap: start a new component with u and v *)
+          [st_pair1; st_pair2] :: comps
+       | _ ->
+          (* Merge all overlapping components + {u,v} into one *)
+          let merged = dedup states_pair_equal_check (st_pair1 :: st_pair2 :: List.concat hits) in
+          merged :: rest) []
+    |> List.map (dedup states_pair_equal_check) (* Remove duplicate state pair *)
+    |> List.rev 
+
 (* Sort internal list (symbol list) list in decreasing order 
    by the size of (symbol list) - from largest to smallest *)
 let sort_inner_by_length_desc grouped =

@@ -553,15 +553,41 @@ let intersect (a1: ta) (a2: ta) (debug: bool): ta =
   let dup_states_pair_ls: ((state * state) * (state * state)) list = 
     find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks_sorted debug
   in
+  let combined_dup_states_pair_ls: ((state * state) list) list =
+    group_common_dup_state_pairs_ls state_pairs_equal dup_states_pair_ls 
+  in 
+  (* wrapped_printf "\n\n\t\t State pair list grouped"; 
+  combined_dup_states_pair_ls |> List.iter (fun st_pair_ls -> 
+    wrapped_printf "\n\t\t[ "; st_pair_ls |> List.iter Pp.pp_raw_state; wrapped_printf " ]"); *)
+
   (if debug then pp_upline_new debug; wrapped_printf "### Step 5 - Find a list of duplicate states pairs : \n";
-  dup_states_pair_ls |> List.iter (fun ls -> wrapped_printf "\n\t"; Pp.pp_raw_pair_of_state_pairs ls); 
-  pp_loline_new debug);
+  combined_dup_states_pair_ls |> List.iter (fun st_pair_ls -> wrapped_printf "\n\t\t[ "; 
+  st_pair_ls |> List.iter Pp.pp_raw_state; wrapped_printf " ]" ); pp_loline_new debug);
 
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 6 - Remove transitions based on 'dup_states_pair_ls' ------------------------------------------ *)  
   let raw_trans_blocks_cleaned: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
-    remove_transitions_of_duplicate_states dup_states_pair_ls raw_trans_in_blocks_sorted debug
+    
+    combined_dup_states_pair_ls 
+    |> List.fold_left (fun trans_acc sts_pair_ls -> 
+
+        let fst_sts_pair: (state * state) = 
+          List.hd sts_pair_ls
+        in
+        let remain_sts_pair: (state * state) list = 
+          List.tl sts_pair_ls 
+        in 
+        remain_sts_pair 
+          |> List.fold_left (fun inner_inner_trans_acc curr_sts_pair -> 
+            let curr_dup_sts_pair_ls: ((state * state) * (state * state)) list = 
+              (fst_sts_pair, curr_sts_pair)::[] 
+            in
+              remove_transitions_of_duplicate_states curr_dup_sts_pair_ls inner_inner_trans_acc debug          
+            ) trans_acc
+            
+    ) raw_trans_in_blocks_sorted
+    
   in
   (if debug then pp_upline_new debug; wrapped_printf "### Step 6 - Remove raw transitions wrt duplicate states pairs : \n";
   Pp.pp_raw_trans_blocks raw_trans_blocks_cleaned; pp_loline_new debug);

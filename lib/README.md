@@ -6,15 +6,15 @@
      - [x] Start from cleaner data structures (CFG, TA)
      - [x] Learning O_bp
 
-- [ ] **Tree example generation**
+- [x] **Tree example generation**
      - [x] Correctly populate symbols (ID) in trees
 
-- [ ] **TA Learner from tree examples** 
+- [x] **TA Learner from tree examples** 
      - [x] Update O_a wrt. trees - _Index-based; collect negative examples with index_
      - [x] Update O_p wrt. trees - _Logic changed from earlier version, updated O_p wrt. O_a_ 
      - [x] Update O_p wrt. O_a as needed - _Works for multiple orders per sym_
      - [x] Learn TA wrt. O_p and O_a - _Learn wrt. O_a_negatives, w/o triv opt_
-     - [ ] High to low production detection - Gokul WIP 
+     - [x] High to low production detection 
 
 - [ ] **Intersection** 
      - [x] Update based on revised data structures
@@ -22,7 +22,7 @@
      - [ ] Simplify based on linkage between states - Yunjeong WIP
            - I.e., if e0 -> e1 and transitions repeat with only these differing, then simplify with e0
 
-- [ ] **Converter from TA to CFG** - _Might skip_
+- [x] **Converter from TA to CFG** - (_Skip at Impl level_)
 
 - [x] **Writing the resulted CFG (TA) back to .mly file**
 
