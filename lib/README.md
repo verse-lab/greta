@@ -20,7 +20,7 @@
 - [x] **Intersection** 
      - [x] Update based on revised data structures
      - [x] Renaming to be indicative of original grammar nonterminals
-     - [x] Simplify based on linkage between states - _Considered part of epsilon intro_ - Yunjeong WIP 
+     - [x] Simplify based on linkage between states - _Considered part of epsilon intro_ 
            - I.e., if e0 -> e1 and transitions repeat with only these differing, then simplify with e0
 
 - [x] **Converter from TA to CFG** - (_Skip at Impl level_)
@@ -30,10 +30,9 @@
 ### Testing 
 
 (6 existing + 2-3 Real Grammars)
+- [ ] Initial manual testing on subset - _Yunjeong WIP_
 
 - [ ] Grammar 0 (Running paper example) - for demo only (1 variation)
-     - [ ] Check on tree generations
-
 - [ ] Grammar 1 (Alternte version of Gp) 
 - [ ] Grammar 2 (Compiler - Boolean language) 
 - [ ] Grammar 3 (Compiler)
