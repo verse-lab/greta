@@ -39,7 +39,7 @@ let learn_oa_neg (tree_examples: (string list * tree * (bool * bool * bool) * re
   if debug_print then (wrapped_printf debug_print "\n  Collected O_a negatives : "; Pp.pp_restriction_lst oa_res); 
   oa_res
 
-let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_ord: int) (amb_syms_ordered: symbol list list) 
+let update_op_per_ord_amb_symsls (specs: (symbol * int) list) (op_tbl: (int, symbol list) Hashtbl.t) (curr_ord: int) (amb_syms_ordered: symbol list list) 
   (_order_symlsls_ls: (int * (symbol list) list) list) (debug: bool): (int, symbol list) Hashtbl.t * (symbol * int) list = 
   let max_len = 
     amb_syms_ordered |> List.fold_left (fun len_acc sym_ls -> 
@@ -80,8 +80,9 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
     Pp.pp_obp_tbl op_tbl);  
   *)
   
-  (* 4. Pusy by 'push_n - 1' (largest amb_sym list element's length) *)
+  (* 4. Push by 'push_n - 1' (largest amb_sym list element's length) *)
   push_keys_if_gte_order_by (curr_ord + 1) op_tbl push_n;
+  let specs = List.map (fun (s, i) -> s, i + push_n) specs in
   
   (* Insert 'tmp_others' as Ord -> tmp_others    Ord+1 -> tmp_others   Ord+(push_n - 1)  -> tmp_others *)
   for i = 0 to (max_len - 1) do 
@@ -95,7 +96,7 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
   else ();
   (wrapped_printf debug "\n\t * After updating for amb syms list : "; Pp.pp_symbol_list all_amb_syms; 
     Pp.pp_obp_tbl op_tbl);
-  op_tbl, temp_others |> List.map (fun s -> (s, curr_ord))
+  op_tbl, (temp_others |> List.map (fun s -> (s, curr_ord))) @ specs
 
 let next_ord_continas_all_syms_but_sym (curr_ord: int) (sym: symbol) (op_tbl: (int, symbol list) Hashtbl.t): 
   bool = 
@@ -200,8 +201,8 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (_oa_ls: Ta.restric
     sorted_ord_amb_symlsls_ls |> 
     List.fold_left (fun (op_tbl_acc, specs) ord_amb_symlsls -> 
       let ord, amb_syms_total_ordered_ls = (fst ord_amb_symlsls), (snd ord_amb_symlsls) in 
-      let (a, spec) = update_op_per_ord_amb_symsls op_tbl_acc ord amb_syms_total_ordered_ls order_symlsls_ls debug_print in
-      (a, spec @ specs)
+      let (a, specs) = update_op_per_ord_amb_symsls specs op_tbl_acc ord amb_syms_total_ordered_ls order_symlsls_ls debug_print in
+      (a, specs)
     ) (op_tbl, [])
   in
 
@@ -281,7 +282,7 @@ let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (oa_neg: restriction lis
             | Some s -> "e" ^ string_of_int s
             | None -> curr_state
           in
-          populate_trans_tbl_with trans_tbl curr_state curr_state sym sym_prod);
+          populate_trans_tbl_with trans_tbl curr_state _rhs_st sym sym_prod);
 
         (* Also connect each state to next until max level *)
         if (lvl < max_lvl) then 
@@ -297,13 +298,13 @@ let learn_ta (op_learned: (int, symbol list) Hashtbl.t) (oa_neg: restriction lis
 
   (* Printf.printf "\n\nHigh to lows: ";
   high_to_lows |> List.iter (fun (s, max, min) -> Printf.printf "\n Symbol: "; Pp.pp_symbol s; Printf.printf " Max level: %d Min level: %d" max min); *)
-  (* high_to_lows |> List.iter (fun (sym, max, min) ->
+  _high_to_lows |> List.iter (fun (sym, max, min) ->
     let (_, rhs) = production_of_id (id_of_sym sym) prods_map in
     let beta_ls = rhs |> List.map (fun r -> match r with 
       | Term t -> T t 
       | Nt _ -> S ("e" ^ string_of_int min)) in
     Hashtbl.replace trans_tbl ("e" ^ string_of_int max, sym) beta_ls
-  ); *)
+  );
 
   let res_ta: ta = 
   { states = !states_res ; alphabet = alph_res ; final_states = ["e0"] ;
