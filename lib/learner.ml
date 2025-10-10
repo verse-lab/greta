@@ -52,7 +52,7 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
   
   (* 2. Find S \ { amb_syms } based on all the symbols in curr order \ all amb symbols in curr order *)
   let all_syms_in_curr_ord: symbol list = 
-      match (Hashtbl.find_opt op_tbl curr_ord) with Some sls -> sls | None -> raise (Failure "no syms found for order in Op_tbl")
+      match (Hashtbl.find_opt op_tbl curr_ord) with Some sls -> sls | None -> []
   in
   let all_amb_syms: symbol list = 
     amb_syms_ordered |> List.flatten
@@ -60,7 +60,8 @@ let update_op_per_ord_amb_symsls (op_tbl: (int, symbol list) Hashtbl.t) (curr_or
   
   (* 'temp_others' refers to S \ { amb_syms } *)
   let temp_others: symbol list = 
-    all_syms_in_curr_ord |> List.filter (fun sym -> not (List.mem sym all_amb_syms)) 
+    if (List.is_empty all_syms_in_curr_ord) then [] else
+      all_syms_in_curr_ord |> List.filter (fun sym -> not (List.mem sym all_amb_syms)) 
   in
 
   (* 
@@ -119,15 +120,25 @@ let next_level_contains_other_syms (op_tbl: (int, symbol list) Hashtbl.t) (sym: 
     sym_ords |> List.fold_left (fun bool_acc curr_ord ->
       bool_acc && (next_ord_continas_all_syms_but_sym curr_ord sym op_tbl)) true
 
+let are_all_elem_symls_not_empty (symlsls: symbol list list): bool = 
+  symlsls |> List.fold_left (fun bool_acc symls -> 
+    (List.is_empty symls) && bool_acc) true
+
+
 let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (oa_ls: Ta.restriction list) 
   (oa_op_ordered_sym_lsls: (int * (symbol list) list) list) (debug_print: bool): (int, symbol list) Hashtbl.t = 
   let open List in
   
   let sorted_ord_amb_symlsls_ls: (int * (symbol list) list) list = 
-    oa_op_ordered_sym_lsls |> List.filter (fun (_o, symlsls) -> not (List.is_empty symlsls))
+    oa_op_ordered_sym_lsls |> List.filter (fun (_o, symlsls) -> 
+      let symlsls_is_not_empty = not (List.is_empty symlsls) in
+      let symlsls_elemls_not_empty: bool = 
+        if (not (List.is_empty symlsls)) then (not (are_all_elem_symls_not_empty symlsls)) else true
+      in symlsls_is_not_empty && symlsls_elemls_not_empty
+      )
   in 
   sorted_ord_amb_symlsls_ls |> List.iter (fun (o, symlsls) -> 
-    wrapped_printf debug_print "\n\t\t Order %d    [ " o; 
+    wrapped_printf debug_print "\n\t\t * Sorted Ord Amb_symlsls \n\t\t Order %d    [ " o; 
     symlsls |> List.iter Pp.pp_symbol_list; wrapped_printf debug_print " ] \n");
 
   (* 
@@ -189,8 +200,10 @@ let learn_op (o_bp_tbl: (int, (symbol list) list) Hashtbl.t) (oa_ls: Ta.restrict
     sorted_ord_amb_symlsls_ls |> 
     List.fold_left (fun op_tbl_acc ord_amb_symlsls -> 
       let ord, amb_syms_total_ordered_ls = (fst ord_amb_symlsls), (snd ord_amb_symlsls) in 
-      update_op_per_ord_amb_symsls op_tbl_acc ord amb_syms_total_ordered_ls order_symlsls_ls debug_print
-      ) op_tbl
+      (* if (List.is_empty ) then op_tbl_acc
+      else *)
+        update_op_per_ord_amb_symsls op_tbl_acc ord amb_syms_total_ordered_ls order_symlsls_ls debug_print
+        ) op_tbl
   
   in
 
