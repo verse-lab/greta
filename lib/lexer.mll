@@ -1,111 +1,100 @@
 {
-
-(*****************************************************************************)
-(*                                                                           *)
-(* SPDX-License-Identifier: MIT                                              *)
-(* Copyright (c) 2023 Marigold, <contact@marigold.dev>                       *)
-(* Copyright (c) 2023 Nomadic Labs, <contact@nomadic-labs.com>               *)
-(*                                                                           *)
-(*****************************************************************************)
-
-(* Original implementation at
-https://github.com/kaitai-io/kaitai_struct_compiler/blob/master/shared/src/main/scala/io/kaitai/struct/exprlang/Lexical.scala *)
-
+(* lexerが利用する変数、関数、型などの定義 *)
 open Parser
-let kw =
- let l =
-   [ "and", AND
-   ; "or", OR
-   ; "not", NOT
-   ; "as", AS
-   ; "sizeof" , SIZEOF
-   ; "bitsizeof", BITSIZEOF
-   ]
- in
- let t = Hashtbl.create 10 in
- List.iter (fun (name, k) -> Hashtbl.add t name k) l;
- t
-
+(* open Type *)
 }
 
-let octal_digit = ['0'-'7']
-let decimal_literal =
-  ['0'-'9'] ['0'-'9' '_']*
-let hex_digit =
-  ['0'-'9' 'A'-'F' 'a'-'f']
-let hex_literal =
-  '0' ['x' 'X'] hex_digit (hex_digit | '_')*
-let oct_literal =
-  '0' ['o' 'O'] octal_digit (octal_digit | '_')*
-let bin_literal =
-  '0' ['b' 'B'] ['0'-'1'] ['0'-'1' '_']*
-let int_literal =
-  decimal_literal | hex_literal | oct_literal | bin_literal
-let float_literal =
-  ['-' '+']?
-  ['0'-'9'] ['0'-'9' '_']*
-  ('.' ['0'-'9' '_']* )?
-  (['e' 'E'] ['+' '-']? ['0'-'9'] ['0'-'9' '_']* )?
-
-let lowercase  = ['a'-'z']
-let uppercase  = ['A'-'Z']
-let digit      = ['0'-'9']
-let letter     = ( lowercase | uppercase )
-let nameStart = (letter | "_" )
-let namePart  = ( letter | digit | "_" )
-let identifier  = nameStart namePart *
+(* 正規表現の略記 *)
+let space = [' ' '\t' '\n' '\r']
+let digit = ['0'-'9']
+let lower = ['a'-'z']
+let upper = ['A'-'Z']
 
 rule token = parse
-  | " "  { token lexbuf }
-  | "::" { COLON2 }
-  | "["  { LBRACKET }
-  | "]"  { RBRACKET }
-  | "("  { LPAREN }
-  | ")"  { RPAREN }
-  | "?"  { QUESTION }
-  | ":"  { COLON }
-  | "<<" { LSHIFT }
-  | ">>" { RSHIFT }
-  | "<"  { LT }
-  | ">"  { GT }
-  | "==" { EQ }
-  | ">=" { GTE }
-  | "<=" { LTE }
-  | "!=" { NOTEQ }
-  | "+"  { ADD }
-  | "-"  { SUB }
-  | "*"  { MUL }
-  | "/"  { DIV }
-  | "%"  { MOD }
-  | "|"  { BITOR }
-  | "&"  { BITAND }
-  | "^"  { BITXOR }
-  | ","  { COMMA }
-  | "~"  { TILDE }
-  | "."  { DOT }
-  | "'" [^ '\'']* "'" { STRING (Lexing.lexeme lexbuf) }
-  | "\"" {
-   let buf = Buffer.create 20 in
-   Buffer.add_string buf (Lexing.lexeme lexbuf);
-   STRING (string buf lexbuf)
-  }
-  | int_literal as lit { INT lit }
-  | '-' decimal_literal { INT (Lexing.lexeme lexbuf) }
-  | float_literal as lit { FLOAT lit }
-  | identifier as id {
-    match Hashtbl.find kw id with
-    | exception Not_found -> IDENT id
-    | kw -> kw
-  }
-  | eof { EOF }
-
-and string buf = parse
-  | "\""  { Buffer.add_string buf (Lexing.lexeme lexbuf); Buffer.contents buf }
-  | "\\u" hex_digit hex_digit hex_digit hex_digit {
-    Buffer.add_string buf (Lexing.lexeme lexbuf);
-    string buf lexbuf
-  }
-  | "\\" octal_digit  + {
-    Buffer.add_string buf (Lexing.lexeme lexbuf);
-    string buf lexbuf
-  }
+| space+
+    { token lexbuf }
+| "(*"
+    { comment lexbuf; (* ネストしたコメントのためのトリック *)
+      token lexbuf }
+| '('
+    { LPAREN }
+| ')'
+    { RPAREN }
+| "true"
+    { BOOL(true) }
+| "false"
+    { BOOL(false) }
+| "not"
+    { NOT }
+| digit+ (* 整数を字句解析するルール (caml2html: lexer_int) *)
+    { INT(int_of_string (Lexing.lexeme lexbuf)) }
+| digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
+    { FLOAT(float_of_string (Lexing.lexeme lexbuf)) }
+| '-' (* -.より後回しにしなくても良い? 最長一致? *)
+    { MINUS }
+| '+' (* +.より後回しにしなくても良い? 最長一致? *)
+    { PLUS }
+| "-."
+    { MINUS_DOT }
+| "+."
+    { PLUS_DOT }
+| "*."
+    { AST_DOT }
+| "/."
+    { SLASH_DOT }
+| '='
+    { EQUAL }
+| "<>"
+    { LESS_GREATER }
+| "<="
+    { LESS_EQUAL }
+| ">="
+    { GREATER_EQUAL }
+| '<'
+    { LESS }
+| '>'
+    { GREATER }
+| "if"
+    { IF }
+| "then"
+    { THEN }
+| "else"
+    { ELSE }
+| "let"
+    { LET }
+| "in"
+    { IN }
+| "rec"
+    { REC }
+| ','
+    { COMMA }
+| '_'
+    { IDENT(Id.gentmp Type.Unit) }
+| "Array.create" | "Array.make" (* [XX] ad hoc *)
+    { ARRAY_CREATE }
+| '.'
+    { DOT }
+| "<-"
+    { LESS_MINUS }
+| ';'
+    { SEMICOLON }
+| eof
+    { EOF }
+| lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)
+    { IDENT(Lexing.lexeme lexbuf) }
+| _
+    { failwith
+        (Printf.sprintf "unknown token %s near characters %d-%d"
+           (Lexing.lexeme lexbuf)
+           (Lexing.lexeme_start lexbuf)
+           (Lexing.lexeme_end lexbuf)) }
+and comment = parse
+| "*)"
+    { () }
+| "(*"
+    { comment lexbuf;
+      comment lexbuf }
+| eof
+    { Format.eprintf "warning: unterminated comment@." }
+| _
+    { comment lexbuf }

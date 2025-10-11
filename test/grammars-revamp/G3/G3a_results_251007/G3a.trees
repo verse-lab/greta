@@ -1,0 +1,62 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: ELSE
+
+* Production stmt -> IF LPAREN exp RPAREN stmt
+
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt stmts 
+(?)
+>> ContextEnd 
+
+* Production stmt -> IF LPAREN exp RPAREN stmt
+IF LPAREN exp RPAREN stmt ELSE stmt 
+IF LPAREN exp RPAREN stmt @@ 
+
+IF LPAREN exp RPAREN stmt 
+IF LPAREN exp RPAREN stmt @@ ELSE stmt 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+
+* Production exp2 -> exp2 STAR exp2
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt stmts 
+RETURN exp SEMI 
+       exp2 
+       (?)
+>> ContextEnd 
+
+exp2 STAR exp2 
+exp2 @@ STAR exp2 
+
+* Production exp2 -> exp2 STAR exp2
+exp2 STAR exp2 
+exp2 STAR exp2 @@ 
+
+****************************
+
+

@@ -1,0 +1,29 @@
+
+** Conflict (shift/reduce) in state 23.
+** Tokens involved: PLUS ELSE
+** The following explanations concentrate on token PLUS.
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN expr3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr6 EOF 
+(?)
+
+** In state 23, looking ahead at PLUS, reducing production..
+** expr3 -> IF cond5 THEN expr3
+** is permitted because of the following sub-derivation:
+
+expr4 
+expr3 PLUS expr4 // lookahead token appears
+IF cond5 THEN expr3 . 
+
+** In state 23, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond5 THEN expr6 ELSE expr6 
+              expr4 
+              expr3 . PLUS expr4 

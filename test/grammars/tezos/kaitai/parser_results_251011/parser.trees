@@ -1,0 +1,237 @@
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: QUESTION
+
+
+* Production test -> test QUESTION test COLON test
+
+
+>> ContextStart 
+expression 
+test EOF 
+(?)
+>> ContextEnd 
+
+test QUESTION test COLON test 
+test @@ QUESTION test COLON test 
+
+* Production test -> test QUESTION test COLON test
+test QUESTION test COLON test 
+test QUESTION test COLON test @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: OR
+
+* Production test -> test QUESTION test COLON test
+
+
+
+>> ContextStart 
+expression 
+test EOF 
+(?)
+>> ContextEnd 
+
+* Production test -> test QUESTION test COLON test
+test OR test 
+test QUESTION test COLON test @@ 
+
+test QUESTION test COLON test 
+test @@ OR test 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AND
+
+* Production test -> test QUESTION test COLON test
+
+
+
+>> ContextStart 
+expression 
+test EOF 
+(?)
+>> ContextEnd 
+
+* Production test -> test QUESTION test COLON test
+test AND test 
+test QUESTION test COLON test @@ 
+
+test QUESTION test COLON test 
+test @@ AND test 
+
+****************************
+
+
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: QUESTION
+
+
+* Production test -> test AND test
+
+
+>> ContextStart 
+expression 
+test EOF 
+(?)
+>> ContextEnd 
+
+test AND test 
+test @@ QUESTION test COLON test 
+
+* Production test -> test AND test
+test QUESTION test COLON test 
+test AND test @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: OR
+
+* Production test -> test AND test
+
+
+
+>> ContextStart 
+expression 
+test EOF 
+(?)
+>> ContextEnd 
+
+* Production test -> test AND test
+test OR test 
+test AND test @@ 
+
+test AND test 
+test @@ OR test 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AND
+
+
+* Production test -> test AND test
+
+
+>> ContextStart 
+expression 
+test EOF 
+(?)
+>> ContextEnd 
+
+test AND test 
+test @@ AND test 
+
+* Production test -> test AND test
+test AND test 
+test AND test @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: QUESTION
+
+
+* Production test -> test OR test
+
+
+>> ContextStart 
+expression 
+test EOF 
+(?)
+>> ContextEnd 
+
+test OR test 
+test @@ QUESTION test COLON test 
+
+* Production test -> test OR test
+test QUESTION test COLON test 
+test OR test @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: OR
+
+
+* Production test -> test OR test
+
+
+>> ContextStart 
+expression 
+test EOF 
+(?)
+>> ContextEnd 
+
+test OR test 
+test @@ OR test 
+
+* Production test -> test OR test
+test OR test 
+test OR test @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AND
+
+
+* Production test -> test OR test
+
+
+>> ContextStart 
+expression 
+test EOF 
+(?)
+>> ContextEnd 
+
+test OR test 
+test @@ AND test 
+
+* Production test -> test OR test
+test AND test 
+test OR test @@ 
+
+****************************
+
+

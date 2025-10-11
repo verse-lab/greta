@@ -590,7 +590,8 @@ let form_total_order_among_op_symbols_from_same_group
           | _ -> None
         ) pairs |>  fun o -> match o with
           | Some v -> v
-          | None -> raise (Failure (Printf.sprintf "No precedence relation found between symbols %s and %s" (term_of_sym s1) (term_of_sym s2)))
+          | None -> 0
+            (* raise (Failure (Printf.sprintf "No precedence relation found between symbols %s and %s" (term_of_sym s1) (term_of_sym s2))) *)
         in
         let rec ensure_consistent x ys : bool =
           match ys with

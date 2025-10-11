@@ -1,0 +1,30 @@
+
+** Conflict (reduce/reduce) in state 34.
+** Token involved: ELSE
+** This state is reached from topl1 after reading:
+
+IF LPAREN ex6 RPAREN IF LPAREN ex6 RPAREN stmt3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl1 
+stmt8 EOF 
+stmt1 stmt8 
+(?)
+
+** In state 34, looking ahead at ELSE, reducing production..
+** stmt1 -> stmt3
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex6 RPAREN stmt1 ELSE stmt1 
+                     IF LPAREN ex6 RPAREN stmt1 ELSE stmt1 // lookahead token appears
+                                          stmt3 . 
+
+** In state 34, looking ahead at ELSE, reducing production..
+** stmt3 -> IF LPAREN ex6 RPAREN stmt3
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex6 RPAREN stmt1 ELSE stmt1 // lookahead token appears
+                     stmt3 // lookahead token is inherited
+                     IF LPAREN ex6 RPAREN stmt3 . 

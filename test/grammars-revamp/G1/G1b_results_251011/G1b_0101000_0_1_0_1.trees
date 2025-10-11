@@ -1,0 +1,55 @@
+
+
+
+Number_tokens: 2
+
+
+** Conflict type shift/reduce.
+** Token: MUL
+
+* Production expr1 -> IF cond2 THEN expr1
+
+
+
+>> ContextStart 
+prog1 
+expr6 EOF 
+expr5 
+(?)
+>> ContextEnd 
+
+* Production expr1 -> IF cond2 THEN expr1
+expr3 
+expr1 MUL expr3 
+IF cond2 THEN expr1 @@ 
+
+IF cond2 THEN expr5 ELSE expr5 
+expr3 
+expr1 @@ MUL expr3 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: ELSE
+
+* Production expr3 -> expr1
+
+
+>> ContextStart 
+prog1 
+expr6 EOF 
+expr5 
+IF cond2 THEN expr5 ELSE expr5 // lookahead token appears
+              expr3 // lookahead token is inherited
+              (?)
+>> ContextEnd 
+
+* Production expr3 -> expr1
+expr1 @@ 
+
+****************************
+
+

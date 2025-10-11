@@ -177,15 +177,14 @@ separated_nonempty_list_colon2_ident:
   | IDENT { [$1] }
   | IDENT COLON2 separated_nonempty_list_colon2_ident { $1 :: $3 }
 
-option_pair_lbracket_lbracket:
-  | /* empty */ { None }
+pair_lbracket_lbracket:
   | LBRACKET LBRACKET { Some ((), ()) }
 
 typeId:
-  | option(COLON2) separated_nonempty_list_colon2_ident option_pair_lbracket_lbracket { let absolute = Option.is_some $1 in Ast.({ absolute; isArray = false; names = $2 }) }
+  | COLON2 separated_nonempty_list_colon2_ident pair_lbracket_lbracket { let absolute = true in Ast.({ absolute; isArray = false; names = $2 }) }
 
 nameOrEnumByName:
-  | option(COLON2) separated_nonempty_list_colon2_ident { match $1, $2 with | _, [] -> assert false | None, [ "true" ] -> Ast.Bool true | None, [ "false" ] -> Ast.Bool false | None, [ name ] -> Ast.Name name | None, [ enumName; label ] -> (Ast.(EnumByLabel { label; enumName; inType = empty_typeId })) | prefix , path -> (let path, enumName, label = match List.rev path with | [] | [_] | [_;_] -> assert false | label :: enunName :: path_rev -> List.rev path_rev, enunName, label in let absolute = Option.is_some prefix in let inType = Ast.{ absolute; isArray = false; names = path } in Ast.(EnumByLabel { label; enumName; inType})) }
+  | COLON2 separated_nonempty_list_colon2_ident { match Some(None), $2 with | _, [] -> assert false | None, [ "true" ] -> Ast.Bool true | None, [ "false" ] -> Ast.Bool false | None, [ name ] -> Ast.Name name | None, [ enumName; label ] -> (Ast.(EnumByLabel { label; enumName; inType = empty_typeId })) | prefix , path -> (let path, enumName, label = match List.rev path with | [] | [_] | [_;_] -> assert false | label :: enunName :: path_rev -> List.rev path_rev, enunName, label in let absolute = Option.is_some prefix in let inType = Ast.{ absolute; isArray = false; names = path } in Ast.(EnumByLabel { label; enumName; inType})) }
 
 expression:
   | test EOF { $1 }

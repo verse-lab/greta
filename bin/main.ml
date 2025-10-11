@@ -283,7 +283,7 @@ let () =
     Printf.printf "\n\n\t\tGrammar written to %s\n\n" file_name;
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" _convert_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" _learn_ta_elapsed;
-    (* Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" intersect_elapsed; *)
+    Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" _intersect_elapsed;
     (* Time for convering back to CFG *)
     
   ()

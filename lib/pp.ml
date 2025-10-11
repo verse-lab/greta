@@ -5,7 +5,7 @@ open Printf
 open List
 
 (* hack fix because there are too many such uses to fix... *)
-let debug = false
+let debug = true
 let noprintf fmt = if debug then printf fmt else ifprintf stdout fmt
 
 let pp_upline () = 
