@@ -43,22 +43,21 @@
 - [x] Grammar 7 (Michelson) - 11 ambigs 3 fixed by greta but 8 nonaddressable
 - [x] Grammar 8 (Kaitai) - Gokul tested and worked
 - [x] Grammar 9 (SQL grammar) - 16 choices out of 23 ambigs so might take too long 
-- [ ] Grammar 10 (MinCaml) - can be found from previous G4 set
+- [ ] Grammar 10 (TBD) 
 
 ### Automated Testing 
 
-- _Gokul WIP_
 - [x] Grammar 0 (Running paper example) - for demo only (1 variation)
-- [ ] Grammar 1 (Alternte version of Gp) 
-- [ ] Grammar 2 (Compiler - Boolean language) 
-- [ ] Grammar 3 (Compiler)
-- [ ] Grammar 4 (Compiler)
-- [ ] Grammar 5 (StackOverflow)
-- [ ] Grammar 6 (StackOVerflow)
-- [ ] Grammar 7 (Michelson)
-- [ ] Grammar 8 (KaiTai)
-- [ ] Grammar 9 (Scilla - likely to be nonaddressable)
-- [ ] Grammar 10 (SQL lang) 
+- [x] Grammar 1 (Alternte version of Gp) 
+- [x] Grammar 2 (Compiler - Boolean language) 
+- [x] Grammar 3 (Compiler)
+- [x] Grammar 4 (Compiler)
+- [x] Grammar 5 (StackOverflow)
+- [x] Grammar 6 (StackOVerflow)
+- [x] Grammar 7 (Michelson)
+- [x] Grammar 8 (KaiTai)
+- [ ] Grammar 9 (SQL grammar) - _Gokul WIP_
+- [ ] Grammar 10 (TBD) 
 
 
 ### Room for improvement
