@@ -41,7 +41,6 @@ let loc (startpos:Lexing.position) (endpos:Lexing.position) (elt:'a) : 'a loc =
 
 %start prog
 %type <Ast.exp> exp1
-%type <Ast.stmt> e1
 
 %type <Ast.prog> prog
 %%

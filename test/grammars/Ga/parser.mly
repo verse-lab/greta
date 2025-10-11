@@ -117,7 +117,7 @@ optsemi :
   | /* empty */ { () } 
   | SEMI { () }
 
-kvlists : /* Cannot be empty to distinguish from the empty list */
+kvlists :
   | ELT l1=literal l2=literal optsemi { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [Exp.tuple [l1; l2]; Exp.construct (Location.mknoloc (Longident.Lident "[]")) None])) }
   | ELT l1=literal l2=literal SEMI ls=kvlists { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [Exp.tuple [l1; l2]; ls])) }
 
