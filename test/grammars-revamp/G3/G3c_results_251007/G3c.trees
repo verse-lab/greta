@@ -1,0 +1,266 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: ELSE
+
+* Production stmt1 -> IF LPAREN exp RPAREN stmt1
+
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt1 stmts 
+(?)
+>> ContextEnd 
+
+* Production stmt1 -> IF LPAREN exp RPAREN stmt1
+IF LPAREN exp RPAREN stmt1 ELSE stmt1 
+IF LPAREN exp RPAREN stmt1 @@ 
+
+IF LPAREN exp RPAREN stmt1 
+IF LPAREN exp RPAREN stmt1 @@ ELSE stmt1 
+
+****************************
+
+
+
+
+
+Number_tokens: 2
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+* Production exp -> exp DASH exp
+
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt1 stmts 
+stmt2 
+RETURN exp SEMI 
+       (?)
+>> ContextEnd 
+
+* Production exp -> exp DASH exp
+exp STAR exp 
+exp DASH exp @@ 
+
+exp DASH exp 
+exp @@ STAR exp 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp -> exp DASH exp
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt1 stmts 
+stmt2 
+RETURN exp SEMI 
+       (?)
+>> ContextEnd 
+
+exp DASH exp 
+exp @@ PLUS exp 
+
+* Production exp -> exp DASH exp
+exp PLUS exp 
+exp DASH exp @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+* Production exp -> exp PLUS exp
+
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt1 stmts 
+stmt2 
+RETURN exp SEMI 
+       (?)
+>> ContextEnd 
+
+* Production exp -> exp PLUS exp
+exp STAR exp 
+exp PLUS exp @@ 
+
+exp PLUS exp 
+exp @@ STAR exp 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp -> exp PLUS exp
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt1 stmts 
+stmt2 
+RETURN exp SEMI 
+       (?)
+>> ContextEnd 
+
+exp PLUS exp 
+exp @@ PLUS exp 
+
+* Production exp -> exp PLUS exp
+exp PLUS exp 
+exp PLUS exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DASH
+
+* Production exp -> exp PLUS exp
+
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt1 stmts 
+stmt2 
+RETURN exp SEMI 
+       (?)
+>> ContextEnd 
+
+* Production exp -> exp PLUS exp
+exp DASH exp 
+exp PLUS exp @@ 
+
+exp PLUS exp 
+exp @@ DASH exp 
+
+****************************
+
+
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+
+* Production exp -> exp STAR exp
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt1 stmts 
+stmt2 
+RETURN exp SEMI 
+       (?)
+>> ContextEnd 
+
+exp STAR exp 
+exp @@ STAR exp 
+
+* Production exp -> exp STAR exp
+exp STAR exp 
+exp STAR exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp -> exp STAR exp
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt1 stmts 
+stmt2 
+RETURN exp SEMI 
+       (?)
+>> ContextEnd 
+
+exp STAR exp 
+exp @@ PLUS exp 
+
+* Production exp -> exp STAR exp
+exp PLUS exp 
+exp STAR exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DASH
+
+
+* Production exp -> exp STAR exp
+
+
+>> ContextStart 
+toplevel 
+stmts EOF 
+stmt1 stmts 
+stmt2 
+RETURN exp SEMI 
+       (?)
+>> ContextEnd 
+
+exp STAR exp 
+exp @@ DASH exp 
+
+* Production exp -> exp STAR exp
+exp DASH exp 
+exp STAR exp @@ 
+
+****************************
+
+

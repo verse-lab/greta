@@ -1,0 +1,86 @@
+
+** Conflict (shift/reduce) in state 16.
+** Token involved: STAR
+** This state is reached from prog after reading:
+
+exp2 STAR exp2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+exp2 
+(?)
+
+** In state 16, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+exp2 STAR exp2 
+          exp2 . STAR exp2 
+
+** In state 16, looking ahead at STAR, reducing production..
+** exp2 -> exp2 STAR exp2
+** is permitted because of the following sub-derivation:
+
+exp2 STAR exp2 // lookahead token appears
+exp2 STAR exp2 . 
+
+** Conflict (shift/reduce) in state 12.
+** Token involved: EQEQ
+** This state is reached from prog after reading:
+
+exp3 EQEQ exp3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+exp2 
+exp3 
+(?)
+
+** In state 12, looking ahead at EQEQ, shifting is permitted..
+** because of the following sub-derivation:
+
+exp3 EQEQ exp3 
+          exp3 . EQEQ exp3 
+
+** In state 12, looking ahead at EQEQ, reducing production..
+** exp3 -> exp3 EQEQ exp3
+** is permitted because of the following sub-derivation:
+
+exp3 EQEQ exp3 // lookahead token appears
+exp3 EQEQ exp3 . 
+
+** Conflict (shift/reduce) in state 10.
+** Token involved: EQEQ
+** This state is reached from prog after reading:
+
+DASH exp3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+exp2 
+exp3 
+(?)
+
+** In state 10, looking ahead at EQEQ, shifting is permitted..
+** because of the following sub-derivation:
+
+DASH exp3 
+     exp3 . EQEQ exp3 
+
+** In state 10, looking ahead at EQEQ, reducing production..
+** exp3 -> DASH exp3
+** is permitted because of the following sub-derivation:
+
+exp3 EQEQ exp3 // lookahead token appears
+DASH exp3 . 

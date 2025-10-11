@@ -1,0 +1,81 @@
+
+** Conflict (shift/reduce) in state 87.
+** Tokens involved: QUESTION OR AND
+** The following explanations concentrate on token QUESTION.
+** This state is reached from expression after reading:
+
+test QUESTION test COLON test
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+expression 
+test EOF 
+(?)
+
+** In state 87, looking ahead at QUESTION, shifting is permitted..
+** because of the following sub-derivation:
+
+test QUESTION test COLON test 
+                         test . QUESTION test COLON test 
+
+** In state 87, looking ahead at QUESTION, reducing production..
+** test -> test QUESTION test COLON test
+** is permitted because of the following sub-derivation:
+
+test QUESTION test COLON test // lookahead token appears
+test QUESTION test COLON test . 
+
+** Conflict (shift/reduce) in state 73.
+** Tokens involved: QUESTION OR AND
+** The following explanations concentrate on token QUESTION.
+** This state is reached from expression after reading:
+
+test AND test
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+expression 
+test EOF 
+(?)
+
+** In state 73, looking ahead at QUESTION, shifting is permitted..
+** because of the following sub-derivation:
+
+test AND test 
+         test . QUESTION test COLON test 
+
+** In state 73, looking ahead at QUESTION, reducing production..
+** test -> test AND test
+** is permitted because of the following sub-derivation:
+
+test QUESTION test COLON test // lookahead token appears
+test AND test . 
+
+** Conflict (shift/reduce) in state 71.
+** Tokens involved: QUESTION OR AND
+** The following explanations concentrate on token QUESTION.
+** This state is reached from expression after reading:
+
+test OR test
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+expression 
+test EOF 
+(?)
+
+** In state 71, looking ahead at QUESTION, shifting is permitted..
+** because of the following sub-derivation:
+
+test OR test 
+        test . QUESTION test COLON test 
+
+** In state 71, looking ahead at QUESTION, reducing production..
+** test -> test OR test
+** is permitted because of the following sub-derivation:
+
+test QUESTION test COLON test // lookahead token appears
+test OR test . 
