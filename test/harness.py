@@ -4,16 +4,16 @@ import os
 import aggregator
 import table_generator
 
-postfix = "test"
-
+postfix = "251011"
 grammars = {
-    "grammars/G0/G0s": ["G0a", "G0b"] # "G0c", "G0d", "G0e"],
-    # "grammars/G1/G1s": ["G1a", "G1b", "G1c", "G1d", "G1e"],
-    # "grammars/G2/G2s": ["G2a", "G2b", "G2c", "G2d", "G2e"],
-    # "grammars/G3/G3s": ["G3a", "G3b", "G3c", "G3d", "G3e"],
-    # "grammars/G4/G4s": ["G4a", "G4b", "G4c", "G4d", "G4e"],
-    # "grammars/G5/G5s": ["G5a", "G5b", "G5c", "G5d", "G5e"],
-    # "grammars/G6/G6s": ["G6a", "G6b", "G6c", "G6d", "G6e"],
+#     "grammars-revamp/G0": ["G0a"],
+#     "grammars-revamp/G1": ["G1a", "G1b", "G1c"],
+#     "grammars-revamp/G2": ["G2a", "G2b", "G2c"],
+#     "grammars-revamp/G3": ["G3a", "G3b", "G3c"],
+    # "grammars-revamp/G4": ["G4a", "G4b", "G4c"],
+    # "grammars-revamp/G5": ["G5a", "G5b", "G5c"],
+    # "grammars-revamp/G6": ["G6a", "G6b", "G6c"],
+    "grammars/tezos/kaitai": ["parser"]
 }
 
 # for each grammar in grammars, run the harness script, 

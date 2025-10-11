@@ -62,7 +62,7 @@ proc handle_choice {current_path next start} {
     set result ""
     if {$start eq 0} {
         set current_path [lappend current_path $next]
-        sleep 0.3
+        sleep 0.1
         set result [rerun_path $current_path $spawn_id]
     }
     set convert_time ""
