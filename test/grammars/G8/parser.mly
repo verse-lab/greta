@@ -7,6 +7,9 @@ open Ast
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
 %token XOR_ASSIGN OR_ASSIGN TYPE_NAME
+%token LPAREN RPAREN SQUARE_LBRACKET SQUARE_RBRACKET
+%token PERIOD COMMA AMPER STAR PLUS DIV TILDE BANG MOD
+%token CARET BAR
 
 %token TYPEDEF EXTERN STATIC AUTO REGISTER
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOLATILE VOID
@@ -26,15 +29,15 @@ primary_expression:
 	| IDENTIFIER { Id }
 	| CONSTANT { Const }
 	| STRING_LITERAL { String }
-	| '(' expression ')'
+	| LPAREN expression RPAREN
 	;
 
 postfix_expression: 
 	| primary_expression
-	| postfix_expression '[' expression ']'
-	| postfix_expression '(' ')'
-	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' IDENTIFIER
+	| postfix_expression SQUARE_LBRACKET expression SQUARE_RBRACKET
+	| postfix_expression LPAREN RPAREN
+	| postfix_expression LPAREN argument_expression_list RPAREN
+	| postfix_expression PERIOD IDENTIFIER
 	| postfix_expression PTR_OP IDENTIFIER
 	| postfix_expression INC_OP
 	| postfix_expression DEC_OP
@@ -42,7 +45,7 @@ postfix_expression:
 
 argument_expression_list:
 	| assignment_expression
-	| argument_expression_list ',' assignment_expression
+	| argument_expression_list COMMA assignment_expression
 	;
 
 unary_expression
@@ -51,34 +54,34 @@ unary_expression
 	| DEC_OP unary_expression
 	| unary_operator cast_expression
 	| SIZEOF unary_expression
-	| SIZEOF '(' type_name ')'
+	| SIZEOF LPAREN type_name RPAREN
 	;
 
 unary_operator:
-	| '&'
-	| '*'
-	| '+'
-	| '-'
-	| '~'
-	| '!'
+	| AMPER 
+	| STAR 
+	| PLUS 
+	| MINUS 
+	| TILDE
+	| BANG
 	;
 
 cast_expression
 	: unary_expression
-	| '(' type_name ')' cast_expression
+	| LPAREN type_name RPAREN cast_expression
 	;
 
 multiplicative_expression
 	: cast_expression
-	| multiplicative_expression '*' cast_expression
-	| multiplicative_expression '/' cast_expression
-	| multiplicative_expression '%' cast_expression
+	| multiplicative_expression STAR cast_expression
+	| multiplicative_expression DIV cast_expression
+	| multiplicative_expression MOD cast_expression
 	;
 
 additive_expression:
 	| multiplicative_expression
-	| additive_expression '+' multiplicative_expression
-	| additive_expression '-' multiplicative_expression
+	| additive_expression PLUS multiplicative_expression
+	| additive_expression MINUS multiplicative_expression
 	;
 
 shift_expression:
@@ -89,8 +92,8 @@ shift_expression:
 
 relational_expression:
 	| shift_expression
-	| relational_expression '<' shift_expression
-	| relational_expression '>' shift_expression
+	| relational_expression LT shift_expression
+	| relational_expression GT shift_expression
 	| relational_expression LE_OP shift_expression
 	| relational_expression GE_OP shift_expression
 	;
@@ -103,17 +106,17 @@ equality_expression:
 
 and_expression:
 	| equality_expression
-	| and_expression '&' equality_expression
+	| and_expression AMPER equality_expression
 	;
 
 exclusive_or_expression:
 	| and_expression
-	| exclusive_or_expression '^' and_expression
+	| exclusive_or_expression CARET and_expression
 	;
 
 inclusive_or_expression:
 	| exclusive_or_expression
-	| inclusive_or_expression '|' exclusive_or_expression
+	| inclusive_or_expression BAR exclusive_or_expression
 	;
 
 logical_and_expression:
@@ -137,7 +140,7 @@ assignment_expression:
 	;
 
 assignment_operator:
-	| '='
+	| EQ
 	| MUL_ASSIGN
 	| DIV_ASSIGN
 	| MOD_ASSIGN
@@ -160,8 +163,8 @@ constant_expression:
 	;
 
 declaration:
-	| declaration_specifiers ';'
-	| declaration_specifiers init_declarator_list ';'
+	| declaration_specifiers SEMICOLON
+	| declaration_specifiers init_declarator_list SEMICOLON
 	;
 
 declaration_specifiers:
@@ -175,12 +178,12 @@ declaration_specifiers:
 
 init_declarator_list:
 	| init_declarator
-	| init_declarator_list ',' init_declarator
+	| init_declarator_list COMMA init_declarator
 	;
 
 init_declarator:
 	| declarator
-	| declarator '=' initializer
+	| declarator EQ initializer
 	;
 
 storage_class_specifier:
@@ -207,7 +210,7 @@ type_specifier:
 	;
 
 struct_or_union_specifier:
-	| struct_or_union IDENTIFIER '{' struct_declaration_list '}'
+	| struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE
 	| struct_or_union '{' struct_declaration_list '}'
 	| struct_or_union IDENTIFIER
 	;
