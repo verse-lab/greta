@@ -1,0 +1,87 @@
+
+** Conflict (shift/reduce) in state 134.
+** Token involved: ELT
+** This state is reached from toplevel after reading:
+
+CODE LBRACE MNEMONIC tyy SOME literal
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy literal 
+                         (?)
+
+** In state 134, looking ahead at ELT, reducing production..
+** literal -> SOME literal
+** is permitted because of the following sub-derivation:
+
+literal ELT literal // lookahead token appears
+SOME literal . 
+
+** In state 134, looking ahead at ELT, shifting is permitted..
+** because of the following sub-derivation:
+
+SOME literal 
+     literal . ELT literal 
+
+** Conflict (shift/reduce) in state 133.
+** Token involved: ELT
+** This state is reached from toplevel after reading:
+
+CODE LBRACE MNEMONIC tyy PAIR literal literal
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy literal 
+                         (?)
+
+** In state 133, looking ahead at ELT, shifting is permitted..
+** because of the following sub-derivation:
+
+PAIR literal literal 
+             literal . ELT literal 
+
+** In state 133, looking ahead at ELT, reducing production..
+** literal -> PAIR literal literal
+** is permitted because of the following sub-derivation:
+
+literal ELT literal // lookahead token appears
+PAIR literal literal . 
+
+** Conflict (shift/reduce) in state 111.
+** Token involved: ELT
+** This state is reached from toplevel after reading:
+
+CODE LBRACE MNEMONIC tyy literal ELT literal
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy literal 
+                         (?)
+
+** In state 111, looking ahead at ELT, shifting is permitted..
+** because of the following sub-derivation:
+
+literal ELT literal 
+            literal . ELT literal 
+
+** In state 111, looking ahead at ELT, reducing production..
+** literal -> literal ELT literal
+** is permitted because of the following sub-derivation:
+
+literal ELT literal // lookahead token appears
+literal ELT literal . 
