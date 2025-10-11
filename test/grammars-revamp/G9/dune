@@ -1,0 +1,12 @@
+(menhir
+ (modules parser)
+ (flags --table --inspection --explain --dump --reference-graph --greta))
+
+(library
+  (name g9)
+  (modes byte native)
+  (libraries sedlex sexplib menhirLib str core graphics qcheck num )
+  (preprocess (pps ppx_deriving.std sedlex.ppx))
+  (flags :standard -rectypes))
+
+

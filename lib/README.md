@@ -41,8 +41,8 @@
 - [x] Grammar 5 (StackOverflow - lang mostly consists of binary operations) 
 - [x] Grammar 6 (StackOVerflow - more complex case than above gte, ==, lte, lt, gt, etc.) 
 - [x] Grammar 7 (Michelson) - 11 ambigs 3 fixed by greta but 8 nonaddressable
-- [ ] Grammar 8 (Scilla - likely to be nonaddressable) - _Yunjeong WIP_
-- [ ] Grammar 9 (SQL lang) 
+- [x] Grammar 8 (Kaitai) - Gokul tested and worked
+- [x] Grammar 9 (SQL grammar) - 16 choices out of 23 ambigs so might take too long 
 - [ ] Grammar 10 (MinCaml) - can be found from previous G4 set
 
 ### Automated Testing 
