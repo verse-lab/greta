@@ -1,190 +1,169 @@
 %{
-(*****************************************************************************)
-(*                                                                           *)
-(* SPDX-License-Identifier: MIT                                              *)
-(* Copyright (c) 2023 Marigold, <contact@marigold.dev>                       *)
-(* Copyright (c) 2023 Nomadic Labs, <contact@nomadic-labs.com>               *)
-(*                                                                           *)
-(*****************************************************************************)
-
-(* Original implementation at
-https://github.com/kaitai-io/kaitai_struct_compiler/blob/master/shared/src/main/scala/io/kaitai/struct/exprlang/Expressions.scala *)
-
-open Types
-
+    open Syntax
+    open Ast_helper
+    open MySupport
 %}
 
-%token AND
-%token OR
-%token NOT
-%token AS
-%token SIZEOF
-%token BITSIZEOF
-%token <string> INT
-%token <string> FLOAT
-%token <string> STRING
-%token <string> IDENT
-%token COLON2
-%token LBRACKET
-%token RBRACKET
-%token LPAREN
-%token RPAREN
-%token QUESTION
-%token COLON
-%token LSHIFT
-%token RSHIFT
-%token LT
-%token GT
-%token EQ
-%token GTE
-%token LTE
-%token NOTEQ
-%token ADD
-%token SUB
-%token MUL
-%token DIV
-%token MOD
-%token BITOR
-%token BITAND
-%token BITXOR
-%token COMMA
-%token TILDE
-%token DOT
+%token PARAM 
+%token STORAGE 
+%token CODE 
+%token LPAREN 
+%token RPAREN 
+%token LBRACE 
+%token RBRACE 
+%token LIT
+%token SEMI 
 %token EOF
-%start <Ast.t> expression
+%token UNIT
+%token PAIR
+%token LPAREN_PAIR 
+%token LPAREN_LEFT 
+%token LPAREN_RIGHT 
+%token SOME 
+%token NONE
+%token ELT 
+%token IF
+%token IF_LEFT 
+%token IF_RIGHT 
+%token IF_NONE
+%token AT
+%token PCT 
+%token COLON
 
+%token LOOP
+%token LOOP_LEFT
+%token ITER 
+%token MAP
+%token LAMBDA
+%token EXEC
+%token DIP
+
+%token ADD 
+%token SUB 
+%token MUL 
+%token EDIV 
+%token ABS 
+%token NEG 
+%token LSL
+%token LSR
+%token AND_ 
+%token OR_ 
+%token XOR 
+%token NOT 
+%token COMPARE 
+%token EQ 
+%token NEQ 
+%token LT 
+%token LE 
+%token GT 
+%token GE
+
+%token <string> INTV
+%token <bool> BOOL
+%token <string> STR
+%token <string> MNEMONIC
+%token <string> LCID
+
+%start toplevel
+%type <Syntax.program> toplevel
 %%
 
-test:
-  | condition=test QUESTION ifTrue=test COLON ifFalse=test { Ast.(IfExp {condition; ifTrue; ifFalse}) }
-  | test AND test { Ast.(BoolOp { op = And; values = [$1; $3] }) }
-  | test OR test { Ast.(BoolOp { op = Or; values = [$1; $3] }) }
-  | not_test { $1 }  
+toplevel :
+  | sc=script EOF { sc }
 
-not_test:
-  | NOT not_test { Ast.(UnaryOp { op = Ast.Not; operand = $2 }) }
-  | comparison { $1 }
+script :
+  | CODE LBRACE is=instlist RBRACE { Code (None, is) }
+  | PARAM pty=tyy SEMI STORAGE stty=tyy SEMI CODE LBRACE is=instlist RBRACE { Code (Some (pty, stty), is) }
 
-comparison:
-  | expr { $1 }
-  | left=expr ops=comp_op right=expr { Ast.Compare {left;ops;right} }
-
-comp_op:
-  | LT { Ast.Lt }
-  | LTE { Ast.LtE }
-  | GT { Ast.Gt }
-  | GTE { Ast.GtE }
-  | EQ { Ast.Eq }
-  | NOTEQ { Ast.NotEq }
-
-chain1:
-  | xor_expr { $1 }
-  | xor_expr bitor chain1 { Ast.BinOp { left = $1; op = $2; right = $3} }
-
-chain2:
-  | and_expr { $1 }
-  | and_expr bitxor chain2 { Ast.BinOp { left = $1; op = $2; right = $3} }
-
-chain3:
-  | shift_expr { $1 }
-  | shift_expr bitand chain3 { Ast.BinOp { left = $1; op = $2; right = $3} }
-
-chain4:
-  | arith_expr { $1 }
-  | arith_expr shift_op chain4 { Ast.BinOp { left = $1; op = $2; right = $3} }
-
-chain5:
-  | term { $1 }
-  | term arith_op chain5 { Ast.BinOp { left = $1; op = $2; right = $3} }
-
-chain6:
-  | factor { $1 }
-  | factor term_op chain6 { Ast.BinOp { left = $1; op = $2; right = $3} }
-
-bitor:
-  | BITOR { Ast.BitOr }
-expr:
-  | chain1 { $1 }
-
-bitxor:
-  | BITXOR { Ast.BitXor }
-xor_expr:
-  | chain2 { $1 }
-
-bitand:
-  | BITAND { Ast.BitAnd }
-and_expr:
-  | chain3 { $1 }
-
-shift_op:
- | LSHIFT { Ast.LShift }
- | RSHIFT { Ast.RShift }
-shift_expr:
-  | chain4 { $1 }
-
-arith_op:
- | ADD { Ast.Add }
- | SUB { Ast.Sub }
-arith_expr:
-  | chain5 { $1 }
-
-term_op:
-  | DIV { Ast.Div }
-  | MUL { Ast.Mult }
-  | MOD { Ast.Mod }
-term:
-  | chain6 { $1 }
-
-factor:
-  | ADD factor { $2 }
-  | SUB factor { Ast.(UnaryOp {op = Minus; operand = $2}) }
-  | TILDE factor { Ast.(UnaryOp {op = Invert; operand = $2}) }
-  | power { $1 }
-
-power:
-  | atom list_trailer { List.fold_left (fun acc f -> f acc) $1 $2 }
-
-list_trailer:
+tyy :
+  | ty=LCID { Typ.constr (Location.mknoloc (Longident.Lident ty)) [] }
+  | LPAREN ty=LCID tail=tys RPAREN { let ty = if ty = "or" then "or_" else ty in Typ.constr (Location.mknoloc (Longident.Lident ty)) tail }
+tys :
   | /* empty */ { [] }
-  | trailer list_trailer { $1 :: $2 }
+  | ty=tyy tyds=tys { ty::tyds }
 
-separated_nonempty_list_comma_test:
-  | test { [$1] }
-  | test COMMA separated_nonempty_list_comma_test { $1 :: $3 }
+literal :
+  | s=STR { Exp.constant (Const.string s) }
+  | i=INTV { Exp.constant (Const.int (int_of_string i)) }
+  | b=BOOL { Exp.construct (Location.mknoloc (Longident.Lident (string_of_bool b))) None }
+  | UNIT { Exp.tuple [] }
+  | LBRACE LIT l=semilits RBRACE { l }  /* list/set literal; pair could be of the same form but we ignore */
+  | LBRACE kvs=kvlists RBRACE { Exp.apply (exp_of_var "map_of_assoc") [Asttypes.Nolabel, kvs] }
+  | NONE { Exp.construct (Location.mknoloc (Longident.Lident "None")) None }
+  | SOME l=literal { Exp.construct (Location.mknoloc (Longident.Lident "Some")) (Some l) }
+  | LPAREN_LEFT l=literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Left")) (Some l) }
+  | LPAREN_RIGHT l=literal RPAREN { Exp.construct (Location.mknoloc (Longident.Lident "Right")) (Some l) }
+  | LPAREN_PAIR ls=lits RPAREN { ls }
+  | l1=literal ELT l2=literal { Exp.tuple [l1; l2] }
+  | LPAREN PAIR a=literal b=literal RPAREN { Exp.tuple [a; b] }
+  | PAIR a=literal b=literal { Exp.tuple [a; b] }
 
-separated_list_comma_test:
+semilits :
+  | /* empty */ { Exp.construct (Location.mknoloc (Longident.Lident "[]")) None }
+  | l=literal { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [l; Exp.construct (Location.mknoloc (Longident.Lident "[]")) None])) }
+  | l=literal SEMI ls=semilits { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [l; ls])) }
+
+optsemi : 
+  | /* empty */ { () } 
+  | SEMI { () }
+
+kvlists :
+  | ELT l1=literal l2=literal optsemi { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [Exp.tuple [l1; l2]; Exp.construct (Location.mknoloc (Longident.Lident "[]")) None])) }
+  | ELT l1=literal l2=literal SEMI ls=kvlists { Exp.construct (Location.mknoloc (Longident.Lident "::")) (Some (Exp.tuple [Exp.tuple [l1; l2]; ls])) }
+
+lits :
+  | l1=literal l2=literal { Exp.tuple [l1; l2] }
+  | l=literal ls=lits { Exp.tuple [l; ls] }
+
+singleinst :
+  | m=MNEMONIC { Simple m }
+  | m=MNEMONIC tyy { Simple m }
+  | m=MNEMONIC tyy tyy { Simple m }
+  | m=MNEMONIC tyy l=literal { SimpleArgCon (m, l) }
+  | m=MNEMONIC i=INTV { SimpleWithNum (m, int_of_string i) }
+  | m=MNEMONIC LBRACE is=instlist RBRACE { OneBlock (m, is) }
+  | m=MNEMONIC ty1=tyy ty2=tyy LBRACE is=instlist RBRACE { OneBlockWithTwoTys (m, ty1, ty2, is) }
+  | m=MNEMONIC i=INTV LBRACE is=instlist RBRACE { OneBlockWithNum (m, int_of_string i, is) }
+  | m=MNEMONIC LBRACE is1=instlist RBRACE LBRACE is2=instlist RBRACE { TwoBlocks (m, is1, is2) }
+  | m=MNEMONIC LBRACE sc=script RBRACE { CreateContract (m, sc) }
+  | LBRACE is=instlist RBRACE { Block (is) }
+  | IF b1=block                 { IfThen b1 }
+  | IF b1=block b2=block        { IfThenElse (b1, b2) }
+  | IF_LEFT  b1=block b2=block  { IfLeft  (b1, b2) }
+  | IF_RIGHT b1=block b2=block  { IfRight (b1, b2) }
+  | IF_NONE  b1=block b2=block  { IfNone  (b1, b2) }
+  | ADD { Simple "ADD" } 
+  | SUB { Simple "SUB" } 
+  | MUL { Simple "MUL" } 
+  | EDIV { Simple "EDIV" } 
+  | ABS { Simple "ABS" } 
+  | NEG { Simple "NEG" } 
+  | LSL { Simple "LSL" } 
+  | LSR { Simple "LSR" } 
+  | AND_ { Simple "AND" } 
+  | OR_ { Simple "OR" } 
+  | XOR { Simple "XOR" } 
+  | NOT { Simple "NOT" } 
+  | COMPARE { Simple "COMPARE" } 
+  | EQ { Simple "EQ" } 
+  | NEQ { Simple "NEQ" } 
+  | LT { Simple "LT" } 
+  | LE { Simple "LE" } 
+  | GT { Simple "GT" } 
+  | GE { Simple "GE" }
+  | LOOP b=block { Loop (b) }
+  | LOOP_LEFT b=block { LoopLeft (b) }
+  | ITER b=block { Iter (b) }
+  | MAP b=block { Map (b) }
+  | LAMBDA ty1=tyy ty2=tyy b=block { OneBlockWithTwoTys ("Lambda", ty1, ty2, b) }
+  | EXEC { Simple "Exec" }
+  | DIP b=block { OneBlock ("DIP", b) }
+  | DIP i=INTV b=block { OneBlockWithNum ("DIP", int_of_string i, b) }
+
+block :
+  | LBRACE is=instlist RBRACE { is }
+
+instlist :
   | /* empty */ { [] }
-  | separated_nonempty_list_comma_test { $1 }
-
-trailer:
-  | LPAREN args=separated_list_comma_test RPAREN { fun func -> Ast.Call { func; args } }
-  | LBRACKET test RBRACKET { fun x -> Ast.Subscript { value = x;  idx = $2 }}
-  | DOT AS LT typeName=typeId GT { fun x -> Ast.CastToType { value = x; typeName } }
-  | DOT IDENT { fun x -> Ast.Attribute { value = x; attr = $2 } }
-
-atom:
-  | LBRACKET RBRACKET { Ast.List [] }
-  | s=STRING { Ast.Str s }
-  | f=FLOAT { Ast.FloatNum (float_of_string f) }
-  | i=INT { Ast.IntNum (int_of_string i) }
-  | SIZEOF LT typeName=typeId GT { Ast.ByteSizeOfType{typeName} }
-  | BITSIZEOF LT typeName=typeId GT { Ast.BitSizeOfType{typeName} }
-  | nameOrEnumByName { $1 }
-  | LBRACKET separated_nonempty_list_comma_test RBRACKET { Ast.List $2 }
-  | LPAREN test RPAREN { $2 }
-
-separated_nonempty_list_colon2_ident:
-  | IDENT { [$1] }
-  | IDENT COLON2 separated_nonempty_list_colon2_ident { $1 :: $3 }
-
-pair_lbracket_lbracket:
-  | LBRACKET LBRACKET { Some ((), ()) }
-
-typeId:
-  | COLON2 separated_nonempty_list_colon2_ident pair_lbracket_lbracket { let absolute = true in Ast.({ absolute; isArray = false; names = $2 }) }
-
-nameOrEnumByName:
-  | COLON2 separated_nonempty_list_colon2_ident { match Some(None), $2 with | _, [] -> assert false | None, [ "true" ] -> Ast.Bool true | None, [ "false" ] -> Ast.Bool false | None, [ name ] -> Ast.Name name | None, [ enumName; label ] -> (Ast.(EnumByLabel { label; enumName; inType = empty_typeId })) | prefix , path -> (let path, enumName, label = match List.rev path with | [] | [_] | [_;_] -> assert false | label :: enunName :: path_rev -> List.rev path_rev, enunName, label in let absolute = Option.is_some prefix in let inType = Ast.{ absolute; isArray = false; names = path } in Ast.(EnumByLabel { label; enumName; inType})) }
-
-expression:
-  | test EOF { $1 }
+  | i=singleinst { [ i ] }
+  | i=singleinst SEMI is=instlist { i :: is }
