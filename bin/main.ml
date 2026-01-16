@@ -9,6 +9,7 @@ module U = Treeutils
 module G = Cfg
 module T = Ta
 module W = Mly
+module O_alt = Operation_alt
 
 (* *************** Grammar REpair with Tree Automata *************** *)
 (*                                                                   *)
@@ -258,6 +259,18 @@ let () =
     in
     let _intersect_elapsed = Sys.time () -. intersect_start in
     
+    (* Step 6.1: Intersect without reachability-based analysis --------- *)
+    let _ta_intersected_wo_opt1: T.ta = O_alt.intersect_wo_opt1 ta_initial ta_learned debug 
+    in
+
+    (* Step 6.2: Intersect without removing dups and eps-introduction -- *)
+    let _ta_intersected_wo_opt2: T.ta = O_alt.intersect_wo_opt2 ta_initial ta_learned debug 
+    in
+
+    (* Step 6.3: Intersect without any optimisations ------------------- *)
+    let _ta_intersected_wo_opt12: T.ta = O_alt.intersect_wo_opt12 ta_initial ta_learned debug 
+    in
+
     (* ----------------------------------------------------------------- *)
     (* Step 7: Resulted TA is converted back to CFG (skipping...)------- *)
     (* ----------------------------------------------------------------- *)
@@ -275,7 +288,7 @@ let () =
       String.split_on_char '.' !parser_file |> List.hd 
     in
     let file_name = U.test_results_filepath grammar !file_postfix in 
-    let file_contents = W.mly_of_ta _ta_intersected parse_mly _mly_production_of_symbol in
+    let file_contents = W.mly_of_ta _ta_intersected_wo_opt1 parse_mly _mly_production_of_symbol in
     let oc = open_out file_name in
     output_string oc file_contents;
     close_out oc;
