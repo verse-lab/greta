@@ -1,5 +1,6 @@
 open Greta
 open Stdlib
+open Opt_type
 
 module C = Converter
 module O = Operation
@@ -255,22 +256,30 @@ let () =
     (* ----------------------------------------------------------------- *)
 
     let intersect_start = Sys.time () in
-    let _ta_intersected: T.ta = O.intersect ta_initial ta_learned debug 
+
+    let mode = get_intersect_mode () in
+      Printf.printf "\n\t\tINTERSECT_MODE = %s\n\n"
+      (match mode with
+      | Default -> "default"
+      | Wo_opt1 -> "wo_opt1"
+      | Wo_opt2 -> "wo_opt2"
+      | Wo_opt3 -> "wo_opt3"
+      | Wo_opt123 -> "wo_opt123");
+
+    let _ta_intersected : T.ta =
+      match mode with
+      | Default -> O.intersect ta_initial ta_learned debug
+      | Wo_opt1 -> O_alt.intersect_wo_opt1 ta_initial ta_learned debug (* w/o reachability-based analysis *)
+      | Wo_opt2 -> O_alt.intersect_wo_opt2 ta_initial ta_learned debug (* w/o removal of duplicates *)
+      | Wo_opt3 -> O_alt.intersect_wo_opt3 ta_initial ta_learned debug (* w/o epsilon introduction *)
+      | Wo_opt123 -> O_alt.intersect_wo_opt123 ta_initial ta_learned debug (* w/o any optimizations *)
     in
+
+    (* let _ta_intersected: T.ta = O.intersect ta_initial ta_learned debug 
+    in *)
+
     let _intersect_elapsed = Sys.time () -. intersect_start in
     
-    (* Step 6.1: Intersect without reachability-based analysis --------- *)
-    let _ta_intersected_wo_opt1: T.ta = O_alt.intersect_wo_opt1 ta_initial ta_learned debug 
-    in
-
-    (* Step 6.2: Intersect without removing dups and eps-introduction -- *)
-    let _ta_intersected_wo_opt2: T.ta = O_alt.intersect_wo_opt2 ta_initial ta_learned debug 
-    in
-
-    (* Step 6.3: Intersect without any optimisations ------------------- *)
-    let _ta_intersected_wo_opt12: T.ta = O_alt.intersect_wo_opt12 ta_initial ta_learned debug 
-    in
-
     (* ----------------------------------------------------------------- *)
     (* Step 7: Resulted TA is converted back to CFG (skipping...)------- *)
     (* ----------------------------------------------------------------- *)
@@ -288,7 +297,7 @@ let () =
       String.split_on_char '.' !parser_file |> List.hd 
     in
     let file_name = U.test_results_filepath grammar !file_postfix in 
-    let file_contents = W.mly_of_ta _ta_intersected_wo_opt1 parse_mly _mly_production_of_symbol in
+    let file_contents = W.mly_of_ta _ta_intersected parse_mly _mly_production_of_symbol in
     let oc = open_out file_name in
     output_string oc file_contents;
     close_out oc;
