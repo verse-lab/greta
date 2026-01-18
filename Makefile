@@ -2,7 +2,7 @@
 
 .PHONY: all clean
 
-# Default intersection mode (default | wo_opt1 | wo_opt2 | wo_opt3 | wo_opt123 )
+# Default intersection mode (default | wo_opt1 | wo_opt2 | wo_opt3 | wo_opt123)
 INTERSECTION_MODE ?= default
 
 default: test all

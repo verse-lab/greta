@@ -38,33 +38,6 @@ let find_intermediate_states (from_st: state) (trans_tbl: ((state * symbol), bet
 let find_corr_trans_in_tbl (sym: symbol) (st: state) (tbl: ((state * symbol), beta list) Hashtbl.t): 
   (beta list) list = Hashtbl.find_all tbl (st, sym) 
 
-
-(* --- helper to traverse alphabet and find transitions --- *)
-(* let find_rhs_in_tbl (sym: symbol) (st: state) (interm_sts: state list) 
-  (tbl: ((state * symbol), beta list) Hashtbl.t) (debug: bool): (beta list) list = 
-  let open Printf in
-  let rec find_rhs_loop (sym: symbol) (st: state) (interm_sts: state list) 
-    (tbl: ((state * symbol), beta list) Hashtbl.t) (acc: (beta list) list) = 
-    match Hashtbl.find_all tbl (st, sym) with 
-    | [] -> (match interm_sts with 
-            | [] -> 
-              (* if debug then printf "\n\t\t => Interm states empty\n";  *) 
-              acc
-            | ist_hd :: ist_tl -> 
-              (* if debug then printf "\n\t\t => Interm states not empty\n"; *)
-              find_rhs_loop sym ist_hd ist_tl tbl acc)
-    | sig_ls -> 
-        (match interm_sts with 
-        | [] -> sig_ls @ acc
-        | ist_hd :: ist_tl -> 
-          (* if debug then printf "\n\t => Interm states not empty\n"; *)
-          find_rhs_loop sym ist_hd ist_tl tbl (sig_ls @ acc)
-        )
-  in let blsls_res = find_rhs_loop sym st interm_sts tbl [] in
-  if debug then (printf "\n\t\t  Found rhs in tbl for ( State %s, symbol " st; 
-    Pp.pp_symbol sym; printf ")\t"; blsls_res |> List.iter (fun bls -> Pp.pp_beta_list bls)); 
-    blsls_res *)
-
 let rec find_reachable_symbols_from_state (from_st: state) (tbl: ((state * symbol), beta list) Hashtbl.t): symbol list = 
   Hashtbl.fold (fun (st, sym) bls acc -> 
     if st = from_st 
@@ -955,26 +928,19 @@ let intersect_wo_opt1 (a1: ta) (a2: ta) (debug: bool): ta =
   res_ta
 
 
-
-
-
-
-(** Intersection of tree automata *)
+(** intersect_wo_opt2 - intersect without removal of duplicates *)
 let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   let wrapped_printf fmt = 
     if debug then Printf.printf fmt else Printf.ifprintf stdout fmt 
   in
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 0 - Find the set of final states, ie, Q_f := Q_f_1 x Q_f_2 ------------------------------------ *)
   
   let final_states_raw: (state * state) list = 
     a1.final_states |> List.map (fun s1 -> a2.final_states |> List.map (fun s2 -> (s1, s2))) |> List.flatten
   in
-
   (pp_upline_new debug; wrapped_printf  "### Step 0 - Found the set of final states\n\t"; 
   final_states_raw |> Pp.pp_raw_states; pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 1 - Get raw transitions for symbols that 'final_states_raw' from Q_f -------------------------- *)
@@ -985,7 +951,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   
   (pp_upline_new debug; wrapped_printf "### Step 1 - Find final states-starting transitions : \n\t"; 
   Pp.pp_raw_transitions raw_init_trans_ls; pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 2 - Find reachable states based on final-states-starting transitions -------------------------- *)
@@ -998,7 +963,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; 
   wrapped_printf "### Step 2 - Found reachable states based on intial states-starting transitions\n\t"; 
   Pp.pp_raw_states init_reachable_states; pp_loline_new debug);
-  
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 3 - Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) ---- *)
@@ -1061,7 +1025,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; wrapped_printf "### Step 3 - Found all the raw trasitions from all the reachable states  : \n\t"; 
   Pp.pp_raw_transitions all_raw_trans; pp_loline_new debug);
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 4 - Write the 'all_raw_trans' in blocks and sort them for better comparison ------------------- *)
   let raw_trans_in_blocks_sorted: 
@@ -1077,69 +1040,15 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   in
   (if debug then pp_upline_new debug; wrapped_printf "### Step 4 - Put raw transitions in blocks of transitions : \n\t";
     Pp.pp_raw_trans_blocks raw_trans_in_blocks_sorted; pp_loline_new debug);
-
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 5 - Find a list of duplicate states pairs ----------------------------------------------------- *)
-  
-  let dup_states_pair_ls: ((state * state) * (state * state)) list = 
-    find_duplicate_state_pairs_in_trans_blocks raw_trans_in_blocks_sorted debug
-  in
-  let combined_dup_states_pair_ls: ((state * state) list) list =
-    group_common_dup_state_pairs_ls state_pairs_equal dup_states_pair_ls 
-  in 
-  (* wrapped_printf "\n\n\t\t State pair list grouped"; 
-  combined_dup_states_pair_ls |> List.iter (fun st_pair_ls -> 
-    wrapped_printf "\n\t\t[ "; st_pair_ls |> List.iter Pp.pp_raw_state; wrapped_printf " ]"); *)
-
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 5 - Find a list of duplicate states pairs : \n";
-  combined_dup_states_pair_ls |> List.iter (fun st_pair_ls -> wrapped_printf "\n\t\t[ "; 
-  st_pair_ls |> List.iter Pp.pp_raw_state; wrapped_printf " ]" ); pp_loline_new debug);
-
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 6 - Remove transitions based on 'dup_states_pair_ls' ------------------------------------------ *)  
-  let raw_trans_blocks_cleaned: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
-    
-    combined_dup_states_pair_ls 
-    |> List.fold_left (fun trans_acc sts_pair_ls -> 
-
-        let fst_sts_pair: (state * state) = 
-          List.hd sts_pair_ls
-        in
-        let remain_sts_pair: (state * state) list = 
-          List.tl sts_pair_ls 
-        in 
-        remain_sts_pair 
-          |> List.fold_left (fun inner_inner_trans_acc curr_sts_pair -> 
-            let curr_dup_sts_pair_ls: ((state * state) * (state * state)) list = 
-              (fst_sts_pair, curr_sts_pair)::[] 
-            in
-              remove_transitions_of_duplicate_states curr_dup_sts_pair_ls inner_inner_trans_acc debug          
-            ) trans_acc
-            
-    ) raw_trans_in_blocks_sorted
-    
-  in
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 6 - Remove raw transitions wrt duplicate states pairs : \n";
-  Pp.pp_raw_trans_blocks raw_trans_blocks_cleaned; pp_loline_new debug);
-
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 7 - Replace state names based on 'dup_states_pair_ls' ----------------------------------------- *)  
-  
-  let trans_blocks_replaced: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
-    replace_dup_state_names dup_states_pair_ls raw_trans_blocks_cleaned debug
-  in
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 7 - Replace state names wrt duplicate states pairs : \n";
-    Pp.pp_raw_trans_blocks trans_blocks_replaced; pp_loline_new debug);
-
-  
+ 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 8 - Rename states and populate Q, raw trans blocks -------------------------------------------- *)  
   
+  (* raw_trans_in_blocks_sorted: 
+    ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list *)
+
   let states_renaming_map: ((state * state) * (state * state)) list =
-    collect_unique_states_and_map_to_new_states trans_blocks_replaced final_states_raw debug 
+    collect_unique_states_and_map_to_new_states raw_trans_in_blocks_sorted final_states_raw debug 
   in
   let state_pairs_renamed: (state * state) list = 
     states_renaming_map |> List.map snd 
@@ -1147,21 +1056,11 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   wrapped_printf "\n\t States renamed : "; state_pairs_renamed |> List.iter Pp.pp_raw_state; wrapped_printf "\n\n";
 
   let trans_blocks_renamed: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
-    rename_trans_blocks states_renaming_map trans_blocks_replaced debug
+    rename_trans_blocks states_renaming_map raw_trans_in_blocks_sorted debug
   in 
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 8 - Rename states in Q and raw trans blocks : \n";
+  (if debug then pp_upline_new debug; wrapped_printf "\n\n##### SKIPPED REMOVAL OF DUPLICATES (Steps 5, 6, 7, 9) #####\n\n";
+  wrapped_printf "### Step 8 - Rename states in Q and raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_renamed; pp_loline_new debug);
-
-
-  (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 9 - Remove duplicate transitions in each raw trans block -------------------------------------- *)  
-  
-  let trans_blocks_wo_dup_trans = 
-    remove_dup_trans_for_each_block trans_blocks_renamed debug
-  in 
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 9 - Removed dup trans in raw trans blocks : \n";
-  Pp.pp_raw_trans_blocks trans_blocks_wo_dup_trans; pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 10 - Introduce epsilon transitions to simplify raw trans blocks ------------------------------- *)
@@ -1171,7 +1070,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   in 
   (if debug then pp_upline_new debug; wrapped_printf "### Step 10 - Introduce epsilon transitions to simplify raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 11 - Convert raw trans blocks to transitions list --------------------------------------------- *)
@@ -1184,7 +1082,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   in
   (if debug then pp_upline_new debug; wrapped_printf "### Step 11 - Convert raw trans blocks to transitions list : \n";
   Pp.pp_raw_transitions _raw_trans; pp_loline_new debug);
-  
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 12 - Identify dead states and get rid of transistions involving dead states ------------------- *)
@@ -1195,7 +1092,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   in 
   (if debug then pp_upline_new debug; wrapped_printf "### Step 12 - Identify dead states : \n";
   dead_states |> Pp.pp_raw_states; pp_loline_new debug);
-  
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 13 - Simplify raw transitions list wrt. dead states (any prods involving them)----------------- *)
@@ -1221,7 +1117,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
       wrapped_printf "\t\t State (%s, %s) is epsilon-connected to -> " (fst sts_pair) (snd sts_pair);
        sts_pair_ls |> Pp.pp_raw_states); pp_loline_new debug);
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 15 - Simplify based on epsilon-transition linkage between states ------------------------------ *)
   
@@ -1231,7 +1126,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
 
   (if debug then pp_upline_new debug; wrapped_printf "### Step 15 - Simplify raw trans blocks wrt. epsilon-connected states : \n";
   Pp.pp_raw_trans_blocks trans_blocks_simplified_per_eps_linkage; pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 17 - Remove any duplicate transition in each block after simplification ----------------------- *)
@@ -1259,7 +1153,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
     clean_raw_transitions_wrt_dead_states new_raw_trans dead_states debug
   in 
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 18 - Convert the raw transitions to transitions tbl ------------------------------------------- *)
 
@@ -1271,7 +1164,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
     res_trans_ls |> List.iter (fun ((st, sym), beta_ls) -> 
       Hashtbl.add res_trans_tbl (st, sym) beta_ls);
 
-  
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 19 - Populate 'states' and 'final_states' according to renaming map --------------------------- *)
   
@@ -1289,7 +1181,6 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
     |> List.map snd |> List.map fst
   in 
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 20 - Put everything together and return the resulted TA --------------------------------------- *)
   
@@ -1304,7 +1195,7 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
   res_ta
 
 
-(** Intersection of tree automata *)
+(** intersect_wo_opt3 - intersect without epsilon introduction *)
 let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   let wrapped_printf fmt = 
     if debug then Printf.printf fmt else Printf.ifprintf stdout fmt 
@@ -1320,7 +1211,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   (pp_upline_new debug; wrapped_printf  "### Step 0 - Found the set of final states\n\t"; 
   final_states_raw |> Pp.pp_raw_states; pp_loline_new debug);
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 1 - Get raw transitions for symbols that 'final_states_raw' from Q_f -------------------------- *)
 
@@ -1330,7 +1220,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   
   (pp_upline_new debug; wrapped_printf "### Step 1 - Find final states-starting transitions : \n\t"; 
   Pp.pp_raw_transitions raw_init_trans_ls; pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 2 - Find reachable states based on final-states-starting transitions -------------------------- *)
@@ -1343,7 +1232,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; 
   wrapped_printf "### Step 2 - Found reachable states based on intial states-starting transitions\n\t"; 
   Pp.pp_raw_states init_reachable_states; pp_loline_new debug);
-  
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 3 - Based on (Ei, Ej) in list of reachable states, find transitions starting from (Ei, Ej) ---- *)
@@ -1406,7 +1294,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; wrapped_printf "### Step 3 - Found all the raw trasitions from all the reachable states  : \n\t"; 
   Pp.pp_raw_transitions all_raw_trans; pp_loline_new debug);
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 4 - Write the 'all_raw_trans' in blocks and sort them for better comparison ------------------- *)
   let raw_trans_in_blocks_sorted: 
@@ -1422,7 +1309,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   in
   (if debug then pp_upline_new debug; wrapped_printf "### Step 4 - Put raw transitions in blocks of transitions : \n\t";
     Pp.pp_raw_trans_blocks raw_trans_in_blocks_sorted; pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 5 - Find a list of duplicate states pairs ----------------------------------------------------- *)
@@ -1440,7 +1326,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; wrapped_printf "### Step 5 - Find a list of duplicate states pairs : \n";
   combined_dup_states_pair_ls |> List.iter (fun st_pair_ls -> wrapped_printf "\n\t\t[ "; 
   st_pair_ls |> List.iter Pp.pp_raw_state; wrapped_printf " ]" ); pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 6 - Remove transitions based on 'dup_states_pair_ls' ------------------------------------------ *)  
@@ -1469,7 +1354,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; wrapped_printf "### Step 6 - Remove raw transitions wrt duplicate states pairs : \n";
   Pp.pp_raw_trans_blocks raw_trans_blocks_cleaned; pp_loline_new debug);
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 7 - Replace state names based on 'dup_states_pair_ls' ----------------------------------------- *)  
   
@@ -1479,7 +1363,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; wrapped_printf "### Step 7 - Replace state names wrt duplicate states pairs : \n";
     Pp.pp_raw_trans_blocks trans_blocks_replaced; pp_loline_new debug);
 
-  
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 8 - Rename states and populate Q, raw trans blocks -------------------------------------------- *)  
   
@@ -1497,7 +1380,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; wrapped_printf "### Step 8 - Rename states in Q and raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_renamed; pp_loline_new debug);
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 9 - Remove duplicate transitions in each raw trans block -------------------------------------- *)  
   
@@ -1507,7 +1389,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; wrapped_printf "### Step 9 - Removed dup trans in raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_wo_dup_trans; pp_loline_new debug);
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 10 - Introduce epsilon transitions to simplify raw trans blocks ------------------------------- *)
   
@@ -1516,7 +1397,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   in 
   (if debug then pp_upline_new debug; wrapped_printf "### Step 10 - Introduce epsilon transitions to simplify raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 11 - Convert raw trans blocks to transitions list --------------------------------------------- *)
@@ -1528,8 +1408,7 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
       in transformed @ res_acc) []
   in
   (if debug then pp_upline_new debug; wrapped_printf "### Step 11 - Convert raw trans blocks to transitions list : \n";
-  Pp.pp_raw_transitions _raw_trans; pp_loline_new debug);
-  
+  Pp.pp_raw_transitions _raw_trans; pp_loline_new debug);  
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 12 - Identify dead states and get rid of transistions involving dead states ------------------- *)
@@ -1540,7 +1419,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   in 
   (if debug then pp_upline_new debug; wrapped_printf "### Step 12 - Identify dead states : \n";
   dead_states |> Pp.pp_raw_states; pp_loline_new debug);
-  
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 13 - Simplify raw transitions list wrt. dead states (any prods involving them)----------------- *)
@@ -1565,7 +1443,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
     state_eps_connected_states |> List.iter (fun (sts_pair, sts_pair_ls) -> 
       wrapped_printf "\t\t State (%s, %s) is epsilon-connected to -> " (fst sts_pair) (snd sts_pair);
        sts_pair_ls |> Pp.pp_raw_states); pp_loline_new debug);
-
 
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 15 - Simplify based on epsilon-transition linkage between states ------------------------------ *)
@@ -1604,7 +1481,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
     clean_raw_transitions_wrt_dead_states new_raw_trans dead_states debug
   in 
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 18 - Convert the raw transitions to transitions tbl ------------------------------------------- *)
 
@@ -1615,7 +1491,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   let res_trans_tbl: ((state * symbol), beta list) Hashtbl.t = Hashtbl.create (Hashtbl.length a2.transitions) in
     res_trans_ls |> List.iter (fun ((st, sym), beta_ls) -> 
       Hashtbl.add res_trans_tbl (st, sym) beta_ls);
-
   
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 19 - Populate 'states' and 'final_states' according to renaming map --------------------------- *)
@@ -1634,7 +1509,6 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
     |> List.map snd |> List.map fst
   in 
 
-
   (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 20 - Put everything together and return the resulted TA --------------------------------------- *)
   
@@ -1648,6 +1522,7 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   wrapped_printf "\n ** Result of TA intersection: \n"; Pp.pp_ta res_ta; wrapped_printf "\n\n"; 
   res_ta
 
+(** intersect_wo_opt123 - intersect without any optimizations *)
 let intersect_wo_opt123 (a1: ta) (a2: ta) (debug: bool): ta =
   let wrapped_printf fmt = 
     if debug then Printf.printf fmt else Printf.ifprintf stdout fmt 
