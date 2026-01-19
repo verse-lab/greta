@@ -1,4 +1,3 @@
-
 type t =
   | Na
   | Int of int

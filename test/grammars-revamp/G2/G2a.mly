@@ -1,10 +1,3 @@
-/* *** G1b *** */
-// 2 po's 2 assoc's
-// ~ vs. ->
-// & vs. |
-// & assoc
-// -> assoc
-
 %{
 open Ast;;
 %}

@@ -1,9 +1,3 @@
-/* *** G2b *** */
-// 3 conflicts - 3 po's 1 assoc
-// if1 vs. if2
-// - vs. +
-// * assoc
-
 %{
 open Ast;;
 
@@ -53,12 +47,9 @@ const:
   | i=INT { loc $startpos $endpos @@ CInt i }
 
 exp:
-  | e1=exp PLUS e2=exp2  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
+  | e1=exp PLUS e2=exp  { loc $startpos $endpos @@ Bop(Add, e1, e2) }
   | e1=exp DASH e2=exp  { loc $startpos $endpos @@ Bop(Sub, e1, e2) }
-  | exp2 { $1 }
-
-exp2: 
-  | e1=exp2 STAR e2=exp2  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
+  | e1=exp STAR e2=exp  { loc $startpos $endpos @@ Bop(Mul, e1, e2) }
   | id=ident            { loc $startpos $endpos @@ Id (id) }
   | c=const             { loc $startpos $endpos @@ Const (c) }
   | LPAREN e=exp RPAREN { e }

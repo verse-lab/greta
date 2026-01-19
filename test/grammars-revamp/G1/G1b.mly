@@ -1,13 +1,3 @@
-/* *** G0d *** */
-// 6 po's 1 assoc
-// if2 vs. +
-// if2 vs. *
-// * vs. +
-// if1 vs. +
-// if1 vs. *
-// if1 vs. if2
-// * assoc
-
 %{
   open Ast
 %}
