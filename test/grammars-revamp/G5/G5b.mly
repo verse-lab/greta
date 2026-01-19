@@ -20,7 +20,7 @@
 program : lexpr1 EOF { $1 };
 
 lexpr1:     
-  | lexpr1 AND lexpr2 { And($1, $3) }
+  | lexpr1 AND lexpr1 { And($1, $3) }
   | lexpr2 { $1 }
   ;
 
