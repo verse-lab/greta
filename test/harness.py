@@ -3,17 +3,20 @@
 import os
 import aggregator
 import table_generator
+import scatter
 
 postfix = "251011"
 grammars = {
-#     "grammars-revamp/G0": ["G0a"],
-#     "grammars-revamp/G1": ["G1a", "G1b", "G1c"],
-#     "grammars-revamp/G2": ["G2a", "G2b", "G2c"],
-#     "grammars-revamp/G3": ["G3a", "G3b", "G3c"],
-    # "grammars-revamp/G4": ["G4a", "G4b", "G4c"],
-    # "grammars-revamp/G5": ["G5a", "G5b", "G5c"],
-    # "grammars-revamp/G6": ["G6a", "G6b", "G6c"],
-    "grammars/tezos/kaitai": ["parser"]
+    "grammars-revamp/G0": ["G0a"],
+    "grammars-revamp/G1": ["G1a", "G1b", "G1c"],
+    "grammars-revamp/G2": ["G2a", "G2b", "G2c"],
+    "grammars-revamp/G3": ["G3a", "G3b", "G3c"],
+    "grammars-revamp/G4": ["G4a", "G4b", "G4c"],
+    "grammars-revamp/G5": ["G5a", "G5b", "G5c"],
+    "grammars-revamp/G6": ["G6a", "G6b", "G6c"],
+    "grammars-revamp/G7": ["G7a"],
+    "grammars-revamp/G8": ["G8a"],
+    "grammars-revamp/G9": ["G9a"],
 }
 
 # for each grammar in grammars, run the harness script, 
@@ -93,4 +96,29 @@ for folder, variants in grammars.items():
 # generate tables
 grammars = { grammar: f"{folder}/{grammar}_results_{postfix}/results.csv" for folder, grammars in grammars.items() for grammar in grammars }
 table_generator.generate_tables(grammars)
+
+ambiguity_map = {'G0a': 5,      # 5 shift/reduce conflicts
+                'G1a': 4,      # 4 shift/reduce conflicts  
+                'G1b': 7,      # 7 shift/reduce conflicts
+                'G1c': 9,      # 9 shift/reduce conflicts
+                'G2a': 4,      # 4 shift/reduce conflicts
+                'G2b': 6,      # 6 shift/reduce conflicts  
+                'G2c': 12,     # 12 shift/reduce conflicts
+                'G3a': 2,      # 2 shift/reduce conflicts
+                'G3b': 3,      # 3 shift/reduce conflicts
+                'G3c': 9,      # 9 shift/reduce conflicts
+                'G4a': 3,      # 3 shift/reduce conflicts
+                'G4b': 12,     # 12 shift/reduce conflicts
+                'G4c': 16,     # 16 shift/reduce conflicts
+                'G5a': 2,      # 2 shift/reduce conflicts
+                'G5b': 2,      # 2 shift/reduce conflicts
+                'G5c': 6,      # 6 shift/reduce conflicts
+                'G6a': 2,      # 2 shift/reduce conflicts
+                'G6b': 14,     # 14 shift/reduce conflicts
+                'G6c': 18,     # 18 shift/reduce conflicts
+                'G7a': 3,      # 3 shift/reduce conflicts
+                'G8a': 9,      # 9 shift/reduce conflicts
+                'G9a': 23}     # 23 shift/reduce conflicts
+
+scatter.create_plots(postfix, grammars, ambiguity_map)
 

@@ -21,7 +21,7 @@ def process_grammar_file(filename):
         'intersect_time': success_df['intersect_time'].mean() * 1000  # Convert to ms
     }
 
-def create_plots(data_dir, ambiguity_map, output_dir='plots'):
+def create_plots(variant, data_dirs, ambiguity_map, output_dir='plots'):
     """Create separate scatter plots for each time metric vs ambiguities and save as SVG files."""
     # Create output directory if it doesn't exist
     if not os.path.exists(output_dir):
@@ -29,40 +29,44 @@ def create_plots(data_dir, ambiguity_map, output_dir='plots'):
     
     # Process all grammar files
     results = []
-    for grammar in ['G0', 'G1', 'G2', 'G3', 'G5', 'G6']:
-        for variant in ['a', 'b', 'c', 'd', 'e']:
-            grammar_id = f"{grammar}{variant}"
-            filename = os.path.join(data_dir, f"{grammar_id}_aggregate.csv")
+    for data_dir, grammar_ids in data_dirs.items():
+        for grammar_id in grammar_ids:
+            filename = os.path.join('.', f"{data_dir}/{grammar_id}_results_{variant}/results.csv")
+            print(f"Processing file: {filename}")
             if os.path.exists(filename):
                 averages = process_grammar_file(filename)
+                print(averages)
                 if averages is not None:  # Only add if there were SUCCESS cases
                     results.append({
                         'grammar': grammar_id,
                         'ambiguities': ambiguity_map[grammar_id],
                         **averages
                     })
-    
+            else:
+                print(f"File {filename} does not exist.")
+
     # Define markers and colors
-    markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*']
-    colors = plt.cm.tab10(np.linspace(0, 1, 6))  # Different color for each G0-G6
-    
+    markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*', 'h']  # Different marker for each G0-G9
+    colors = plt.cm.tab10(np.linspace(0, 1, 10))  # Different color for each G0-G9
+
     # Function to create a single plot and save as SVG
     def create_single_plot(metric_name, title, filename):
         plt.figure(figsize=(8, 6))
-        for i, grammar_base in enumerate(['G0', 'G1', 'G2', 'G3', 'G5', 'G6']):
+        plt.rcParams.update({'font.size': 16})  # Increases all fonts
+
+        for i, grammar_base in enumerate(['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G9']):
             # Filter results for this grammar base
             grammar_results = [r for r in results if r['grammar'].startswith(grammar_base)]
-            if grammar_results:
-                # Adjust labels for G5 and G6 as per original code
-                display_name = grammar_base
-                if grammar_base == 'G5':
-                    display_name = 'G4'
-                if grammar_base == 'G6':
-                    display_name = 'G5'
+            if grammar_results:                
+                # Sort by ambiguities to ensure proper line connection
+                grammar_results_sorted = sorted(grammar_results, key=lambda r: r['ambiguities'])
                 
-                x = [r['ambiguities'] for r in grammar_results]
-                y = [r[metric_name] for r in grammar_results]
-                plt.scatter(x, y, label=display_name, marker=markers[i], color=colors[i])
+                x = [r['ambiguities'] for r in grammar_results_sorted]
+                y = [r[metric_name] for r in grammar_results_sorted]
+                
+                # Plot both line and scatter
+                plt.plot(x, y, color=colors[i], linestyle='-', linewidth=1.5, alpha=0.7)
+                plt.scatter(x, y, label=grammar_base, marker=markers[i], color=colors[i], s=80, zorder=5)
         
         plt.xlabel('Number of Ambiguities')
         plt.ylabel('Average Time (ms)')
@@ -83,13 +87,27 @@ def create_plots(data_dir, ambiguity_map, output_dir='plots'):
     create_single_plot('intersect_time', 'Intersect Time', 'intersect_time_vs_ambiguities.pdf')
 
 # Example usage:
-ambiguity_map = {
-    'G0a': 4, 'G0b': 5, 'G0c': 5, 'G0d': 7, 'G0e': 9,
-    'G1a': 2, 'G1b': 4, 'G1c': 6, 'G1d': 9, 'G1e': 12,
-    'G2a': 1, 'G2b': 3, 'G2c': 4, 'G2d': 5, 'G2e': 10,
-    'G3a': 3, 'G3b': 4, 'G3c': 6, 'G3d': 8, 'G3e': 10,
-    'G5a': 1, 'G5b': 2, 'G5c': 3, 'G5d': 4, 'G5e': 6,
-    'G6a': 2, 'G6b': 3, 'G6c': 6, 'G6d': 8, 'G6e': 13
-}
+# ambiguity_map = {'G0a': 5,      # 5 shift/reduce conflicts
+#                 'G1a': 4,      # 4 shift/reduce conflicts  
+#                 'G1b': 7,      # 7 shift/reduce conflicts
+#                 'G1c': 9,      # 9 shift/reduce conflicts
+#                 'G2a': 4,      # 4 shift/reduce conflicts
+#                 'G2b': 6,      # 6 shift/reduce conflicts  
+#                 'G2c': 12,     # 12 shift/reduce conflicts
+#                 'G3a': 2,      # 2 shift/reduce conflicts
+#                 'G3b': 3,      # 3 shift/reduce conflicts
+#                 'G3c': 9,      # 9 shift/reduce conflicts
+#                 'G4a': 3,      # 3 shift/reduce conflicts
+#                 'G4b': 12,     # 12 shift/reduce conflicts
+#                 'G4c': 16,     # 16 shift/reduce conflicts
+#                 'G5a': 2,      # 2 shift/reduce conflicts
+#                 'G5b': 2,      # 2 shift/reduce conflicts
+#                 'G5c': 6,      # 6 shift/reduce conflicts
+#                 'G6a': 2,      # 2 shift/reduce conflicts
+#                 'G6b': 14,     # 14 shift/reduce conflicts
+#                 'G6c': 18,     # 18 shift/reduce conflicts
+#                 'G7a': 3,      # 3 shift/reduce conflicts
+#                 'G8a': 9,      # 9 shift/reduce conflicts
+#                 'G9a': 23}     # 23 shift/reduce conflicts
 
-create_plots('.', ambiguity_map)
+# create_plots('.', ambiguity_map)
