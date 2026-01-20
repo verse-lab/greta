@@ -258,13 +258,15 @@ let () =
     let intersect_start = Sys.time () in
 
     let mode = get_intersect_mode () in
-      Printf.printf "\n\t\tINTERSECT_MODE = %s\n\n"
+    let print_intersect_mode () = 
+      Printf.printf "\n\t\tINTERSECT_MODE = %s\n\n\n"
       (match mode with
       | Default -> "default"
       | Wo_opt1 -> "wo_opt1"
       | Wo_opt2 -> "wo_opt2"
       | Wo_opt3 -> "wo_opt3"
-      | Wo_opt123 -> "wo_opt123");
+      | Wo_opt123 -> "wo_opt123") in 
+    print_intersect_mode ();
 
     let _ta_intersected : T.ta =
       match mode with
@@ -306,7 +308,7 @@ let () =
     Printf.printf "\n\n\t\tTime elapsed for converting TA: %f\n\n" _convert_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for learning TA: %f\n\n" _learn_ta_elapsed;
     Printf.printf "\n\n\t\tTime elapsed for intersecting TA: %f\n\n" _intersect_elapsed;
-    (* Time for convering back to CFG *)
+    print_intersect_mode ();
     
   ()
   

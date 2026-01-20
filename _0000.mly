@@ -20,47 +20,51 @@
 
 %token EOF
 
-%type <Ast.t> prog1
-%start prog1
+%type <Ast.t> prog7
+%start prog7
 %%
 
-decl7:
-  | TINT iden6 EQ expr1  { TDecl ($2, $4) }
+decl9:
+  | TINT iden8 EQ expr1  { TDecl ($2, $4) }
   ;
 
 expr1:
-  | expr2 STAR expr4  { Star ($1, $3) }
+  | expr3 STAR expr5  { Star ($1, $3) }
   | LPAREN expr1 RPAREN  { Paren $2 }
   | INT  { Int $1 }
-  | expr1 PLUS expr2  { Plus ($1, $3) }
+  | expr1 PLUS expr3  { Plus ($1, $3) }
   ;
 
-expr2:
+expr3:
+  | LPAREN expr1 RPAREN  { Paren $2 }
+  | INT  { Int $1 }
+  | expr3 STAR expr5  { Star ($1, $3) }
+  ;
+
+expr5:
   | INT  { Int $1 }
   | LPAREN expr1 RPAREN  { Paren $2 }
-  | expr2 STAR expr4  { Star ($1, $3) }
   ;
 
-expr4:
-  | INT  { Int $1 }
-  | LPAREN expr1 RPAREN  { Paren $2 }
-  ;
-
-iden6:
+iden8:
   | IDENT  { $1 }
   ;
 
-prog1:
-  | stmt3 EOF  { $1 }
+prog7:
+  | stmt2 EOF  { $1 }
   ;
 
-stmt3:
-  | IF expr1 THEN stmt3  { If ($2, Then ($4, Else Na)) }
-  | decl7 SEMI  { Semi ($1) }
-  | IF expr1 THEN stmt5 ELSE stmt5  { If ($2, Then ($4, Else $6)) }
+stmt2:
+  | decl9 SEMI  { Semi ($1) }
+  | IF expr1 THEN stmt4 ELSE stmt4  { If ($2, Then ($4, Else $6)) }
+  | IF expr1 THEN stmt2  { If ($2, Then ($4, Else Na)) }
   ;
 
-stmt5:
-  | decl7 SEMI  { Semi ($1) }
-  | IF expr1 THEN stmt5 ELSE stmt5  { If ($2, Then ($4, Else $6)) }
+stmt4:
+  | IF expr1 THEN stmt4 ELSE stmt4  { If ($2, Then ($4, Else $6)) }
+  | decl9 SEMI  { Semi ($1) }
+  ;
+
+stmt6:
+  | decl9 SEMI  { Semi ($1) }
   ;
