@@ -1,6 +1,8 @@
 (menhir
- (modules parser)
+ (modules parser mly_parser)
  (flags --table --inspection --explain --dump --reference-graph --greta))
+
+(ocamllex mly_lexer)
 
 (library
   (name greta)
