@@ -44,27 +44,26 @@ def process_grammar_files(grammar_id: str, files_data: pd.DataFrame) -> Dict:
     
     return {
         'rounds_range': rounds_range,
-        'avg_rounds': f"{avg_rounds:.2f}",
+        'avg_rounds': f"{int(avg_rounds)}",
         'prompts_range': prompts_range,
-        'avg_prompts': f"{avg_prompts:.2f}",
+        'avg_prompts': f"{int(avg_prompts)}",
         'fixed_count': len(success_files),
         'unfixed_count': len(files_data) - len(success_files),
-        'avg_convert': f"{int(round(success_files['convert_time'].mean() * 1000000))}",
-        'avg_learn': f"{int(round(success_files['learn_time'].mean() * 1000000))}",
-        'avg_intersect': f"{int(round(success_files['intersect_time'].mean() * 1000000))}"
+        'avg_convert': f"{int(round(success_files['convert_time'].mean() * 1000000)) / 1000:.3g}",
+        'avg_learn': f"{int(round(success_files['learn_time'].mean() * 1000000)) / 1000:.3g}",
+        'avg_intersect': f"{int(round(success_files['intersect_time'].mean() * 1000000)) / 1000:.3g}"
     }
 
-def create_latex_table(filepaths: Dict, tokens_map: Dict, terms_map: Dict, 
-                      nonterms_map: Dict, prods_map: Dict, ambiguities_map: Dict) -> str:
+def create_latex_table(filepaths: Dict, terms_map: Dict, 
+                      nonterms_map: Dict, prods_map: Dict, prec_map: Dict, assoc_map: Dict, ambiguities_map: Dict) -> str:
     """Generate LaTeX table with grammar statistics."""
     results = []
     
-    # Process each grammar variant (excluding G4)
-    for g in range(7):
-        if g == 4:  # Skip G4
-            continue
+    # Process each grammar variant
+    for g in range(10):
         for variant in ['a', 'b', 'c', 'd', 'e']:
             grammar_id = f"G{g}{variant}"
+            row_grammar = f"$G{g}${variant}"
             
             # Construct full file path
             if grammar_id not in filepaths:
@@ -83,11 +82,12 @@ def create_latex_table(filepaths: Dict, tokens_map: Dict, terms_map: Dict,
             stats = process_grammar_files(grammar_id, files_data)
             
             results.append({
-                'Grammar': grammar_id,
-                'Tokens': tokens_map.get(grammar_id, 'N/A'),
+                'Grammar': row_grammar,
                 'Terms': terms_map.get(grammar_id, 'N/A'),
                 'NonTerms': nonterms_map.get(grammar_id, 'N/A'),
                 'Prods': prods_map.get(grammar_id, 'N/A'),
+                'Precedence': prec_map.get(grammar_id, 'N/A'),
+                'Associativity': assoc_map.get(grammar_id, 'N/A'),
                 'Ambiguities': ambiguities_map.get(grammar_id, 'N/A'),
                 **stats
             })
@@ -97,12 +97,12 @@ def create_latex_table(filepaths: Dict, tokens_map: Dict, terms_map: Dict,
 \centering
 \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
 \hline
-Grammar & $|T|$ & $|P|$ & Amb. & Avg. Rounds & Avg Prompts & % Fixed & Conv. & Learn & Inter. \\
+Grammar & $|Σ|$ & |V| & $|P|$ & Prec. & Assoc. & Amb. & Avg. Rounds & Avg Prompts & % Fixed & Conv. & Learn & Inter. \\
 \hline
 """
     for row in results:
-        latex += f"{row['Grammar']} & {row['Tokens']} & "
-        latex += f"{row['Prods']} & {row['Ambiguities']} & {row['avg_rounds']} & "
+        latex += f"{row['Grammar']} & {row['Terms']} & {row['NonTerms']} & "
+        latex += f"{row['Prods']} & {row['Precedence']} & {row['Associativity']} & {row['Ambiguities']} & {row['avg_rounds']} & "
         latex += f"{row['avg_prompts']} & {round(row['fixed_count'] * 100 / (row['fixed_count'] + row['unfixed_count']))} & "
         latex += f"{row['avg_convert']} & {row['avg_learn']} & {row['avg_intersect']} \\\\\n"
     
@@ -114,44 +114,148 @@ Grammar & $|T|$ & $|P|$ & Amb. & Avg. Rounds & Avg Prompts & % Fixed & Conv. & L
     return latex
 
 # Example usage:
-tokens_map = {'G0a': 11, 'G0b': 11, 'G0c': 11, 'G0d': 11, 'G0e': 11,
-            'G1a': 10, 'G1b': 10, 'G1c': 10, 'G1d': 10, 'G1e': 10,
-            'G2a': 18, 'G2b': 18, 'G2c': 18, 'G2d': 18, 'G2e': 18,
-            'G3a': 25, 'G3b': 25, 'G3c': 25, 'G3d': 25, 'G3e': 25,
-            'G5a': 7, 'G5b': 7, 'G5c': 7, 'G5d': 7, 'G5e': 7,
-            'G6a': 21, 'G6b': 21, 'G6c': 21, 'G6d': 21, 'G6e': 21}
-terms_map = {'G0a': 5, 'G0b': 6, 'G0c': 6, 'G0d': 7, 'G0e': 8,
-              'G1a': 5, 'G1b': 6, 'G1c': 6, 'G1d': 7, 'G1e': 8,
-              'G2a': 5, 'G2b': 6, 'G2c': 6, 'G2d': 7, 'G2e': 8,
-              'G3a': 5, 'G3b': 6, 'G3c': 6, 'G3d': 7, 'G3e': 8,
-              'G5a': 5, 'G5b': 6, 'G5c': 6, 'G5d': 7, 'G5e': 8,
-              'G6a': 5, 'G6b': 6, 'G6c': 6, 'G6d': 7, 'G6e': 8}
-nonterms_map = {'G0a': 3, 'G0b': 4, 'G0c': 4, 'G0d': 5, 'G0e': 6,
-                    'G1a': 3, 'G1b': 4, 'G1c': 4, 'G1d': 5, 'G1e': 6,
-                    'G2a': 3, 'G2b': 4, 'G2c': 4, 'G2d': 5, 'G2e': 6,
-                    'G3a': 3, 'G3b': 4, 'G3c': 4, 'G3d': 5, 'G3e': 6,
-                    'G5a': 3, 'G5b': 4, 'G5c': 4, 'G5d': 5, 'G5e': 6,
-                    'G6a': 3, 'G6b': 4, 'G6c': 4, 'G6d': 5, 'G6e': 6}
-prods_map = {
-    'G0a': 11, 'G0b': 11, 'G0c': 11, 'G0d': 11, 'G0e': 10,
-    'G1a': 11, 'G1b': 11, 'G1c': 11, 'G1d': 11, 'G1e': 10,
-    'G2a': 22, 'G2b': 21, 'G2c': 21, 'G2d': 21, 'G2e': 21,
-    'G3a': 25, 'G3b': 25, 'G3c': 25, 'G3d': 25, 'G3e': 25,
-    'G5a': 9, 'G5b': 10, 'G5c': 10, 'G5d': 9, 'G5e': 8,
-    'G6a': 2, 'G6b': 3, 'G6c': 6, 'G6d': 8, 'G6e': 13
-}
-ambiguities_map = {
-    'G0a': 4, 'G0b': 5, 'G0c': 5, 'G0d': 7, 'G0e': 9,
-    'G1a': 2, 'G1b': 4, 'G1c': 6, 'G1d': 9, 'G1e': 12,
-    'G2a': 1, 'G2b': 3, 'G2c': 4, 'G2d': 5, 'G2e': 10,
-    'G3a': 3, 'G3b': 4, 'G3c': 6, 'G3d': 8, 'G3e': 10,
-    'G5a': 1, 'G5b': 2, 'G5c': 3, 'G5d': 4, 'G5e': 6,
-    'G6a': 2, 'G6b': 3, 'G6c': 6, 'G6d': 8, 'G6e': 13
-}
+terms_map = {'G0a': 13,
+              'G1a': 11,
+              'G1b': 11,
+              'G1c': 11,
+              'G2a': 10,
+              'G2b': 10,
+              'G2c': 10,
+              'G3a': 17,
+              'G3b': 18,
+              'G3c': 18,
+              'G4a': 25,
+              'G4b': 25,
+              'G4c': 25,
+              'G5a': 8,
+              'G5b': 8,
+              'G5c': 8,
+              'G6a': 21,
+              'G6b': 21,
+              'G6c': 21,
+              'G7a': 56,
+              'G8a': 37,
+              'G9a': 29}
+
+nonterms_map = {'G0a': 5,
+              'G1a': 4,
+              'G1b': 4,
+              'G1c': 3,
+              'G2a': 3,
+              'G2b': 3,
+              'G2c': 2,
+              'G3a': 8,
+              'G3b': 9,
+              'G3c': 8,
+              'G4a': 10,
+              'G4b': 8,
+              'G4c': 8,
+              'G5a': 4,
+              'G5b': 4,
+              'G5c': 2,
+              'G6a': 5,
+              'G6b': 5,
+              'G6c': 5,
+              'G7a': 12,
+              'G8a': 32,
+              'G9a': 18}
+
+prods_map = {'G0a': 10,
+              'G1a': 10,
+              'G1b': 10,
+              'G1c': 9,
+              'G2a': 10,
+              'G2b': 10,
+              'G2c': 9,
+              'G3a': 20,
+              'G3b': 21,
+              'G3c': 20,
+              'G4a': 26,
+              'G4b': 24,
+              'G4c': 24,
+              'G5a': 9,
+              'G5b': 9,
+              'G5c': 7,
+              'G6a': 23,
+              'G6b': 23,
+              'G6c': 23,
+              'G7a': 77,
+              'G8a': 72,
+              'G9a': 42}
+
+ambiguities_map = {'G0a': 5,      # 5 shift/reduce conflicts
+                'G1a': 4,      # 4 shift/reduce conflicts  
+                'G1b': 7,      # 7 shift/reduce conflicts
+                'G1c': 9,      # 9 shift/reduce conflicts
+                'G2a': 4,      # 4 shift/reduce conflicts
+                'G2b': 6,      # 6 shift/reduce conflicts  
+                'G2c': 12,     # 12 shift/reduce conflicts
+                'G3a': 2,      # 2 shift/reduce conflicts
+                'G3b': 3,      # 3 shift/reduce conflicts
+                'G3c': 9,      # 9 shift/reduce conflicts
+                'G4a': 3,      # 3 shift/reduce conflicts
+                'G4b': 12,     # 12 shift/reduce conflicts
+                'G4c': 16,     # 16 shift/reduce conflicts
+                'G5a': 2,      # 2 shift/reduce conflicts
+                'G5b': 2,      # 2 shift/reduce conflicts
+                'G5c': 6,      # 6 shift/reduce conflicts
+                'G6a': 2,      # 2 shift/reduce conflicts
+                'G6b': 14,     # 14 shift/reduce conflicts
+                'G6c': 18,     # 18 shift/reduce conflicts
+                'G7a': 3,      # 3 shift/reduce conflicts
+                'G8a': 9,      # 9 shift/reduce conflicts
+                'G9a': 23}     # 23 shift/reduce conflicts
+
+prec_map = {'G0a': 2,
+              'G1a': 3,
+              'G1b': 6,
+              'G1c': 6,
+              'G2a': 2,
+              'G2b': 3,
+              'G2c': 6,
+              'G3a': 1,
+              'G3b': 2,
+              'G3c': 4,
+              'G4a': 1,
+              'G4b': 6,
+              'G4c': 6,
+              'G5a': 1,
+              'G5b': 1,
+              'G5c': 3,
+              'G6a': 1,
+              'G6b': 7,
+              'G6c': 8,
+              'G7a': 2,
+              'G8a': 3,
+              'G9a': 7}
+
+assoc_map = {'G0a': 2,
+              'G1a': 1,
+              'G1b': 1,
+              'G1c': 2,
+              'G2a': 2,
+              'G2b': 2,
+              'G2c': 3,
+              'G3a': 1,
+              'G3b': 1,
+              'G3c': 2,
+              'G4a': 2,
+              'G4b': 3,
+              'G4c': 4,
+              'G5a': 1,
+              'G5b': 1,
+              'G5c': 2,
+              'G6a': 1,
+              'G6b': 4,
+              'G6c': 6,
+              'G7a': 1,
+              'G8a': 3,
+              'G9a': 9}
+
 
 def generate_tables(grammars):
     latex_table = create_latex_table(grammars, 
-                                tokens_map, terms_map, nonterms_map, 
-                                prods_map, ambiguities_map)
+                                terms_map, nonterms_map, 
+                                prods_map, prec_map, assoc_map, ambiguities_map)
     print(latex_table)
 

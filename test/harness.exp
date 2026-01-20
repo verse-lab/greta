@@ -81,10 +81,10 @@ proc handle_choice {current_path next start} {
 
             # Record path for option 0
             sleep 0.1
-            handle_choice $current_path 0 0
+            handle_choice $current_path 1 0
 
             sleep 0.1
-            handle_choice $current_path 1 0
+            handle_choice $current_path 0 0
         }
         -re {Time elapsed for converting TA: ([0-9.]+)} {
             set convert_time $expect_out(1,string)
@@ -134,5 +134,5 @@ proc handle_choice {current_path next start} {
 puts "Starting CLI application testing..."
 exec echo "Path,Result,Convert Time,Learn Time,Intersect Time" > $results_file
 
-handle_choice {} 0 1
+handle_choice {} 1 1
 
