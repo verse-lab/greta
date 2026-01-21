@@ -758,10 +758,19 @@ let intersect_wo_opt1 (a1: ta) (a2: ta) (debug: bool): ta =
   Pp.pp_raw_trans_blocks trans_blocks_renamed; pp_loline_new debug);
   
   (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 10 - Introduce epsilon transitions to simplify raw trans blocks ------------------------------- *)
+  
+  let trans_blocks_simplified_eps_trans: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    simplify_trans_blocks_with_epsilon_transitions trans_blocks_renamed (List.rev state_pairs_renamed) debug
+  in 
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 10 - Introduce epsilon transitions to simplify raw trans blocks : \n";
+  Pp.pp_raw_trans_blocks trans_blocks_simplified_eps_trans; pp_loline_new debug);
+
+  (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 11 - Convert raw trans blocks to transitions list --------------------------------------------- *)
   
   let raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
-    trans_blocks_renamed |> List.fold_left (fun res_acc (_, trans_block) -> 
+    trans_blocks_simplified_eps_trans |> List.fold_left (fun res_acc (_, trans_block) -> 
       let transformed = trans_block |> List.fold_left (fun acc (st_pair, (sym, beta_beta_ls)) -> 
         let trans_new = ((st_pair, sym), beta_beta_ls) in trans_new :: acc) []
       in transformed @ res_acc) []
@@ -773,7 +782,7 @@ let intersect_wo_opt1 (a1: ta) (a2: ta) (debug: bool): ta =
   (* Step 12 - Identify dead states and get rid of transistions involving dead states ------------------- *)
   
   let dead_states: (state * state) list = 
-    trans_blocks_renamed |> List.fold_left (fun acc (sts_pair, raw_trans_ls) -> 
+    trans_blocks_simplified_eps_trans |> List.fold_left (fun acc (sts_pair, raw_trans_ls) -> 
       if (List.is_empty raw_trans_ls) then sts_pair :: acc else acc) []  
   in 
   (if debug then pp_upline_new debug; wrapped_printf "### Step 12 - Identify dead states : \n";
@@ -787,7 +796,7 @@ let intersect_wo_opt1 (a1: ta) (a2: ta) (debug: bool): ta =
   in
   
   let cleaned_trans_blocks_wrt_dead_states: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
-    clean_raw_trans_blocks_wrt_dead_states trans_blocks_renamed dead_states debug 
+    clean_raw_trans_blocks_wrt_dead_states trans_blocks_simplified_eps_trans dead_states debug 
   in
 
   (* ---------------------------------------------------------------------------------------------------- *)
@@ -814,26 +823,33 @@ let intersect_wo_opt1 (a1: ta) (a2: ta) (debug: bool): ta =
   Pp.pp_raw_trans_blocks trans_blocks_simplified_per_eps_linkage; pp_loline_new debug);
 
   (* ---------------------------------------------------------------------------------------------------- *)
-  (* Step 16 - Convert the raw transitions blocks to transitions tbl ------------------------------------ *)
+  (* Step 17 - Remove any duplicate transition in each block after simplification ----------------------- *)
   
+  let trans_blocks_simplified_wo_dup_trans = 
+    remove_dup_trans_for_each_block trans_blocks_simplified_per_eps_linkage debug
+  in 
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 17 - Removed dup trans in raw trans blocks : \n";
+  Pp.pp_raw_trans_blocks trans_blocks_simplified_wo_dup_trans; pp_loline_new debug);
+
+
   let new_raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
-    trans_blocks_simplified_per_eps_linkage |> List.fold_left (fun res_acc (_, trans_block) -> 
+    trans_blocks_simplified_wo_dup_trans |> List.fold_left (fun res_acc (_, trans_block) -> 
       let transformed = trans_block |> List.fold_left (fun acc (st_pair, (sym, beta_beta_ls)) -> 
         let trans_new = ((st_pair, sym), beta_beta_ls) in trans_new :: acc) []
       in transformed @ res_acc) []
   in
-  (* 
   let cleaned_raw_trans_wrt_dead_states: (((state * state) * symbol) * (beta * beta) list) list = 
     clean_raw_transitions_wrt_dead_states new_raw_trans dead_states debug
   in 
-
-  (if debug then pp_upline_new debug; wrapped_printf "### Step 16 - Convert raw trans blocks to transitions list after removing any duplicates : \n";
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 17.5 - Convert raw trans blocks to transitions list after removing any duplicates : \n";
   Pp.pp_raw_transitions cleaned_raw_trans_wrt_dead_states; pp_loline_new debug);
-  *)
 
   let new_cleaned_raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
     clean_raw_transitions_wrt_dead_states new_raw_trans dead_states debug
   in 
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 18 - Convert the raw transitions blocks to transitions tbl ------------------------------------ *)
 
   (* Step 16.1 - Convert the raw transitions to transitions tbl *)
   let res_trans_ls: ((state * symbol) * beta list) list = 
