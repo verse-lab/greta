@@ -831,7 +831,6 @@ let intersect_wo_opt1 (a1: ta) (a2: ta) (debug: bool): ta =
   (if debug then pp_upline_new debug; wrapped_printf "### Step 17 - Removed dup trans in raw trans blocks : \n";
   Pp.pp_raw_trans_blocks trans_blocks_simplified_wo_dup_trans; pp_loline_new debug);
 
-
   let new_raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
     trans_blocks_simplified_wo_dup_trans |> List.fold_left (fun res_acc (_, trans_block) -> 
       let transformed = trans_block |> List.fold_left (fun acc (st_pair, (sym, beta_beta_ls)) -> 
@@ -1138,7 +1137,7 @@ let intersect_wo_opt2 (a1: ta) (a2: ta) (debug: bool): ta =
     states_renaming_map |> List.map (fun ((orig_st, _), (new_st, _)) -> (orig_st, new_st)) in 
  
   let res_states_final = 
-    state_pairs_renamed |> List.map fst in
+    state_pairs_renamed |> List.filter (fun x -> not (List.mem x dead_states)) |> List.map fst in
   let corr_final_states: state list = 
     let final_states_orig: state list = 
       final_states_raw |> List.map fst (* e.g., [program] *)
@@ -1364,11 +1363,57 @@ let intersect_wo_opt3 (a1: ta) (a2: ta) (debug: bool): ta =
   in
   
   (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 12 - Identify dead states and get rid of transistions involving dead states ------------------- *)
+  
+  let dead_states: (state * state) list = 
+    trans_blocks_wo_dup_trans |> List.fold_left (fun acc (sts_pair, raw_trans_ls) -> 
+      if (List.is_empty raw_trans_ls) then sts_pair :: acc else acc) []  
+  in 
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 12 - Identify dead states : \n";
+  dead_states |> Pp.pp_raw_states; pp_loline_new debug);
+  
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 13 - Simplify raw transitions list wrt. dead states (any prods involving them)----------------- *)
+
+  let _cleaned_raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
+    clean_raw_transitions_wrt_dead_states new_raw_trans dead_states debug
+  in
+  
+  let cleaned_trans_blocks_wrt_dead_states: ((state * state) * ((state * state) * (symbol * (beta * beta) list)) list) list = 
+    clean_raw_trans_blocks_wrt_dead_states trans_blocks_wo_dup_trans dead_states debug 
+  in
+
+  (* ---------------------------------------------------------------------------------------------------- *)
+  (* Step 17 - Remove any duplicate transition in each block after simplification ----------------------- *)
+  
+  let trans_blocks_simplified_wo_dup_trans = 
+    remove_dup_trans_for_each_block cleaned_trans_blocks_wrt_dead_states debug
+  in 
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 17 - Removed dup trans in raw trans blocks : \n";
+  Pp.pp_raw_trans_blocks trans_blocks_simplified_wo_dup_trans; pp_loline_new debug);
+
+  let new_raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
+    trans_blocks_simplified_wo_dup_trans |> List.fold_left (fun res_acc (_, trans_block) -> 
+      let transformed = trans_block |> List.fold_left (fun acc (st_pair, (sym, beta_beta_ls)) -> 
+        let trans_new = ((st_pair, sym), beta_beta_ls) in trans_new :: acc) []
+      in transformed @ res_acc) []
+  in
+  let cleaned_raw_trans_wrt_dead_states: (((state * state) * symbol) * (beta * beta) list) list = 
+    clean_raw_transitions_wrt_dead_states new_raw_trans dead_states debug
+  in 
+  (if debug then pp_upline_new debug; wrapped_printf "### Step 17.5 - Convert raw trans blocks to transitions list after removing any duplicates : \n";
+  Pp.pp_raw_transitions cleaned_raw_trans_wrt_dead_states; pp_loline_new debug);
+
+  let new_cleaned_raw_trans: (((state * state) * symbol) * (beta * beta) list) list = 
+    clean_raw_transitions_wrt_dead_states new_raw_trans dead_states debug
+  in 
+
+  (* ---------------------------------------------------------------------------------------------------- *)
   (* Step 18 - Convert the raw transitions to transitions tbl ------------------------------------------- *)
 
   let res_trans_ls: ((state * symbol) * beta list) list = 
     (* new_cleaned_raw_trans *)
-    new_raw_trans |> List.map (fun ((st_pair, sym), sig_sig_ls) -> 
+    new_cleaned_raw_trans |> List.map (fun ((st_pair, sym), sig_sig_ls) -> 
       let new_sig_ls = sig_sig_ls |> List.map fst in ((fst st_pair), sym), new_sig_ls) 
   in 
   let res_trans_tbl: ((state * symbol), beta list) Hashtbl.t = Hashtbl.create (Hashtbl.length a2.transitions) in
