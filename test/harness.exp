@@ -4,11 +4,14 @@
 set timeout 5
 
 set base_grammar_file [lindex $argv 0]
+set mode [lindex $argv 1]
+set env(INTERSECT_MODE) $mode
 
 # CLI application command (replace with actual command)
 proc get_cli_command {path} {
     set binary_exec "dune exec -- ../bin/main.exe"
     global base_grammar_file
+    global mode
     set grammar_extension ".mly"
     set conflicts_extension ".conflicts"
     set config_extension ".cfg"
