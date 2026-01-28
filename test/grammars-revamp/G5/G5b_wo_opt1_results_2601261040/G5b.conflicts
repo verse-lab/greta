@@ -1,0 +1,80 @@
+
+** Conflict (shift/reduce) in state 13.
+** Token involved: OR
+** This state is reached from program after reading:
+
+NOT lexpr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+lexpr1 EOF 
+lexpr2 
+(?)
+
+** In state 13, looking ahead at OR, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT lexpr2 
+    lexpr2 . OR lexpr2 
+
+** In state 13, looking ahead at OR, reducing production..
+** lexpr2 -> NOT lexpr2
+** is permitted because of the following sub-derivation:
+
+lexpr2 OR lexpr2 // lookahead token appears
+NOT lexpr2 . 
+
+** Conflict (shift/reduce) in state 12.
+** Token involved: AND
+** This state is reached from program after reading:
+
+lexpr1 AND lexpr1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+lexpr1 EOF 
+(?)
+
+** In state 12, looking ahead at AND, shifting is permitted..
+** because of the following sub-derivation:
+
+lexpr1 AND lexpr1 
+           lexpr1 . AND lexpr1 
+
+** In state 12, looking ahead at AND, reducing production..
+** lexpr1 -> lexpr1 AND lexpr1
+** is permitted because of the following sub-derivation:
+
+lexpr1 AND lexpr1 // lookahead token appears
+lexpr1 AND lexpr1 . 
+
+** Conflict (shift/reduce) in state 8.
+** Token involved: OR
+** This state is reached from program after reading:
+
+lexpr2 OR lexpr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+lexpr1 EOF 
+lexpr2 
+(?)
+
+** In state 8, looking ahead at OR, shifting is permitted..
+** because of the following sub-derivation:
+
+lexpr2 OR lexpr2 
+          lexpr2 . OR lexpr2 
+
+** In state 8, looking ahead at OR, reducing production..
+** lexpr2 -> lexpr2 OR lexpr2
+** is permitted because of the following sub-derivation:
+
+lexpr2 OR lexpr2 // lookahead token appears
+lexpr2 OR lexpr2 . 

@@ -1,0 +1,141 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: ELSE
+
+* Production stmt -> IF expr THEN stmt
+
+
+
+>> ContextStart 
+program 
+stmt EOF 
+(?)
+>> ContextEnd 
+
+* Production stmt -> IF expr THEN stmt
+IF expr THEN stmt ELSE stmt 
+IF expr THEN stmt @@ 
+
+IF expr THEN stmt 
+IF expr THEN stmt @@ ELSE stmt 
+
+****************************
+
+
+
+
+
+Number_tokens: 2
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+* Production expr -> expr PLUS expr
+
+
+
+>> ContextStart 
+program 
+stmt EOF 
+IF expr THEN stmt 
+   (?)
+>> ContextEnd 
+
+* Production expr -> expr PLUS expr
+expr STAR expr 
+expr PLUS expr @@ 
+
+expr PLUS expr 
+expr @@ STAR expr 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production expr -> expr PLUS expr
+
+
+>> ContextStart 
+program 
+stmt EOF 
+IF expr THEN stmt 
+   (?)
+>> ContextEnd 
+
+expr PLUS expr 
+expr @@ PLUS expr 
+
+* Production expr -> expr PLUS expr
+expr PLUS expr 
+expr PLUS expr @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 2
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+
+* Production expr -> expr STAR expr
+
+
+>> ContextStart 
+program 
+stmt EOF 
+IF expr THEN stmt 
+   (?)
+>> ContextEnd 
+
+expr STAR expr 
+expr @@ STAR expr 
+
+* Production expr -> expr STAR expr
+expr STAR expr 
+expr STAR expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production expr -> expr STAR expr
+
+
+>> ContextStart 
+program 
+stmt EOF 
+IF expr THEN stmt 
+   (?)
+>> ContextEnd 
+
+expr STAR expr 
+expr @@ PLUS expr 
+
+* Production expr -> expr STAR expr
+expr PLUS expr 
+expr STAR expr @@ 
+
+****************************
+
+

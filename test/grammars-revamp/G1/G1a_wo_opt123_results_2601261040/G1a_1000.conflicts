@@ -1,0 +1,56 @@
+
+** Conflict (reduce/reduce) in state 5.
+** Token involved: THEN
+** This state is reached from prog16 after reading:
+
+IF FALSE
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog16 
+expr7 EOF 
+expr3 
+(?)
+
+** In state 5, looking ahead at THEN, reducing production..
+** cond13 -> FALSE
+** is permitted because of the following sub-derivation:
+
+IF cond13 THEN expr5 // lookahead token appears
+   FALSE . 
+
+** In state 5, looking ahead at THEN, reducing production..
+** cond9 -> FALSE
+** is permitted because of the following sub-derivation:
+
+IF cond9 THEN expr1 ELSE expr1 // lookahead token appears
+   FALSE . 
+
+** Conflict (reduce/reduce) in state 4.
+** Token involved: THEN
+** This state is reached from prog16 after reading:
+
+IF TRUE
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog16 
+expr7 EOF 
+expr3 
+(?)
+
+** In state 4, looking ahead at THEN, reducing production..
+** cond13 -> TRUE
+** is permitted because of the following sub-derivation:
+
+IF cond13 THEN expr5 // lookahead token appears
+   TRUE . 
+
+** In state 4, looking ahead at THEN, reducing production..
+** cond9 -> TRUE
+** is permitted because of the following sub-derivation:
+
+IF cond9 THEN expr1 ELSE expr1 // lookahead token appears
+   TRUE . 

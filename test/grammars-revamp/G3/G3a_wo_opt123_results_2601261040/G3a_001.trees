@@ -1,0 +1,96 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: RPAREN
+
+* Production ex24 -> ex27 PLUS exp211
+
+* Production ex25 -> ex27 PLUS exp211
+
+
+>> ContextStart 
+topl33 
+stmt30 EOF 
+stmt3 stmt31 
+(?)
+>> ContextEnd 
+
+* Production ex24 -> ex27 PLUS exp211
+IF LPAREN ex24 RPAREN stmt1 
+ex27 PLUS exp211 @@ 
+
+* Production ex25 -> ex27 PLUS exp211
+IF LPAREN ex25 RPAREN stmt4 ELSE stmt4 
+ex27 PLUS exp211 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: RPAREN
+
+* Production ex24 -> ex32 DASH ex32
+
+* Production ex25 -> ex32 DASH ex32
+
+
+>> ContextStart 
+topl33 
+stmt30 EOF 
+stmt3 stmt31 
+(?)
+>> ContextEnd 
+
+* Production ex24 -> ex32 DASH ex32
+IF LPAREN ex24 RPAREN stmt1 
+ex32 DASH ex32 @@ 
+
+* Production ex25 -> ex32 DASH ex32
+IF LPAREN ex25 RPAREN stmt4 ELSE stmt4 
+ex32 DASH ex32 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: RPAREN
+
+* Production ex24 -> exp211
+
+* Production ex25 -> exp211
+
+
+>> ContextStart 
+topl33 
+stmt30 EOF 
+stmt3 stmt31 
+(?)
+>> ContextEnd 
+
+* Production ex24 -> exp211
+IF LPAREN ex24 RPAREN stmt1 
+exp211 @@ 
+
+* Production ex25 -> exp211
+IF LPAREN ex25 RPAREN stmt4 ELSE stmt4 
+exp211 @@ 
+
+****************************
+
+

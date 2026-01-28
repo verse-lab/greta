@@ -1,0 +1,96 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: ELT
+
+* Production literal -> SOME literal
+
+
+
+>> ContextStart 
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy literal 
+                         (?)
+>> ContextEnd 
+
+* Production literal -> SOME literal
+literal ELT literal 
+SOME literal @@ 
+
+SOME literal 
+literal @@ ELT literal 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: ELT
+
+
+* Production literal -> PAIR literal literal
+
+
+>> ContextStart 
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy literal 
+                         (?)
+>> ContextEnd 
+
+PAIR literal literal 
+literal @@ ELT literal 
+
+* Production literal -> PAIR literal literal
+literal ELT literal 
+PAIR literal literal @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: ELT
+
+
+* Production literal -> literal ELT literal
+
+
+>> ContextStart 
+toplevel 
+script EOF 
+CODE LBRACE instlist RBRACE 
+            singleinst 
+            MNEMONIC tyy literal 
+                         (?)
+>> ContextEnd 
+
+literal ELT literal 
+literal @@ ELT literal 
+
+* Production literal -> literal ELT literal
+literal ELT literal 
+literal ELT literal @@ 
+
+****************************
+
+

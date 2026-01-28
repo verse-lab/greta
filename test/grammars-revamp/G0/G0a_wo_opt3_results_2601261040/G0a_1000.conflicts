@@ -1,0 +1,58 @@
+
+** Conflict (reduce/reduce) in state 38.
+** Token involved: ELSE
+** This state is reached from prog1 after reading:
+
+IF expr1 THEN IF expr1 THEN decl7 SEMI
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+stmt3 EOF 
+(?)
+
+** In state 38, looking ahead at ELSE, reducing production..
+** stmt3 -> decl7 SEMI
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt3 ELSE stmt3 
+              IF expr1 THEN stmt3 ELSE stmt3 // lookahead token appears
+                            decl7 SEMI . 
+
+** In state 38, looking ahead at ELSE, reducing production..
+** stmt5 -> decl7 SEMI
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt3 ELSE stmt3 // lookahead token appears
+              IF expr1 THEN stmt5 // lookahead token is inherited
+                            decl7 SEMI . 
+
+** Conflict (reduce/reduce) in state 31.
+** Token involved: ELSE
+** This state is reached from prog1 after reading:
+
+IF expr1 THEN IF expr1 THEN IF expr1 THEN stmt5
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+stmt3 EOF 
+(?)
+
+** In state 31, looking ahead at ELSE, reducing production..
+** stmt3 -> IF expr1 THEN stmt5
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt3 ELSE stmt3 
+              IF expr1 THEN stmt3 ELSE stmt3 // lookahead token appears
+                            IF expr1 THEN stmt5 . 
+
+** In state 31, looking ahead at ELSE, reducing production..
+** stmt5 -> IF expr1 THEN stmt5
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt3 ELSE stmt3 // lookahead token appears
+              IF expr1 THEN stmt5 // lookahead token is inherited
+                            IF expr1 THEN stmt5 . 

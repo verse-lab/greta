@@ -1,0 +1,29 @@
+
+** Conflict (reduce/reduce) in state 20.
+** Token involved: ELSE
+** This state is reached from prog7 after reading:
+
+IF expr1 THEN IF expr1 THEN stmt4
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog7 
+stmt2 EOF 
+(?)
+
+** In state 20, looking ahead at ELSE, reducing production..
+** stmt2 -> stmt4
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt2 ELSE stmt2 
+              IF expr1 THEN stmt2 ELSE stmt2 // lookahead token appears
+                            stmt4 . 
+
+** In state 20, looking ahead at ELSE, reducing production..
+** stmt4 -> IF expr1 THEN stmt4
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt2 ELSE stmt2 // lookahead token appears
+              stmt4 // lookahead token is inherited
+              IF expr1 THEN stmt4 . 

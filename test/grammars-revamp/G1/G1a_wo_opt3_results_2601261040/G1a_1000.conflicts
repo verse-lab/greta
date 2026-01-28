@@ -1,0 +1,93 @@
+
+** Conflict (reduce/reduce) in state 29.
+** Tokens involved: MUL ELSE
+** The following explanations concentrate on token MUL.
+** This state is reached from prog1 after reading:
+
+IF cond4 THEN IF cond4 THEN expr3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr5 EOF 
+expr1 
+(?)
+
+** In state 29, looking ahead at MUL, reducing production..
+** expr2 -> IF cond4 THEN expr3
+** is permitted because of the following sub-derivation:
+
+IF cond4 THEN expr1 ELSE expr1 
+              expr2 MUL expr3 // lookahead token appears
+              IF cond4 THEN expr3 . 
+
+** In state 29, looking ahead at MUL, reducing production..
+** expr3 -> IF cond4 THEN expr3
+** is permitted because of the following sub-derivation:
+
+expr2 MUL expr3 // lookahead token appears
+IF cond4 THEN expr3 // lookahead token is inherited
+              IF cond4 THEN expr3 . 
+
+** Conflict (reduce/reduce) in state 25.
+** Tokens involved: MUL ELSE
+** The following explanations concentrate on token MUL.
+** This state is reached from prog1 after reading:
+
+IF cond4 THEN INT
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr5 EOF 
+expr1 
+(?)
+
+** In state 25, looking ahead at MUL, reducing production..
+** expr2 -> INT
+** is permitted because of the following sub-derivation:
+
+IF cond4 THEN expr1 ELSE expr1 
+              expr2 MUL expr3 // lookahead token appears
+              INT . 
+
+** In state 25, looking ahead at MUL, reducing production..
+** expr3 -> INT
+** is permitted because of the following sub-derivation:
+
+expr2 MUL expr3 // lookahead token appears
+IF cond4 THEN expr3 // lookahead token is inherited
+              INT . 
+
+** Conflict (reduce/reduce) in state 10.
+** Tokens involved: MUL ELSE
+** The following explanations concentrate on token MUL.
+** This state is reached from prog1 after reading:
+
+IF cond4 THEN LPAREN expr5 RPAREN
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr5 EOF 
+expr1 
+(?)
+
+** In state 10, looking ahead at MUL, reducing production..
+** expr2 -> LPAREN expr5 RPAREN
+** is permitted because of the following sub-derivation:
+
+IF cond4 THEN expr1 ELSE expr1 
+              expr2 MUL expr3 // lookahead token appears
+              LPAREN expr5 RPAREN . 
+
+** In state 10, looking ahead at MUL, reducing production..
+** expr3 -> LPAREN expr5 RPAREN
+** is permitted because of the following sub-derivation:
+
+expr2 MUL expr3 // lookahead token appears
+IF cond4 THEN expr3 // lookahead token is inherited
+              LPAREN expr5 RPAREN . 

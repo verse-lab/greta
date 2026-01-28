@@ -1,0 +1,116 @@
+
+** Conflict (reduce/reduce) in state 19.
+** Token involved: ELSE
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN IF cond5 THEN IF cond5 THEN expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr1 EOF 
+(?)
+
+** In state 19, looking ahead at ELSE, reducing production..
+** expr1 -> IF cond5 THEN expr2
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 
+              IF cond5 THEN expr1 ELSE expr1 // lookahead token appears
+                            IF cond5 THEN expr2 . 
+
+** In state 19, looking ahead at ELSE, reducing production..
+** expr2 -> IF cond5 THEN expr2
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 // lookahead token appears
+              IF cond5 THEN expr2 // lookahead token is inherited
+                            IF cond5 THEN expr2 . 
+
+** Conflict (reduce/reduce) in state 18.
+** Token involved: ELSE
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN IF cond5 THEN expr3 PLUS expr6
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr1 EOF 
+(?)
+
+** In state 18, looking ahead at ELSE, reducing production..
+** expr1 -> expr3 PLUS expr6
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 
+              IF cond5 THEN expr1 ELSE expr1 // lookahead token appears
+                            expr3 PLUS expr6 . 
+
+** In state 18, looking ahead at ELSE, reducing production..
+** expr2 -> expr3 PLUS expr6
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 // lookahead token appears
+              IF cond5 THEN expr2 // lookahead token is inherited
+                            expr3 PLUS expr6 . 
+
+** Conflict (reduce/reduce) in state 14.
+** Token involved: ELSE
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN IF cond5 THEN expr4 MUL expr7
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr1 EOF 
+(?)
+
+** In state 14, looking ahead at ELSE, reducing production..
+** expr1 -> expr4 MUL expr7
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 
+              IF cond5 THEN expr1 ELSE expr1 // lookahead token appears
+                            expr4 MUL expr7 . 
+
+** In state 14, looking ahead at ELSE, reducing production..
+** expr2 -> expr4 MUL expr7
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 // lookahead token appears
+              IF cond5 THEN expr2 // lookahead token is inherited
+                            expr4 MUL expr7 . 
+
+** Conflict (reduce/reduce) in state 11.
+** Token involved: ELSE
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN IF cond5 THEN expr6
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr1 EOF 
+(?)
+
+** In state 11, looking ahead at ELSE, reducing production..
+** expr1 -> expr6
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 
+              IF cond5 THEN expr1 ELSE expr1 // lookahead token appears
+                            expr6 . 
+
+** In state 11, looking ahead at ELSE, reducing production..
+** expr2 -> expr6
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 // lookahead token appears
+              IF cond5 THEN expr2 // lookahead token is inherited
+                            expr6 . 

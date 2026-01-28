@@ -1,0 +1,99 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production expr2 -> IF cond4 THEN expr3
+
+* Production expr3 -> IF cond4 THEN expr3
+
+
+>> ContextStart 
+prog1 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr2 -> IF cond4 THEN expr3
+IF cond4 THEN expr2 ELSE expr2 
+IF cond4 THEN expr2 ELSE expr2 
+IF cond4 THEN expr3 @@ 
+
+* Production expr3 -> IF cond4 THEN expr3
+IF cond4 THEN expr2 ELSE expr2 
+IF cond4 THEN expr3 
+IF cond4 THEN expr3 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production expr2 -> expr5
+
+* Production expr3 -> expr5
+
+
+>> ContextStart 
+prog1 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr2 -> expr5
+IF cond4 THEN expr2 ELSE expr2 
+IF cond4 THEN expr2 ELSE expr2 
+expr5 @@ 
+
+* Production expr3 -> expr5
+IF cond4 THEN expr2 ELSE expr2 
+IF cond4 THEN expr3 
+expr5 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production expr2 -> expr6 PLUS expr5
+
+* Production expr3 -> expr6 PLUS expr5
+
+
+>> ContextStart 
+prog1 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr2 -> expr6 PLUS expr5
+IF cond4 THEN expr2 ELSE expr2 
+IF cond4 THEN expr2 ELSE expr2 
+expr6 PLUS expr5 @@ 
+
+* Production expr3 -> expr6 PLUS expr5
+IF cond4 THEN expr2 ELSE expr2 
+IF cond4 THEN expr3 
+expr6 PLUS expr5 @@ 
+
+****************************
+
+

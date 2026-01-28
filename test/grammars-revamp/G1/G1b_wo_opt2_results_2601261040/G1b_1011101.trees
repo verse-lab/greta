@@ -1,0 +1,30 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: THEN
+
+* Production cond6 -> cond7
+
+
+
+>> ContextStart 
+prog1 
+expr2 EOF 
+expr3 MUL expr1 
+(?)
+>> ContextEnd 
+
+* Production cond6 -> cond7
+expr4 
+IF cond6 THEN expr4 ELSE expr4 
+cond7 @@ 
+
+IF cond7 @@ THEN expr3 
+
+****************************
+
+

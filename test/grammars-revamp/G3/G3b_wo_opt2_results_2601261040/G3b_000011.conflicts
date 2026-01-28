@@ -1,0 +1,27 @@
+
+** Conflict (shift/reduce) in state 34.
+** Token involved: RPAREN
+** This state is reached from topl1 after reading:
+
+IF LPAREN ex3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl1 
+stmt13 EOF 
+stmt6 stmt12 
+(?)
+
+** In state 34, looking ahead at RPAREN, reducing production..
+** ex2 -> ex3
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex2 RPAREN stmt5 // lookahead token appears
+          ex3 . 
+
+** In state 34, looking ahead at RPAREN, shifting is permitted..
+** because of the following sub-derivation:
+
+stmt8 
+IF LPAREN ex3 . RPAREN stmt8 ELSE stmt8 

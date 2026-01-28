@@ -1,0 +1,114 @@
+
+** Conflict (shift/reduce) in state 44.
+** Token involved: MUL
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN expr4
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr1 EOF 
+(?)
+
+** In state 44, looking ahead at MUL, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 
+              expr4 . MUL expr3 
+
+** In state 44, looking ahead at MUL, reducing production..
+** expr4 -> IF cond5 THEN expr4
+** is permitted because of the following sub-derivation:
+
+expr4 MUL expr3 // lookahead token appears
+IF cond5 THEN expr4 . 
+
+** Conflict (shift/reduce) in state 40.
+** Tokens involved: PLUS MUL ELSE
+** The following explanations concentrate on token MUL.
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN IF cond5 THEN expr4
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr1 EOF 
+IF cond5 THEN expr1 ELSE expr1 
+              (?)
+
+** In state 40, looking ahead at MUL, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 
+              expr4 . MUL expr3 
+
+** In state 40, looking ahead at MUL, reducing production..
+** expr4 -> IF cond5 THEN expr4
+** is permitted because of the following sub-derivation:
+
+expr4 MUL expr3 // lookahead token appears
+IF cond5 THEN expr4 . 
+
+** Conflict (reduce/reduce) in state 36.
+** Tokens involved: PLUS ELSE
+** The following explanations concentrate on token PLUS.
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN INT
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr1 EOF 
+(?)
+
+** In state 36, looking ahead at PLUS, reducing production..
+** expr2 -> INT
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 
+              expr2 PLUS expr3 // lookahead token appears
+              INT . 
+
+** In state 36, looking ahead at PLUS, reducing production..
+** expr4 -> INT
+** is permitted because of the following sub-derivation:
+
+expr2 PLUS expr3 // lookahead token appears
+IF cond5 THEN expr4 // lookahead token is inherited
+              INT . 
+
+** Conflict (reduce/reduce) in state 35.
+** Tokens involved: PLUS ELSE
+** The following explanations concentrate on token PLUS.
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN LPAREN expr1 RPAREN
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr1 EOF 
+(?)
+
+** In state 35, looking ahead at PLUS, reducing production..
+** expr2 -> LPAREN expr1 RPAREN
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 
+              expr2 PLUS expr3 // lookahead token appears
+              LPAREN expr1 RPAREN . 
+
+** In state 35, looking ahead at PLUS, reducing production..
+** expr4 -> LPAREN expr1 RPAREN
+** is permitted because of the following sub-derivation:
+
+expr2 PLUS expr3 // lookahead token appears
+IF cond5 THEN expr4 // lookahead token is inherited
+              LPAREN expr1 RPAREN . 

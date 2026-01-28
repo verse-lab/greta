@@ -1,0 +1,99 @@
+%{
+
+open Ast
+
+%}
+%token IFF
+%token AND
+%token OR
+%token EQ
+%token NE
+%token GT
+%token GTE
+%token LT
+%token LTE
+%token PLUS
+%token MINUS
+%token TIMES
+%token DIVIDE
+%token POWER
+%token NOT
+%token LPAREN
+%token RPAREN
+%token IVAR
+%token BVAR
+%token INT
+%token EOF%type <Ast.t> cons1
+%type <Ast.exp> int_8
+%start cons1
+%%
+
+bool1:
+  | bool1 AND bool5  {  And($1, $3)  }
+  | int_8 GTE int_8  {  Gte($1, $3)  }
+  | int_8 GT int_8  {  Gt($1, $3)  }
+  | bool5  {  $1  }
+  | bool1 OR bool5  {  Or($1, $3)  }
+  | int_8 LT int_8  {  Lt($1, $3)  }
+  | int_8 EQ int_8  {  Eq($1, $3)  }
+  | int_8 LTE int_8  {  Lte($1, $3)  }
+  | int_8 NE int_8  {  Ne($1, $3)  }
+  ;
+
+bool10:
+  | LPAREN bool1 RPAREN  {  Bparen($2)  }
+  | BVAR  {  Bvar  }
+  ;
+
+bool5:
+  | NOT bool5  {  Not($2)  }
+  | bool7  { $1 }
+  ;
+
+bool7:
+  | bool10  { $1 }
+  | bool10 IFF bool7  {  Iff($1, $3)  }
+  ;
+
+cons1:
+  | bool1 EOF  {  $1  }
+  ;
+
+int_11:
+  | int_12 PLUS int_11  {  Plus($1, $3)  }
+  | int_12  { $1 }
+  ;
+
+int_12:
+  | int_2  {  $1  }
+  ;
+
+int_2:
+  | int_3  { $1 }
+  | int_2 TIMES int_3  {  Times($1, $3)  }
+  ;
+
+int_3:
+  | MINUS int_3  {  Negative($2)  }
+  | int_4  { $1 }
+  ;
+
+int_4:
+  | int_6  { $1 }
+  | int_4 POWER int_6  {  Power($1, $3)  }
+  ;
+
+int_6:
+  | int_9  { $1 }
+  | int_6 DIVIDE int_9  {  Divide($1, $3)  }
+  ;
+
+int_8:
+  | int_11 MINUS int_8  {  Minus($1, $3)  }
+  | int_11  { $1 }
+  ;
+
+int_9:
+  | IVAR  {  Ivar  }
+  | INT  {  Int  }
+  ;

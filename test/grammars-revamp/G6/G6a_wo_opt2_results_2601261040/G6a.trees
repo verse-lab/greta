@@ -1,0 +1,60 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: IFF
+
+
+* Production bool_expr2 -> NOT bool_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+bool_expr2 
+(?)
+>> ContextEnd 
+
+NOT bool_expr2 
+bool_expr2 @@ IFF bool_expr2 
+
+* Production bool_expr2 -> NOT bool_expr2
+bool_expr2 IFF bool_expr2 
+NOT bool_expr2 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: IFF
+
+
+* Production bool_expr2 -> bool_expr2 IFF bool_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+bool_expr2 
+(?)
+>> ContextEnd 
+
+bool_expr2 IFF bool_expr2 
+bool_expr2 @@ IFF bool_expr2 
+
+* Production bool_expr2 -> bool_expr2 IFF bool_expr2
+bool_expr2 IFF bool_expr2 
+bool_expr2 IFF bool_expr2 @@ 
+
+****************************
+
+

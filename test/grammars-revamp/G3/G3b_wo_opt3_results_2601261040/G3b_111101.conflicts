@@ -1,0 +1,120 @@
+
+** Conflict (reduce/reduce) in state 66.
+** Token involved: ELSE
+** This state is reached from topl1 after reading:
+
+IF LPAREN ex1 RPAREN IF LPAREN ex1 RPAREN decl10 SEMI
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl1 
+stmt8 EOF 
+stmt3 stmt8 
+(?)
+
+** In state 66, looking ahead at ELSE, reducing production..
+** stmt3 -> decl10 SEMI
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+                     IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 // lookahead token appears
+                                          decl10 SEMI . 
+
+** In state 66, looking ahead at ELSE, reducing production..
+** stmt5 -> decl10 SEMI
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 // lookahead token appears
+                     IF LPAREN ex1 RPAREN stmt5 // lookahead token is inherited
+                                          decl10 SEMI . 
+
+** Conflict (reduce/reduce) in state 64.
+** Token involved: ELSE
+** This state is reached from topl1 after reading:
+
+IF LPAREN ex1 RPAREN IF LPAREN ex1 RPAREN iden11 EQ ex1 SEMI
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl1 
+stmt8 EOF 
+stmt3 stmt8 
+(?)
+
+** In state 64, looking ahead at ELSE, reducing production..
+** stmt3 -> iden11 EQ ex1 SEMI
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+                     IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 // lookahead token appears
+                                          iden11 EQ ex1 SEMI . 
+
+** In state 64, looking ahead at ELSE, reducing production..
+** stmt5 -> iden11 EQ ex1 SEMI
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 // lookahead token appears
+                     IF LPAREN ex1 RPAREN stmt5 // lookahead token is inherited
+                                          iden11 EQ ex1 SEMI . 
+
+** Conflict (reduce/reduce) in state 50.
+** Token involved: ELSE
+** This state is reached from topl1 after reading:
+
+IF LPAREN ex1 RPAREN IF LPAREN ex1 RPAREN IF LPAREN ex1 RPAREN stmt5
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl1 
+stmt8 EOF 
+stmt3 stmt8 
+(?)
+
+** In state 50, looking ahead at ELSE, reducing production..
+** stmt3 -> IF LPAREN ex1 RPAREN stmt5
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+                     IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 // lookahead token appears
+                                          IF LPAREN ex1 RPAREN stmt5 . 
+
+** In state 50, looking ahead at ELSE, reducing production..
+** stmt5 -> IF LPAREN ex1 RPAREN stmt5
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 // lookahead token appears
+                     IF LPAREN ex1 RPAREN stmt5 // lookahead token is inherited
+                                          IF LPAREN ex1 RPAREN stmt5 . 
+
+** Conflict (reduce/reduce) in state 49.
+** Token involved: ELSE
+** This state is reached from topl1 after reading:
+
+IF LPAREN ex1 RPAREN IF LPAREN ex1 RPAREN stmt7
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl1 
+stmt8 EOF 
+stmt3 stmt8 
+(?)
+
+** In state 49, looking ahead at ELSE, reducing production..
+** stmt3 -> stmt7
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+                     IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 // lookahead token appears
+                                          stmt7 . 
+
+** In state 49, looking ahead at ELSE, reducing production..
+** stmt5 -> stmt7
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 // lookahead token appears
+                     IF LPAREN ex1 RPAREN stmt5 // lookahead token is inherited
+                                          stmt7 . 

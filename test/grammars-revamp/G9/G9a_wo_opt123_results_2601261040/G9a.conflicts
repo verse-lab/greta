@@ -1,0 +1,271 @@
+
+** Conflict (shift/reduce) in state 64.
+** Token involved: COMMA
+** This state is reached from program after reading:
+
+UPDATE table_name SET assignment_list COMMA assignment_list
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      (?)
+
+** In state 64, looking ahead at COMMA, shifting is permitted..
+** because of the following sub-derivation:
+
+assignment_list COMMA assignment_list 
+                      assignment_list . COMMA assignment_list 
+
+** In state 64, looking ahead at COMMA, reducing production..
+** assignment_list -> assignment_list COMMA assignment_list
+** is permitted because of the following sub-derivation:
+
+assignment_list COMMA assignment_list // lookahead token appears
+assignment_list COMMA assignment_list . 
+
+** Conflict (shift/reduce) in state 59.
+** Token involved: COMMA
+** This state is reached from program after reading:
+
+UPDATE table_name SET assignment_list ORDER BY order_by_list COMMA order_by_list
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_order opt_limit 
+                                      ORDER BY order_by_list 
+                                               (?)
+
+** In state 59, looking ahead at COMMA, shifting is permitted..
+** because of the following sub-derivation:
+
+order_by_list COMMA order_by_list 
+                    order_by_list . COMMA order_by_list 
+
+** In state 59, looking ahead at COMMA, reducing production..
+** order_by_list -> order_by_list COMMA order_by_list
+** is permitted because of the following sub-derivation:
+
+order_by_list COMMA order_by_list // lookahead token appears
+order_by_list COMMA order_by_list . 
+
+** Conflict (shift/reduce) in state 52.
+** Token involved: SEMICOLON
+** This state is reached from program after reading:
+
+UPDATE table_name SET assignment_list WHERE condition_list SEMICOLON condition_list
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_where opt_order opt_limit 
+                                      WHERE condition_list 
+                                            (?)
+
+** In state 52, looking ahead at SEMICOLON, shifting is permitted..
+** because of the following sub-derivation:
+
+condition_list SEMICOLON condition_list 
+                         condition_list . SEMICOLON condition_list 
+
+** In state 52, looking ahead at SEMICOLON, reducing production..
+** condition_list -> condition_list SEMICOLON condition_list
+** is permitted because of the following sub-derivation:
+
+condition_list SEMICOLON condition_list // lookahead token appears
+condition_list SEMICOLON condition_list . 
+
+** Conflict (shift/reduce) in state 42.
+** Tokens involved: OR AND
+** The following explanations concentrate on token OR.
+** This state is reached from program after reading:
+
+UPDATE table_name SET assignment_list WHERE condition AND condition
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_where opt_order opt_limit 
+                                      WHERE condition_list 
+                                            condition 
+                                            (?)
+
+** In state 42, looking ahead at OR, shifting is permitted..
+** because of the following sub-derivation:
+
+condition AND condition 
+              condition . OR condition 
+
+** In state 42, looking ahead at OR, reducing production..
+** condition -> condition AND condition
+** is permitted because of the following sub-derivation:
+
+condition OR condition // lookahead token appears
+condition AND condition . 
+
+** Conflict (shift/reduce) in state 40.
+** Tokens involved: OR AND
+** The following explanations concentrate on token OR.
+** This state is reached from program after reading:
+
+UPDATE table_name SET assignment_list WHERE condition OR condition
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_where opt_order opt_limit 
+                                      WHERE condition_list 
+                                            condition 
+                                            (?)
+
+** In state 40, looking ahead at OR, shifting is permitted..
+** because of the following sub-derivation:
+
+condition OR condition 
+             condition . OR condition 
+
+** In state 40, looking ahead at OR, reducing production..
+** condition -> condition OR condition
+** is permitted because of the following sub-derivation:
+
+condition OR condition // lookahead token appears
+condition OR condition . 
+
+** Conflict (shift/reduce) in state 25.
+** Tokens involved: STAR PLUS MINUS DIV
+** The following explanations concentrate on token STAR.
+** This state is reached from program after reading:
+
+UPDATE table_name SET col_name EQ expr DIV expr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+
+** In state 25, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+expr DIV expr 
+         expr . STAR expr 
+
+** In state 25, looking ahead at STAR, reducing production..
+** expr -> expr DIV expr
+** is permitted because of the following sub-derivation:
+
+expr STAR expr // lookahead token appears
+expr DIV expr . 
+
+** Conflict (shift/reduce) in state 23.
+** Tokens involved: STAR PLUS MINUS DIV
+** The following explanations concentrate on token STAR.
+** This state is reached from program after reading:
+
+UPDATE table_name SET col_name EQ expr MINUS expr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+
+** In state 23, looking ahead at STAR, reducing production..
+** expr -> expr MINUS expr
+** is permitted because of the following sub-derivation:
+
+expr STAR expr // lookahead token appears
+expr MINUS expr . 
+
+** In state 23, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+expr MINUS expr 
+           expr . STAR expr 
+
+** Conflict (shift/reduce) in state 21.
+** Tokens involved: STAR PLUS MINUS DIV
+** The following explanations concentrate on token STAR.
+** This state is reached from program after reading:
+
+UPDATE table_name SET col_name EQ expr PLUS expr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+
+** In state 21, looking ahead at STAR, reducing production..
+** expr -> expr PLUS expr
+** is permitted because of the following sub-derivation:
+
+expr STAR expr // lookahead token appears
+expr PLUS expr . 
+
+** In state 21, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+expr PLUS expr 
+          expr . STAR expr 
+
+** Conflict (shift/reduce) in state 19.
+** Tokens involved: STAR PLUS MINUS DIV
+** The following explanations concentrate on token STAR.
+** This state is reached from program after reading:
+
+UPDATE table_name SET col_name EQ expr STAR expr
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+
+** In state 19, looking ahead at STAR, shifting is permitted..
+** because of the following sub-derivation:
+
+expr STAR expr 
+          expr . STAR expr 
+
+** In state 19, looking ahead at STAR, reducing production..
+** expr -> expr STAR expr
+** is permitted because of the following sub-derivation:
+
+expr STAR expr // lookahead token appears
+expr STAR expr . 

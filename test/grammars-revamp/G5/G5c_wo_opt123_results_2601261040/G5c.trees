@@ -1,0 +1,162 @@
+
+
+
+Number_tokens: 2
+
+
+** Conflict type shift/reduce.
+** Token: OR
+
+
+* Production lexpr -> NOT lexpr
+
+
+>> ContextStart 
+program 
+lexpr EOF 
+(?)
+>> ContextEnd 
+
+NOT lexpr 
+lexpr @@ OR lexpr 
+
+* Production lexpr -> NOT lexpr
+lexpr OR lexpr 
+NOT lexpr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AND
+
+
+* Production lexpr -> NOT lexpr
+
+
+>> ContextStart 
+program 
+lexpr EOF 
+(?)
+>> ContextEnd 
+
+NOT lexpr 
+lexpr @@ AND lexpr 
+
+* Production lexpr -> NOT lexpr
+lexpr AND lexpr 
+NOT lexpr @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 2
+
+
+** Conflict type shift/reduce.
+** Token: OR
+
+* Production lexpr -> lexpr AND lexpr
+
+
+
+>> ContextStart 
+program 
+lexpr EOF 
+(?)
+>> ContextEnd 
+
+* Production lexpr -> lexpr AND lexpr
+lexpr OR lexpr 
+lexpr AND lexpr @@ 
+
+lexpr AND lexpr 
+lexpr @@ OR lexpr 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AND
+
+
+* Production lexpr -> lexpr AND lexpr
+
+
+>> ContextStart 
+program 
+lexpr EOF 
+(?)
+>> ContextEnd 
+
+lexpr AND lexpr 
+lexpr @@ AND lexpr 
+
+* Production lexpr -> lexpr AND lexpr
+lexpr AND lexpr 
+lexpr AND lexpr @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 2
+
+
+** Conflict type shift/reduce.
+** Token: OR
+
+
+* Production lexpr -> lexpr OR lexpr
+
+
+>> ContextStart 
+program 
+lexpr EOF 
+(?)
+>> ContextEnd 
+
+lexpr OR lexpr 
+lexpr @@ OR lexpr 
+
+* Production lexpr -> lexpr OR lexpr
+lexpr OR lexpr 
+lexpr OR lexpr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AND
+
+
+* Production lexpr -> lexpr OR lexpr
+
+
+>> ContextStart 
+program 
+lexpr EOF 
+(?)
+>> ContextEnd 
+
+lexpr OR lexpr 
+lexpr @@ AND lexpr 
+
+* Production lexpr -> lexpr OR lexpr
+lexpr AND lexpr 
+lexpr OR lexpr @@ 
+
+****************************
+
+

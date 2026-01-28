@@ -1,0 +1,84 @@
+
+** Conflict (reduce/reduce) in state 59.
+** Token involved: RPAREN
+** This state is reached from topl33 after reading:
+
+IF LPAREN ex27 DASH ex27
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl33 
+stmt30 EOF 
+stmt3 stmt31 
+(?)
+
+** In state 59, looking ahead at RPAREN, reducing production..
+** ex24 -> ex27 DASH ex27
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex24 RPAREN stmt1 ELSE stmt1 // lookahead token appears
+          ex27 DASH ex27 . 
+
+** In state 59, looking ahead at RPAREN, reducing production..
+** ex25 -> ex27 DASH ex27
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex25 RPAREN stmt4 // lookahead token appears
+          ex27 DASH ex27 . 
+
+** Conflict (reduce/reduce) in state 56.
+** Token involved: RPAREN
+** This state is reached from topl33 after reading:
+
+IF LPAREN ex32 PLUS exp26
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl33 
+stmt30 EOF 
+stmt3 stmt31 
+(?)
+
+** In state 56, looking ahead at RPAREN, reducing production..
+** ex24 -> ex32 PLUS exp26
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex24 RPAREN stmt1 ELSE stmt1 // lookahead token appears
+          ex32 PLUS exp26 . 
+
+** In state 56, looking ahead at RPAREN, reducing production..
+** ex25 -> ex32 PLUS exp26
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex25 RPAREN stmt4 // lookahead token appears
+          ex32 PLUS exp26 . 
+
+** Conflict (reduce/reduce) in state 53.
+** Token involved: RPAREN
+** This state is reached from topl33 after reading:
+
+IF LPAREN exp211
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl33 
+stmt30 EOF 
+stmt3 stmt31 
+(?)
+
+** In state 53, looking ahead at RPAREN, reducing production..
+** ex24 -> exp211
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex24 RPAREN stmt1 ELSE stmt1 // lookahead token appears
+          exp211 . 
+
+** In state 53, looking ahead at RPAREN, reducing production..
+** ex25 -> exp211
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex25 RPAREN stmt4 // lookahead token appears
+          exp211 . 

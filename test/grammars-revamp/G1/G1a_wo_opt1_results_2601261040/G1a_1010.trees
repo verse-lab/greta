@@ -1,0 +1,34 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production expr1 -> expr2
+
+* Production expr2 -> IF cond6 THEN expr2
+
+
+>> ContextStart 
+prog7 
+expr5 EOF 
+expr1 
+(?)
+>> ContextEnd 
+
+* Production expr1 -> expr2
+IF cond6 THEN expr1 ELSE expr1 
+IF cond6 THEN expr1 ELSE expr1 
+expr2 @@ 
+
+* Production expr2 -> IF cond6 THEN expr2
+IF cond6 THEN expr1 ELSE expr1 
+expr2 
+IF cond6 THEN expr2 @@ 
+
+****************************
+
+

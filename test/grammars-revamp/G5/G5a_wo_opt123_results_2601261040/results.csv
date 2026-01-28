@@ -1,0 +1,5 @@
+grammar_file,status,convert_time,learn_time,intersect_time
+G5a_11,SUCCESS,9.4e-05,0.000629,0.001943
+G5a_10,SUCCESS,6e-05,0.000486,0.001857
+G5a_01,SUCCESS,6.1e-05,0.000663,0.002063
+G5a_00,SUCCESS,7e-05,0.000526,0.001858

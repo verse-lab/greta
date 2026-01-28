@@ -1,0 +1,34 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production stmt1 -> stmt2
+
+* Production stmt2 -> IF LPAREN ex7 RPAREN stmt2
+
+
+>> ContextStart 
+topl10 
+stmt8 EOF 
+stmt1 stmt8 
+(?)
+>> ContextEnd 
+
+* Production stmt1 -> stmt2
+IF LPAREN ex7 RPAREN stmt1 ELSE stmt1 
+IF LPAREN ex7 RPAREN stmt1 ELSE stmt1 
+stmt2 @@ 
+
+* Production stmt2 -> IF LPAREN ex7 RPAREN stmt2
+IF LPAREN ex7 RPAREN stmt1 ELSE stmt1 
+stmt2 
+IF LPAREN ex7 RPAREN stmt2 @@ 
+
+****************************
+
+
