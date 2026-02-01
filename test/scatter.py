@@ -31,7 +31,7 @@ def create_plots(variant, data_dirs, ambiguity_map, output_dir='plots'):
     results = []
     for data_dir, grammar_ids in data_dirs.items():
         for grammar_id in grammar_ids:
-            filename = os.path.join('.', f"{data_dir}/{grammar_id}_results_{variant}/results.csv")
+            filename = os.path.join('.', f"{data_dir}/{grammar_id}_default_results_{variant}/results.csv")
             print(f"Processing file: {filename}")
             if os.path.exists(filename):
                 averages = process_grammar_file(filename)

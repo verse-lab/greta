@@ -90,19 +90,40 @@ def process_csv_tree(base_dir, base_file):
             })
             return
 
+        if df.shape[0] == 1 and str(df.iloc[0]['Result']).strip() == 'EXCEEDED_ROUNDS':
+            results.append({
+                'grammar_file': current_file.stem,
+                'status': 'REPEATED_OUTPUT',
+                'convert_time': times_so_far.get('convert', 0),
+                'learn_time': times_so_far.get('learn', 0),
+                'intersect_time': times_so_far.get('intersect', 0),
+            })
+            return
+
         # Process each row in the current file
         for _, row in df.iterrows():
             path = str(row['Path']).strip()
             if not path:  # Skip empty paths
                 continue
-                
+
             result = str(row['Result']).strip()
-            
+
             # If ERROR found, record it and stop this branch
             if result == 'ERROR':
                 results.append({
                     'grammar_file': current_file.stem + '_' + path.replace(' ', ''),
                     'status': 'ERROR2',
+                    'convert_time': times_so_far.get('convert', 0),
+                    'learn_time': times_so_far.get('learn', 0),
+                    'intersect_time': times_so_far.get('intersect', 0),
+                })
+                continue
+
+            # If TIMEOUT found, record it and stop this branch
+            if result == 'TIMEOUT':
+                results.append({
+                    'grammar_file': current_file.stem + '_' + path.replace(' ', ''),
+                    'status': 'TIMEOUT',
                     'convert_time': times_so_far.get('convert', 0),
                     'learn_time': times_so_far.get('learn', 0),
                     'intersect_time': times_so_far.get('intersect', 0),
@@ -133,4 +154,4 @@ def process_csv_tree(base_dir, base_file):
     print(f"Results saved to {output_file}")
 
 # Example usage:
-process_csv_tree("grammars/G0/G0b_25_09_29", "G0b.csv")
+# process_csv_tree("grammars/G0/G0b_25_09_29", "G0b.csv")
