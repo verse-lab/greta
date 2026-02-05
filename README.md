@@ -1,9 +1,15 @@
 # Greta
 
-This project demonstrates how context-free grammar is disambiguated using tree automata synthesized based on user-provided examples. 
+GRETA (**G**rammar **RE**pair via **T**ree **A**utomata) demonstrates
+how ambiguous context-free grammars (CFGs) can be disambiguated using
+tree automata synthesized from user-provided examples. 
 
-Building upon the idea from the paper *Restricting Grammars with Tree Automata* by Michael D. Adams and Matthew Might<sup>[1](#001)</sup>, we introduce tree automata-learning GRETA (**G**rammar **RE**pair via **T**ree **A**utomata) algorithm and programming-by-examples synthesis framework to formally and automatically resolve CFG ambiguities based on examples provided by the user.
-
+GRETA introduces tree automata-learning algorithm and
+programming-by-examples synthesis framework to _formally and
+automatically repair CFG ambiguities_ based on tree examples selected
+by the user. The project was originally motivated by the idea from the
+paper *Restricting Grammars with Tree Automata* by Michael D. Adams
+and Matthew Might<sup>[1](#001)</sup>
 
 
 ## Project structure
@@ -15,73 +21,211 @@ Building upon the idea from the paper *Restricting Grammars with Tree Automata* 
 ├── Makefile
 ├── bin
 │   ├── dune
+│   ├── opt_type.ml             // types for optimization ablations
 │   └── main.ml                 // main repl
 ├── lib
 │   ├── dune
-│   ├── converter.ml            // convertion between mly and cfg and between cfg and tree automata
-│   ├── operation.ml            // tree automata intersection operation
-│   ├── examples.ml             // conflicts-based example tree generator and random tree generator
-│   ├── learner.ml              // greta tree automata-learner
+│   ├── converter.ml            // convertion between mly and CFG and between CFG and TA
+│   ├── operation.ml            // TA intersection operation
+│   ├── operation_alt.ml        // TA intersection operation w/o optimizations
+│   ├── examples.ml             // tree examples generator
+│   ├── learner.ml              // TA-learner
 │   ├── utils.ml                // some glue code to hook things together
+│   ├── cfg.ml                  // definition of CFG
+│   ├── ta.ml                   // definition of TA and tree
+│   ├── treeutils.ml            // utilities for TA
+│   ├── pp.ml                   // pretty printers
 │   ├── parser.mly              // definition of the grammar in menhir
 │   ├── lexer.ml                // definition of a lexer
-│   ├── ast.ml                  // definition of an ast
-│   ├── cfg.ml                  // definition of cfg
-│   ├── ta.ml                   // definition of tree automata and tree
-│   ├── run.ml                  // runner of tree automata on tree
-│   └── pp.ml                   // pretty printers
+│   └── ast.ml                  // definition of an ast
 └── test
-    ├── dune
-    └── learner_test.ml
+    ├── grammars-revamp/        // grammars tested for OOPSLA 2026
+    ├── :
+    └── dune
 ```
 
 
 ### Prerequisites
 
-1. You need to install `dune` using `ocaml-dune`:
+GRETA requires:
 
-   * Linux OS
-     ```
-     apt install ocaml-dune
-     ```
+- **OCaml** (via `opam`)
+- **dune**
+- **Menhir** (custom fork with CFG dumping support)
+- Some Python tools (for testing)
 
-   * Mac OS (using Homebrew)
-     ```
-     brew install opam
-     opam init
-     eval "$(opam env)"
-     opam install dune
-     ```
+The instructions below are **OS-specific**.
 
+## Installation
 
-2. Install opam packages:
+### Linux (Ubuntu / Debian)
 
+#### 1. Install system dependencies
+
+```bash
+sudo apt update
+sudo apt install -y \
+  opam \
+  expect \
+  python3-pandas \
+  python3-matplotlib
 ```
-opam update
-opam install sedlex ppx_deriving num core core_unix qcheck ppx_deriving_yojson fileutils stdint
+
+#### 2. Initialize opam and select an OCaml compiler
+
+```bash
+opam init -y
+opam switch create 5.1.1
+eval $(opam env --switch=5.1.1)
+```
+
+#### 3. Install required opam packages
+
+```bash
+opam install -y \
+  dune \
+  sedlex \
+  ppx_deriving \
+  ppx_deriving_yojson \
+  num \
+  core \
+  core_unix \
+  qcheck \
+  fileutils \
+  stdint \
+  graphics
+```
+
+
+### macOS (Homebrew)
+
+#### 1. Install opam
+
+```bash
+brew install opam
+opam init
 eval "$(opam env)"
 ```
 
-Note: Some of the packages above are needed for testing. Last command is needed to access the opam installation. 
+#### 2. Select an OCaml compiler
 
-3. Install [Menhir](https://github.com/verse-lab/menhir/tree/dump-cfg) from the separate attachment.
-
-Note: Run `make install` before running Greta.
-
-4. (Optional) Ensure that you are using the right `dune` and `menhir` versions in `dune-project`. The current project runs with the following versions:
-
+```bash
+opam switch create 5.1.1
+eval "$(opam env)"
 ```
+
+#### 3. Install required opam packages
+
+```bash
+opam install -y \
+  dune \
+  sedlex \
+  ppx_deriving \
+  ppx_deriving_yojson \
+  num \
+  core \
+  core_unix \
+  qcheck \
+  fileutils \
+  stdint \
+  graphics
+```
+
+### Menhir (Requred)
+
+GRETA depends on a custom Menhir fork that supports CFG dumping.
+
+1. Clone the [Menhir](https://github.com/verse-lab/menhir/tree/dump-cfg) repository.
+
+2. Build and install it:
+
+```bash
+make install
+```
+
+Note! This [Menhir](https://github.com/verse-lab/menhir/tree/dump-cfg)
+version must be installed before building GRETA.
+
+
+### Version Notes (Optional)
+
+* GRETA is configured to run with: 
+
+```lisp
 (lang dune 2.1)
 (using menhir 2.0)
 ```
 
-5. (Optional) When you encounter a message "... seems to be compiled with a version of OCaml that is not supported by Merlin", then check the ocaml version via `opam switch list` and select `ocaml.4.14.0` compiler for this project. Make sure you run `eval $(opam env)` after switching to version `4.14.0`.
+* If you encounter Merlin errors such as: 
+> ... seems to be compiled with a version of OCaml that is not
+> supported by Merlin
 
-
-### Running 
-
-To run the project, do the following and choose your selections:
-
+switch to OCaml 4.14.0:
+```bash
+opam switch create 4.14.0
+eval $(opam env)
 ```
+You can do the above by `opam switch list` and selecting
+`ocaml.4.14.0` compiler for this project. Make sure you run `eval
+$(opam env)` after switching to version `4.14.0`.
+
+
+
+## Building and Running GRETA
+
+From the project root directory:
+```bash
 make
 ```
+
+This command builds the project and launches the GRETA interactive
+REPL. Follow the on-screen prompts to select the tree example(s) representing 
+
+You can choose optimization/ablation settings. By default, it runs
+with all the optimizations. 
+
+1. Run without reachability-based optimization: 
+```bash
+make run-wo-opt1
+```
+
+2. Run without duplicate removal optimization: 
+```bash
+make run-wo-opt2
+```
+
+3. Run without epsilon introduction optimization: 
+```bash
+make run-wo-opt3
+```
+
+4. Run without any of the 3 optimizations: 
+```bash
+make run-wo-opt123
+```
+
+
+
+## Testing
+
+The test suite reproduces the experimental evaluation used in the
+OOPSLA 2026 paper.
+
+#### 1. Ensure Menhir is installed
+
+```bash
+cd menhir   # path to the custom Menhir fork (already in dump-cfg)
+make install
+```
+
+#### 2. Run the test harness
+
+```bash
+cd ../greta/test
+./harness.py
+```
+
+### Reference
+
+[1] Michael D. Adams and Matthew Might.
+Restricting Grammars with Tree Automata.
