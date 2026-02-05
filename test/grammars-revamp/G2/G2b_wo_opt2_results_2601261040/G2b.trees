@@ -1,0 +1,158 @@
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: BAR
+
+
+* Production bexp1 -> bexp1 AMPER bexp1
+
+
+>> ContextStart 
+toplevel 
+bexp1 EOF 
+(?)
+>> ContextEnd 
+
+bexp1 AMPER bexp1 
+bexp1 @@ BAR bexp1 
+
+* Production bexp1 -> bexp1 AMPER bexp1
+bexp1 BAR bexp1 
+bexp1 AMPER bexp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: ARR
+
+
+* Production bexp1 -> bexp1 AMPER bexp1
+
+
+>> ContextStart 
+toplevel 
+bexp1 EOF 
+(?)
+>> ContextEnd 
+
+bexp1 AMPER bexp1 
+bexp1 @@ ARR bexp2 
+
+* Production bexp1 -> bexp1 AMPER bexp1
+bexp1 ARR bexp2 
+bexp1 AMPER bexp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AMPER
+
+
+* Production bexp1 -> bexp1 AMPER bexp1
+
+
+>> ContextStart 
+toplevel 
+bexp1 EOF 
+(?)
+>> ContextEnd 
+
+bexp1 AMPER bexp1 
+bexp1 @@ AMPER bexp1 
+
+* Production bexp1 -> bexp1 AMPER bexp1
+bexp1 AMPER bexp1 
+bexp1 AMPER bexp1 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: BAR
+
+
+* Production bexp1 -> bexp1 BAR bexp1
+
+
+>> ContextStart 
+toplevel 
+bexp1 EOF 
+(?)
+>> ContextEnd 
+
+bexp1 BAR bexp1 
+bexp1 @@ BAR bexp1 
+
+* Production bexp1 -> bexp1 BAR bexp1
+bexp1 BAR bexp1 
+bexp1 BAR bexp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: ARR
+
+
+* Production bexp1 -> bexp1 BAR bexp1
+
+
+>> ContextStart 
+toplevel 
+bexp1 EOF 
+(?)
+>> ContextEnd 
+
+bexp1 BAR bexp1 
+bexp1 @@ ARR bexp2 
+
+* Production bexp1 -> bexp1 BAR bexp1
+bexp1 ARR bexp2 
+bexp1 BAR bexp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AMPER
+
+* Production bexp1 -> bexp1 BAR bexp1
+
+
+
+>> ContextStart 
+toplevel 
+bexp1 EOF 
+(?)
+>> ContextEnd 
+
+* Production bexp1 -> bexp1 BAR bexp1
+bexp1 AMPER bexp1 
+bexp1 BAR bexp1 @@ 
+
+bexp1 BAR bexp1 
+bexp1 @@ AMPER bexp1 
+
+****************************
+
+

@@ -1,0 +1,432 @@
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+* Production exp -> exp DASH exp
+
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+* Production exp -> exp DASH exp
+exp STAR exp 
+exp DASH exp @@ 
+
+exp DASH exp 
+exp @@ STAR exp 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp -> exp DASH exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp DASH exp 
+exp @@ PLUS exp 
+
+* Production exp -> exp DASH exp
+exp PLUS exp 
+exp DASH exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: EQEQ
+
+* Production exp -> exp DASH exp
+
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+* Production exp -> exp DASH exp
+exp EQEQ exp 
+exp DASH exp @@ 
+
+exp DASH exp 
+exp @@ EQEQ exp 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DASH
+
+
+* Production exp -> exp DASH exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp DASH exp 
+exp @@ DASH exp 
+
+* Production exp -> exp DASH exp
+exp DASH exp 
+exp DASH exp @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+
+* Production exp -> exp EQEQ exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp EQEQ exp 
+exp @@ STAR exp 
+
+* Production exp -> exp EQEQ exp
+exp STAR exp 
+exp EQEQ exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp -> exp EQEQ exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp EQEQ exp 
+exp @@ PLUS exp 
+
+* Production exp -> exp EQEQ exp
+exp PLUS exp 
+exp EQEQ exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: EQEQ
+
+
+* Production exp -> exp EQEQ exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp EQEQ exp 
+exp @@ EQEQ exp 
+
+* Production exp -> exp EQEQ exp
+exp EQEQ exp 
+exp EQEQ exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DASH
+
+
+* Production exp -> exp EQEQ exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp EQEQ exp 
+exp @@ DASH exp 
+
+* Production exp -> exp EQEQ exp
+exp DASH exp 
+exp EQEQ exp @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+* Production exp -> exp PLUS exp
+
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+* Production exp -> exp PLUS exp
+exp STAR exp 
+exp PLUS exp @@ 
+
+exp PLUS exp 
+exp @@ STAR exp 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp -> exp PLUS exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp PLUS exp 
+exp @@ PLUS exp 
+
+* Production exp -> exp PLUS exp
+exp PLUS exp 
+exp PLUS exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: EQEQ
+
+* Production exp -> exp PLUS exp
+
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+* Production exp -> exp PLUS exp
+exp EQEQ exp 
+exp PLUS exp @@ 
+
+exp PLUS exp 
+exp @@ EQEQ exp 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DASH
+
+* Production exp -> exp PLUS exp
+
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+* Production exp -> exp PLUS exp
+exp DASH exp 
+exp PLUS exp @@ 
+
+exp PLUS exp 
+exp @@ DASH exp 
+
+****************************
+
+
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+
+* Production exp -> exp STAR exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp STAR exp 
+exp @@ STAR exp 
+
+* Production exp -> exp STAR exp
+exp STAR exp 
+exp STAR exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp -> exp STAR exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp STAR exp 
+exp @@ PLUS exp 
+
+* Production exp -> exp STAR exp
+exp PLUS exp 
+exp STAR exp @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: EQEQ
+
+* Production exp -> exp STAR exp
+
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+* Production exp -> exp STAR exp
+exp EQEQ exp 
+exp STAR exp @@ 
+
+exp STAR exp 
+exp @@ EQEQ exp 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DASH
+
+
+* Production exp -> exp STAR exp
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp LPAREN COMMA exp RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp STAR exp 
+exp @@ DASH exp 
+
+* Production exp -> exp STAR exp
+exp DASH exp 
+exp STAR exp @@ 
+
+****************************
+
+

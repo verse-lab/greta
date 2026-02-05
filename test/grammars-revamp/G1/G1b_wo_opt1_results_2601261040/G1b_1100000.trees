@@ -1,0 +1,93 @@
+
+
+
+Number_tokens: 3
+
+
+** Conflict type reduce/reduce.
+** Token: PLUS
+
+* Production expr3 -> expr5
+
+* Production expr5 -> IF cond6 THEN expr5
+
+
+>> ContextStart 
+prog7 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr3 -> expr5
+IF cond6 THEN expr1 ELSE expr1 
+expr2 
+expr2 PLUS expr4 
+expr3 
+expr5 @@ 
+
+* Production expr5 -> IF cond6 THEN expr5
+expr2 
+expr2 PLUS expr4 
+expr3 
+expr5 
+IF cond6 THEN expr5 @@ 
+
+****************************
+
+
+
+
+** Conflict type reduce/reduce.
+** Token: MUL
+
+* Production expr3 -> expr5
+
+* Production expr5 -> IF cond6 THEN expr5
+
+
+>> ContextStart 
+prog7 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr3 -> expr5
+IF cond6 THEN expr1 ELSE expr1 
+expr2 
+expr3 
+expr3 MUL expr5 
+expr5 @@ 
+
+* Production expr5 -> IF cond6 THEN expr5
+expr2 
+expr3 
+expr3 MUL expr5 
+expr5 
+IF cond6 THEN expr5 @@ 
+
+****************************
+
+
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production expr3 -> expr5
+
+
+>> ContextStart 
+prog7 
+expr1 EOF 
+IF cond6 THEN expr1 ELSE expr1 // lookahead token appears
+              expr2 // lookahead token is inherited
+              expr3 // lookahead token is inherited
+              (?)
+>> ContextEnd 
+
+* Production expr3 -> expr5
+expr5 @@ 
+
+****************************
+
+

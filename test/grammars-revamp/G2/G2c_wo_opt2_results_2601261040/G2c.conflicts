@@ -1,0 +1,108 @@
+
+** Conflict (shift/reduce) in state 14.
+** Tokens involved: BAR ARR AMPER
+** The following explanations concentrate on token BAR.
+** This state is reached from toplevel after reading:
+
+TILDE bexp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp EOF 
+(?)
+
+** In state 14, looking ahead at BAR, shifting is permitted..
+** because of the following sub-derivation:
+
+TILDE bexp 
+      bexp . BAR bexp 
+
+** In state 14, looking ahead at BAR, reducing production..
+** bexp -> TILDE bexp
+** is permitted because of the following sub-derivation:
+
+bexp BAR bexp // lookahead token appears
+TILDE bexp . 
+
+** Conflict (shift/reduce) in state 13.
+** Tokens involved: BAR ARR AMPER
+** The following explanations concentrate on token BAR.
+** This state is reached from toplevel after reading:
+
+bexp AMPER bexp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp EOF 
+(?)
+
+** In state 13, looking ahead at BAR, shifting is permitted..
+** because of the following sub-derivation:
+
+bexp AMPER bexp 
+           bexp . BAR bexp 
+
+** In state 13, looking ahead at BAR, reducing production..
+** bexp -> bexp AMPER bexp
+** is permitted because of the following sub-derivation:
+
+bexp BAR bexp // lookahead token appears
+bexp AMPER bexp . 
+
+** Conflict (shift/reduce) in state 11.
+** Tokens involved: BAR ARR AMPER
+** The following explanations concentrate on token BAR.
+** This state is reached from toplevel after reading:
+
+bexp ARR bexp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp EOF 
+(?)
+
+** In state 11, looking ahead at BAR, reducing production..
+** bexp -> bexp ARR bexp
+** is permitted because of the following sub-derivation:
+
+bexp BAR bexp // lookahead token appears
+bexp ARR bexp . 
+
+** In state 11, looking ahead at BAR, shifting is permitted..
+** because of the following sub-derivation:
+
+bexp ARR bexp 
+         bexp . BAR bexp 
+
+** Conflict (shift/reduce) in state 9.
+** Tokens involved: BAR ARR AMPER
+** The following explanations concentrate on token BAR.
+** This state is reached from toplevel after reading:
+
+bexp BAR bexp
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+toplevel 
+bexp EOF 
+(?)
+
+** In state 9, looking ahead at BAR, shifting is permitted..
+** because of the following sub-derivation:
+
+bexp BAR bexp 
+         bexp . BAR bexp 
+
+** In state 9, looking ahead at BAR, reducing production..
+** bexp -> bexp BAR bexp
+** is permitted because of the following sub-derivation:
+
+bexp BAR bexp // lookahead token appears
+bexp BAR bexp . 

@@ -1,0 +1,30 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: RPAREN
+
+* Production ex2 -> ex3
+
+
+
+>> ContextStart 
+topl1 
+stmt12 EOF 
+stmt6 stmt11 
+(?)
+>> ContextEnd 
+
+* Production ex2 -> ex3
+IF LPAREN ex2 RPAREN stmt5 ELSE stmt5 
+ex3 @@ 
+
+stmt8 
+IF LPAREN ex3 @@ RPAREN stmt8 
+
+****************************
+
+

@@ -1,0 +1,136 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production stmt3 -> decl10 SEMI
+
+* Production stmt5 -> decl10 SEMI
+
+
+>> ContextStart 
+topl1 
+stmt8 EOF 
+stmt3 stmt8 
+(?)
+>> ContextEnd 
+
+* Production stmt3 -> decl10 SEMI
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+decl10 SEMI @@ 
+
+* Production stmt5 -> decl10 SEMI
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+IF LPAREN ex1 RPAREN stmt5 
+decl10 SEMI @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production stmt3 -> iden11 EQ ex1 SEMI
+
+* Production stmt5 -> iden11 EQ ex1 SEMI
+
+
+>> ContextStart 
+topl1 
+stmt8 EOF 
+stmt3 stmt8 
+(?)
+>> ContextEnd 
+
+* Production stmt3 -> iden11 EQ ex1 SEMI
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+iden11 EQ ex1 SEMI @@ 
+
+* Production stmt5 -> iden11 EQ ex1 SEMI
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+IF LPAREN ex1 RPAREN stmt5 
+iden11 EQ ex1 SEMI @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production stmt3 -> IF LPAREN ex1 RPAREN stmt5
+
+* Production stmt5 -> IF LPAREN ex1 RPAREN stmt5
+
+
+>> ContextStart 
+topl1 
+stmt8 EOF 
+stmt3 stmt8 
+(?)
+>> ContextEnd 
+
+* Production stmt3 -> IF LPAREN ex1 RPAREN stmt5
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+IF LPAREN ex1 RPAREN stmt5 @@ 
+
+* Production stmt5 -> IF LPAREN ex1 RPAREN stmt5
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+IF LPAREN ex1 RPAREN stmt5 
+IF LPAREN ex1 RPAREN stmt5 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production stmt3 -> stmt7
+
+* Production stmt5 -> stmt7
+
+
+>> ContextStart 
+topl1 
+stmt8 EOF 
+stmt3 stmt8 
+(?)
+>> ContextEnd 
+
+* Production stmt3 -> stmt7
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+stmt7 @@ 
+
+* Production stmt5 -> stmt7
+IF LPAREN ex1 RPAREN stmt3 ELSE stmt3 
+IF LPAREN ex1 RPAREN stmt5 
+stmt7 @@ 
+
+****************************
+
+

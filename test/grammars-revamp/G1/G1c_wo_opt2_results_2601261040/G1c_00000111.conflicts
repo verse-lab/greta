@@ -1,0 +1,28 @@
+
+** Conflict (shift/reduce) in state 6.
+** Token involved: THEN
+** This state is reached from prog1 after reading:
+
+IF cond7
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr2 EOF 
+(?)
+
+** In state 6, looking ahead at THEN, reducing production..
+** cond6 -> cond7
+** is permitted because of the following sub-derivation:
+
+expr3 
+expr4 
+expr5 
+IF cond6 THEN expr5 ELSE expr5 // lookahead token appears
+   cond7 . 
+
+** In state 6, looking ahead at THEN, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond7 . THEN expr1 

@@ -1,0 +1,108 @@
+
+** Conflict (reduce/reduce) in state 40.
+** Token involved: THEN
+** This state is reached from prog12 after reading:
+
+IF expr10 PLUS expr8
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog12 
+stmt6 EOF 
+(?)
+
+** In state 40, looking ahead at THEN, reducing production..
+** expr1 -> expr10 PLUS expr8
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt9 ELSE stmt9 // lookahead token appears
+   expr10 PLUS expr8 . 
+
+** In state 40, looking ahead at THEN, reducing production..
+** expr5 -> expr10 PLUS expr8
+** is permitted because of the following sub-derivation:
+
+IF expr5 THEN stmt7 // lookahead token appears
+   expr10 PLUS expr8 . 
+
+** Conflict (reduce/reduce) in state 37.
+** Token involved: THEN
+** This state is reached from prog12 after reading:
+
+IF expr3 STAR expr8
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog12 
+stmt6 EOF 
+(?)
+
+** In state 37, looking ahead at THEN, reducing production..
+** expr1 -> expr3 STAR expr8
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt9 ELSE stmt9 // lookahead token appears
+   expr3 STAR expr8 . 
+
+** In state 37, looking ahead at THEN, reducing production..
+** expr5 -> expr3 STAR expr8
+** is permitted because of the following sub-derivation:
+
+IF expr5 THEN stmt7 // lookahead token appears
+   expr3 STAR expr8 . 
+
+** Conflict (reduce/reduce) in state 26.
+** Token involved: THEN
+** This state is reached from prog12 after reading:
+
+IF INT
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog12 
+stmt6 EOF 
+(?)
+
+** In state 26, looking ahead at THEN, reducing production..
+** expr1 -> INT
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt9 ELSE stmt9 // lookahead token appears
+   INT . 
+
+** In state 26, looking ahead at THEN, reducing production..
+** expr5 -> INT
+** is permitted because of the following sub-derivation:
+
+IF expr5 THEN stmt7 // lookahead token appears
+   INT . 
+
+** Conflict (reduce/reduce) in state 25.
+** Token involved: THEN
+** This state is reached from prog12 after reading:
+
+IF LPAREN expr3 RPAREN
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog12 
+stmt6 EOF 
+(?)
+
+** In state 25, looking ahead at THEN, reducing production..
+** expr1 -> LPAREN expr3 RPAREN
+** is permitted because of the following sub-derivation:
+
+IF expr1 THEN stmt9 ELSE stmt9 // lookahead token appears
+   LPAREN expr3 RPAREN . 
+
+** In state 25, looking ahead at THEN, reducing production..
+** expr5 -> LPAREN expr3 RPAREN
+** is permitted because of the following sub-derivation:
+
+IF expr5 THEN stmt7 // lookahead token appears
+   LPAREN expr3 RPAREN . 

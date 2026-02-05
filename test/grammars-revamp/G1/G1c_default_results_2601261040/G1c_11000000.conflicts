@@ -1,0 +1,34 @@
+
+** Conflict (reduce/reduce) in state 8.
+** Tokens involved: PLUS MUL ELSE
+** The following explanations concentrate on token PLUS.
+** This state is reached from prog1 after reading:
+
+IF cond5 THEN expr4
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog1 
+expr1 EOF 
+(?)
+
+** In state 8, looking ahead at PLUS, reducing production..
+** expr3 -> expr4
+** is permitted because of the following sub-derivation:
+
+IF cond5 THEN expr1 ELSE expr1 
+              expr2 
+              expr2 PLUS expr3 // lookahead token appears
+              expr3 // lookahead token is inherited
+              expr4 . 
+
+** In state 8, looking ahead at PLUS, reducing production..
+** expr4 -> IF cond5 THEN expr4
+** is permitted because of the following sub-derivation:
+
+expr2 
+expr2 PLUS expr3 // lookahead token appears
+expr3 // lookahead token is inherited
+expr4 // lookahead token is inherited
+IF cond5 THEN expr4 . 

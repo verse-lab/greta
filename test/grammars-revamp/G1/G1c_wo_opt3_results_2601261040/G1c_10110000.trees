@@ -1,0 +1,162 @@
+
+
+
+Number_tokens: 2
+
+
+** Conflict type reduce/reduce.
+** Token: PLUS
+
+* Production expr3 -> IF cond5 THEN expr4
+
+* Production expr4 -> IF cond5 THEN expr4
+
+
+>> ContextStart 
+prog1 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr3 -> IF cond5 THEN expr4
+IF cond5 THEN expr2 ELSE expr2 
+expr3 PLUS expr4 
+IF cond5 THEN expr4 @@ 
+
+* Production expr4 -> IF cond5 THEN expr4
+expr3 PLUS expr4 
+IF cond5 THEN expr4 
+IF cond5 THEN expr4 @@ 
+
+****************************
+
+
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production expr2 -> IF cond5 THEN expr4
+
+
+>> ContextStart 
+prog1 
+expr1 EOF 
+IF cond5 THEN expr2 ELSE expr2 // lookahead token appears
+              (?)
+>> ContextEnd 
+
+* Production expr2 -> IF cond5 THEN expr4
+IF cond5 THEN expr4 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 2
+
+
+** Conflict type reduce/reduce.
+** Token: PLUS
+
+* Production expr3 -> INT
+
+* Production expr4 -> INT
+
+
+>> ContextStart 
+prog1 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr3 -> INT
+IF cond5 THEN expr2 ELSE expr2 
+expr3 PLUS expr4 
+INT @@ 
+
+* Production expr4 -> INT
+expr3 PLUS expr4 
+IF cond5 THEN expr4 
+INT @@ 
+
+****************************
+
+
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production expr2 -> INT
+
+
+>> ContextStart 
+prog1 
+expr1 EOF 
+IF cond5 THEN expr2 ELSE expr2 // lookahead token appears
+              (?)
+>> ContextEnd 
+
+* Production expr2 -> INT
+INT @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 2
+
+
+** Conflict type reduce/reduce.
+** Token: PLUS
+
+* Production expr3 -> LPAREN expr1 RPAREN
+
+* Production expr4 -> LPAREN expr1 RPAREN
+
+
+>> ContextStart 
+prog1 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr3 -> LPAREN expr1 RPAREN
+IF cond5 THEN expr2 ELSE expr2 
+expr3 PLUS expr4 
+LPAREN expr1 RPAREN @@ 
+
+* Production expr4 -> LPAREN expr1 RPAREN
+expr3 PLUS expr4 
+IF cond5 THEN expr4 
+LPAREN expr1 RPAREN @@ 
+
+****************************
+
+
+
+
+** Conflict type reduce/reduce.
+** Token: ELSE
+
+* Production expr2 -> LPAREN expr1 RPAREN
+
+
+>> ContextStart 
+prog1 
+expr1 EOF 
+IF cond5 THEN expr2 ELSE expr2 // lookahead token appears
+              (?)
+>> ContextEnd 
+
+* Production expr2 -> LPAREN expr1 RPAREN
+LPAREN expr1 RPAREN @@ 
+
+****************************
+
+

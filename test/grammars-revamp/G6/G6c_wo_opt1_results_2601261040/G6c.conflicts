@@ -1,0 +1,226 @@
+
+** Conflict (shift/reduce) in state 41.
+** Token involved: IFF
+** This state is reached from constr after reading:
+
+NOT bool_expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+bool_expr2 
+(?)
+
+** In state 41, looking ahead at IFF, shifting is permitted..
+** because of the following sub-derivation:
+
+NOT bool_expr2 
+    bool_expr2 . IFF bool_expr2 
+
+** In state 41, looking ahead at IFF, reducing production..
+** bool_expr2 -> NOT bool_expr2
+** is permitted because of the following sub-derivation:
+
+bool_expr2 IFF bool_expr2 // lookahead token appears
+NOT bool_expr2 . 
+
+** Conflict (shift/reduce) in state 34.
+** Token involved: IFF
+** This state is reached from constr after reading:
+
+bool_expr2 IFF bool_expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+bool_expr2 
+(?)
+
+** In state 34, looking ahead at IFF, shifting is permitted..
+** because of the following sub-derivation:
+
+bool_expr2 IFF bool_expr2 
+               bool_expr2 . IFF bool_expr2 
+
+** In state 34, looking ahead at IFF, reducing production..
+** bool_expr2 -> bool_expr2 IFF bool_expr2
+** is permitted because of the following sub-derivation:
+
+bool_expr2 IFF bool_expr2 // lookahead token appears
+bool_expr2 IFF bool_expr2 . 
+
+** Conflict (shift/reduce) in state 19.
+** Tokens involved: PLUS MINUS
+** The following explanations concentrate on token PLUS.
+** This state is reached from constr after reading:
+
+int_expr1 MINUS int_expr1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+(?)
+
+** In state 19, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+int_expr1 MINUS int_expr1 
+                int_expr1 . PLUS int_expr1 
+
+** In state 19, looking ahead at PLUS, reducing production..
+** int_expr1 -> int_expr1 MINUS int_expr1
+** is permitted because of the following sub-derivation:
+
+int_expr1 PLUS int_expr1 // lookahead token appears
+int_expr1 MINUS int_expr1 . 
+
+** Conflict (shift/reduce) in state 17.
+** Tokens involved: PLUS MINUS
+** The following explanations concentrate on token PLUS.
+** This state is reached from constr after reading:
+
+int_expr1 PLUS int_expr1
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+(?)
+
+** In state 17, looking ahead at PLUS, shifting is permitted..
+** because of the following sub-derivation:
+
+int_expr1 PLUS int_expr1 
+               int_expr1 . PLUS int_expr1 
+
+** In state 17, looking ahead at PLUS, reducing production..
+** int_expr1 -> int_expr1 PLUS int_expr1
+** is permitted because of the following sub-derivation:
+
+int_expr1 PLUS int_expr1 // lookahead token appears
+int_expr1 PLUS int_expr1 . 
+
+** Conflict (shift/reduce) in state 12.
+** Tokens involved: TIMES POWER DIVIDE
+** The following explanations concentrate on token TIMES.
+** This state is reached from constr after reading:
+
+int_expr2 DIVIDE int_expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+
+** In state 12, looking ahead at TIMES, shifting is permitted..
+** because of the following sub-derivation:
+
+int_expr2 DIVIDE int_expr2 
+                 int_expr2 . TIMES int_expr2 
+
+** In state 12, looking ahead at TIMES, reducing production..
+** int_expr2 -> int_expr2 DIVIDE int_expr2
+** is permitted because of the following sub-derivation:
+
+int_expr2 TIMES int_expr2 // lookahead token appears
+int_expr2 DIVIDE int_expr2 . 
+
+** Conflict (shift/reduce) in state 10.
+** Tokens involved: TIMES POWER DIVIDE
+** The following explanations concentrate on token TIMES.
+** This state is reached from constr after reading:
+
+int_expr2 POWER int_expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+
+** In state 10, looking ahead at TIMES, shifting is permitted..
+** because of the following sub-derivation:
+
+int_expr2 POWER int_expr2 
+                int_expr2 . TIMES int_expr2 
+
+** In state 10, looking ahead at TIMES, reducing production..
+** int_expr2 -> int_expr2 POWER int_expr2
+** is permitted because of the following sub-derivation:
+
+int_expr2 TIMES int_expr2 // lookahead token appears
+int_expr2 POWER int_expr2 . 
+
+** Conflict (shift/reduce) in state 8.
+** Tokens involved: TIMES POWER DIVIDE
+** The following explanations concentrate on token TIMES.
+** This state is reached from constr after reading:
+
+int_expr2 TIMES int_expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+
+** In state 8, looking ahead at TIMES, shifting is permitted..
+** because of the following sub-derivation:
+
+int_expr2 TIMES int_expr2 
+                int_expr2 . TIMES int_expr2 
+
+** In state 8, looking ahead at TIMES, reducing production..
+** int_expr2 -> int_expr2 TIMES int_expr2
+** is permitted because of the following sub-derivation:
+
+int_expr2 TIMES int_expr2 // lookahead token appears
+int_expr2 TIMES int_expr2 . 
+
+** Conflict (shift/reduce) in state 6.
+** Tokens involved: TIMES POWER DIVIDE
+** The following explanations concentrate on token TIMES.
+** This state is reached from constr after reading:
+
+MINUS int_expr2
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+
+** In state 6, looking ahead at TIMES, shifting is permitted..
+** because of the following sub-derivation:
+
+MINUS int_expr2 
+      int_expr2 . TIMES int_expr2 
+
+** In state 6, looking ahead at TIMES, reducing production..
+** int_expr2 -> MINUS int_expr2
+** is permitted because of the following sub-derivation:
+
+int_expr2 TIMES int_expr2 // lookahead token appears
+MINUS int_expr2 . 

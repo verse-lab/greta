@@ -1,0 +1,168 @@
+
+** Conflict (reduce/reduce) in state 137.
+** Token involved: RPAREN
+** This state is reached from topl26 after reading:
+
+IF LPAREN cons51
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl26 
+stmt24 EOF 
+stmt9 stmt25 
+(?)
+
+** In state 137, looking ahead at RPAREN, reducing production..
+** ex1 -> cons51
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt7 // lookahead token appears
+          cons51 . 
+
+** In state 137, looking ahead at RPAREN, reducing production..
+** ex2 -> cons51
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex2 RPAREN stmt11 ELSE stmt11 // lookahead token appears
+          cons51 . 
+
+** Conflict (reduce/reduce) in state 117.
+** Token involved: RPAREN
+** This state is reached from topl26 after reading:
+
+IF LPAREN ex12 PLUS ex10
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl26 
+stmt24 EOF 
+stmt9 stmt25 
+(?)
+
+** In state 117, looking ahead at RPAREN, reducing production..
+** ex1 -> ex12 PLUS ex10
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt7 // lookahead token appears
+          ex12 PLUS ex10 . 
+
+** In state 117, looking ahead at RPAREN, reducing production..
+** ex2 -> ex12 PLUS ex10
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex2 RPAREN stmt11 ELSE stmt11 // lookahead token appears
+          ex12 PLUS ex10 . 
+
+** Conflict (reduce/reduce) in state 66.
+** Token involved: RPAREN
+** This state is reached from topl26 after reading:
+
+IF LPAREN ex23 STAR ex12
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl26 
+stmt24 EOF 
+stmt9 stmt25 
+(?)
+
+** In state 66, looking ahead at RPAREN, reducing production..
+** ex1 -> ex23 STAR ex12
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt7 // lookahead token appears
+          ex23 STAR ex12 . 
+
+** In state 66, looking ahead at RPAREN, reducing production..
+** ex2 -> ex23 STAR ex12
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex2 RPAREN stmt11 ELSE stmt11 // lookahead token appears
+          ex23 STAR ex12 . 
+
+** Conflict (reduce/reduce) in state 63.
+** Token involved: RPAREN
+** This state is reached from topl26 after reading:
+
+IF LPAREN ex4 DASH ex4
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl26 
+stmt24 EOF 
+stmt9 stmt25 
+(?)
+
+** In state 63, looking ahead at RPAREN, reducing production..
+** ex1 -> ex4 DASH ex4
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt7 // lookahead token appears
+          ex4 DASH ex4 . 
+
+** In state 63, looking ahead at RPAREN, reducing production..
+** ex2 -> ex4 DASH ex4
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex2 RPAREN stmt11 ELSE stmt11 // lookahead token appears
+          ex4 DASH ex4 . 
+
+** Conflict (reduce/reduce) in state 60.
+** Token involved: RPAREN
+** This state is reached from topl26 after reading:
+
+IF LPAREN iden33
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl26 
+stmt24 EOF 
+stmt9 stmt25 
+(?)
+
+** In state 60, looking ahead at RPAREN, reducing production..
+** ex1 -> iden33
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt7 // lookahead token appears
+          iden33 . 
+
+** In state 60, looking ahead at RPAREN, reducing production..
+** ex2 -> iden33
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex2 RPAREN stmt11 ELSE stmt11 // lookahead token appears
+          iden33 . 
+
+** Conflict (reduce/reduce) in state 59.
+** Token involved: RPAREN
+** This state is reached from topl26 after reading:
+
+IF LPAREN LPAREN ex4 RPAREN
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+topl26 
+stmt24 EOF 
+stmt9 stmt25 
+(?)
+
+** In state 59, looking ahead at RPAREN, reducing production..
+** ex1 -> LPAREN ex4 RPAREN
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex1 RPAREN stmt7 // lookahead token appears
+          LPAREN ex4 RPAREN . 
+
+** In state 59, looking ahead at RPAREN, reducing production..
+** ex2 -> LPAREN ex4 RPAREN
+** is permitted because of the following sub-derivation:
+
+IF LPAREN ex2 RPAREN stmt11 ELSE stmt11 // lookahead token appears
+          LPAREN ex4 RPAREN . 

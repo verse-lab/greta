@@ -1,0 +1,124 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: THEN
+
+* Production expr1 -> expr10 PLUS expr8
+
+* Production expr5 -> expr10 PLUS expr8
+
+
+>> ContextStart 
+prog12 
+stmt6 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr1 -> expr10 PLUS expr8
+IF expr1 THEN stmt9 
+expr10 PLUS expr8 @@ 
+
+* Production expr5 -> expr10 PLUS expr8
+IF expr5 THEN stmt7 ELSE stmt7 
+expr10 PLUS expr8 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: THEN
+
+* Production expr1 -> expr3 STAR expr8
+
+* Production expr5 -> expr3 STAR expr8
+
+
+>> ContextStart 
+prog12 
+stmt6 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr1 -> expr3 STAR expr8
+IF expr1 THEN stmt9 
+expr3 STAR expr8 @@ 
+
+* Production expr5 -> expr3 STAR expr8
+IF expr5 THEN stmt7 ELSE stmt7 
+expr3 STAR expr8 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: THEN
+
+* Production expr1 -> INT
+
+* Production expr5 -> INT
+
+
+>> ContextStart 
+prog12 
+stmt6 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr1 -> INT
+IF expr1 THEN stmt9 
+INT @@ 
+
+* Production expr5 -> INT
+IF expr5 THEN stmt7 ELSE stmt7 
+INT @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: THEN
+
+* Production expr1 -> LPAREN expr3 RPAREN
+
+* Production expr5 -> LPAREN expr3 RPAREN
+
+
+>> ContextStart 
+prog12 
+stmt6 EOF 
+(?)
+>> ContextEnd 
+
+* Production expr1 -> LPAREN expr3 RPAREN
+IF expr1 THEN stmt9 
+LPAREN expr3 RPAREN @@ 
+
+* Production expr5 -> LPAREN expr3 RPAREN
+IF expr5 THEN stmt7 ELSE stmt7 
+LPAREN expr3 RPAREN @@ 
+
+****************************
+
+

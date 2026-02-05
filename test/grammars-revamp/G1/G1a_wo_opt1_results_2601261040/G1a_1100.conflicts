@@ -1,0 +1,30 @@
+
+** Conflict (shift/reduce) in state 9.
+** Tokens involved: MUL ELSE
+** The following explanations concentrate on token MUL.
+** This state is reached from prog7 after reading:
+
+IF cond6 THEN expr3
+
+** The derivations that appear below have the following common factor:
+** (The question mark symbol (?) represents the spot where the derivations begin to differ.)
+
+prog7 
+expr5 EOF 
+expr1 
+(?)
+
+** In state 9, looking ahead at MUL, shifting is permitted..
+** because of the following sub-derivation:
+
+IF cond6 THEN expr1 ELSE expr1 
+              expr2 
+              expr3 . MUL expr2 
+
+** In state 9, looking ahead at MUL, reducing production..
+** expr3 -> IF cond6 THEN expr3
+** is permitted because of the following sub-derivation:
+
+expr2 
+expr3 MUL expr2 // lookahead token appears
+IF cond6 THEN expr3 . 

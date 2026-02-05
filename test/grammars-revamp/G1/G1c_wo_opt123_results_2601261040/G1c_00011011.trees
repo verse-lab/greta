@@ -1,0 +1,62 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: THEN
+
+* Production cond11 -> FALSE
+
+* Production cond7 -> FALSE
+
+
+>> ContextStart 
+prog14 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production cond11 -> FALSE
+IF cond11 THEN expr5 ELSE expr5 
+FALSE @@ 
+
+* Production cond7 -> FALSE
+IF cond7 THEN expr3 
+FALSE @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type reduce/reduce.
+** Token: THEN
+
+* Production cond11 -> TRUE
+
+* Production cond7 -> TRUE
+
+
+>> ContextStart 
+prog14 
+expr1 EOF 
+(?)
+>> ContextEnd 
+
+* Production cond11 -> TRUE
+IF cond11 THEN expr5 ELSE expr5 
+TRUE @@ 
+
+* Production cond7 -> TRUE
+IF cond7 THEN expr3 
+TRUE @@ 
+
+****************************
+
+

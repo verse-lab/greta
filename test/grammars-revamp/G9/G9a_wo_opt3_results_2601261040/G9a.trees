@@ -1,0 +1,698 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: COMMA
+
+
+* Production assignment_list -> assignment_list COMMA assignment_list
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      (?)
+>> ContextEnd 
+
+assignment_list COMMA assignment_list 
+assignment_list @@ COMMA assignment_list 
+
+* Production assignment_list -> assignment_list COMMA assignment_list
+assignment_list COMMA assignment_list 
+assignment_list COMMA assignment_list @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: COMMA
+
+
+* Production order_by_list -> order_by_list COMMA order_by_list
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_order opt_limit 
+                                      ORDER BY order_by_list 
+                                               (?)
+>> ContextEnd 
+
+order_by_list COMMA order_by_list 
+order_by_list @@ COMMA order_by_list 
+
+* Production order_by_list -> order_by_list COMMA order_by_list
+order_by_list COMMA order_by_list 
+order_by_list COMMA order_by_list @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: SEMICOLON
+
+
+* Production condition_list -> condition_list SEMICOLON condition_list
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_where opt_order opt_limit 
+                                      WHERE condition_list 
+                                            (?)
+>> ContextEnd 
+
+condition_list SEMICOLON condition_list 
+condition_list @@ SEMICOLON condition_list 
+
+* Production condition_list -> condition_list SEMICOLON condition_list
+condition_list SEMICOLON condition_list 
+condition_list SEMICOLON condition_list @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 2
+
+
+** Conflict type shift/reduce.
+** Token: OR
+
+
+* Production condition -> condition AND condition
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_where opt_order opt_limit 
+                                      WHERE condition_list 
+                                            condition 
+                                            (?)
+>> ContextEnd 
+
+condition AND condition 
+condition @@ OR condition 
+
+* Production condition -> condition AND condition
+condition OR condition 
+condition AND condition @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AND
+
+
+* Production condition -> condition AND condition
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_where opt_order opt_limit 
+                                      WHERE condition_list 
+                                            condition 
+                                            (?)
+>> ContextEnd 
+
+condition AND condition 
+condition @@ AND condition 
+
+* Production condition -> condition AND condition
+condition AND condition 
+condition AND condition @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 2
+
+
+** Conflict type shift/reduce.
+** Token: OR
+
+
+* Production condition -> condition OR condition
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_where opt_order opt_limit 
+                                      WHERE condition_list 
+                                            condition 
+                                            (?)
+>> ContextEnd 
+
+condition OR condition 
+condition @@ OR condition 
+
+* Production condition -> condition OR condition
+condition OR condition 
+condition OR condition @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: AND
+
+* Production condition -> condition OR condition
+
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list option_list 
+                                      opt_where opt_order opt_limit 
+                                      WHERE condition_list 
+                                            condition 
+                                            (?)
+>> ContextEnd 
+
+* Production condition -> condition OR condition
+condition AND condition 
+condition OR condition @@ 
+
+condition OR condition 
+condition @@ AND condition 
+
+****************************
+
+
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+
+* Production expr -> expr DIV expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr DIV expr 
+expr @@ STAR expr 
+
+* Production expr -> expr DIV expr
+expr STAR expr 
+expr DIV expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production expr -> expr DIV expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr DIV expr 
+expr @@ PLUS expr 
+
+* Production expr -> expr DIV expr
+expr PLUS expr 
+expr DIV expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: MINUS
+
+
+* Production expr -> expr DIV expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr DIV expr 
+expr @@ MINUS expr 
+
+* Production expr -> expr DIV expr
+expr MINUS expr 
+expr DIV expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DIV
+
+
+* Production expr -> expr DIV expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr DIV expr 
+expr @@ DIV expr 
+
+* Production expr -> expr DIV expr
+expr DIV expr 
+expr DIV expr @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+* Production expr -> expr MINUS expr
+
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+* Production expr -> expr MINUS expr
+expr STAR expr 
+expr MINUS expr @@ 
+
+expr MINUS expr 
+expr @@ STAR expr 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production expr -> expr MINUS expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr MINUS expr 
+expr @@ PLUS expr 
+
+* Production expr -> expr MINUS expr
+expr PLUS expr 
+expr MINUS expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: MINUS
+
+
+* Production expr -> expr MINUS expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr MINUS expr 
+expr @@ MINUS expr 
+
+* Production expr -> expr MINUS expr
+expr MINUS expr 
+expr MINUS expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DIV
+
+* Production expr -> expr MINUS expr
+
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+* Production expr -> expr MINUS expr
+expr DIV expr 
+expr MINUS expr @@ 
+
+expr MINUS expr 
+expr @@ DIV expr 
+
+****************************
+
+
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+* Production expr -> expr PLUS expr
+
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+* Production expr -> expr PLUS expr
+expr STAR expr 
+expr PLUS expr @@ 
+
+expr PLUS expr 
+expr @@ STAR expr 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production expr -> expr PLUS expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr PLUS expr 
+expr @@ PLUS expr 
+
+* Production expr -> expr PLUS expr
+expr PLUS expr 
+expr PLUS expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: MINUS
+
+* Production expr -> expr PLUS expr
+
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+* Production expr -> expr PLUS expr
+expr MINUS expr 
+expr PLUS expr @@ 
+
+expr PLUS expr 
+expr @@ MINUS expr 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DIV
+
+* Production expr -> expr PLUS expr
+
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+* Production expr -> expr PLUS expr
+expr DIV expr 
+expr PLUS expr @@ 
+
+expr PLUS expr 
+expr @@ DIV expr 
+
+****************************
+
+
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+
+* Production expr -> expr STAR expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr STAR expr 
+expr @@ STAR expr 
+
+* Production expr -> expr STAR expr
+expr STAR expr 
+expr STAR expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production expr -> expr STAR expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr STAR expr 
+expr @@ PLUS expr 
+
+* Production expr -> expr STAR expr
+expr PLUS expr 
+expr STAR expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: MINUS
+
+
+* Production expr -> expr STAR expr
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+expr STAR expr 
+expr @@ MINUS expr 
+
+* Production expr -> expr STAR expr
+expr MINUS expr 
+expr STAR expr @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DIV
+
+* Production expr -> expr STAR expr
+
+
+
+>> ContextStart 
+program 
+query EOF 
+UPDATE table_name SET assignment_list 
+                      assignment 
+                      col_name EQ value 
+                                  expr 
+                                  (?)
+>> ContextEnd 
+
+* Production expr -> expr STAR expr
+expr DIV expr 
+expr STAR expr @@ 
+
+expr STAR expr 
+expr @@ DIV expr 
+
+****************************
+
+

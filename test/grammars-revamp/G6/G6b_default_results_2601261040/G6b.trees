@@ -1,0 +1,400 @@
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: IFF
+
+
+* Production bool_expr2 -> NOT bool_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+bool_expr2 
+(?)
+>> ContextEnd 
+
+NOT bool_expr2 
+bool_expr2 @@ IFF bool_expr2 
+
+* Production bool_expr2 -> NOT bool_expr2
+bool_expr2 IFF bool_expr2 
+NOT bool_expr2 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 1
+
+
+** Conflict type shift/reduce.
+** Token: IFF
+
+
+* Production bool_expr2 -> bool_expr2 IFF bool_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+bool_expr2 
+(?)
+>> ContextEnd 
+
+bool_expr2 IFF bool_expr2 
+bool_expr2 @@ IFF bool_expr2 
+
+* Production bool_expr2 -> bool_expr2 IFF bool_expr2
+bool_expr2 IFF bool_expr2 
+bool_expr2 IFF bool_expr2 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: TIMES
+
+
+* Production int_expr2 -> int_expr2 DIVIDE int_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+int_expr2 DIVIDE int_expr2 
+int_expr2 @@ TIMES int_expr2 
+
+* Production int_expr2 -> int_expr2 DIVIDE int_expr2
+int_expr2 TIMES int_expr2 
+int_expr2 DIVIDE int_expr2 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: POWER
+
+* Production int_expr2 -> int_expr2 DIVIDE int_expr2
+
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+* Production int_expr2 -> int_expr2 DIVIDE int_expr2
+int_expr2 POWER int_expr2 
+int_expr2 DIVIDE int_expr2 @@ 
+
+int_expr2 DIVIDE int_expr2 
+int_expr2 @@ POWER int_expr2 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DIVIDE
+
+
+* Production int_expr2 -> int_expr2 DIVIDE int_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+int_expr2 DIVIDE int_expr2 
+int_expr2 @@ DIVIDE int_expr2 
+
+* Production int_expr2 -> int_expr2 DIVIDE int_expr2
+int_expr2 DIVIDE int_expr2 
+int_expr2 DIVIDE int_expr2 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: TIMES
+
+
+* Production int_expr2 -> int_expr2 POWER int_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+int_expr2 POWER int_expr2 
+int_expr2 @@ TIMES int_expr2 
+
+* Production int_expr2 -> int_expr2 POWER int_expr2
+int_expr2 TIMES int_expr2 
+int_expr2 POWER int_expr2 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: POWER
+
+
+* Production int_expr2 -> int_expr2 POWER int_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+int_expr2 POWER int_expr2 
+int_expr2 @@ POWER int_expr2 
+
+* Production int_expr2 -> int_expr2 POWER int_expr2
+int_expr2 POWER int_expr2 
+int_expr2 POWER int_expr2 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DIVIDE
+
+
+* Production int_expr2 -> int_expr2 POWER int_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+int_expr2 POWER int_expr2 
+int_expr2 @@ DIVIDE int_expr2 
+
+* Production int_expr2 -> int_expr2 POWER int_expr2
+int_expr2 DIVIDE int_expr2 
+int_expr2 POWER int_expr2 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: TIMES
+
+
+* Production int_expr2 -> int_expr2 TIMES int_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+int_expr2 TIMES int_expr2 
+int_expr2 @@ TIMES int_expr2 
+
+* Production int_expr2 -> int_expr2 TIMES int_expr2
+int_expr2 TIMES int_expr2 
+int_expr2 TIMES int_expr2 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: POWER
+
+* Production int_expr2 -> int_expr2 TIMES int_expr2
+
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+* Production int_expr2 -> int_expr2 TIMES int_expr2
+int_expr2 POWER int_expr2 
+int_expr2 TIMES int_expr2 @@ 
+
+int_expr2 TIMES int_expr2 
+int_expr2 @@ POWER int_expr2 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DIVIDE
+
+* Production int_expr2 -> int_expr2 TIMES int_expr2
+
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+* Production int_expr2 -> int_expr2 TIMES int_expr2
+int_expr2 DIVIDE int_expr2 
+int_expr2 TIMES int_expr2 @@ 
+
+int_expr2 TIMES int_expr2 
+int_expr2 @@ DIVIDE int_expr2 
+
+****************************
+
+
+
+
+
+Number_tokens: 3
+
+
+** Conflict type shift/reduce.
+** Token: TIMES
+
+
+* Production int_expr2 -> MINUS int_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+MINUS int_expr2 
+int_expr2 @@ TIMES int_expr2 
+
+* Production int_expr2 -> MINUS int_expr2
+int_expr2 TIMES int_expr2 
+MINUS int_expr2 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: POWER
+
+
+* Production int_expr2 -> MINUS int_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+MINUS int_expr2 
+int_expr2 @@ POWER int_expr2 
+
+* Production int_expr2 -> MINUS int_expr2
+int_expr2 POWER int_expr2 
+MINUS int_expr2 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DIVIDE
+
+
+* Production int_expr2 -> MINUS int_expr2
+
+
+>> ContextStart 
+constr 
+bool_expr EOF 
+int_expr1 LT int_expr1 
+int_expr2 
+(?)
+>> ContextEnd 
+
+MINUS int_expr2 
+int_expr2 @@ DIVIDE int_expr2 
+
+* Production int_expr2 -> MINUS int_expr2
+int_expr2 DIVIDE int_expr2 
+MINUS int_expr2 @@ 
+
+****************************
+
+

@@ -1,0 +1,324 @@
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+* Production exp1 -> exp1 DASH exp1
+
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+* Production exp1 -> exp1 DASH exp1
+exp1 STAR exp1 
+exp1 DASH exp1 @@ 
+
+exp1 DASH exp1 
+exp1 @@ STAR exp1 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp1 -> exp1 DASH exp1
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp1 DASH exp1 
+exp1 @@ PLUS exp2 
+
+* Production exp1 -> exp1 DASH exp1
+exp1 PLUS exp2 
+exp1 DASH exp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: EQEQ
+
+* Production exp1 -> exp1 DASH exp1
+
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+* Production exp1 -> exp1 DASH exp1
+exp1 EQEQ exp1 
+exp1 DASH exp1 @@ 
+
+exp1 DASH exp1 
+exp1 @@ EQEQ exp1 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DASH
+
+
+* Production exp1 -> exp1 DASH exp1
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp1 DASH exp1 
+exp1 @@ DASH exp1 
+
+* Production exp1 -> exp1 DASH exp1
+exp1 DASH exp1 
+exp1 DASH exp1 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+
+* Production exp1 -> exp1 EQEQ exp1
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp1 EQEQ exp1 
+exp1 @@ STAR exp1 
+
+* Production exp1 -> exp1 EQEQ exp1
+exp1 STAR exp1 
+exp1 EQEQ exp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp1 -> exp1 EQEQ exp1
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp1 EQEQ exp1 
+exp1 @@ PLUS exp2 
+
+* Production exp1 -> exp1 EQEQ exp1
+exp1 PLUS exp2 
+exp1 EQEQ exp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: EQEQ
+
+
+* Production exp1 -> exp1 EQEQ exp1
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp1 EQEQ exp1 
+exp1 @@ EQEQ exp1 
+
+* Production exp1 -> exp1 EQEQ exp1
+exp1 EQEQ exp1 
+exp1 EQEQ exp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DASH
+
+
+* Production exp1 -> exp1 EQEQ exp1
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp1 EQEQ exp1 
+exp1 @@ DASH exp1 
+
+* Production exp1 -> exp1 EQEQ exp1
+exp1 DASH exp1 
+exp1 EQEQ exp1 @@ 
+
+****************************
+
+
+
+
+
+Number_tokens: 4
+
+
+** Conflict type shift/reduce.
+** Token: STAR
+
+
+* Production exp1 -> exp1 STAR exp1
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp1 STAR exp1 
+exp1 @@ STAR exp1 
+
+* Production exp1 -> exp1 STAR exp1
+exp1 STAR exp1 
+exp1 STAR exp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: PLUS
+
+
+* Production exp1 -> exp1 STAR exp1
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp1 STAR exp1 
+exp1 @@ PLUS exp2 
+
+* Production exp1 -> exp1 STAR exp1
+exp1 PLUS exp2 
+exp1 STAR exp1 @@ 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: EQEQ
+
+* Production exp1 -> exp1 STAR exp1
+
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+* Production exp1 -> exp1 STAR exp1
+exp1 EQEQ exp1 
+exp1 STAR exp1 @@ 
+
+exp1 STAR exp1 
+exp1 @@ EQEQ exp1 
+
+****************************
+
+
+
+
+** Conflict type shift/reduce.
+** Token: DASH
+
+
+* Production exp1 -> exp1 STAR exp1
+
+
+>> ContextStart 
+prog 
+expr EOF 
+exp1 LPAREN COMMA exp1 RPAREN SEMI 
+(?)
+>> ContextEnd 
+
+exp1 STAR exp1 
+exp1 @@ DASH exp1 
+
+* Production exp1 -> exp1 STAR exp1
+exp1 DASH exp1 
+exp1 STAR exp1 @@ 
+
+****************************
+
+
