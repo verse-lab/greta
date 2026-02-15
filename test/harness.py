@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 
 import os
+import subprocess
+import signal
+import sys
 import pandas as pd
 import aggregator
 import table_generator
 import scatter
+
+
+def run(cmd):
+    """Run a shell command, propagating CTRL+C to terminate both child and parent."""
+    proc = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
+    try:
+        proc.wait()
+    except KeyboardInterrupt:
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        sys.exit(1)
 
 def check_for_timeouts(grammars, postfix, modes=["default"]):
     """Check all grammar result CSVs for timeout cases and print warnings."""
@@ -26,7 +39,7 @@ def check_for_timeouts(grammars, postfix, modes=["default"]):
     print("=== End timeout check ===\n")
     return found_timeouts
 
-postfix = "2601261040"
+postfix = "artifact"
 grammars = {
     "grammars-revamp/G0": ["G0a"],
     "grammars-revamp/G1": ["G1a", "G1b", "G1c"],
@@ -67,8 +80,8 @@ for mode in intersection_modes:
                 exceeded_rounds = [f for f in files if f.count('_') >= 2]
                 for f in exceeded_rounds:
                     print(f"Skipping {f}.mly as it has exceeded the maximum number of rounds")
-                    os.system(f"echo 'Path,Result,Convert Time,Learn Time,Intersect Time' > {folder}/{f}.csv")
-                    os.system(f"echo ',EXCEEDED_ROUNDS,,,' >> {folder}/{f}.csv")
+                    run(f"echo 'Path,Result,Convert Time,Learn Time,Intersect Time' > {folder}/{f}.csv")
+                    run(f"echo ',EXCEEDED_ROUNDS,,,' >> {folder}/{f}.csv")
                     seen_files.append(f)
 
                 files = [f for f in files if f.count('_') < 2]
@@ -90,28 +103,28 @@ for mode in intersection_modes:
                                 old_content = old_file.read()
                                 if new_content == old_content:
                                     print(f"Skipping {f}.mly as it is identical to {previous_file}.mly")
-                                    os.system(f"echo 'Path,Result,Convert Time,Learn Time,Intersect Time' > {folder}/{f}.csv")
-                                    os.system(f"echo ',REPEATED_OUTPUT,,,' >> {folder}/{f}.csv")
+                                    run(f"echo 'Path,Result,Convert Time,Learn Time,Intersect Time' > {folder}/{f}.csv")
+                                    run(f"echo ',REPEATED_OUTPUT,,,' >> {folder}/{f}.csv")
                                     continue
 
-                    os.system(f"menhir --greta --explain {folder}/{f}.mly")
-                    os.system(f"./harness.exp {folder}/{f} {mode}")
-                    os.system(f"mv test_results.csv {folder}/{f}.csv")
+                    run(f"menhir --greta --explain {folder}/{f}.mly")
+                    run(f"./harness.exp {folder}/{f} {mode}")
+                    run(f"mv test_results.csv {folder}/{f}.csv")
                 
                 seen_files += unseen_files
             
             # move seen files to a new folder {variant}_results
             results_folder = f"{folder}/{variant}_{mode}_results_{postfix}"
-            os.system(f"mkdir -p {results_folder}")
-            os.system(f"rm -f {results_folder}/*")
+            run(f"mkdir -p {results_folder}")
+            run(f"rm -f {results_folder}/*")
             for f in seen_files:
-                os.system(f"mv {folder}/{f}.csv {results_folder}/{f}.csv")
-                os.system(f"mv {folder}/{f}.cfg {results_folder}/{f}.cfg")
-                os.system(f"mv {folder}/{f}.conflicts {results_folder}/{f}.conflicts")
-                os.system(f"mv {folder}/{f}.trees {results_folder}/{f}.trees")
+                run(f"mv {folder}/{f}.csv {results_folder}/{f}.csv")
+                run(f"mv {folder}/{f}.cfg {results_folder}/{f}.cfg")
+                run(f"mv {folder}/{f}.conflicts {results_folder}/{f}.conflicts")
+                run(f"mv {folder}/{f}.trees {results_folder}/{f}.trees")
 
                 if (f != variant):
-                    os.system(f"mv {folder}/{f}.mly {results_folder}/{f}.mly")
+                    run(f"mv {folder}/{f}.mly {results_folder}/{f}.mly")
 
             seen_files = []
             exist_unseen = True
@@ -135,7 +148,9 @@ wo_opt_grammars = { (grammar, mode): f"{folder}/{grammar}_{mode}_results_{postfi
                     for folder, grammar_list in grammars.items()
                     for grammar in grammar_list
                     for mode in ["wo_opt1", "wo_opt2", "wo_opt3", "wo_opt123"] }
-table_generator.generate_tables(default_grammars, wo_opt_grammars)
+latex_table = table_generator.generate_tables(default_grammars, wo_opt_grammars)
+with open(f"{postfix}_table.tex", 'w') as f:
+    f.write(latex_table)
 
 ambiguity_map = {'G0a': 5,     # 5 shift/reduce conflicts
                 'G1a': 4,      # 4 shift/reduce conflicts

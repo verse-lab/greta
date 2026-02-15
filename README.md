@@ -225,6 +225,23 @@ cd ../greta/test
 ./harness.py
 ```
 
+#### 3. Generated files
+
+The harness produces the following outputs:
+
+- **Per-grammar results** — For each grammar variant and mode, a results
+  folder is created at
+  `grammars-revamp/<group>/<variant>_<mode>_results_artifact/` containing
+  individual CSV files, `.cfg`, `.conflicts`, `.trees`, and any
+  intermediate `.mly` files.
+- **Aggregated results** — `results.csv` inside each results folder,
+  produced by the aggregator.
+- **LaTeX table** — `artifact_table.tex` in the `test/` directory,
+  containing the full evaluation table ready for inclusion in a paper.
+- **Scatter plots** — `convert_time_vs_ambiguities.pdf`,
+  `learn_time_vs_ambiguities.pdf`, and
+  `intersect_time_vs_ambiguities.pdf` in the `test/` directory.
+
 ### Reference
 
 [1] Michael D. Adams and Matthew Might.
