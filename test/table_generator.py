@@ -539,4 +539,5 @@ def generate_tables(grammars, wo_opt_grammars=None):
                                 prods_map, prec_map, assoc_map, ambiguities_map,
                                 manual_time_map, manual_prod_edits_map)
     print(latex_table)
+    return latex_table
 
