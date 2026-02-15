@@ -225,6 +225,43 @@ cd ../greta/test
 ./harness.py
 ```
 
+**macOS Python Environment Notes**
+
+When running the test harness on macOS, you may encounter errors such
+as `ModuleNotFoundError: No module named 'pandas'` or
+`ModuleNotFoundError: No module named 'matplotlib'`.
+
+If you try installing these packages with:
+```
+python3 -m pip install pandas matplotlib
+```
+you may instead see `error: externally-managed-environment`.
+
+This happens because Python installed via Homebrew (or other system
+package managers) prevents pip from modifying the system-managed
+environment.
+
+**Recommended solution: use a virtual environment**
+
+From the project root directory:
+```
+cd /path/to/greta
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install pandas matplotlib
+```
+
+Then run the harness while the virtual environment is active:
+```
+cd test
+./harness.py
+```
+That is, you will need to activate the virtual environment (`source
+.venv/bin/activate`) whenever you run the test harness in a new
+terminal session.
+
+
 #### 3. Generated files
 
 The harness produces the following outputs:
