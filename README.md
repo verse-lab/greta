@@ -225,11 +225,10 @@ cd ../greta/test
 ./harness.py
 ```
 
-**macOS Python Environment Notes**
+**Python Environment Notes**
 
-When running the test harness on macOS, you may encounter errors such
-as `ModuleNotFoundError: No module named 'pandas'` or
-`ModuleNotFoundError: No module named 'matplotlib'`.
+When running the test harness, you may encounter errors about
+uninstalled packages.
 
 If you try installing these packages with:
 ```
@@ -237,8 +236,8 @@ python3 -m pip install pandas matplotlib
 ```
 you may instead see `error: externally-managed-environment`.
 
-This happens because Python installed via Homebrew (or other system
-package managers) prevents pip from modifying the system-managed
+This happens because Python installed via the system
+package manager prevents pip from modifying the system-managed
 environment.
 
 **Recommended solution: use a virtual environment**
