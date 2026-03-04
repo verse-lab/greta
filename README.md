@@ -225,6 +225,18 @@ cd ../greta/test
 ./harness.py
 ```
 
+By default, `harness.py` runs all steps. You can run individual steps
+with flags:
+
+```bash
+./harness.py --run              # Run the main harness loop only
+./harness.py --aggregate        # Aggregate results only
+./harness.py --check-timeouts   # Check for timeouts only
+./harness.py --tables           # Generate tables and plots only
+```
+
+Flags can be combined, e.g. `./harness.py --check-timeouts --tables`.
+
 #### 3. Generated files
 
 The harness produces the following outputs:
@@ -236,11 +248,15 @@ The harness produces the following outputs:
   intermediate `.mly` files.
 - **Aggregated results** — `results.csv` inside each results folder,
   produced by the aggregator.
-- **LaTeX table** — `artifact_table.tex` in the `test/` directory,
-  containing the full evaluation table ready for inclusion in a paper.
+- **LaTeX table** — `<postfix>_table.tex` in the `test/` directory,
+  a standalone LaTeX document containing the full evaluation table.
+  To build it into a PDF:
+  ```bash
+  pdflatex <postfix>_table.tex
+  ```
 - **Scatter plots** — `convert_time_vs_ambiguities.pdf`,
   `learn_time_vs_ambiguities.pdf`, and
-  `intersect_time_vs_ambiguities.pdf` in the `test/` directory.
+  `intersect_time_vs_ambiguities.pdf` in the `test/plots` directory.
 
 ### Reference
 
