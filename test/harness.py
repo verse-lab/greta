@@ -48,7 +48,7 @@ def check_for_timeouts(grammars, postfix, modes=["default"]):
     print("=== End timeout check ===\n")
     return found_timeouts
 
-postfix = "2603040230"
+postfix = "artifact"
 grammars = {
     "grammars-revamp/G0": ["G0a"],
     "grammars-revamp/G1": ["G1a", "G1b", "G1c"],
