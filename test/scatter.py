@@ -1,3 +1,18 @@
+import matplotlib
+matplotlib.use('pgf')
+matplotlib.rcParams.update({
+    'pgf.texsystem': 'pdflatex',
+    'font.family': 'serif',
+    'text.usetex': True,
+    'pgf.rcfonts': False,
+    'pgf.preamble': r'\usepackage{libertine} \usepackage[libertine]{newtxmath}',
+    'font.size': 22,
+    'axes.labelsize': 26,
+    'axes.titlesize': 28,
+    'xtick.labelsize': 22,
+    'ytick.labelsize': 22,
+    'legend.fontsize': 18,
+})
 import matplotlib.pyplot as plt
 import pandas as pd
 import glob
@@ -51,8 +66,7 @@ def create_plots(variant, data_dirs, ambiguity_map, output_dir='plots'):
 
     # Function to create a single plot and save as SVG
     def create_single_plot(metric_name, title, filename):
-        plt.figure(figsize=(8, 6))
-        plt.rcParams.update({'font.size': 16})  # Increases all fonts
+        plt.figure(figsize=(10, 7))
 
         for i, grammar_base in enumerate(['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G9']):
             # Filter results for this grammar base
@@ -72,7 +86,7 @@ def create_plots(variant, data_dirs, ambiguity_map, output_dir='plots'):
         plt.ylabel('Average Time (ms)')
         plt.title(f'Average {title} vs Ambiguities')
         plt.grid(True, linestyle='--', alpha=0.7)
-        plt.legend()
+        plt.legend(loc='best')
         plt.tight_layout()
         
         # Save as SVG
