@@ -289,6 +289,7 @@ The harness produces the following outputs:
   ```bash
   pdflatex <postfix>_table.tex
   ```
+  To compare with the paper: The results should agree on all 0% success rates, all 100% success rates and all others should be <= 50%
 - **Scatter plots** — `convert_time_vs_ambiguities.pdf`,
   `learn_time_vs_ambiguities.pdf`, and
   `intersect_time_vs_ambiguities.pdf` in the `test/plots` directory.
